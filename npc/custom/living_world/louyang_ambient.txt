@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Louyang Ambient Population
+//============================================================
+
+-	script	LWLouyangController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefResident; callsub S_RefTeaSeller; callsub S_RefVisitor; callsub S_RefCourier; callsub S_RefElder;
+	if (rand(100) <= 26) callsub S_Talk;
+	if (rand(100) <= 36) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Louyang feels busy without ever seeming rushed.","Some towns speak softly and still keep your attention.","I like the steadiness here."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Tea and conversation keep a town alive as surely as trade.","A market can feel gentle and still be active.","Louyang has a warm kind of commerce."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("Travelers arrive curious and leave calmer.","Louyang changes your pace if you let it.","A town can be memorable without being loud."); break;
+	case 3: npctalk F_Rand("Errands pass more pleasantly through a place like this.","Even quiet towns depend on people moving things around.","A little order keeps the mood light."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Older towns carry their atmosphere in the streets.","Louyang feels lived in, not staged.","I trust places that feel settled."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefResident: .active_npc$[0]="Louyang Resident"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Louyang Resident",1,217,104; break; case 2: callfunc "F_LW_SetActor","Louyang Resident",1,229,98; break; case 3: callfunc "F_LW_SetActor","Louyang Resident",1,239,110; break; } return;
+S_RefTeaSeller: .active_npc$[1]="Tea Seller"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Tea Seller",1,224,103; break; case 2: callfunc "F_LW_SetActor","Tea Seller",1,236,103; break; case 3: callfunc "F_LW_SetActor","Tea Seller",1,245,96; break; } return;
+S_RefVisitor: .active_npc$[2]="Calm Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Calm Visitor",1,226,103; break; case 2: callfunc "F_LW_SetActor","Calm Visitor",1,241,117; break; case 3: callfunc "F_LW_SetActor","Calm Visitor",1,213,94; break; } return;
+S_RefCourier: .active_npc$[3]="Market Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Market Courier",1,232,103; break; case 2: callfunc "F_LW_SetActor","Market Courier",1,247,108; break; case 3: callfunc "F_LW_SetActor","Market Courier",1,219,113; break; } return;
+S_RefElder: .active_npc$[4]="Old Townsman"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Old Townsman",1,222,91; break; case 2: callfunc "F_LW_SetActor","Old Townsman",1,244,88; break; case 3: callfunc "F_LW_SetActor","Old Townsman",1,236,121; break; } return;
+}
+louyang,217,104,4	script	Louyang Resident	4_F_01,{ mes "[Louyang Resident]"; mes F_Rand("I like towns that keep a calm rhythm.","Louyang feels busy in a gentle way.","It's easy to settle into the day here."); close; }
+louyang,224,103,4	script	Tea Seller	4W_M_02,{ mes "[Tea Seller]"; mes F_Rand("Good trade doesn't need to be loud.","Louyang buys conversation with its tea.","A warm market gives a town its tone."); close; }
+louyang,226,103,4	script	Calm Visitor	4_M_03,{ mes "[Calm Visitor]"; mes F_Rand("This town changes your pace almost immediately.","I feel less hurried here.","Louyang stays with you."); close; }
+louyang,232,103,4	script	Market Courier	4_M_02,{ mes "[Market Courier]"; mes F_Rand("Quiet towns still need movement under the surface.","I carry more than people notice.","Order helps preserve the calm."); close; }
+louyang,222,91,4	script	Old Townsman	4_M_01,{ mes "[Old Townsman]"; mes F_Rand("A settled town carries itself differently.","Louyang has the confidence of an old place.","I trust streets that feel this familiar."); close; }
