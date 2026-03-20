@@ -11,6 +11,14 @@
 // Optional healer parity for towns not covered by the stock script.
 // ------------------------------------------------------------------
 lasagna,198,190,4	duplicate(Healer)	Healer::HubHealerLas	909
+harboro1,154,217,4	duplicate(Healer)	Healer::HubHealerRock	909
+verus04,174,167,4	duplicate(Healer)	Healer::HubHealerVer	909
+
+// ------------------------------------------------------------------
+// Optional warper parity for newer hubs not covered by the stock script.
+// ------------------------------------------------------------------
+harboro1,152,215,4	duplicate(Warper)	Warper::HubWarpRock	811
+verus04,172,165,4	duplicate(Warper)	Warper::HubWarpVer	811
 
 // ------------------------------------------------------------------
 // Hub wrapper duplicates
@@ -431,6 +439,32 @@ lasagna,204,188,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardLas	78
 lasagna,206,186,4	duplicate(Vomars)	Vomars::HubMarriageLas	60
 lasagna,208,188,4	duplicate(Happy Marry)	Happy Marry::HubWeddingLas	67
 lasagna,210,186,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideLas	79
+
+harboro1,158,215,4	duplicate(Job Master)	Job Master::HubJobRock	123
+harboro1,160,217,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatRock	94
+harboro1,162,215,4	duplicate(Reset Girl)	Reset Girl::HubResetRock	124
+harboro1,164,217,4	duplicate(Banker)	Banker::HubBankRock	109
+harboro1,166,215,4	duplicate(Questboard)	Questboard::HubBoardRock	4_BOARD3
+harboro1,169,214,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntRock	4_F_EDEN_MASTER
+harboro1,171,216,4	duplicate(Quest Shop#1)	Quest Shop::HubShopRock	998
+harboro1,173,214,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleRock	122
+harboro1,175,216,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardRock	78
+harboro1,177,214,4	duplicate(Vomars)	Vomars::HubMarriageRock	60
+harboro1,179,216,4	duplicate(Happy Marry)	Happy Marry::HubWeddingRock	67
+harboro1,181,214,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideRock	79
+
+verus04,178,165,4	duplicate(Job Master)	Job Master::HubJobVer	123
+verus04,180,167,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatVer	94
+verus04,182,165,4	duplicate(Reset Girl)	Reset Girl::HubResetVer	124
+verus04,184,167,4	duplicate(Banker)	Banker::HubBankVer	109
+verus04,186,165,4	duplicate(Questboard)	Questboard::HubBoardVer	4_BOARD3
+verus04,189,164,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntVer	4_F_EDEN_MASTER
+verus04,191,166,4	duplicate(Quest Shop#1)	Quest Shop::HubShopVer	998
+verus04,193,164,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleVer	122
+verus04,195,166,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardVer	78
+verus04,197,164,4	duplicate(Vomars)	Vomars::HubMarriageVer	60
+verus04,199,166,4	duplicate(Happy Marry)	Happy Marry::HubWeddingVer	67
+verus04,201,164,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideVer	79
 
 malangdo,123,114,4	duplicate(Job Master)	Job Master::HubJobMal	123
 malangdo,125,116,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMal	94
