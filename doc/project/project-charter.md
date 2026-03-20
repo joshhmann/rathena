@@ -76,12 +76,23 @@ Current validated baseline:
 - server packetver: `20250604`
 - client/server login path: confirmed working
 
+## Current Direction
+
+The server should stay as raw as practical while we build atmosphere.
+
+That means:
+
+- stay close to upstream rAthena
+- prefer script/content work over source changes
+- make towns and common maps feel inhabited before attempting fake players
+- treat ML, LLM, and external AI control as future integrations, not current dependencies
+
 ## Next Milestones
 
-1. Repository hygiene and initial push of the working client branch.
-2. Commit the validated `2025-06-04` baseline and setup-script fixes.
-3. Document the client packaging assumptions more precisely.
-4. Start the first living-world MVP design work.
+1. Polish the Prontera living-world MVP until it feels intentional in play.
+2. Audit existing `npc/custom/` scripts and enable only the ones that improve town life without cheapening progression.
+3. Expand the ambient system to one additional town and one low-level field map.
+4. Define a future bridge contract for AI systems, but keep that work on the backburner until the scripted world layer is strong.
 
 ## Open Questions
 
@@ -89,3 +100,4 @@ Current validated baseline:
 - final patcher distribution method
 - whether `2025-06-04` remains the long-term baseline or only the current working branch
 - how far simulation can go with script-only systems before source work starts
+- which official/custom convenience NPCs improve atmosphere versus making the server feel over-automated
