@@ -29,7 +29,7 @@ Definition of done:
 
 ## Milestone 1: Prontera Feels Alive
 
-Status: in progress
+Status: complete
 
 Goals:
 
@@ -49,39 +49,40 @@ Exit criteria:
 - no script errors on startup
 - no blocked warps, guides, or service counters
 - visible ambient activity around core Prontera zones
-- at least two existing custom service NPCs evaluated and intentionally kept or removed
+- Prontera established as the main convenience hub with intentional service coverage
 
 ## Milestone 2: Reusable Town System
 
-Status: planned
+Status: complete
 
 Goals:
 
 - convert the Prontera pattern into a reusable town-population template
-- expand to one second city
-
-Recommended target towns:
-
-- Izlude
-- Alberta
-- Payon
+- expand the pattern across the town network
 
 Scope:
 
 - common controller pattern for town ambience
 - role-based hotspot sets per city
 - city-specific dialogue pools
-- one city chosen for the second implementation
+- hub-service parity for supported towns
+- rollout through classic, flavor, frontier, and newer hub maps
 
 Exit criteria:
 
-- second town implemented with the same architecture
-- no copy-paste-only script sprawl
+- town rollout implemented through Waves 1-5
+- no parser/runtime errors from the living-world layer
 - shared conventions documented in `doc/project/`
+
+Implementation note:
+
+- current town layouts are accepted as the functional baseline
+- service clusters are intentionally simple for now
+- map-aware coordinate polish is deferred to a later pass
 
 ## Milestone 3: Overworld Activity
 
-Status: planned
+Status: next
 
 Goals:
 

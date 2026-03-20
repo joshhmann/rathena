@@ -7,10 +7,10 @@ scripts. Avoid deep source divergence.
 
 ## Immediate Tasks
 
-- playtest Prontera and adjust any ambient NPC that stands on bad tiles
-- expand Prontera dialogue pools so actors do not feel repetitive
-- decide whether `bank.txt` and `questboard.txt` belong in the permanent town baseline
-- document the chosen Prontera hotspot zones with coordinates
+- define the next gameplay/content layer that sits on top of the completed town network
+- choose the first overworld or field-map slice to make feel active
+- identify which town services should feed players into nearby content loops
+- capture any obvious town placement issues found during normal playtesting
 
 ## Existing rAthena Custom NPCs Worth Evaluating
 
@@ -54,8 +54,8 @@ adapted without committing to heavy engine work.
 
 ## Content Expansion Order
 
-1. Prontera polish
-2. one second town
+1. town/hub baseline complete
+2. coordinate and layout polish when it becomes worth the time
 3. one nearby field map
 4. one reusable service/progression loop
 5. one companion or helper prototype
@@ -69,6 +69,8 @@ adapted without committing to heavy engine work.
 
 ## Deferred Work
 
+- map-aware coordinate polish for towns and hub-service clusters
+- more hand-authored landmark-based ambient placements
 - fake player entities
 - bot-style autonomous actors
 - ML-driven behavior systems
