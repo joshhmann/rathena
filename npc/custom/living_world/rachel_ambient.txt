@@ -1,0 +1,40 @@
+//===== rAthena Script =======================================
+//= Rachel Ambient Population
+//============================================================
+
+-	script	LWRachelController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefPilgrim; callsub S_RefLocal; callsub S_RefVendor; callsub S_RefTraveler; callsub S_RefClerk; callsub S_RefYoungBeliever;
+	if (rand(100) <= 28) callsub S_Talk;
+	if (rand(100) <= 38) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("People come here carrying hope and questions.","Pilgrim towns carry a different kind of traffic.","Rachel feels serious in a way I respect."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("A sacred city can still feel lived in.","Rachel slows people down, even when it's busy.","I like the gravity this place has."); break;
+	case 2: npctalk F_Rand("Travelers still need food, cloth, and rest.","Pilgrimage is good for business, quietly.","This city buys with purpose."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("I came for the sanctuary, but the whole town has presence.","Some places ask for attention the moment you enter.","Rachel feels larger than its streets."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("A city with this many visitors always needs paperwork.","Order matters more in pilgrimage towns.","Someone has to keep track of everything."), .active_npc$[.@actor]; break;
+	case 5: npctalk F_Rand("I want to understand why people revere this city so deeply.","The mood here makes you stand a little straighter.","Even the quiet parts of Rachel feel meaningful."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefPilgrim: .active_npc$[0]="Pilgrim"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Pilgrim",1,118,117; break; case 2: callfunc "F_LW_SetActor","Pilgrim",1,131,112; break; case 3: callfunc "F_LW_SetActor","Pilgrim",1,141,118; break; } return;
+S_RefLocal: .active_npc$[1]="Rachel Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rachel Local",1,125,116; break; case 2: callfunc "F_LW_SetActor","Rachel Local",1,134,125; break; case 3: callfunc "F_LW_SetActor","Rachel Local",1,112,108; break; } return;
+S_RefVendor: .active_npc$[2]="Sanctuary Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Sanctuary Vendor",1,122,116; break; case 2: callfunc "F_LW_SetActor","Sanctuary Vendor",1,138,109; break; case 3: callfunc "F_LW_SetActor","Sanctuary Vendor",1,147,123; break; } return;
+S_RefTraveler: .active_npc$[3]="Visiting Worshipper"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Visiting Worshipper",1,125,104; break; case 2: callfunc "F_LW_SetActor","Visiting Worshipper",1,144,116; break; case 3: callfunc "F_LW_SetActor","Visiting Worshipper",1,109,122; break; } return;
+S_RefClerk: .active_npc$[4]="Temple Clerk"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Temple Clerk",1,127,116; break; case 2: callfunc "F_LW_SetActor","Temple Clerk",1,116,128; break; case 3: callfunc "F_LW_SetActor","Temple Clerk",1,151,110; break; } return;
+S_RefYoungBeliever: .active_npc$[5]="Young Believer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Young Believer",1,120,102; break; case 2: callfunc "F_LW_SetActor","Young Believer",1,137,131; break; case 3: callfunc "F_LW_SetActor","Young Believer",1,146,101; break; } return;
+}
+rachel,118,117,4	script	Pilgrim	4_M_03,{ mes "[Pilgrim]"; mes F_Rand("I came here seeking something steadier than the road.","Rachel feels weighty in the best way.","Pilgrimage towns gather a different kind of crowd."); close; }
+rachel,125,116,4	script	Rachel Local	4_F_01,{ mes "[Rachel Local]"; mes F_Rand("A sacred city still has ordinary days.","Rachel is busy in a quiet way.","I like the seriousness of this town."); close; }
+rachel,122,116,4	script	Sanctuary Vendor	4W_M_02,{ mes "[Sanctuary Vendor]"; mes F_Rand("Travelers always need something before they continue.","Even holy cities run on commerce.","Rachel business is steady and focused."); close; }
+rachel,125,104,4	script	Visiting Worshipper	4_F_02,{ mes "[Visiting Worshipper]"; mes F_Rand("The city feels meaningful the moment you enter.","I understand why people make the trip.","Rachel leaves a strong impression."); close; }
+rachel,127,116,4	script	Temple Clerk	4_M_02,{ mes "[Temple Clerk]"; mes F_Rand("A city of visitors needs order.","People see the sanctity. I see the schedules.","Keeping things moving is its own service."); close; }
+rachel,120,102,4	script	Young Believer	4_F_KID2,{ mes "[Young Believer]"; mes F_Rand("I want to understand this city properly someday.","Rachel makes reverence feel real.","Even the streets feel solemn."); close; }

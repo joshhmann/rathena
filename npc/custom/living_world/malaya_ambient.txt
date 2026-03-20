@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Malaya Ambient Population
+//============================================================
+
+-	script	LWMalayaController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefLocal; callsub S_RefBoatman; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefCaretaker;
+	if (rand(100) <= 25) callsub S_Talk;
+	if (rand(100) <= 35) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Malaya feels lived in before it feels visited.","Coastal towns carry old stories differently.","I like the mood here."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Water keeps towns honest and connected.","A coastal city moves to a different rhythm.","The harbor shapes everything here."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("Malaya feels distinct the moment you arrive.","Some towns have atmosphere you can feel immediately.","This one stays with you."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Even story-rich towns still need ordinary trade.","People still buy food, cloth, and preparation.","Mood changes commerce more than people admit."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Older coastal towns need people maintaining them quietly.","Every place with character still depends on routine work.","Malaya feels preserved as much as inhabited."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefLocal: .active_npc$[0]="Malaya Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Malaya Local",1,218,204; break; case 2: callfunc "F_LW_SetActor","Malaya Local",1,231,197; break; case 3: callfunc "F_LW_SetActor","Malaya Local",1,241,207; break; } return;
+S_RefBoatman: .active_npc$[1]="Harbor Boatman"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Harbor Boatman",1,227,204; break; case 2: callfunc "F_LW_SetActor","Harbor Boatman",1,244,201; break; case 3: callfunc "F_LW_SetActor","Harbor Boatman",1,211,212; break; } return;
+S_RefVisitor: .active_npc$[2]="Coastal Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Coastal Visitor",1,235,204; break; case 2: callfunc "F_LW_SetActor","Coastal Visitor",1,247,214; break; case 3: callfunc "F_LW_SetActor","Coastal Visitor",1,214,193; break; } return;
+S_RefVendor: .active_npc$[3]="Malaya Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Malaya Vendor",1,224,204; break; case 2: callfunc "F_LW_SetActor","Malaya Vendor",1,238,217; break; case 3: callfunc "F_LW_SetActor","Malaya Vendor",1,250,204; break; } return;
+S_RefCaretaker: .active_npc$[4]="Malaya Caretaker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Malaya Caretaker",1,230,204; break; case 2: callfunc "F_LW_SetActor","Malaya Caretaker",1,217,190; break; case 3: callfunc "F_LW_SetActor","Malaya Caretaker",1,253,212; break; } return;
+}
+malaya,218,204,4	script	Malaya Local	4_F_01,{ mes "[Malaya Local]"; mes F_Rand("Malaya feels lived in before anything else.","Older coastal towns carry their own atmosphere.","I like how much character the place has."); close; }
+malaya,227,204,4	script	Harbor Boatman	4_M_02,{ mes "[Harbor Boatman]"; mes F_Rand("Water routes shape towns more than most visitors notice.","The harbor sets the pace here.","Coastal movement keeps Malaya alive."); close; }
+malaya,235,204,4	script	Coastal Visitor	4_M_03,{ mes "[Coastal Visitor]"; mes F_Rand("This town leaves an impression immediately.","Some places feel story-rich the moment you arrive.","Malaya has that quality."); close; }
+malaya,224,204,4	script	Malaya Vendor	4W_M_02,{ mes "[Malaya Vendor]"; mes F_Rand("Even atmospheric towns still run on normal trade.","People buy the practical things before anything else.","Mood changes business more than you'd think."); close; }
+malaya,230,204,4	script	Malaya Caretaker	4_F_02,{ mes "[Malaya Caretaker]"; mes F_Rand("Older places need quiet maintenance to stay themselves.","Routine work preserves atmosphere.","Malaya feels cared for."); close; }

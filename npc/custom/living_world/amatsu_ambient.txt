@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Amatsu Ambient Population
+//============================================================
+
+-	script	LWAmatsuController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefResident; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefServant; callsub S_RefPilgrim;
+	if (rand(100) <= 26) callsub S_Talk;
+	if (rand(100) <= 36) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Amatsu feels formal, but never lifeless.","The town carries its history openly.","I like how composed everything feels."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Traveling this far makes a town feel special.","Amatsu has a stillness that draws people in.","Some places ask you to slow down. This is one."); break;
+	case 2: npctalk F_Rand("A quiet town still has markets and needs.","People buy carefully here.","Trade adapts to the mood of a place."); break;
+	case 3: npctalk F_Rand("Formal towns run on small duties done properly.","Everything looks smooth because someone keeps it that way.","Order has its own kind of labor."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Places with old shrines always change the pace of visitors.","Amatsu feels reverent without feeling closed.","I understand why people travel here."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefResident: .active_npc$[0]="Amatsu Resident"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Amatsu Resident",1,191,80; break; case 2: callfunc "F_LW_SetActor","Amatsu Resident",1,203,73; break; case 3: callfunc "F_LW_SetActor","Amatsu Resident",1,214,83; break; } return;
+S_RefVisitor: .active_npc$[1]="Polite Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Polite Visitor",1,200,79; break; case 2: callfunc "F_LW_SetActor","Polite Visitor",1,217,75; break; case 3: callfunc "F_LW_SetActor","Polite Visitor",1,186,87; break; } return;
+S_RefVendor: .active_npc$[2]="Amatsu Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Amatsu Vendor",1,197,79; break; case 2: callfunc "F_LW_SetActor","Amatsu Vendor",1,209,90; break; case 3: callfunc "F_LW_SetActor","Amatsu Vendor",1,221,79; break; } return;
+S_RefServant: .active_npc$[3]="House Servant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","House Servant",1,205,79; break; case 2: callfunc "F_LW_SetActor","House Servant",1,194,66; break; case 3: callfunc "F_LW_SetActor","House Servant",1,225,87; break; } return;
+S_RefPilgrim: .active_npc$[4]="Shrine Pilgrim"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Shrine Pilgrim",1,210,68; break; case 2: callfunc "F_LW_SetActor","Shrine Pilgrim",1,189,93; break; case 3: callfunc "F_LW_SetActor","Shrine Pilgrim",1,228,73; break; } return;
+}
+amatsu,191,80,4	script	Amatsu Resident	4_F_01,{ mes "[Amatsu Resident]"; mes F_Rand("A place like this teaches patience.","I like how grounded Amatsu feels.","Quiet towns can still feel alive."); close; }
+amatsu,200,79,4	script	Polite Visitor	4_M_03,{ mes "[Polite Visitor]"; mes F_Rand("Traveling here feels worth the effort.","Amatsu carries itself beautifully.","I don't mind slowing down here."); close; }
+amatsu,197,79,4	script	Amatsu Vendor	4W_M_02,{ mes "[Amatsu Vendor]"; mes F_Rand("Even graceful towns need ordinary trade.","People buy with care here.","The market follows the town's mood."); close; }
+amatsu,205,79,4	script	House Servant	4_F_02,{ mes "[House Servant]"; mes F_Rand("Order takes quiet work to maintain.","A smooth town still depends on effort.","I prefer duties done properly."); close; }
+amatsu,210,68,4	script	Shrine Pilgrim	4_M_02,{ mes "[Shrine Pilgrim]"; mes F_Rand("Places like this change how you walk.","The town feels reverent without being heavy.","I understand why Amatsu draws people in."); close; }

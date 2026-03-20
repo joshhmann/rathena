@@ -1,0 +1,41 @@
+//===== rAthena Script =======================================
+//= Geffen Ambient Population
+//============================================================
+
+-	script	LWGeffenController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefMage; callsub S_RefScholar; callsub S_RefInnCrowd; callsub S_RefMerchant; callsub S_RefVisitor; callsub S_RefApprentice;
+	if (rand(100) <= 32) callsub S_Talk;
+	if (rand(100) <= 42) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Geffen likes people who look like they know secrets.","Everyone here talks like they know more than they say.","Magic towns are never truly quiet."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Theory sounds cleaner than practice until the books catch fire.","A tower town attracts curious minds.","You can learn a lot just by listening near the square."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("The inn gets louder as the evening goes on.","Geffen after dark has a different personality.","Nightlife and magic mix more than people admit."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Mages still need supplies, even if they act above shopping.","Every city has a market pulse. Geffen's is sharp.","Busy towns sell more than goods. They sell rumors."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("I came for the tower and stayed for the atmosphere.","Geffen feels intense in a way I like.","Some cities feel sleepy. This one feels awake."), .active_npc$[.@actor]; break;
+	case 5: npctalk F_Rand("Someday I'll understand half the things people say here.","Everyone in Geffen walks like they're on a mission.","It makes me want to study harder."), .active_npc$[.@actor]; break;
+	}
+	return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefMage: .active_npc$[0]="Town Mage"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Town Mage",1,110,73; break; case 2: callfunc "F_LW_SetActor","Town Mage",1,122,67; break; case 3: callfunc "F_LW_SetActor","Town Mage",1,132,74; break; } return;
+S_RefScholar: .active_npc$[1]="Arcane Scholar"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Arcane Scholar",1,117,82; break; case 2: callfunc "F_LW_SetActor","Arcane Scholar",1,127,84; break; case 3: callfunc "F_LW_SetActor","Arcane Scholar",1,107,91; break; } return;
+S_RefInnCrowd: .active_npc$[2]="Inn Regular"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Inn Regular",1,119,61; break; case 2: callfunc "F_LW_SetActor","Inn Regular",1,134,61; break; case 3: callfunc "F_LW_SetActor","Inn Regular",1,139,78; break; } return;
+S_RefMerchant: .active_npc$[3]="Supply Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Supply Merchant",1,115,72; break; case 2: callfunc "F_LW_SetActor","Supply Merchant",1,129,72; break; case 3: callfunc "F_LW_SetActor","Supply Merchant",1,102,71; break; } return;
+S_RefVisitor: .active_npc$[4]="Curious Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Curious Visitor",1,124,86; break; case 2: callfunc "F_LW_SetActor","Curious Visitor",1,137,89; break; case 3: callfunc "F_LW_SetActor","Curious Visitor",1,106,80; break; } return;
+S_RefApprentice: .active_npc$[5]="Young Apprentice"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Young Apprentice",1,111,61; break; case 2: callfunc "F_LW_SetActor","Young Apprentice",1,143,69; break; case 3: callfunc "F_LW_SetActor","Young Apprentice",1,122,95; break; } return;
+}
+geffen,110,73,4	script	Town Mage	4_M_03,{ mes "[Town Mage]"; mes F_Rand("Geffen rewards patience and curiosity.","The city feels sharper at night.","A little mystery suits this place."); close; }
+geffen,117,82,4	script	Arcane Scholar	4_F_01,{ mes "[Arcane Scholar]"; mes F_Rand("Books are easier than people until the people know magic.","Geffen keeps a scholar busy.","A lively city produces lively ideas."); close; }
+geffen,119,61,4	script	Inn Regular	4_M_02,{ mes "[Inn Regular]"; mes F_Rand("Every good Geffen story starts in an inn.","The evening crowd here gets interesting fast.","A night town needs a place to gather."); close; }
+geffen,115,72,4	script	Supply Merchant	4W_M_02,{ mes "[Supply Merchant]"; mes F_Rand("Magic users still need practical things.","A city with students always buys more than it says.","Business is better in a town with ambition."); close; }
+geffen,124,86,4	script	Curious Visitor	4_F_02,{ mes "[Curious Visitor]"; mes F_Rand("I wanted to see Geffen for myself.","It feels exactly as intense as people claim.","I like towns that make you stay alert."); close; }
+geffen,111,61,4	script	Young Apprentice	4_M_KID1,{ mes "[Young Apprentice]"; mes F_Rand("I'm trying not to look overwhelmed.","Everyone here seems smarter than me.","That only makes me want to improve."); close; }

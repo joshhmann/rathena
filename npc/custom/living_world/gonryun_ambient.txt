@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Gonryun Ambient Population
+//============================================================
+
+-	script	LWGonryunController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefResident; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefPilgrim; callsub S_RefCaretaker;
+	if (rand(100) <= 25) callsub S_Talk;
+	if (rand(100) <= 35) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Gonryun feels like a retreat more than a stopover.","Some towns encourage you to breathe differently.","I like the quiet confidence here."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Travelers come here looking for calm and usually find it.","The town feels removed in a pleasant way.","Gonryun leaves room to think."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("A peaceful town still needs markets and meals.","Commerce can be soft-spoken too.","Trade follows atmosphere here."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Places with spiritual weight change how people move.","Gonryun feels measured without feeling strict.","I understand why people return."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("A calm place still needs tending.","Good atmosphere depends on ordinary work.","Peaceful towns are maintained, not accidental."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefResident: .active_npc$[0]="Gonryun Resident"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Gonryun Resident",1,147,122; break; case 2: callfunc "F_LW_SetActor","Gonryun Resident",1,160,116; break; case 3: callfunc "F_LW_SetActor","Gonryun Resident",1,170,126; break; } return;
+S_RefVisitor: .active_npc$[1]="Quiet Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Quiet Visitor",1,156,122; break; case 2: callfunc "F_LW_SetActor","Quiet Visitor",1,173,118; break; case 3: callfunc "F_LW_SetActor","Quiet Visitor",1,143,131; break; } return;
+S_RefVendor: .active_npc$[2]="Gonryun Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Gonryun Vendor",1,153,122; break; case 2: callfunc "F_LW_SetActor","Gonryun Vendor",1,165,134; break; case 3: callfunc "F_LW_SetActor","Gonryun Vendor",1,177,123; break; } return;
+S_RefPilgrim: .active_npc$[3]="Gonryun Pilgrim"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Gonryun Pilgrim",1,158,109; break; case 2: callfunc "F_LW_SetActor","Gonryun Pilgrim",1,180,111; break; case 3: callfunc "F_LW_SetActor","Gonryun Pilgrim",1,141,118; break; } return;
+S_RefCaretaker: .active_npc$[4]="Grounds Caretaker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Grounds Caretaker",1,161,122; break; case 2: callfunc "F_LW_SetActor","Grounds Caretaker",1,147,108; break; case 3: callfunc "F_LW_SetActor","Grounds Caretaker",1,184,128; break; } return;
+}
+gonryun,147,122,4	script	Gonryun Resident	4_F_01,{ mes "[Gonryun Resident]"; mes F_Rand("Gonryun feels like a place to recover your balance.","I like how measured the town feels.","Quiet places can still feel full of life."); close; }
+gonryun,156,122,4	script	Quiet Visitor	4_M_03,{ mes "[Quiet Visitor]"; mes F_Rand("Some towns invite reflection naturally.","Gonryun feels removed in the best way.","I came for calm and found it."); close; }
+gonryun,153,122,4	script	Gonryun Vendor	4W_M_02,{ mes "[Gonryun Vendor]"; mes F_Rand("Even calm towns still need trade.","The market follows the town's gentler pace.","People buy thoughtfully here."); close; }
+gonryun,158,109,4	script	Gonryun Pilgrim	4_M_02,{ mes "[Gonryun Pilgrim]"; mes F_Rand("The spiritual weight of a town changes how visitors carry themselves.","Gonryun has that effect.","It's easy to understand why people return."); close; }
+gonryun,161,122,4	script	Grounds Caretaker	4_F_02,{ mes "[Grounds Caretaker]"; mes F_Rand("Peaceful places stay peaceful because someone cares for them.","Atmosphere requires work too.","A calm town still runs on small duties."); close; }

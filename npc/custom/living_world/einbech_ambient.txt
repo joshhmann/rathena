@@ -1,0 +1,40 @@
+//===== rAthena Script =======================================
+//= Einbech Ambient Population
+//============================================================
+
+-	script	LWEinbechController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefMiner; callsub S_RefWorker; callsub S_RefRailGuest; callsub S_RefVendor; callsub S_RefLocal; callsub S_RefRunner;
+	if (rand(100) <= 28) callsub S_Talk;
+	if (rand(100) <= 38) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Mining towns never feel idle for long.","People work hard here because they have to.","Einbech keeps its head down and gets on with it."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("A rough town can still feel alive.","There's always some job waiting in Einbech.","People here don't waste much motion."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("The rail keeps places like this from feeling forgotten.","I came from Einbroch and the mood changed immediately.","Smaller towns show their shape faster."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Workers buy what they need and keep moving.","Simple trade is still trade.","Einbech business is plain but steady."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("This town isn't fancy, but it knows itself.","I like places that don't pretend.","Einbech feels worn in, not worn out."); break;
+	case 5: npctalk F_Rand("Errands stretch longer when the roads are rough.","Somebody always needs a message or a part carried.","Keeping up with this town is work by itself."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefMiner: .active_npc$[0]="Tired Miner"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Tired Miner",1,50,37; break; case 2: callfunc "F_LW_SetActor","Tired Miner",1,63,31; break; case 3: callfunc "F_LW_SetActor","Tired Miner",1,73,40; break; } return;
+S_RefWorker: .active_npc$[1]="Town Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Town Worker",1,57,36; break; case 2: callfunc "F_LW_SetActor","Town Worker",1,69,47; break; case 3: callfunc "F_LW_SetActor","Town Worker",1,81,33; break; } return;
+S_RefRailGuest: .active_npc$[2]="Rail Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rail Visitor",1,60,41; break; case 2: callfunc "F_LW_SetActor","Rail Visitor",1,52,25; break; case 3: callfunc "F_LW_SetActor","Rail Visitor",1,87,39; break; } return;
+S_RefVendor: .active_npc$[3]="Supply Seller"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Supply Seller",1,55,32; break; case 2: callfunc "F_LW_SetActor","Supply Seller",1,67,36; break; case 3: callfunc "F_LW_SetActor","Supply Seller",1,75,29; break; } return;
+S_RefLocal: .active_npc$[4]="Einbech Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Einbech Local",1,58,51; break; case 2: callfunc "F_LW_SetActor","Einbech Local",1,71,23; break; case 3: callfunc "F_LW_SetActor","Einbech Local",1,84,44; break; } return;
+S_RefRunner: .active_npc$[5]="Mine Runner"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Mine Runner",1,57,36; break; case 2: callfunc "F_LW_SetActor","Mine Runner",1,76,35; break; case 3: callfunc "F_LW_SetActor","Mine Runner",1,90,30; break; } return;
+}
+einbech,50,37,4	script	Tired Miner	4_M_03,{ mes "[Tired Miner]"; mes F_Rand("Mining towns run on effort and stubbornness.","You earn your rest in Einbech.","No one mistakes this place for easy."); close; }
+einbech,57,36,4	script	Town Worker	4_M_02,{ mes "[Town Worker]"; mes F_Rand("Work keeps the town standing.","It's not glamorous, but it matters.","Einbech doesn't move without people doing their part."); close; }
+einbech,60,41,4	script	Rail Visitor	4_F_02,{ mes "[Rail Visitor]"; mes F_Rand("I came down from Einbroch to see the other side of the line.","Smaller towns tell you what they are quickly.","Einbech feels rough, but alive."); close; }
+einbech,55,32,4	script	Supply Seller	4W_M_02,{ mes "[Supply Seller]"; mes F_Rand("Hard work creates steady customers.","Plain goods move best here.","A mining town buys what lasts."); close; }
+einbech,58,51,4	script	Einbech Local	4_F_01,{ mes "[Einbech Local]"; mes F_Rand("People underestimate towns like this.","Einbech has more life than outsiders think.","It feels honest here."); close; }
+einbech,57,36,4	script	Mine Runner	4_M_01,{ mes "[Mine Runner]"; mes F_Rand("Parts, notes, tools, requests. I carry all of it.","A rough town creates a lot of small errands.","I know every shortcut in Einbech."); close; }

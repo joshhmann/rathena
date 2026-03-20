@@ -1,0 +1,506 @@
+//===== rAthena Script =======================================
+//= Living World Hub Services
+//===== By: ==================================================
+//= Codex
+//===== Description: =========================================
+//= Expands Prontera-only custom hub services into the rest of
+//= the server's major towns and settlements.
+//============================================================
+
+// ------------------------------------------------------------------
+// Optional healer parity for towns not covered by the stock script.
+// ------------------------------------------------------------------
+lasagna,198,190,4	duplicate(Healer)	Healer::HubHealerLas	909
+harboro1,154,217,4	duplicate(Healer)	Healer::HubHealerRock	909
+verus04,174,167,4	duplicate(Healer)	Healer::HubHealerVer	909
+
+// ------------------------------------------------------------------
+// Optional warper parity for newer hubs not covered by the stock script.
+// ------------------------------------------------------------------
+harboro1,152,215,4	duplicate(Warper)	Warper::HubWarpRock	811
+verus04,172,165,4	duplicate(Warper)	Warper::HubWarpVer	811
+
+// ------------------------------------------------------------------
+// Hub wrapper duplicates
+// Layout pattern per town:
+// base_x - 9  = Job Master
+// base_x - 7  = Platinum Skill NPC
+// base_x - 5  = Reset Girl
+// base_x - 3  = Banker
+// base_x - 1  = Questboard
+// base_x + 2  = Hunting Missions
+// base_x + 4  = Quest Shop
+// base_x + 6  = Stylist
+// base_x + 8  = Card Remover
+// base_x + 10 = Vomars
+// base_x + 12 = Happy Marry
+// base_x + 14 = Sister Lisa
+// ------------------------------------------------------------------
+
+alberta,16,240,4	duplicate(Job Master)	Job Master::HubJobAlb	123
+alberta,18,242,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatAlb	94
+alberta,20,240,4	duplicate(Reset Girl)	Reset Girl::HubResetAlb	124
+alberta,22,242,4	duplicate(Banker)	Banker::HubBankAlb	109
+alberta,24,240,4	duplicate(Questboard)	Questboard::HubBoardAlb	4_BOARD3
+alberta,27,239,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntAlb	4_F_EDEN_MASTER
+alberta,29,241,4	duplicate(Quest Shop#1)	Quest Shop::HubShopAlb	998
+alberta,31,239,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleAlb	122
+alberta,33,241,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardAlb	78
+alberta,35,239,4	duplicate(Vomars)	Vomars::HubMarriageAlb	60
+alberta,37,241,4	duplicate(Happy Marry)	Happy Marry::HubWeddingAlb	67
+alberta,39,239,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideAlb	79
+
+aldebaran,126,118,4	duplicate(Job Master)	Job Master::HubJobAlde	123
+aldebaran,128,120,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatAlde	94
+aldebaran,130,118,4	duplicate(Reset Girl)	Reset Girl::HubResetAlde	124
+aldebaran,132,120,4	duplicate(Banker)	Banker::HubBankAlde	109
+aldebaran,134,118,4	duplicate(Questboard)	Questboard::HubBoardAlde	4_BOARD3
+aldebaran,137,117,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntAlde	4_F_EDEN_MASTER
+aldebaran,139,119,4	duplicate(Quest Shop#1)	Quest Shop::HubShopAlde	998
+aldebaran,141,117,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleAlde	122
+aldebaran,143,119,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardAlde	78
+aldebaran,145,117,4	duplicate(Vomars)	Vomars::HubMarriageAlde	60
+aldebaran,147,119,4	duplicate(Happy Marry)	Happy Marry::HubWeddingAlde	67
+aldebaran,149,117,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideAlde	79
+
+amatsu,191,79,4	duplicate(Job Master)	Job Master::HubJobAma	123
+amatsu,193,81,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatAma	94
+amatsu,195,79,4	duplicate(Reset Girl)	Reset Girl::HubResetAma	124
+amatsu,197,81,4	duplicate(Banker)	Banker::HubBankAma	109
+amatsu,199,79,4	duplicate(Questboard)	Questboard::HubBoardAma	4_BOARD3
+amatsu,202,78,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntAma	4_F_EDEN_MASTER
+amatsu,204,80,4	duplicate(Quest Shop#1)	Quest Shop::HubShopAma	998
+amatsu,206,78,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleAma	122
+amatsu,208,80,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardAma	78
+amatsu,210,78,4	duplicate(Vomars)	Vomars::HubMarriageAma	60
+amatsu,212,80,4	duplicate(Happy Marry)	Happy Marry::HubWeddingAma	67
+amatsu,214,78,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideAma	79
+
+ayothaya,198,169,4	duplicate(Job Master)	Job Master::HubJobAyo	123
+ayothaya,200,171,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatAyo	94
+ayothaya,202,169,4	duplicate(Reset Girl)	Reset Girl::HubResetAyo	124
+ayothaya,204,171,4	duplicate(Banker)	Banker::HubBankAyo	109
+ayothaya,206,169,4	duplicate(Questboard)	Questboard::HubBoardAyo	4_BOARD3
+ayothaya,209,168,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntAyo	4_F_EDEN_MASTER
+ayothaya,211,170,4	duplicate(Quest Shop#1)	Quest Shop::HubShopAyo	998
+ayothaya,213,168,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleAyo	122
+ayothaya,215,170,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardAyo	78
+ayothaya,217,168,4	duplicate(Vomars)	Vomars::HubMarriageAyo	60
+ayothaya,219,170,4	duplicate(Happy Marry)	Happy Marry::HubWeddingAyo	67
+ayothaya,221,168,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideAyo	79
+
+comodo,175,158,4	duplicate(Job Master)	Job Master::HubJobCom	123
+comodo,177,160,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatCom	94
+comodo,179,158,4	duplicate(Reset Girl)	Reset Girl::HubResetCom	124
+comodo,181,160,4	duplicate(Banker)	Banker::HubBankCom	109
+comodo,183,158,4	duplicate(Questboard)	Questboard::HubBoardCom	4_BOARD3
+comodo,186,157,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntCom	4_F_EDEN_MASTER
+comodo,188,159,4	duplicate(Quest Shop#1)	Quest Shop::HubShopCom	998
+comodo,190,157,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleCom	122
+comodo,192,159,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardCom	78
+comodo,194,157,4	duplicate(Vomars)	Vomars::HubMarriageCom	60
+comodo,196,159,4	duplicate(Happy Marry)	Happy Marry::HubWeddingCom	67
+comodo,198,157,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideCom	79
+
+einbech,48,36,4	duplicate(Job Master)	Job Master::HubJobEinbe	123
+einbech,50,38,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatEinbe	94
+einbech,52,36,4	duplicate(Reset Girl)	Reset Girl::HubResetEinbe	124
+einbech,54,38,4	duplicate(Banker)	Banker::HubBankEinbe	109
+einbech,56,36,4	duplicate(Questboard)	Questboard::HubBoardEinbe	4_BOARD3
+einbech,59,35,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntEinbe	4_F_EDEN_MASTER
+einbech,61,37,4	duplicate(Quest Shop#1)	Quest Shop::HubShopEinbe	998
+einbech,63,35,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleEinbe	122
+einbech,65,37,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardEinbe	78
+einbech,67,35,4	duplicate(Vomars)	Vomars::HubMarriageEinbe	60
+einbech,69,37,4	duplicate(Happy Marry)	Happy Marry::HubWeddingEinbe	67
+einbech,71,35,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideEinbe	79
+
+einbroch,48,202,4	duplicate(Job Master)	Job Master::HubJobEinbr	123
+einbroch,50,204,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatEinbr	94
+einbroch,52,202,4	duplicate(Reset Girl)	Reset Girl::HubResetEinbr	124
+einbroch,54,204,4	duplicate(Banker)	Banker::HubBankEinbr	109
+einbroch,56,202,4	duplicate(Questboard)	Questboard::HubBoardEinbr	4_BOARD3
+einbroch,59,201,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntEinbr	4_F_EDEN_MASTER
+einbroch,61,203,4	duplicate(Quest Shop#1)	Quest Shop::HubShopEinbr	998
+einbroch,63,201,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleEinbr	122
+einbroch,65,203,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardEinbr	78
+einbroch,67,201,4	duplicate(Vomars)	Vomars::HubMarriageEinbr	60
+einbroch,69,203,4	duplicate(Happy Marry)	Happy Marry::HubWeddingEinbr	67
+einbroch,71,201,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideEinbr	79
+
+geffen,106,72,4	duplicate(Job Master)	Job Master::HubJobGef	123
+geffen,108,74,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatGef	94
+geffen,110,72,4	duplicate(Reset Girl)	Reset Girl::HubResetGef	124
+geffen,112,74,4	duplicate(Banker)	Banker::HubBankGef	109
+geffen,114,72,4	duplicate(Questboard)	Questboard::HubBoardGef	4_BOARD3
+geffen,117,71,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntGef	4_F_EDEN_MASTER
+geffen,119,73,4	duplicate(Quest Shop#1)	Quest Shop::HubShopGef	998
+geffen,121,71,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleGef	122
+geffen,123,73,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardGef	78
+geffen,125,71,4	duplicate(Vomars)	Vomars::HubMarriageGef	60
+geffen,127,73,4	duplicate(Happy Marry)	Happy Marry::HubWeddingGef	67
+geffen,129,71,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideGef	79
+
+gonryun,147,122,4	duplicate(Job Master)	Job Master::HubJobGon	123
+gonryun,149,124,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatGon	94
+gonryun,151,122,4	duplicate(Reset Girl)	Reset Girl::HubResetGon	124
+gonryun,153,124,4	duplicate(Banker)	Banker::HubBankGon	109
+gonryun,155,122,4	duplicate(Questboard)	Questboard::HubBoardGon	4_BOARD3
+gonryun,158,121,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntGon	4_F_EDEN_MASTER
+gonryun,160,123,4	duplicate(Quest Shop#1)	Quest Shop::HubShopGon	998
+gonryun,162,121,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleGon	122
+gonryun,164,123,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardGon	78
+gonryun,166,121,4	duplicate(Vomars)	Vomars::HubMarriageGon	60
+gonryun,168,123,4	duplicate(Happy Marry)	Happy Marry::HubWeddingGon	67
+gonryun,170,121,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideGon	79
+
+hugel,80,150,4	duplicate(Job Master)	Job Master::HubJobHug	123
+hugel,82,152,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatHug	94
+hugel,84,150,4	duplicate(Reset Girl)	Reset Girl::HubResetHug	124
+hugel,86,152,4	duplicate(Banker)	Banker::HubBankHug	109
+hugel,88,150,4	duplicate(Questboard)	Questboard::HubBoardHug	4_BOARD3
+hugel,91,149,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntHug	4_F_EDEN_MASTER
+hugel,93,151,4	duplicate(Quest Shop#1)	Quest Shop::HubShopHug	998
+hugel,95,149,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleHug	122
+hugel,97,151,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardHug	78
+hugel,99,149,4	duplicate(Vomars)	Vomars::HubMarriageHug	60
+hugel,101,151,4	duplicate(Happy Marry)	Happy Marry::HubWeddingHug	67
+hugel,103,149,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideHug	79
+
+izlude,112,150,4	duplicate(Job Master)	Job Master::HubJobIzl	123
+izlude,114,152,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatIzl	94
+izlude,116,150,4	duplicate(Reset Girl)	Reset Girl::HubResetIzl	124
+izlude,118,152,4	duplicate(Banker)	Banker::HubBankIzl	109
+izlude,120,150,4	duplicate(Questboard)	Questboard::HubBoardIzl	4_BOARD3
+izlude,123,149,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntIzl	4_F_EDEN_MASTER
+izlude,125,151,4	duplicate(Quest Shop#1)	Quest Shop::HubShopIzl	998
+izlude,127,149,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleIzl	122
+izlude,129,151,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardIzl	78
+izlude,131,149,4	duplicate(Vomars)	Vomars::HubMarriageIzl	60
+izlude,133,151,4	duplicate(Happy Marry)	Happy Marry::HubWeddingIzl	67
+izlude,135,149,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideIzl	79
+
+jawaii,241,139,4	duplicate(Job Master)	Job Master::HubJobJaw	123
+jawaii,243,141,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatJaw	94
+jawaii,245,139,4	duplicate(Reset Girl)	Reset Girl::HubResetJaw	124
+jawaii,247,141,4	duplicate(Banker)	Banker::HubBankJaw	109
+jawaii,249,139,4	duplicate(Questboard)	Questboard::HubBoardJaw	4_BOARD3
+jawaii,252,138,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntJaw	4_F_EDEN_MASTER
+jawaii,254,140,4	duplicate(Quest Shop#1)	Quest Shop::HubShopJaw	998
+jawaii,256,138,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleJaw	122
+jawaii,258,140,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardJaw	78
+jawaii,260,138,4	duplicate(Vomars)	Vomars::HubMarriageJaw	60
+jawaii,262,140,4	duplicate(Happy Marry)	Happy Marry::HubWeddingJaw	67
+jawaii,264,138,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideJaw	79
+
+lighthalzen,143,100,4	duplicate(Job Master)	Job Master::HubJobLhz	123
+lighthalzen,145,102,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatLhz	94
+lighthalzen,147,100,4	duplicate(Reset Girl)	Reset Girl::HubResetLhz	124
+lighthalzen,149,102,4	duplicate(Banker)	Banker::HubBankLhz	109
+lighthalzen,151,100,4	duplicate(Questboard)	Questboard::HubBoardLhz	4_BOARD3
+lighthalzen,154,99,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntLhz	4_F_EDEN_MASTER
+lighthalzen,156,101,4	duplicate(Quest Shop#1)	Quest Shop::HubShopLhz	998
+lighthalzen,158,99,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleLhz	122
+lighthalzen,160,101,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardLhz	78
+lighthalzen,162,99,4	duplicate(Vomars)	Vomars::HubMarriageLhz	60
+lighthalzen,164,101,4	duplicate(Happy Marry)	Happy Marry::HubWeddingLhz	67
+lighthalzen,166,99,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideLhz	79
+
+louyang,217,103,4	duplicate(Job Master)	Job Master::HubJobLou	123
+louyang,219,105,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatLou	94
+louyang,221,103,4	duplicate(Reset Girl)	Reset Girl::HubResetLou	124
+louyang,223,105,4	duplicate(Banker)	Banker::HubBankLou	109
+louyang,225,103,4	duplicate(Questboard)	Questboard::HubBoardLou	4_BOARD3
+louyang,228,102,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntLou	4_F_EDEN_MASTER
+louyang,230,104,4	duplicate(Quest Shop#1)	Quest Shop::HubShopLou	998
+louyang,232,102,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleLou	122
+louyang,234,104,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardLou	78
+louyang,236,102,4	duplicate(Vomars)	Vomars::HubMarriageLou	60
+louyang,238,104,4	duplicate(Happy Marry)	Happy Marry::HubWeddingLou	67
+louyang,240,102,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideLou	79
+
+manuk,263,144,4	duplicate(Job Master)	Job Master::HubJobMan	123
+manuk,265,146,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMan	94
+manuk,267,144,4	duplicate(Reset Girl)	Reset Girl::HubResetMan	124
+manuk,269,146,4	duplicate(Banker)	Banker::HubBankMan	109
+manuk,271,144,4	duplicate(Questboard)	Questboard::HubBoardMan	4_BOARD3
+manuk,274,143,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMan	4_F_EDEN_MASTER
+manuk,276,145,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMan	998
+manuk,278,143,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMan	122
+manuk,280,145,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMan	78
+manuk,282,143,4	duplicate(Vomars)	Vomars::HubMarriageMan	60
+manuk,284,145,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMan	67
+manuk,286,143,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMan	79
+
+mid_camp,194,289,4	duplicate(Job Master)	Job Master::HubJobMid	123
+mid_camp,196,291,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMid	94
+mid_camp,198,289,4	duplicate(Reset Girl)	Reset Girl::HubResetMid	124
+mid_camp,200,291,4	duplicate(Banker)	Banker::HubBankMid	109
+mid_camp,202,289,4	duplicate(Questboard)	Questboard::HubBoardMid	4_BOARD3
+mid_camp,205,288,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMid	4_F_EDEN_MASTER
+mid_camp,207,290,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMid	998
+mid_camp,209,288,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMid	122
+mid_camp,211,290,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMid	78
+mid_camp,213,288,4	duplicate(Vomars)	Vomars::HubMarriageMid	60
+mid_camp,215,290,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMid	67
+mid_camp,217,288,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMid	79
+
+morocc,144,97,4	duplicate(Job Master)	Job Master::HubJobMor	123
+morocc,146,99,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMor	94
+morocc,148,97,4	duplicate(Reset Girl)	Reset Girl::HubResetMor	124
+morocc,150,99,4	duplicate(Banker)	Banker::HubBankMor	109
+morocc,152,97,4	duplicate(Questboard)	Questboard::HubBoardMor	4_BOARD3
+morocc,155,96,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMor	4_F_EDEN_MASTER
+morocc,157,98,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMor	998
+morocc,159,96,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMor	122
+morocc,161,98,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMor	78
+morocc,163,96,4	duplicate(Vomars)	Vomars::HubMarriageMor	60
+morocc,165,98,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMor	67
+morocc,167,96,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMor	79
+
+moscovia,211,191,4	duplicate(Job Master)	Job Master::HubJobMos	123
+moscovia,213,193,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMos	94
+moscovia,215,191,4	duplicate(Reset Girl)	Reset Girl::HubResetMos	124
+moscovia,217,193,4	duplicate(Banker)	Banker::HubBankMos	109
+moscovia,219,191,4	duplicate(Questboard)	Questboard::HubBoardMos	4_BOARD3
+moscovia,222,190,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMos	4_F_EDEN_MASTER
+moscovia,224,192,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMos	998
+moscovia,226,190,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMos	122
+moscovia,228,192,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMos	78
+moscovia,230,190,4	duplicate(Vomars)	Vomars::HubMarriageMos	60
+moscovia,232,192,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMos	67
+moscovia,234,190,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMos	79
+
+niflheim,203,182,4	duplicate(Job Master)	Job Master::HubJobNif	123
+niflheim,205,184,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatNif	94
+niflheim,207,182,4	duplicate(Reset Girl)	Reset Girl::HubResetNif	124
+niflheim,209,184,4	duplicate(Banker)	Banker::HubBankNif	109
+niflheim,211,182,4	duplicate(Questboard)	Questboard::HubBoardNif	4_BOARD3
+niflheim,214,181,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntNif	4_F_EDEN_MASTER
+niflheim,216,183,4	duplicate(Quest Shop#1)	Quest Shop::HubShopNif	998
+niflheim,218,181,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleNif	122
+niflheim,220,183,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardNif	78
+niflheim,222,181,4	duplicate(Vomars)	Vomars::HubMarriageNif	60
+niflheim,224,183,4	duplicate(Happy Marry)	Happy Marry::HubWeddingNif	67
+niflheim,226,181,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideNif	79
+
+payon,170,106,4	duplicate(Job Master)	Job Master::HubJobPay	123
+payon,172,108,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatPay	94
+payon,174,106,4	duplicate(Reset Girl)	Reset Girl::HubResetPay	124
+payon,176,108,4	duplicate(Banker)	Banker::HubBankPay	109
+payon,178,106,4	duplicate(Questboard)	Questboard::HubBoardPay	4_BOARD3
+payon,181,105,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntPay	4_F_EDEN_MASTER
+payon,183,107,4	duplicate(Quest Shop#1)	Quest Shop::HubShopPay	998
+payon,185,105,4	duplicate(Stylist#custom_stylist)	Stylist::HubStylePay	122
+payon,187,107,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardPay	78
+payon,189,105,4	duplicate(Vomars)	Vomars::HubMarriagePay	60
+payon,191,107,4	duplicate(Happy Marry)	Happy Marry::HubWeddingPay	67
+payon,193,105,4	duplicate(Sister Lisa)	Sister Lisa::HubBridePay	79
+
+rachel,116,116,4	duplicate(Job Master)	Job Master::HubJobRac	123
+rachel,118,118,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatRac	94
+rachel,120,116,4	duplicate(Reset Girl)	Reset Girl::HubResetRac	124
+rachel,122,118,4	duplicate(Banker)	Banker::HubBankRac	109
+rachel,124,116,4	duplicate(Questboard)	Questboard::HubBoardRac	4_BOARD3
+rachel,127,115,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntRac	4_F_EDEN_MASTER
+rachel,129,117,4	duplicate(Quest Shop#1)	Quest Shop::HubShopRac	998
+rachel,131,115,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleRac	122
+rachel,133,117,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardRac	78
+rachel,135,115,4	duplicate(Vomars)	Vomars::HubMarriageRac	60
+rachel,137,117,4	duplicate(Happy Marry)	Happy Marry::HubWeddingRac	67
+rachel,139,115,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideRac	79
+
+splendide,192,153,4	duplicate(Job Master)	Job Master::HubJobSpl	123
+splendide,194,155,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatSpl	94
+splendide,196,153,4	duplicate(Reset Girl)	Reset Girl::HubResetSpl	124
+splendide,198,155,4	duplicate(Banker)	Banker::HubBankSpl	109
+splendide,200,153,4	duplicate(Questboard)	Questboard::HubBoardSpl	4_BOARD3
+splendide,203,152,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntSpl	4_F_EDEN_MASTER
+splendide,205,154,4	duplicate(Quest Shop#1)	Quest Shop::HubShopSpl	998
+splendide,207,152,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleSpl	122
+splendide,209,154,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardSpl	78
+splendide,211,152,4	duplicate(Vomars)	Vomars::HubMarriageSpl	60
+splendide,213,154,4	duplicate(Happy Marry)	Happy Marry::HubWeddingSpl	67
+splendide,215,152,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideSpl	79
+
+umbala,96,148,4	duplicate(Job Master)	Job Master::HubJobUmb	123
+umbala,98,150,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatUmb	94
+umbala,100,148,4	duplicate(Reset Girl)	Reset Girl::HubResetUmb	124
+umbala,102,150,4	duplicate(Banker)	Banker::HubBankUmb	109
+umbala,104,148,4	duplicate(Questboard)	Questboard::HubBoardUmb	4_BOARD3
+umbala,107,147,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntUmb	4_F_EDEN_MASTER
+umbala,109,149,4	duplicate(Quest Shop#1)	Quest Shop::HubShopUmb	998
+umbala,111,147,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleUmb	122
+umbala,113,149,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardUmb	78
+umbala,115,147,4	duplicate(Vomars)	Vomars::HubMarriageUmb	60
+umbala,117,149,4	duplicate(Happy Marry)	Happy Marry::HubWeddingUmb	67
+umbala,119,147,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideUmb	79
+
+veins,208,121,4	duplicate(Job Master)	Job Master::HubJobVe	123
+veins,210,123,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatVe	94
+veins,212,121,4	duplicate(Reset Girl)	Reset Girl::HubResetVe	124
+veins,214,123,4	duplicate(Banker)	Banker::HubBankVe	109
+veins,216,121,4	duplicate(Questboard)	Questboard::HubBoardVe	4_BOARD3
+veins,219,120,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntVe	4_F_EDEN_MASTER
+veins,221,122,4	duplicate(Quest Shop#1)	Quest Shop::HubShopVe	998
+veins,223,120,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleVe	122
+veins,225,122,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardVe	78
+veins,227,120,4	duplicate(Vomars)	Vomars::HubMarriageVe	60
+veins,229,122,4	duplicate(Happy Marry)	Happy Marry::HubWeddingVe	67
+veins,231,120,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideVe	79
+
+xmas,134,136,4	duplicate(Job Master)	Job Master::HubJobXmas	123
+xmas,136,138,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatXmas	94
+xmas,138,136,4	duplicate(Reset Girl)	Reset Girl::HubResetXmas	124
+xmas,140,138,4	duplicate(Banker)	Banker::HubBankXmas	109
+xmas,142,136,4	duplicate(Questboard)	Questboard::HubBoardXmas	4_BOARD3
+xmas,145,135,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntXmas	4_F_EDEN_MASTER
+xmas,147,137,4	duplicate(Quest Shop#1)	Quest Shop::HubShopXmas	998
+xmas,149,135,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleXmas	122
+xmas,151,137,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardXmas	78
+xmas,153,135,4	duplicate(Vomars)	Vomars::HubMarriageXmas	60
+xmas,155,137,4	duplicate(Happy Marry)	Happy Marry::HubWeddingXmas	67
+xmas,157,135,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideXmas	79
+
+yuno,155,45,4	duplicate(Job Master)	Job Master::HubJobYuno	123
+yuno,157,47,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatYuno	94
+yuno,159,45,4	duplicate(Reset Girl)	Reset Girl::HubResetYuno	124
+yuno,161,47,4	duplicate(Banker)	Banker::HubBankYuno	109
+yuno,163,45,4	duplicate(Questboard)	Questboard::HubBoardYuno	4_BOARD3
+yuno,166,44,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntYuno	4_F_EDEN_MASTER
+yuno,168,46,4	duplicate(Quest Shop#1)	Quest Shop::HubShopYuno	998
+yuno,170,44,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleYuno	122
+yuno,172,46,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardYuno	78
+yuno,174,44,4	duplicate(Vomars)	Vomars::HubMarriageYuno	60
+yuno,176,46,4	duplicate(Happy Marry)	Happy Marry::HubWeddingYuno	67
+yuno,178,44,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideYuno	79
+
+brasilis,185,221,4	duplicate(Job Master)	Job Master::HubJobBra	123
+brasilis,187,223,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatBra	94
+brasilis,189,221,4	duplicate(Reset Girl)	Reset Girl::HubResetBra	124
+brasilis,191,223,4	duplicate(Banker)	Banker::HubBankBra	109
+brasilis,193,221,4	duplicate(Questboard)	Questboard::HubBoardBra	4_BOARD3
+brasilis,196,220,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntBra	4_F_EDEN_MASTER
+brasilis,198,222,4	duplicate(Quest Shop#1)	Quest Shop::HubShopBra	998
+brasilis,200,220,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleBra	122
+brasilis,202,222,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardBra	78
+brasilis,204,220,4	duplicate(Vomars)	Vomars::HubMarriageBra	60
+brasilis,206,222,4	duplicate(Happy Marry)	Happy Marry::HubWeddingBra	67
+brasilis,208,220,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideBra	79
+
+dewata,186,187,4	duplicate(Job Master)	Job Master::HubJobDew	123
+dewata,188,189,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatDew	94
+dewata,190,187,4	duplicate(Reset Girl)	Reset Girl::HubResetDew	124
+dewata,192,189,4	duplicate(Banker)	Banker::HubBankDew	109
+dewata,194,187,4	duplicate(Questboard)	Questboard::HubBoardDew	4_BOARD3
+dewata,197,186,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntDew	4_F_EDEN_MASTER
+dewata,199,188,4	duplicate(Quest Shop#1)	Quest Shop::HubShopDew	998
+dewata,201,186,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleDew	122
+dewata,203,188,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardDew	78
+dewata,205,186,4	duplicate(Vomars)	Vomars::HubMarriageDew	60
+dewata,207,188,4	duplicate(Happy Marry)	Happy Marry::HubWeddingDew	67
+dewata,209,186,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideDew	79
+
+dicastes01,192,194,4	duplicate(Job Master)	Job Master::HubJobDic	123
+dicastes01,194,196,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatDic	94
+dicastes01,196,194,4	duplicate(Reset Girl)	Reset Girl::HubResetDic	124
+dicastes01,198,196,4	duplicate(Banker)	Banker::HubBankDic	109
+dicastes01,200,194,4	duplicate(Questboard)	Questboard::HubBoardDic	4_BOARD3
+dicastes01,203,193,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntDic	4_F_EDEN_MASTER
+dicastes01,205,195,4	duplicate(Quest Shop#1)	Quest Shop::HubShopDic	998
+dicastes01,207,193,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleDic	122
+dicastes01,209,195,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardDic	78
+dicastes01,211,193,4	duplicate(Vomars)	Vomars::HubMarriageDic	60
+dicastes01,213,195,4	duplicate(Happy Marry)	Happy Marry::HubWeddingDic	67
+dicastes01,215,193,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideDic	79
+
+ecl_in01,36,60,4	duplicate(Job Master)	Job Master::HubJobEcl	123
+ecl_in01,38,62,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatEcl	94
+ecl_in01,40,60,4	duplicate(Reset Girl)	Reset Girl::HubResetEcl	124
+ecl_in01,42,62,4	duplicate(Banker)	Banker::HubBankEcl	109
+ecl_in01,44,60,4	duplicate(Questboard)	Questboard::HubBoardEcl	4_BOARD3
+ecl_in01,47,59,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntEcl	4_F_EDEN_MASTER
+ecl_in01,49,61,4	duplicate(Quest Shop#1)	Quest Shop::HubShopEcl	998
+ecl_in01,51,59,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleEcl	122
+ecl_in01,53,61,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardEcl	78
+ecl_in01,55,59,4	duplicate(Vomars)	Vomars::HubMarriageEcl	60
+ecl_in01,57,61,4	duplicate(Happy Marry)	Happy Marry::HubWeddingEcl	67
+ecl_in01,59,59,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideEcl	79
+
+lasagna,187,187,4	duplicate(Job Master)	Job Master::HubJobLas	123
+lasagna,189,189,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatLas	94
+lasagna,191,187,4	duplicate(Reset Girl)	Reset Girl::HubResetLas	124
+lasagna,193,189,4	duplicate(Banker)	Banker::HubBankLas	109
+lasagna,195,187,4	duplicate(Questboard)	Questboard::HubBoardLas	4_BOARD3
+lasagna,198,186,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntLas	4_F_EDEN_MASTER
+lasagna,200,188,4	duplicate(Quest Shop#1)	Quest Shop::HubShopLas	998
+lasagna,202,186,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleLas	122
+lasagna,204,188,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardLas	78
+lasagna,206,186,4	duplicate(Vomars)	Vomars::HubMarriageLas	60
+lasagna,208,188,4	duplicate(Happy Marry)	Happy Marry::HubWeddingLas	67
+lasagna,210,186,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideLas	79
+
+harboro1,158,215,4	duplicate(Job Master)	Job Master::HubJobRock	123
+harboro1,160,217,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatRock	94
+harboro1,162,215,4	duplicate(Reset Girl)	Reset Girl::HubResetRock	124
+harboro1,164,217,4	duplicate(Banker)	Banker::HubBankRock	109
+harboro1,166,215,4	duplicate(Questboard)	Questboard::HubBoardRock	4_BOARD3
+harboro1,169,214,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntRock	4_F_EDEN_MASTER
+harboro1,171,216,4	duplicate(Quest Shop#1)	Quest Shop::HubShopRock	998
+harboro1,173,214,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleRock	122
+harboro1,175,216,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardRock	78
+harboro1,177,214,4	duplicate(Vomars)	Vomars::HubMarriageRock	60
+harboro1,179,216,4	duplicate(Happy Marry)	Happy Marry::HubWeddingRock	67
+harboro1,181,214,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideRock	79
+
+verus04,178,165,4	duplicate(Job Master)	Job Master::HubJobVer	123
+verus04,180,167,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatVer	94
+verus04,182,165,4	duplicate(Reset Girl)	Reset Girl::HubResetVer	124
+verus04,184,167,4	duplicate(Banker)	Banker::HubBankVer	109
+verus04,186,165,4	duplicate(Questboard)	Questboard::HubBoardVer	4_BOARD3
+verus04,189,164,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntVer	4_F_EDEN_MASTER
+verus04,191,166,4	duplicate(Quest Shop#1)	Quest Shop::HubShopVer	998
+verus04,193,164,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleVer	122
+verus04,195,166,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardVer	78
+verus04,197,164,4	duplicate(Vomars)	Vomars::HubMarriageVer	60
+verus04,199,166,4	duplicate(Happy Marry)	Happy Marry::HubWeddingVer	67
+verus04,201,164,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideVer	79
+
+malangdo,123,114,4	duplicate(Job Master)	Job Master::HubJobMal	123
+malangdo,125,116,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMal	94
+malangdo,127,114,4	duplicate(Reset Girl)	Reset Girl::HubResetMal	124
+malangdo,129,116,4	duplicate(Banker)	Banker::HubBankMal	109
+malangdo,131,114,4	duplicate(Questboard)	Questboard::HubBoardMal	4_BOARD3
+malangdo,134,113,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMal	4_F_EDEN_MASTER
+malangdo,136,115,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMal	998
+malangdo,138,113,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMal	122
+malangdo,140,115,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMal	78
+malangdo,142,113,4	duplicate(Vomars)	Vomars::HubMarriageMal	60
+malangdo,144,115,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMal	67
+malangdo,146,113,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMal	79
+
+malaya,218,204,4	duplicate(Job Master)	Job Master::HubJobMaya	123
+malaya,220,206,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMaya	94
+malaya,222,204,4	duplicate(Reset Girl)	Reset Girl::HubResetMaya	124
+malaya,224,206,4	duplicate(Banker)	Banker::HubBankMaya	109
+malaya,226,204,4	duplicate(Questboard)	Questboard::HubBoardMaya	4_BOARD3
+malaya,229,203,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMaya	4_F_EDEN_MASTER
+malaya,231,205,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMaya	998
+malaya,233,203,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMaya	122
+malaya,235,205,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMaya	78
+malaya,237,203,4	duplicate(Vomars)	Vomars::HubMarriageMaya	60
+malaya,239,205,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMaya	67
+malaya,241,203,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMaya	79
+
+mora,46,152,4	duplicate(Job Master)	Job Master::HubJobMora	123
+mora,48,154,4	duplicate(Platinum Skill NPC)	Platinum Skill NPC::HubPlatMora	94
+mora,50,152,4	duplicate(Reset Girl)	Reset Girl::HubResetMora	124
+mora,52,154,4	duplicate(Banker)	Banker::HubBankMora	109
+mora,54,152,4	duplicate(Questboard)	Questboard::HubBoardMora	4_BOARD3
+mora,57,151,4	duplicate(Hunting Missions)	Hunting Missions::HubHuntMora	4_F_EDEN_MASTER
+mora,59,153,4	duplicate(Quest Shop#1)	Quest Shop::HubShopMora	998
+mora,61,151,4	duplicate(Stylist#custom_stylist)	Stylist::HubStyleMora	122
+mora,63,153,4	duplicate(Wise Old Woman#eAcustom)	Card Remover::HubCardMora	78
+mora,65,151,4	duplicate(Vomars)	Vomars::HubMarriageMora	60
+mora,67,153,4	duplicate(Happy Marry)	Happy Marry::HubWeddingMora	67
+mora,69,151,4	duplicate(Sister Lisa)	Sister Lisa::HubBrideMora	79

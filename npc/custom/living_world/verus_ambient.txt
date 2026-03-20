@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Verus Ambient Population
+//============================================================
+
+-	script	LWVerusController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefLocal; callsub S_RefResearcher; callsub S_RefEngineer; callsub S_RefVisitor; callsub S_RefVendor;
+	if (rand(100) <= 25) callsub S_Talk;
+	if (rand(100) <= 35) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Verus feels engineered, but not empty.","Even high-tech towns need ordinary life to feel real.","This place has more pulse than people assume."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Research towns carry a different kind of traffic.","People move with purpose here.","Verus feels organized without feeling dead."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("Machines need people behind them, always.","Technical cities still depend on daily labor.","Verus works because someone keeps it working."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Visitors usually notice the structure first and the atmosphere second.","Verus grows on people once they slow down.","It's a cooler town, but not a hollow one."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Even a research city still needs food, supplies, and errands.","Trade survives in every kind of place.","Verus just dresses it in different language."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HMM,ET_STARE_ABOUT,ET_HUM), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefLocal: .active_npc$[0]="Verus Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Verus Local",1,171,168; break; case 2: callfunc "F_LW_SetActor","Verus Local",1,184,160; break; case 3: callfunc "F_LW_SetActor","Verus Local",1,196,169; break; } return;
+S_RefResearcher: .active_npc$[1]="Verus Researcher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Verus Researcher",1,177,163; break; case 2: callfunc "F_LW_SetActor","Verus Researcher",1,190,171; break; case 3: callfunc "F_LW_SetActor","Verus Researcher",1,202,162; break; } return;
+S_RefEngineer: .active_npc$[2]="Verus Engineer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Verus Engineer",1,173,161; break; case 2: callfunc "F_LW_SetActor","Verus Engineer",1,187,166; break; case 3: callfunc "F_LW_SetActor","Verus Engineer",1,199,160; break; } return;
+S_RefVisitor: .active_npc$[3]="Verus Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Verus Visitor",1,181,169; break; case 2: callfunc "F_LW_SetActor","Verus Visitor",1,193,158; break; case 3: callfunc "F_LW_SetActor","Verus Visitor",1,205,166; break; } return;
+S_RefVendor: .active_npc$[4]="Verus Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Verus Vendor",1,176,170; break; case 2: callfunc "F_LW_SetActor","Verus Vendor",1,188,158; break; case 3: callfunc "F_LW_SetActor","Verus Vendor",1,201,171; break; } return;
+}
+verus04,171,168,4	script	Verus Local	4_LGTSCIENCE,{ mes "[Verus Local]"; mes F_Rand("Verus feels structured, but not lifeless.","I like towns where the order has some personality.","This place has a quieter kind of activity."); close; }
+verus04,177,163,4	script	Verus Researcher	4_M_OLDSCHOLAR,{ mes "[Verus Researcher]"; mes F_Rand("Research cities create a very specific rhythm.","People move with intent here.","Verus feels measured rather than sleepy."); close; }
+verus04,173,161,4	script	Verus Engineer	4_M_YURI,{ mes "[Verus Engineer]"; mes F_Rand("Technical towns still run on maintenance and routine.","Machines don't keep themselves honest.","Somebody always has to keep Verus moving."); close; }
+verus04,181,169,4	script	Verus Visitor	4_M_IAN,{ mes "[Verus Visitor]"; mes F_Rand("Verus grows on you after a little time.","It's colder than older cities, but not empty.","There is real life here once you notice it."); close; }
+verus04,176,170,4	script	Verus Vendor	4_F_KAFRA9,{ mes "[Verus Vendor]"; mes F_Rand("Even research hubs still need ordinary commerce.","People still buy food, tools, and small comforts.","Verus just makes everyday trade look different."); close; }

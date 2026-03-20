@@ -1,0 +1,41 @@
+//===== rAthena Script =======================================
+//= Alberta Ambient Population
+//============================================================
+
+-	script	LWAlbertaController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefPorter; callsub S_RefTrader; callsub S_RefSailor; callsub S_RefDockGirl; callsub S_RefBargainHunter; callsub S_RefInnGuest;
+	if (rand(100) <= 30) callsub S_Talk;
+	if (rand(100) <= 40) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Cargo from three ports and all of it wants moving now.","Alberta never stops trading.","The harbor pays if your back can handle it."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("You can buy almost anything here if you know who to ask.","A busy port is a rich port.","Every trader in Alberta thinks they can spot a bargain first."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("Some people hear waves. I hear deadlines.","A sailor can tell the day's mood by the docks.","I'll stay on shore tonight if I can help it."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("People think port towns are rough, but I like the energy.","Travelers always look relieved when they arrive here.","Alberta feels busiest just before dusk."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("If the market's crowded, something good probably came in.","I only came for one item and found ten.","This city rewards people who like to browse."), .active_npc$[.@actor]; break;
+	case 5: npctalk F_Rand("A good inn matters more in a port than anywhere else.","I thought I'd stay one night. It's been three.","The harbor noise fades once you're properly tired."), .active_npc$[.@actor]; break;
+	}
+	return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefPorter: .active_npc$[0]="Harbor Porter"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Harbor Porter",1,31,241; break; case 2: callfunc "F_LW_SetActor","Harbor Porter",1,41,242; break; case 3: callfunc "F_LW_SetActor","Harbor Porter",1,48,230; break; } return;
+S_RefTrader: .active_npc$[1]="Street Trader"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Street Trader",1,30,229; break; case 2: callfunc "F_LW_SetActor","Street Trader",1,38,224; break; case 3: callfunc "F_LW_SetActor","Street Trader",1,52,241; break; } return;
+S_RefSailor: .active_npc$[2]="Off-Duty Sailor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Off-Duty Sailor",1,21,235; break; case 2: callfunc "F_LW_SetActor","Off-Duty Sailor",1,57,244; break; case 3: callfunc "F_LW_SetActor","Off-Duty Sailor",1,33,250; break; } return;
+S_RefDockGirl: .active_npc$[3]="Dockside Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Dockside Local",1,24,247; break; case 2: callfunc "F_LW_SetActor","Dockside Local",1,44,236; break; case 3: callfunc "F_LW_SetActor","Dockside Local",1,18,232; break; } return;
+S_RefBargainHunter: .active_npc$[4]="Bargain Hunter"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Bargain Hunter",1,26,240; break; case 2: callfunc "F_LW_SetActor","Bargain Hunter",1,45,246; break; case 3: callfunc "F_LW_SetActor","Bargain Hunter",1,34,220; break; } return;
+S_RefInnGuest: .active_npc$[5]="Inn Guest"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Inn Guest",1,30,215; break; case 2: callfunc "F_LW_SetActor","Inn Guest",1,41,217; break; case 3: callfunc "F_LW_SetActor","Inn Guest",1,22,222; break; } return;
+}
+alberta,31,241,4	script	Harbor Porter	4_M_02,{ mes "[Harbor Porter]"; mes F_Rand("Trade keeps this town standing.","Every box has a destination and none of them wait.","Busy docks mean a good day."); close; }
+alberta,30,229,4	script	Street Trader	4_F_01,{ mes "[Street Trader]"; mes F_Rand("There's always another deal around the corner.","If you miss the morning market, you're too late.","Ports reward quick eyes."); close; }
+alberta,21,235,4	script	Off-Duty Sailor	4_M_03,{ mes "[Off-Duty Sailor]"; mes F_Rand("Solid ground feels better after rough water.","Alberta's taverns get loud for good reason.","I'll take one quiet evening before the next trip."); close; }
+alberta,24,247,4	script	Dockside Local	4_F_02,{ mes "[Dockside Local]"; mes F_Rand("I grew up with the sound of ships.","This town feels empty only when the tide is wrong.","New faces arrive every day here."); close; }
+alberta,26,240,4	script	Bargain Hunter	4W_M_02,{ mes "[Bargain Hunter]"; mes F_Rand("I can smell a good stall from two streets away.","Buying at a port is half patience, half luck.","If the crowd gathers, there is usually a reason."); close; }
+alberta,30,215,4	script	Inn Guest	4_F_01,{ mes "[Inn Guest]"; mes F_Rand("A port inn sees more stories than most roads.","I'm resting here before I head inland.","Travelers always look softer after a good night's sleep."); close; }

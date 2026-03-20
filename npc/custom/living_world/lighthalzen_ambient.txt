@@ -1,0 +1,40 @@
+//===== rAthena Script =======================================
+//= Lighthalzen Ambient Population
+//============================================================
+
+-	script	LWLighthalzenController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefProfessional; callsub S_RefResident; callsub S_RefTraveler; callsub S_RefMerchant; callsub S_RefClerk; callsub S_RefStudent;
+	if (rand(100) <= 30) callsub S_Talk;
+	if (rand(100) <= 40) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Lighthalzen tries to look polished because it is.","Cities like this run on reputation as much as trade.","People here move like time matters."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("The city feels refined, but never still.","A polished town can still be lively.","Lighthalzen hides its rush well."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("I only planned to visit, but the city pulls you in.","Big cities always feel like they know something.","Lighthalzen seems busy even when people are quiet."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Upscale towns still need shopkeepers.","People here buy carefully, but they buy well.","Elegance is good for business."); break;
+	case 4: npctalk F_Rand("Paperwork travels faster than people think.","A city this large depends on clerks and couriers.","Organization is invisible until it fails."), .active_npc$[.@actor]; break;
+	case 5: npctalk F_Rand("I want to look like I belong here eventually.","Everyone in Lighthalzen seems composed.","It makes me stand up straighter."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefProfessional: .active_npc$[0]="City Professional"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","City Professional",1,145,101; break; case 2: callfunc "F_LW_SetActor","City Professional",1,158,94; break; case 3: callfunc "F_LW_SetActor","City Professional",1,168,103; break; } return;
+S_RefResident: .active_npc$[1]="Lighthalzen Resident"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Lighthalzen Resident",1,152,100; break; case 2: callfunc "F_LW_SetActor","Lighthalzen Resident",1,162,112; break; case 3: callfunc "F_LW_SetActor","Lighthalzen Resident",1,139,111; break; } return;
+S_RefTraveler: .active_npc$[2]="City Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","City Visitor",1,150,87; break; case 2: callfunc "F_LW_SetActor","City Visitor",1,170,117; break; case 3: callfunc "F_LW_SetActor","City Visitor",1,134,99; break; } return;
+S_RefMerchant: .active_npc$[3]="Boutique Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Boutique Merchant",1,152,100; break; case 2: callfunc "F_LW_SetActor","Boutique Merchant",1,165,103; break; case 3: callfunc "F_LW_SetActor","Boutique Merchant",1,143,118; break; } return;
+S_RefClerk: .active_npc$[4]="City Clerk"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","City Clerk",1,156,108; break; case 2: callfunc "F_LW_SetActor","City Clerk",1,145,90; break; case 3: callfunc "F_LW_SetActor","City Clerk",1,174,96; break; } return;
+S_RefStudent: .active_npc$[5]="Polite Student"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Polite Student",1,148,116; break; case 2: callfunc "F_LW_SetActor","Polite Student",1,159,84; break; case 3: callfunc "F_LW_SetActor","Polite Student",1,176,110; break; } return;
+}
+lighthalzen,145,101,4	script	City Professional	4_M_02,{ mes "[City Professional]"; mes F_Rand("Cities like this reward composure.","Lighthalzen moves with purpose.","People notice when you look uncertain here."); close; }
+lighthalzen,152,100,4	script	Lighthalzen Resident	4_F_01,{ mes "[Lighthalzen Resident]"; mes F_Rand("The city can feel formal, but it is never empty.","I like the pace here.","Lighthalzen feels polished, not cold."); close; }
+lighthalzen,150,87,4	script	City Visitor	4_M_03,{ mes "[City Visitor]"; mes F_Rand("I expected a grand city, and got one.","It feels busy without feeling loud.","Places like this make you want to observe."); close; }
+lighthalzen,152,100,4	script	Boutique Merchant	4W_M_02,{ mes "[Boutique Merchant]"; mes F_Rand("Refined cities still need commerce.","Taste is just another kind of business.","Lighthalzen buys carefully."); close; }
+lighthalzen,156,108,4	script	City Clerk	4_F_02,{ mes "[City Clerk]"; mes F_Rand("A large city runs on invisible paperwork.","People only notice us when something goes wrong.","Organization keeps places like this elegant."); close; }
+lighthalzen,148,116,4	script	Polite Student	4_M_KID1,{ mes "[Polite Student]"; mes F_Rand("I want to look like I belong here someday.","Everyone seems so composed.","It makes the whole city feel serious."); close; }

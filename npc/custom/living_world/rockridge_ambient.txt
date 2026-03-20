@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Rockridge Ambient Population
+//============================================================
+
+-	script	LWRockridgeController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefLocal; callsub S_RefLaborer; callsub S_RefDeputy; callsub S_RefTrader; callsub S_RefVisitor;
+	if (rand(100) <= 25) callsub S_Talk;
+	if (rand(100) <= 35) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Rockridge feels rougher than the older towns, but not lifeless.","It has a frontier pulse to it.","The place feels built on work and dust."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Labor towns never really feel still.","You can sense the work even when it's quiet.","Rockridge wears its effort openly."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("A place like this needs someone watching the edges.","Order matters more in frontier towns.","Rockridge feels held together on purpose."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Trade here feels practical and hard-earned.","People buy what they need first.","Rockridge has a direct kind of commerce."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Even outsiders can tell this town has a strong identity.","Rockridge doesn't feel interchangeable.","The mood here sticks with people."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_SWEAT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefLocal: .active_npc$[0]="Rockridge Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rockridge Local",1,151,215; break; case 2: callfunc "F_LW_SetActor","Rockridge Local",1,166,212; break; case 3: callfunc "F_LW_SetActor","Rockridge Local",1,181,217; break; } return;
+S_RefLaborer: .active_npc$[1]="Rockridge Laborer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rockridge Laborer",1,160,215; break; case 2: callfunc "F_LW_SetActor","Rockridge Laborer",1,172,221; break; case 3: callfunc "F_LW_SetActor","Rockridge Laborer",1,187,213; break; } return;
+S_RefDeputy: .active_npc$[2]="Rockridge Deputy"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rockridge Deputy",1,155,220; break; case 2: callfunc "F_LW_SetActor","Rockridge Deputy",1,177,209; break; case 3: callfunc "F_LW_SetActor","Rockridge Deputy",1,190,219; break; } return;
+S_RefTrader: .active_npc$[3]="Rockridge Trader"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rockridge Trader",1,163,210; break; case 2: callfunc "F_LW_SetActor","Rockridge Trader",1,174,216; break; case 3: callfunc "F_LW_SetActor","Rockridge Trader",1,184,211; break; } return;
+S_RefVisitor: .active_npc$[4]="Rockridge Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rockridge Visitor",1,168,218; break; case 2: callfunc "F_LW_SetActor","Rockridge Visitor",1,180,223; break; case 3: callfunc "F_LW_SetActor","Rockridge Visitor",1,193,215; break; } return;
+}
+harboro1,151,215,4	script	Rockridge Local	4_F_EINWOMAN,{ mes "[Rockridge Local]"; mes F_Rand("Rockridge feels rough around the edges in a good way.","There's life in the place because people keep pushing through.","It has a strong frontier mood."); close; }
+harboro1,160,215,4	script	Rockridge Laborer	4_M_EINMAN,{ mes "[Rockridge Laborer]"; mes F_Rand("Work is part of the town's sound here.","Rockridge never feels fully idle.","You can tell the place was built through effort."); close; }
+harboro1,155,220,4	script	Rockridge Deputy	4_M_MASKMAN,{ mes "[Rockridge Deputy]"; mes F_Rand("Frontier towns need visible order.","People relax more when someone is paying attention.","Rockridge holds together because people do their jobs."); close; }
+harboro1,163,210,4	script	Rockridge Trader	1_M_MERCHANT,{ mes "[Rockridge Trader]"; mes F_Rand("People spend carefully in towns like this.","Trade feels practical before it feels fancy.","Rockridge has a direct kind of business."); close; }
+harboro1,168,218,4	script	Rockridge Visitor	4_M_TWTEAMAN,{ mes "[Rockridge Visitor]"; mes F_Rand("This place stands out fast.","Rockridge has more personality than people expect.","It doesn't feel like just another stop."); close; }

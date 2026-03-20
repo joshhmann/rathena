@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Splendide Ambient Population
+//============================================================
+
+-	script	LWSplendideController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefLocal; callsub S_RefOutpostWorker; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefScout;
+	if (rand(100) <= 24) callsub S_Talk;
+	if (rand(100) <= 34) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Splendide feels more like a living outpost than a settled city.","Some frontier places build grace from discipline.","I like how composed it feels."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Outposts survive by staying prepared.","Splendide feels active in a controlled way.","You can sense the organization beneath the calm."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("This town feels far from the rest of the world, but not dead.","Frontier settlements leave strong first impressions.","Splendide feels careful and deliberate."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("Even outposts still need trade and supplies.","Practical needs shape the whole market here.","Splendide buys with intent."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Scouting and messages matter more in places like this.","A frontier outpost runs on awareness.","Splendide stays alive by paying attention."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefLocal: .active_npc$[0]="Splendide Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Splendide Local",1,192,153; break; case 2: callfunc "F_LW_SetActor","Splendide Local",1,205,146; break; case 3: callfunc "F_LW_SetActor","Splendide Local",1,214,156; break; } return;
+S_RefOutpostWorker: .active_npc$[1]="Outpost Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Outpost Worker",1,201,153; break; case 2: callfunc "F_LW_SetActor","Outpost Worker",1,217,148; break; case 3: callfunc "F_LW_SetActor","Outpost Worker",1,186,161; break; } return;
+S_RefVisitor: .active_npc$[2]="Frontier Guest"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Frontier Guest",1,209,153; break; case 2: callfunc "F_LW_SetActor","Frontier Guest",1,221,160; break; case 3: callfunc "F_LW_SetActor","Frontier Guest",1,189,143; break; } return;
+S_RefVendor: .active_npc$[3]="Splendide Supplier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Splendide Supplier",1,198,153; break; case 2: callfunc "F_LW_SetActor","Splendide Supplier",1,212,166; break; case 3: callfunc "F_LW_SetActor","Splendide Supplier",1,224,153; break; } return;
+S_RefScout: .active_npc$[4]="Outpost Scout"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Outpost Scout",1,204,153; break; case 2: callfunc "F_LW_SetActor","Outpost Scout",1,191,140; break; case 3: callfunc "F_LW_SetActor","Outpost Scout",1,227,161; break; } return;
+}
+splendide,192,153,4	script	Splendide Local	4_F_01,{ mes "[Splendide Local]"; mes F_Rand("Splendide feels careful in a good way.","Frontier towns can still feel graceful.","I like how deliberate everything feels."); close; }
+splendide,201,153,4	script	Outpost Worker	4_M_02,{ mes "[Outpost Worker]"; mes F_Rand("Outposts survive on preparation and labor.","Splendide's calm depends on organization.","The place stays alive because people keep it that way."); close; }
+splendide,209,153,4	script	Frontier Guest	4_M_03,{ mes "[Frontier Guest]"; mes F_Rand("This settlement feels far away without feeling abandoned.","Frontier places make strong first impressions.","Splendide feels deliberate and memorable."); close; }
+splendide,198,153,4	script	Splendide Supplier	4W_M_02,{ mes "[Splendide Supplier]"; mes F_Rand("Even elegant outposts still run on practical trade.","People here buy with intent.","Splendide's market reflects its discipline."); close; }
+splendide,204,153,4	script	Outpost Scout	4_F_02,{ mes "[Outpost Scout]"; mes F_Rand("Awareness matters more in frontier places.","A town like this stays alive by paying attention.","Splendide runs on more than appearances."); close; }

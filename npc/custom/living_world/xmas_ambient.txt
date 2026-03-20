@@ -1,0 +1,37 @@
+//===== rAthena Script =======================================
+//= Lutie Ambient Population
+//============================================================
+
+-	script	LWXmasController	FAKE_NPC,{ end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
+OnAmbientRefresh:
+	callsub S_RefLocal; callsub S_RefVisitor; callsub S_RefToySeller; callsub S_RefChild; callsub S_RefCaretaker;
+	if (rand(100) <= 26) callsub S_Talk;
+	if (rand(100) <= 36) callsub S_Emote;
+	end;
+S_Talk:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	.@actor=.@a[rand(.@c)];
+	switch(.@actor){
+	case 0: npctalk F_Rand("Lutie always feels a little brighter than other towns.","Holiday towns should feel cheerful even when quiet.","This place keeps its mood well."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("I came for the novelty and stayed because it was charming.","Lutie feels playful without being hollow.","Some towns lean hard into their identity and it works."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("A festive town still runs on stalls and supplies.","People buy with lighter hearts here.","The mood does half the work for the merchants."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("This town makes people smile more than most.","I like seeing visitors loosen up here.","Lutie feels built for delight."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("Even cheerful places need people doing the ordinary work.","Someone has to keep the place tidy and welcoming.","Good atmosphere takes effort."), .active_npc$[.@actor]; break;
+	} return;
+S_Emote:
+	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
+	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_THINK), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	return;
+S_RefLocal: .active_npc$[0]="Lutie Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Lutie Local",1,134,136; break; case 2: callfunc "F_LW_SetActor","Lutie Local",1,148,130; break; case 3: callfunc "F_LW_SetActor","Lutie Local",1,157,141; break; } return;
+S_RefVisitor: .active_npc$[1]="Festive Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Festive Visitor",1,143,136; break; case 2: callfunc "F_LW_SetActor","Festive Visitor",1,160,133; break; case 3: callfunc "F_LW_SetActor","Festive Visitor",1,127,144; break; } return;
+S_RefToySeller: .active_npc$[2]="Toy Seller"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Toy Seller",1,140,136; break; case 2: callfunc "F_LW_SetActor","Toy Seller",1,151,147; break; case 3: callfunc "F_LW_SetActor","Toy Seller",1,164,137; break; } return;
+S_RefChild: .active_npc$[3]="Excited Child"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Excited Child",1,145,126; break; case 2: callfunc "F_LW_SetActor","Excited Child",1,168,144; break; case 3: callfunc "F_LW_SetActor","Excited Child",1,130,132; break; } return;
+S_RefCaretaker: .active_npc$[4]="Village Caretaker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Village Caretaker",1,146,136; break; case 2: callfunc "F_LW_SetActor","Village Caretaker",1,126,151; break; case 3: callfunc "F_LW_SetActor","Village Caretaker",1,170,130; break; } return;
+}
+xmas,134,136,4	script	Lutie Local	4_F_01,{ mes "[Lutie Local]"; mes F_Rand("Lutie keeps its cheer well.","I like towns that commit to their atmosphere.","This place feels brighter than most."); close; }
+xmas,143,136,4	script	Festive Visitor	4_M_03,{ mes "[Festive Visitor]"; mes F_Rand("This town is charming in a way that sneaks up on you.","I expected novelty and got atmosphere too.","Lutie is easy to enjoy."); close; }
+xmas,140,136,4	script	Toy Seller	4W_M_02,{ mes "[Toy Seller]"; mes F_Rand("A festive town makes lighter trade feel natural.","Mood matters more than usual here.","People buy because the town invites it."); close; }
+xmas,145,126,4	script	Excited Child	4_M_KID1,{ mes "[Excited Child]"; mes F_Rand("This is my favorite town to walk through.","Everything feels a little more fun here.","Visitors always look happier in Lutie."); close; }
+xmas,146,136,4	script	Village Caretaker	4_F_02,{ mes "[Village Caretaker]"; mes F_Rand("Even charming towns need ordinary work to stay charming.","A good mood doesn't maintain itself.","Lutie is pleasant because people care for it."); close; }

@@ -1,0 +1,335 @@
+//===== rAthena Script =======================================
+//= Prontera Ambient Population
+//===== By: ==================================================
+//= Codex
+//===== Description: =========================================
+//= Script-only ambience layer for Prontera that rotates
+//= ambient NPCs through hotspot groups and occasionally
+//= makes them emote or speak.
+//============================================================
+
+-	script	LWPronteraController	FAKE_NPC,{
+	end;
+
+OnInit:
+	setarray .roles$[0],
+		"Busy Shopper",
+		"Market Browser",
+		"Tavern Regular",
+		"Inn Visitor",
+		"Merchant Assistant",
+		"Novice Adventurer",
+		"Traveling Swordsman",
+		"City Clerk Runner";
+	setarray .active_npc$[0], "", "", "", "", "", "", "", "";
+	initnpctimer;
+	donpcevent strnpcinfo(3) + "::OnAmbientRefresh";
+	end;
+
+OnTimer90000:
+	donpcevent strnpcinfo(3) + "::OnAmbientRefresh";
+	setnpctimer 0;
+	end;
+
+OnAmbientRefresh:
+	callsub S_RefreshBusyShopper;
+	callsub S_RefreshMarketBrowser;
+	callsub S_RefreshTavernRegular;
+	callsub S_RefreshInnVisitor;
+	callsub S_RefreshMerchAsst;
+	callsub S_RefreshNoviceAdv;
+	callsub S_RefreshTravelSword;
+	callsub S_RefreshCityClerkRunner;
+
+	if (rand(100) <= 35)
+		callsub S_DoAmbientTalk;
+	if (rand(100) <= 45)
+		callsub S_DoAmbientEmotion;
+	end;
+
+S_DoAmbientTalk:
+	.@count = 0;
+	for (.@i = 0; .@i < 8; ++.@i)
+		if (.active_npc$[.@i] != "")
+			.@available[.@count++] = .@i;
+	if (.@count < 1)
+		return;
+
+	.@actor = .@available[rand(.@count)];
+	switch (.@actor) {
+	case 0:
+		switch (rand(1, 4)) {
+		case 1: npctalk "The central market is crowded again today.", .active_npc$[.@actor]; break;
+		case 2: npctalk "I knew I forgot to buy apples from the south side.", .active_npc$[.@actor]; break;
+		case 3: npctalk "Prontera has everything if you know where to look.", .active_npc$[.@actor]; break;
+		case 4: npctalk "I should stop shopping, but one more stop won't hurt.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 1:
+		switch (rand(1, 4)) {
+		case 1: npctalk "I heard the merchants near the square got new stock in.", .active_npc$[.@actor]; break;
+		case 2: npctalk "The shopping boards make it easier to find a good deal.", .active_npc$[.@actor]; break;
+		case 3: npctalk "Everyone says Prontera is expensive, but I still like it here.", .active_npc$[.@actor]; break;
+		case 4: npctalk "I only came for one thing and somehow ended up browsing everything.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 2:
+		switch (rand(1, 4)) {
+		case 1: npctalk "The northern tavern is livelier after sunset.", .active_npc$[.@actor]; break;
+		case 2: npctalk "Adventurers tell the same stories louder every night.", .active_npc$[.@actor]; break;
+		case 3: npctalk "If you want rumors, listen near the tavern.", .active_npc$[.@actor]; break;
+		case 4: npctalk "One drink turns into three when the stories are good.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 3:
+		switch (rand(1, 4)) {
+		case 1: npctalk "The inn is full again. Travelers must be pouring in.", .active_npc$[.@actor]; break;
+		case 2: npctalk "I should rest before heading back out to the fields.", .active_npc$[.@actor]; break;
+		case 3: npctalk "Prontera's inn is never quiet for long.", .active_npc$[.@actor]; break;
+		case 4: npctalk "I miss quiet roads, but the city has its charm.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 4:
+		switch (rand(1, 4)) {
+		case 1: npctalk "My boss said to watch the market, not buy from it.", .active_npc$[.@actor]; break;
+		case 2: npctalk "If I carry one more crate across town, I want a raise.", .active_npc$[.@actor]; break;
+		case 3: npctalk "The traders near the fountain are busiest after noon.", .active_npc$[.@actor]; break;
+		case 4: npctalk "Merchants always need another pair of hands in Prontera.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 5:
+		switch (rand(1, 4)) {
+		case 1: npctalk "I finally made it to the capital!", .active_npc$[.@actor]; break;
+		case 2: npctalk "The guards make Prontera feel safer than the road.", .active_npc$[.@actor]; break;
+		case 3: npctalk "I should ask the guide where the good training grounds are.", .active_npc$[.@actor]; break;
+		case 4: npctalk "Someday I'll be strong enough to leave the city without worrying.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 6:
+		switch (rand(1, 4)) {
+		case 1: npctalk "West gate traffic never really stops.", .active_npc$[.@actor]; break;
+		case 2: npctalk "I've seen more rookies come through Prontera this week than all month.", .active_npc$[.@actor]; break;
+		case 3: npctalk "Rest, resupply, then back out to the fields.", .active_npc$[.@actor]; break;
+		case 4: npctalk "If you're heading out, bring more potions than you think you need.", .active_npc$[.@actor]; break;
+		}
+		break;
+	case 7:
+		switch (rand(1, 4)) {
+		case 1: npctalk "I have errands on both sides of the city today.", .active_npc$[.@actor]; break;
+		case 2: npctalk "City Hall paperwork never stays finished for long.", .active_npc$[.@actor]; break;
+		case 3: npctalk "Prontera grows busier every season.", .active_npc$[.@actor]; break;
+		case 4: npctalk "Running messages across town counts as exercise, right?", .active_npc$[.@actor]; break;
+		}
+		break;
+	}
+	return;
+
+S_DoAmbientEmotion:
+	.@count = 0;
+	for (.@i = 0; .@i < 8; ++.@i)
+		if (.active_npc$[.@i] != "")
+			.@available[.@count++] = .@i;
+	if (.@count < 1)
+		return;
+
+	.@actor = .@available[rand(.@count)];
+	switch (rand(1, 6)) {
+	case 1: emotion ET_THINK, getnpcid(0, .active_npc$[.@actor]); break;
+	case 2: emotion ET_HUM, getnpcid(0, .active_npc$[.@actor]); break;
+	case 3: emotion ET_DELIGHT, getnpcid(0, .active_npc$[.@actor]); break;
+	case 4: emotion ET_THROB, getnpcid(0, .active_npc$[.@actor]); break;
+	case 5: emotion ET_PROFUSELY_SWEAT, getnpcid(0, .active_npc$[.@actor]); break;
+	case 6: emotion ET_STARE_ABOUT, getnpcid(0, .active_npc$[.@actor]); break;
+	}
+	return;
+
+S_RefreshBusyShopper:
+	.@pick = rand(1, 3);
+	.active_npc$[0] = "Busy Shopper";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Busy Shopper", 1, 171, 232; break;
+	case 2: callfunc "F_LW_SetActor", "Busy Shopper", 1, 186, 236; break;
+	case 3: callfunc "F_LW_SetActor", "Busy Shopper", 1, 150, 230; break;
+	}
+	return;
+
+S_RefreshMarketBrowser:
+	.@pick = rand(1, 3);
+	.active_npc$[1] = "Market Browser";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Market Browser", 1, 176, 247; break;
+	case 2: callfunc "F_LW_SetActor", "Market Browser", 1, 160, 196; break;
+	case 3: callfunc "F_LW_SetActor", "Market Browser", 1, 145, 214; break;
+	}
+	return;
+
+S_RefreshTavernRegular:
+	.@hour = gettime(DT_HOUR);
+	if (.@hour < 17 || .@hour > 23) {
+		callfunc "F_LW_SetActor", "Tavern Regular", 0;
+		.active_npc$[2] = "";
+		return;
+	}
+	.@pick = rand(1, 2);
+	.active_npc$[2] = "Tavern Regular";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Tavern Regular", 1, 208, 160; break;
+	case 2: callfunc "F_LW_SetActor", "Tavern Regular", 1, 203, 184; break;
+	}
+	return;
+
+S_RefreshInnVisitor:
+	.@pick = rand(1, 3);
+	.active_npc$[3] = "Inn Visitor";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Inn Visitor", 1, 205, 196; break;
+	case 2: callfunc "F_LW_SetActor", "Inn Visitor", 1, 197, 188; break;
+	case 3: callfunc "F_LW_SetActor", "Inn Visitor", 1, 157, 188; break;
+	}
+	return;
+
+S_RefreshMerchAsst:
+	.@hour = gettime(DT_HOUR);
+	if (.@hour < 8 || .@hour > 20) {
+		callfunc "F_LW_SetActor", "Merchant Assistant", 0;
+		.active_npc$[4] = "";
+		return;
+	}
+	.@pick = rand(1, 3);
+	.active_npc$[4] = "Merchant Assistant";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Merchant Assistant", 1, 173, 244; break;
+	case 2: callfunc "F_LW_SetActor", "Merchant Assistant", 1, 182, 249; break;
+	case 3: callfunc "F_LW_SetActor", "Merchant Assistant", 1, 132, 220; break;
+	}
+	return;
+
+S_RefreshNoviceAdv:
+	.@pick = rand(1, 3);
+	.active_npc$[5] = "Novice Adventurer";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Novice Adventurer", 1, 153, 187; break;
+	case 2: callfunc "F_LW_SetActor", "Novice Adventurer", 1, 120, 84; break;
+	case 3: callfunc "F_LW_SetActor", "Novice Adventurer", 1, 209, 156; break;
+	}
+	return;
+
+S_RefreshTravelSword:
+	.@hour = gettime(DT_HOUR);
+	if (.@hour < 10 || .@hour > 22) {
+		callfunc "F_LW_SetActor", "Traveling Swordsman", 0;
+		.active_npc$[6] = "";
+		return;
+	}
+	.@pick = rand(1, 3);
+	.active_npc$[6] = "Traveling Swordsman";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "Traveling Swordsman", 1, 62, 333; break;
+	case 2: callfunc "F_LW_SetActor", "Traveling Swordsman", 1, 99, 184; break;
+	case 3: callfunc "F_LW_SetActor", "Traveling Swordsman", 1, 208, 153; break;
+	}
+	return;
+
+S_RefreshCityClerkRunner:
+	.@hour = gettime(DT_HOUR);
+	if (.@hour < 9 || .@hour > 18) {
+		callfunc "F_LW_SetActor", "City Clerk Runner", 0;
+		.active_npc$[7] = "";
+		return;
+	}
+	.@pick = rand(1, 2);
+	.active_npc$[7] = "City Clerk Runner";
+	switch (.@pick) {
+	case 1: callfunc "F_LW_SetActor", "City Clerk Runner", 1, 77, 95; break;
+	case 2: callfunc "F_LW_SetActor", "City Clerk Runner", 1, 130, 183; break;
+	}
+	return;
+}
+
+prontera,171,232,4	script	Busy Shopper	4_F_01,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "The square is busy again. I always end up buying more than I planned."; break;
+	case 2: mes "Prontera's market rows are crowded, but that usually means good stock."; break;
+	case 3: mes "I still need flowers, fruit, and maybe one small gift."; break;
+	case 4: mes "I should head home soon. One more stall, then I'm done."; break;
+	}
+	close;
+}
+
+prontera,176,247,3	script	Market Browser	4_M_02,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "The boards say there are bargains today, but everyone else saw them first."; break;
+	case 2: mes "I like watching what adventurers buy after coming back from the fields."; break;
+	case 3: mes "The city feels busiest near the trading district."; break;
+	case 4: mes "You can learn a lot about a town just by standing near its merchants."; break;
+	}
+	close;
+}
+
+prontera,208,160,4	script	Tavern Regular	4_M_03,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "The tavern gets loud later. That's when the best rumors start spreading."; break;
+	case 2: mes "Everyone says they are only staying for one drink."; break;
+	case 3: mes "If you sit long enough, every adventurer in Prontera walks by eventually."; break;
+	case 4: mes "The city changes after sunset. You notice more when you linger."; break;
+	}
+	close;
+}
+
+prontera,205,196,4	script	Inn Visitor	4_F_02,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "I came in from the road this morning. The inn is worth every zeny."; break;
+	case 2: mes "Prontera always feels safer after a long trip."; break;
+	case 3: mes "Maybe I'll rest first, then explore the square."; break;
+	case 4: mes "Travel is easier when you know a city has a decent inn."; break;
+	}
+	close;
+}
+
+prontera,173,244,4	script	Merchant Assistant	4W_M_02,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "My boss keeps sending me between the market and the square."; break;
+	case 2: mes "If a trader asks for another delivery, I am charging extra."; break;
+	case 3: mes "Prontera merchants always need one more pair of hands."; break;
+	case 4: mes "I know every shortcut in this city now."; break;
+	}
+	close;
+}
+
+prontera,153,187,4	script	Novice Adventurer	4_F_KID2,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "I made it to the capital. Now I just need a plan."; break;
+	case 2: mes "There are so many places to go from here."; break;
+	case 3: mes "I heard the guides here know everything."; break;
+	case 4: mes "I want to leave the city, but also... maybe after I buy more supplies."; break;
+	}
+	close;
+}
+
+prontera,62,333,4	script	Traveling Swordsman	4_M_KID1,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "I resupply in Prontera before every long trip."; break;
+	case 2: mes "West gate is busy. Plenty of adventurers coming and going."; break;
+	case 3: mes "If you plan to head out, carry more potions than pride."; break;
+	case 4: mes "A capital city should feel busy. Prontera does not disappoint."; break;
+	}
+	close;
+}
+
+prontera,77,95,4	script	City Clerk Runner	4W_F_01,{
+	mes "[" + strnpcinfo(0) + "]";
+	switch (rand(1, 4)) {
+	case 1: mes "I have papers to move from City Hall to the square and back again."; break;
+	case 2: mes "The city never really runs out of errands."; break;
+	case 3: mes "People think public work is calm. They have never carried documents across Prontera."; break;
+	case 4: mes "At least running around keeps me from sitting at a desk all day."; break;
+	}
+	close;
+}
