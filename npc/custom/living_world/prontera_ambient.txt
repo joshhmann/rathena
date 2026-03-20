@@ -8,17 +8,6 @@
 //= makes them emote or speak.
 //============================================================
 
-function	script	F_LW_SetActor	{
-	.@name$ = getarg(0);
-	.@show = getarg(1);
-	if (.@show) {
-		movenpc .@name$, getarg(2), getarg(3);
-		hideoffnpc .@name$;
-	} else
-		hideonnpc .@name$;
-	return;
-}
-
 -	script	LWPronteraController	FAKE_NPC,{
 	end;
 

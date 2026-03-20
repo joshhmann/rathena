@@ -1,0 +1,94 @@
+//===== rAthena Script =======================================
+//= Izlude Ambient Population
+//===== By: ==================================================
+//= Codex
+//===== Description: =========================================
+//= Script-only ambience layer for Izlude.
+//============================================================
+
+-	script	LWIzludeController	FAKE_NPC,{
+	end;
+
+OnInit:
+	setarray .active_npc$[0], "", "", "", "", "", "";
+	initnpctimer;
+	donpcevent strnpcinfo(3) + "::OnAmbientRefresh";
+	end;
+
+OnTimer90000:
+	donpcevent strnpcinfo(3) + "::OnAmbientRefresh";
+	setnpctimer 0;
+	end;
+
+OnAmbientRefresh:
+	callsub S_RefreshDockWorker;
+	callsub S_RefreshDeckhand;
+	callsub S_RefreshNovice;
+	callsub S_RefreshTraveler;
+	callsub S_RefreshGuideKid;
+	callsub S_RefreshFisher;
+	if (rand(100) <= 30)
+		callsub S_DoAmbientTalk;
+	if (rand(100) <= 40)
+		callsub S_DoAmbientEmotion;
+	end;
+
+S_DoAmbientTalk:
+	.@count = 0;
+	for (.@i = 0; .@i < 6; ++.@i)
+		if (.active_npc$[.@i] != "")
+			.@available[.@count++] = .@i;
+	if (.@count < 1) return;
+	.@actor = .@available[rand(.@count)];
+	switch (.@actor) {
+	case 0: npctalk F_Rand("The cargo from Alberta came in early today.","Keep the gangplank clear, we've got freight moving.","Izlude never stays quiet for long."), .active_npc$[.@actor]; break;
+	case 1: npctalk F_Rand("Another ferry, another pile of luggage.","If you're seasick, stand away from the edge.","Dock work is easier when the weather behaves."), .active_npc$[.@actor]; break;
+	case 2: npctalk F_Rand("I just got here, but I already want to explore everything.","Everyone says Izlude is where real adventures start.","I should buy supplies before I head out."), .active_npc$[.@actor]; break;
+	case 3: npctalk F_Rand("I only meant to pass through, but this town grows on you.","The harbor makes even waiting feel lively.","The road to Prontera feels shorter from here."), .active_npc$[.@actor]; break;
+	case 4: npctalk F_Rand("New adventurers always look lost for the first hour.","The swordman route is busy again today.","You can tell a lot about a town from its docks."), .active_npc$[.@actor]; break;
+	case 5: npctalk F_Rand("Fish bite better before the crowd gets loud.","A harbor town should smell like salt and bait.","I like the quiet corners near the water."), .active_npc$[.@actor]; break;
+	}
+	return;
+
+S_DoAmbientEmotion:
+	.@count = 0;
+	for (.@i = 0; .@i < 6; ++.@i)
+		if (.active_npc$[.@i] != "")
+			.@available[.@count++] = .@i;
+	if (.@count < 1) return;
+	.@actor = .@available[rand(.@count)];
+	emotion F_Rand(ET_THINK, ET_HUM, ET_DELIGHT, ET_STARE_ABOUT), getnpcid(0, .active_npc$[.@actor]);
+	return;
+
+S_RefreshDockWorker:
+	.active_npc$[0] = "Dock Worker";
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Dock Worker", 1, 113, 155; break; case 2: callfunc "F_LW_SetActor", "Dock Worker", 1, 129, 146; break; case 3: callfunc "F_LW_SetActor", "Dock Worker", 1, 141, 145; break; }
+	return;
+S_RefreshDeckhand:
+	.active_npc$[1] = "Deckhand";
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Deckhand", 1, 97, 173; break; case 2: callfunc "F_LW_SetActor", "Deckhand", 1, 124, 174; break; case 3: callfunc "F_LW_SetActor", "Deckhand", 1, 153, 167; break; }
+	return;
+S_RefreshNovice:
+	.active_npc$[2] = "Excited Novice";
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Excited Novice", 1, 125, 149; break; case 2: callfunc "F_LW_SetActor", "Excited Novice", 1, 134, 130; break; case 3: callfunc "F_LW_SetActor", "Excited Novice", 1, 109, 135; break; }
+	return;
+S_RefreshTraveler:
+	.active_npc$[3] = "Passing Traveler";
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Passing Traveler", 1, 117, 150; break; case 2: callfunc "F_LW_SetActor", "Passing Traveler", 1, 145, 151; break; case 3: callfunc "F_LW_SetActor", "Passing Traveler", 1, 127, 121; break; }
+	return;
+S_RefreshGuideKid:
+	.active_npc$[4] = "Harbor Kid";
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Harbor Kid", 1, 121, 132; break; case 2: callfunc "F_LW_SetActor", "Harbor Kid", 1, 139, 138; break; case 3: callfunc "F_LW_SetActor", "Harbor Kid", 1, 103, 147; break; }
+	return;
+S_RefreshFisher:
+	.active_npc$[5] = "Patient Fisher";
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Patient Fisher", 1, 100, 182; break; case 2: callfunc "F_LW_SetActor", "Patient Fisher", 1, 133, 181; break; case 3: callfunc "F_LW_SetActor", "Patient Fisher", 1, 148, 177; break; }
+	return;
+}
+
+izlude,113,155,4	script	Dock Worker	4_M_02,{ mes "[Dock Worker]"; mes F_Rand("If you keep moving, the docks keep moving too.","I've carried crates all morning and the day is still young.","Harbor work never runs out."); close; }
+izlude,97,173,4	script	Deckhand	4W_M_02,{ mes "[Deckhand]"; mes F_Rand("The next boat always comes faster than you'd think.","I'd rather be on deck than waiting on shore.","Cargo, passengers, gossip. The docks get all three."); close; }
+izlude,125,149,4	script	Excited Novice	4_F_KID2,{ mes "[Excited Novice]"; mes F_Rand("I can feel my adventure starting already.","I don't want to waste my first day in town.","Everyone here looks like they know where they're going."); close; }
+izlude,117,150,4	script	Passing Traveler	4_M_03,{ mes "[Passing Traveler]"; mes F_Rand("Izlude is a good place to catch your breath.","Some towns feel heavy. This one feels open.","Travel is easier when the port is lively."); close; }
+izlude,121,132,4	script	Harbor Kid	4_M_KID1,{ mes "[Harbor Kid]"; mes F_Rand("I like watching the ships come and go.","Someday I'll leave town on one of those boats.","Everyone from everywhere passes through Izlude."); close; }
+izlude,100,182,4	script	Patient Fisher	4_M_01,{ mes "[Patient Fisher]"; mes F_Rand("A quiet spot near the water is enough for me.","People talk too much when the fish are biting.","The harbor wakes up before the rest of town."); close; }
