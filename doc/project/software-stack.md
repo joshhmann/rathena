@@ -11,7 +11,9 @@ desktop client.
 - Editable checkout: `/root/dev/rathena`
 - Fork remote: `https://github.com/joshhmann/rathena.git`
 - Upstream remote: `https://github.com/rathena/rathena.git`
-- Main local integration branch: `dev`
+- Upstream policy: read-only source of official changes
+- Push policy: push only to fork `origin`, never to `upstream`
+- Main fork baseline branch: `master`
 - Current validated client branch: `exp/client-2025-06-04`
 
 ## Server Build Target

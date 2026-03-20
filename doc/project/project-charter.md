@@ -52,9 +52,19 @@ The project is aiming for a "living world" private server with:
 
 - `upstream` is `rathena/rathena`
 - `origin` is `joshhmann/rathena`
-- `master` stays close to upstream
-- `dev` is the main integration branch for project work
-- feature work should branch from `dev`
+- `upstream` is read-only reference history
+- official changes flow from `upstream` into local branches, never the other direction
+- custom work is merged and pushed only to `origin`
+- `master` is the fork's integrated baseline and may be ahead of upstream
+- `dev` is an optional integration/staging branch when needed
+- feature work should branch from the current fork baseline
+
+### Git Policy
+
+- never push custom work to `upstream`
+- never treat `rathena/rathena` as a merge target for project-specific features
+- fetch from `upstream`, then merge or rebase those updates into fork branches locally
+- push project history only to `origin`
 
 ## Current Milestone
 
