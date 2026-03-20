@@ -1,0 +1,96 @@
+//===== rAthena Script =======================================
+//= Living World Event Filler Prototype
+//============================================================
+
+alberta,35,223,4	script	Rival Steward	4_F_01,{
+	mes "[Rival Steward]";
+	mes "Want to see how mob-backed rivals can fill a low-pop event?";
+	switch(select("Start the Rival Run:Explain the prototype:Cancel")) {
+	case 1:
+		if (.running) {
+			mes "The Rival Run is already active.";
+			close;
+		}
+		mes "Head to the track and watch the fillers run the course.";
+		warp .map$, 49, 24;
+		donpcevent strnpcinfo(3) + "::OnStartRace";
+		close;
+	case 2:
+		mes "This is a proof-of-concept event using mob-backed scripted rivals.";
+		mes "They are not fake players. They are controlled filler actors.";
+		close;
+	default:
+		close;
+	}
+
+OnInit:
+	.map$ = "quiz_00";
+	.running = 0;
+	end;
+
+OnStartRace:
+	if (.running)
+		end;
+	.running = 1;
+	.finished = 0;
+	deletearray .place$[0], getarraysize(.place$);
+	mapannounce .map$, "The Rival Run begins. Scripted rivals are entering the course.", bc_map, 0x66CCFF;
+	.rival1 = callfunc("F_LW_SpawnMobActor", .map$, 44, 24, "Rival Brawler", 1811);
+	.rival2 = callfunc("F_LW_SpawnMobActor", .map$, 49, 24, "Rival Scout", 1071);
+	.rival3 = callfunc("F_LW_SpawnMobActor", .map$, 54, 24, "Rival Mercenary", 3086);
+	setunitdata .rival1, UMOB_MODE, MD_CANMOVE | MD_NORANDOMWALK;
+	setunitdata .rival2, UMOB_MODE, MD_CANMOVE | MD_NORANDOMWALK;
+	setunitdata .rival3, UMOB_MODE, MD_CANMOVE | MD_NORANDOMWALK;
+	sleep 500;
+	unitwalk .rival1, 44, 40, strnpcinfo(3) + "::OnRival1Leg2";
+	unitwalk .rival2, 49, 40, strnpcinfo(3) + "::OnRival2Leg2";
+	unitwalk .rival3, 54, 40, strnpcinfo(3) + "::OnRival3Leg2";
+	end;
+
+OnRival1Leg2:
+	unittalk 0, "Brawler taking the inside line!";
+	sleep2 300;
+	unitwalk 0, 60, 40, strnpcinfo(3) + "::OnRival1Finish";
+	end;
+
+OnRival2Leg2:
+	unittalk 0, "Scout pushing through the midpoint!";
+	sleep2 300;
+	unitwalk 0, 65, 40, strnpcinfo(3) + "::OnRival2Finish";
+	end;
+
+OnRival3Leg2:
+	unittalk 0, "Mercenary holding a steady pace!";
+	sleep2 300;
+	unitwalk 0, 70, 40, strnpcinfo(3) + "::OnRival3Finish";
+	end;
+
+OnRival1Finish:
+	callsub S_RecordFinish, "Rival Brawler";
+	unitkill 0;
+	end;
+
+OnRival2Finish:
+	callsub S_RecordFinish, "Rival Scout";
+	unitkill 0;
+	end;
+
+OnRival3Finish:
+	callsub S_RecordFinish, "Rival Mercenary";
+	unitkill 0;
+	end;
+
+S_RecordFinish:
+	.@name$ = getarg(0);
+	++.finished;
+	.place$[.finished] = .@name$;
+	mapannounce .map$, .@name$ + " takes place " + .finished + ".", bc_map, 0x99FF99;
+	if (.finished >= 3)
+		donpcevent strnpcinfo(3) + "::OnRaceComplete";
+	return;
+
+OnRaceComplete:
+	mapannounce .map$, "Rival Run complete: 1) " + .place$[1] + " 2) " + .place$[2] + " 3) " + .place$[3], bc_map, 0xFFD966;
+	.running = 0;
+	end;
+}

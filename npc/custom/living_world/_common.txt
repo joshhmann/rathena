@@ -3,7 +3,9 @@
 //===== By: ==================================================
 //= Codex
 //===== Description: =========================================
-//= Shared helpers for living-world ambient controllers.
+//= Shared helpers for living-world controllers. These helpers are
+//= intentionally script-only and are reused by town ambience,
+//= merchant actors, field actors, and event filler prototypes.
 //============================================================
 
 function	script	F_LW_SetActor	{
@@ -15,4 +17,58 @@ function	script	F_LW_SetActor	{
 	} else
 		hideonnpc .@name$;
 	return;
+}
+
+function	script	F_LW_IsHourInWindow	{
+	.@start = getarg(0);
+	.@end = getarg(1);
+	.@hour = gettime(DT_HOUR);
+	if (.@start <= .@end)
+		return (.@hour >= .@start && .@hour <= .@end);
+	return (.@hour >= .@start || .@hour <= .@end);
+}
+
+function	script	F_LW_SetScheduledActor	{
+	.@name$ = getarg(0);
+	.@start = getarg(1);
+	.@end = getarg(2);
+	.@x = getarg(3);
+	.@y = getarg(4);
+	if (callfunc("F_LW_IsHourInWindow", .@start, .@end)) {
+		callfunc "F_LW_SetActor", .@name$, 1, .@x, .@y;
+		return 1;
+	}
+	callfunc "F_LW_SetActor", .@name$, 0;
+	return 0;
+}
+
+function	script	F_LW_RandEmotion	{
+	switch (rand(1, 6)) {
+	case 1: return ET_THINK;
+	case 2: return ET_HUM;
+	case 3: return ET_DELIGHT;
+	case 4: return ET_THROB;
+	case 5: return ET_PROFUSELY_SWEAT;
+	default: return ET_STARE_ABOUT;
+	}
+}
+
+function	script	F_LW_MapHasUsers	{
+	return getmapusers(getarg(0)) > 0;
+}
+
+function	script	F_LW_StaggerTimer	{
+	.@min = getarg(0);
+	.@max = getarg(1);
+	if (.@max <= .@min) {
+		setnpctimer .@min;
+		return;
+	}
+	setnpctimer .@min + rand(.@max - .@min);
+	return;
+}
+
+function	script	F_LW_SpawnMobActor	{
+	monster getarg(0), getarg(1), getarg(2), getarg(3), getarg(4), 1;
+	return $@mobid[0];
 }

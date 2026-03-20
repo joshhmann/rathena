@@ -80,9 +80,33 @@ Implementation note:
 - service clusters are intentionally simple for now
 - map-aware coordinate polish is deferred to a later pass
 
-## Milestone 3: Overworld Activity
+## Milestone 3: Living World Framework
 
 Status: next
+
+Goals:
+
+- define the script-only limits of the project clearly
+- replace one-off living-world patterns with reusable framework conventions
+- support town actors, merchant actors, field actors, and event fillers through one shared framework layer
+
+Scope:
+
+- repo-local capability matrix and simulation-lane docs
+- shared framework helpers and controller conventions
+- one merchant proof slice
+- one event filler proof slice
+
+Exit criteria:
+
+- script-only boundaries are documented clearly
+- new framework helpers are in active use
+- one semi-functional merchant pocket works
+- one mob-backed event filler prototype works
+
+## Milestone 4: Overworld Activity
+
+Status: planned
 
 Goals:
 
@@ -101,26 +125,6 @@ Exit criteria:
 - one field map feels noticeably less empty
 - no combat/system exploits introduced
 - performance remains normal
-
-## Milestone 4: Controlled Simulation
-
-Status: planned
-
-Goals:
-
-- make the world feel reactive, not just decorated
-
-Scope:
-
-- town schedule variants
-- weekend or event density changes
-- player-presence-based activation
-- lightweight helper or companion prototype
-
-Exit criteria:
-
-- at least one time-based or population-based world-state change
-- simulation still runs fully inside normal rAthena server behavior
 
 ## Milestone 5: External AI Bridge
 

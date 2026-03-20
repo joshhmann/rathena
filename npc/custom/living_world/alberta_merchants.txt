@@ -1,0 +1,147 @@
+//===== rAthena Script =======================================
+//= Alberta Merchant Actors
+//============================================================
+
+-	script	LWAlbertaMerchantController	FAKE_NPC,{
+	end;
+
+OnInit:
+	setarray .active_npc$[0], "", "", "";
+	initnpctimer;
+	callfunc "F_LW_SetScheduledActor", "Alberta Fishmonger", 6, 18, 63, 236;
+	callfunc "F_LW_SetScheduledActor", "Dock Quartermaster", 8, 21, 72, 226;
+	callfunc "F_LW_SetScheduledActor", "Curio Dealer", 10, 23, 59, 223;
+	if (callfunc("F_LW_IsHourInWindow", 6, 18))
+		.active_npc$[0] = "Alberta Fishmonger";
+	if (callfunc("F_LW_IsHourInWindow", 8, 21))
+		.active_npc$[1] = "Dock Quartermaster";
+	if (callfunc("F_LW_IsHourInWindow", 10, 23))
+		.active_npc$[2] = "Curio Dealer";
+	end;
+
+OnTimer120000:
+	donpcevent strnpcinfo(3) + "::OnMerchantRefresh";
+	setnpctimer 0;
+	end;
+
+OnMerchantRefresh:
+	callsub S_RefFishmonger;
+	callsub S_RefQuartermaster;
+	callsub S_RefCurioDealer;
+	if (rand(100) <= 20)
+		callsub S_Talk;
+	if (rand(100) <= 25)
+		callsub S_Emote;
+	end;
+
+S_Talk:
+	.@count = 0;
+	for (.@i = 0; .@i < 3; ++.@i)
+		if (.active_npc$[.@i] != "")
+			.@slots[.@count++] = .@i;
+	if (.@count < 1)
+		return;
+	if (.@count == 1)
+		.@actor = .@slots[0];
+	else
+		.@actor = .@slots[rand(.@count)];
+	switch (.@actor) {
+	case 0:
+		npctalk F_Rand("Fresh catches move fastest before noon.","Port cities live by what comes off the boats.","If the fish are gone, you arrived too late."), .active_npc$[.@actor];
+		break;
+	case 1:
+		npctalk F_Rand("Every traveler forgets one supply until they reach the dock.","A harbor sells preparation as much as goods.","Leaving port without provisions is amateur work."), .active_npc$[.@actor];
+		break;
+	case 2:
+		npctalk F_Rand("Curios move slowly until the right buyer appears.","Ports always hide a stranger market beneath the obvious one.","Alberta rewards people who browse with intent."), .active_npc$[.@actor];
+		break;
+	}
+	return;
+
+S_Emote:
+	.@count = 0;
+	for (.@i = 0; .@i < 3; ++.@i)
+		if (.active_npc$[.@i] != "")
+			.@slots[.@count++] = .@i;
+	if (.@count < 1)
+		return;
+	if (.@count == 1)
+		.@actor = .@slots[0];
+	else
+		.@actor = .@slots[rand(.@count)];
+	emotion callfunc("F_LW_RandEmotion"), getnpcid(0, .active_npc$[.@actor]);
+	return;
+
+	S_RefFishmonger:
+		.active_npc$[0] = "";
+		.@pick = rand(2);
+		if (.@pick == 0)
+			.@active = callfunc("F_LW_SetScheduledActor", "Alberta Fishmonger", 6, 18, 63, 236);
+		else
+			.@active = callfunc("F_LW_SetScheduledActor", "Alberta Fishmonger", 6, 18, 69, 232);
+	if (.@active)
+		.active_npc$[0] = "Alberta Fishmonger";
+	return;
+
+	S_RefQuartermaster:
+		.active_npc$[1] = "";
+		.@pick = rand(2);
+		if (.@pick == 0)
+			.@active = callfunc("F_LW_SetScheduledActor", "Dock Quartermaster", 8, 21, 72, 226);
+		else
+			.@active = callfunc("F_LW_SetScheduledActor", "Dock Quartermaster", 8, 21, 78, 230);
+	if (.@active)
+		.active_npc$[1] = "Dock Quartermaster";
+	return;
+
+	S_RefCurioDealer:
+		.active_npc$[2] = "";
+		.@pick = rand(2);
+		if (.@pick == 0)
+			.@active = callfunc("F_LW_SetScheduledActor", "Curio Dealer", 10, 23, 59, 223);
+		else
+			.@active = callfunc("F_LW_SetScheduledActor", "Curio Dealer", 10, 23, 67, 220);
+	if (.@active)
+		.active_npc$[2] = "Curio Dealer";
+	return;
+}
+
+alberta,63,236,4	script	Alberta Fishmonger	4W_M_02,{
+	mes "[Alberta Fishmonger]";
+	mes "Fresh stock from the harbor. Want to browse?";
+	switch(select("Browse wares:Not now")) {
+	case 1:
+		callshop "lw_alb_fish_shop",1;
+		close;
+	default:
+		close;
+	}
+}
+
+alberta,72,226,4	script	Dock Quartermaster	4_M_02,{
+	mes "[Dock Quartermaster]";
+	mes "Set out prepared or stay dockside regretting it.";
+	switch(select("Buy provisions:Leave")) {
+	case 1:
+		callshop "lw_alb_supply_shop",1;
+		close;
+	default:
+		close;
+	}
+}
+
+alberta,59,223,4	script	Curio Dealer	4_F_01,{
+	mes "[Curio Dealer]";
+	mes "Ports collect oddities. Some are even useful.";
+	switch(select("See curios:Maybe later")) {
+	case 1:
+		callshop "lw_alb_curio_shop",1;
+		close;
+	default:
+		close;
+	}
+}
+
+-	shop	lw_alb_fish_shop	-1,501:-1,502:-1,503:-1,504:-1
+-	shop	lw_alb_supply_shop	-1,1750:-1,1751:-1,1752:-1,506:-1,611:-1
+-	shop	lw_alb_curio_shop	-1,610:-1,611:-1,713:-1,1065:-1
