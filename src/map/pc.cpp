@@ -2080,7 +2080,8 @@ bool pc_lastpoint_special( map_session_data& sd ){
 bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, int32 group_id, struct mmo_charstatus *st, bool changing_mapservers)
 {
 	t_tick tick = gettick();
-	uint32 ip = session[sd->fd]->client_addr;
+	const bool headless = sd->state.headless_bot;
+	uint32 ip = headless ? 0 : session[sd->fd]->client_addr;
 
 	sd->login_id2 = login_id2;
 	sd->group_id = group_id;
@@ -2091,7 +2092,8 @@ bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, i
 	memcpy(&sd->status, st, sizeof(*st));
 
 	if (st->sex != sd->status.sex) {
-		clif_authfail_fd(sd->fd, 0);
+		if (!headless)
+			clif_authfail_fd(sd->fd, 0);
 		return false;
 	}
 
@@ -2230,13 +2232,16 @@ bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, i
 		// try warping to a default map instead (church graveyard)
 		if (pc_setpos(sd, mapindex_name2id(MAP_PRONTERA), 273, 354, CLR_OUTSIGHT) != SETPOS_OK) {
 			// if we fail again
-			clif_authfail_fd(sd->fd, 0);
+			if (!headless)
+				clif_authfail_fd(sd->fd, 0);
 			return false;
 		}
 	}
 
-	clif_inventory_expansion_info( sd );
-	clif_authok(sd);
+	if (!headless) {
+		clif_inventory_expansion_info( sd );
+		clif_authok(sd);
+	}
 
 	//Prevent S. Novices from getting the no-death bonus just yet. [Skotlex]
 	sd->die_counter=-1;
@@ -2249,15 +2254,16 @@ bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, i
 	         sd->status.name, sd->status.account_id, sd->status.char_id,
 	         CONVIP(ip), sd->group_id);
 	// Send friends list
-	clif_friendslist_send( *sd );
+	if (!headless)
+		clif_friendslist_send( *sd );
 
 	if( !changing_mapservers ) {
 
-		if (battle_config.display_version == 1)
+		if (!headless && battle_config.display_version == 1)
 			pc_show_version(sd);
 
 		// Message of the Day [Valaris]
-		for(int32 i=0; i < MOTD_LINE_SIZE && motd_text[i][0]; i++) {
+		for(int32 i=0; !headless && i < MOTD_LINE_SIZE && motd_text[i][0]; i++) {
 			if (battle_config.motd_type)
 				clif_messagecolor(sd, color_table[COLOR_LIGHT_GREEN], motd_text[i], false, SELF);
 			else
@@ -2270,7 +2276,8 @@ bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, i
 		/**
 		 * Fixes login-without-aura glitch (the screen won't blink at this point, don't worry :P)
 		 **/
-		clif_changemap( *sd, sd->m, sd->x, sd->y );
+		if (!headless)
+			clif_changemap( *sd, sd->m, sd->x, sd->y );
 	}
 
 	pc_validate_skill(sd);
@@ -2468,7 +2475,7 @@ void pc_reg_received(map_session_data *sd)
 
 	map_addiddb(sd);
 	map_delnickdb(sd->status.char_id, sd->status.name);
-	if (!chrif_auth_finished(sd))
+	if (!sd->state.headless_bot && !chrif_auth_finished(sd))
 		ShowError("pc_reg_received: Failed to properly remove player %d:%d from logging db!\n", sd->status.account_id, sd->status.char_id);
 
 	chrif_skillcooldown_request(sd->status.account_id, sd->status.char_id);
@@ -14747,15 +14754,19 @@ uint8 pc_itemcd_check(map_session_data *sd, struct item_data *id, t_tick tick, u
 void pc_scdata_received(map_session_data *sd) {
 	pc_inventory_rentals(sd); // Needed here to remove rentals that have Status Changes after chrif_load_scdata has finished
 
-	clif_weight_limit( sd );
+	if (!sd->state.headless_bot) {
+		clif_weight_limit( sd );
 
-	if( pc_has_permission( sd, PC_PERM_ATTENDANCE ) && pc_attendance_enabled() && !pc_attendance_rewarded_today( sd ) && pc_attendance_counter(sd) < 200 ){
-		clif_ui_open( *sd, OUT_UI_ATTENDANCE, pc_attendance_counter( sd ) );
+		if( pc_has_permission( sd, PC_PERM_ATTENDANCE ) && pc_attendance_enabled() && !pc_attendance_rewarded_today( sd ) && pc_attendance_counter(sd) < 200 ){
+			clif_ui_open( *sd, OUT_UI_ATTENDANCE, pc_attendance_counter( sd ) );
+		}
 	}
 
 	sd->state.pc_loaded = true;
 
-	if (sd->state.connect_new == 0 && sd->fd) { // Character already loaded map! Gotta trigger LoadEndAck manually.
+	if (sd->state.headless_bot) {
+		clif_headless_pc_load(sd);
+	} else if (sd->state.connect_new == 0 && sd->fd) { // Character already loaded map! Gotta trigger LoadEndAck manually.
 		sd->state.connect_new = 1;
 		clif_parse_LoadEndAck(sd->fd, sd);
 	}

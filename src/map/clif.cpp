@@ -11461,6 +11461,45 @@ void clif_parse_QuitGame(int32 fd, map_session_data *sd)
 	}
 }
 
+void clif_headless_pc_load(map_session_data *sd)
+{
+	if (sd == nullptr || sd->prev != nullptr)
+		return;
+
+	if (!sd->state.active || !sd->state.pc_loaded)
+		return;
+
+	sd->state.warping = 0;
+
+	if (sd->status.guild_id)
+		guild_send_memberinfoshort(sd, 1);
+
+	struct map_data *mapdata = map_getmapdata(sd->m);
+
+	pc_setinvincibletimer(*sd);
+
+	if (mapdata->users++ == 0 && battle_config.dynamic_mobs)
+		map_spawnmobs(sd->m);
+	if (!pc_isinvisible(sd))
+		mapdata->users_pvp++;
+	sd->state.debug_remove_map = 0;
+	sd->state.callshop = 0;
+
+	if (map_addblock(sd))
+		return;
+
+	clif_spawn(sd);
+
+	if (sd->status.party_id)
+		party_send_movemap(sd);
+
+	if (battle_config.spawn_direction)
+		unit_setdir(sd, sd->status.body_direction, false);
+
+	if (!sd->state.autotrade)
+		npc_script_event(*sd, NPCE_LOGIN);
+}
+
 
 /// Requesting unit's name.
 /// 0094 <id>.L (CZ_REQNAME)

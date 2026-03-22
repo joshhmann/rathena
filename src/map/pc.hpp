@@ -441,6 +441,7 @@ public:
 		bool ignoretimeout; // Prevent the SECURE_NPCTIMEOUT function from closing current script.
 		uint32 workinprogress : 2; // See clif.hpp::e_workinprogress
 		bool pc_loaded; // Ensure inventory data and status data is loaded before we calculate player stats
+		bool headless_bot; // Runtime-only marker for socketless BL_PC actors
 		bool keepshop; // Whether shop data should be removed when the player disconnects
 		bool mail_writing; // Whether the player is currently writing a mail in RODEX or not
 		bool cashshop_open;

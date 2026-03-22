@@ -1,0 +1,28 @@
+// Headless BL_PC Phase 0 lab harness.
+
+prontera,154,181,4	script	Headless PC Lab	4_F_02,{
+	mes "[Headless PC Lab]";
+	mes "This is a dev-only harness for Phase 0 inert headless PCs.";
+	next;
+	switch(select("Spawn by char_id:Remove by char_id:Cancel")) {
+	case 1:
+		input .@char_id;
+		input .@map$;
+		input .@x;
+		input .@y;
+		if (headlesspc_spawn(.@char_id, .@map$, .@x, .@y))
+			mes "Spawn request queued.";
+		else
+			mes "Spawn request failed.";
+		close;
+	case 2:
+		input .@char_id;
+		if (headlesspc_remove(.@char_id))
+			mes "Headless PC removed or pending spawn cleared.";
+		else
+			mes "Nothing to remove.";
+		close;
+	default:
+		close;
+	}
+}

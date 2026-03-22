@@ -11522,6 +11522,40 @@ BUILDIN_FUNC(fakeplayer)
 }
 
 /*==========================================
+ * Request spawn of one inert headless BL_PC
+ * from an existing char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_spawn)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* mapname = script_getstr(st, 3);
+	uint16 x = script_getnum(st, 4);
+	uint16 y = script_getnum(st, 5);
+	int16 m = map_mapname2mapid(mapname);
+	bool ok = false;
+
+	if (m >= 0)
+		ok = chrif_headlesspc_request_spawn(char_id, m, x, y);
+	else
+		ShowWarning("headless_pc: invalid map \"%s\" passed to headlesspc_spawn.\n", mapname);
+
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Remove a headless BL_PC by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_remove)
+{
+	uint32 char_id = script_getnum(st, 2);
+	bool ok = chrif_headlesspc_remove(char_id);
+
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * KillMonster subcheck, verify if mob to kill ain't got an even to handle, could be force kill by allflag
  *------------------------------------------*/
  static int32 buildin_killmonster_sub_strip(block_list *bl,va_list ap)
@@ -28418,6 +28452,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(setunittitle,"is"),
 	BUILDIN_DEF(getunittitle,"i"),
 	BUILDIN_DEF(fakeplayer,"siisiiiiiiiiiii"),
+	BUILDIN_DEF(headlesspc_spawn,"isii"),
+	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(getunitdata,"i*"),
 	BUILDIN_DEF(setunitdata,"iiv"),
 	BUILDIN_DEF(unitwalk,"iii?"),

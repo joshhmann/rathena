@@ -203,3 +203,20 @@ The next phase after this document should be:
 - clean save/remove path
 
 That is the gate for every later playerbot feature.
+
+## Implementation Log Rule
+
+Each coding slice for `headless_pc_v1` should append to a repo-local running
+log instead of leaving the implementation history implicit.
+
+Canonical log:
+
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Each entry should record:
+
+- slice goal
+- files touched
+- runtime path changes
+- validation performed
+- explicit deferrals

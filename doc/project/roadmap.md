@@ -16,6 +16,35 @@ For now, the project should prioritize:
 ML, LLM, and external agent control are explicitly backburner items until the
 server already feels alive through normal rAthena systems.
 
+## External Test Harness
+
+An external CLI client harness is now part of the project workflow:
+
+- `OpenKore` is approved for regression and smoke testing
+- it is a client-side validation tool only
+- it is not part of the `headless_pc` / `playerbot` subsystem design
+
+Canonical note:
+
+- `doc/project/openkore-test-harness.md`
+
+## Slice Documentation Rule
+
+Every non-trivial subsystem slice should leave behind repo-local implementation
+notes.
+
+Minimum for each slice:
+
+- what the slice was trying to prove
+- exact files/modules touched
+- lifecycle or runtime path changes
+- what was intentionally deferred
+- how the slice was validated
+
+For `headless_pc_v1`, the running log lives in:
+
+- `doc/project/headless-pc-v1-slice-log.md`
+
 ## Milestone 0: Working Baseline
 
 Status: complete

@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <unordered_map>
 
 #include <common/cbasetypes.hpp>
 #include <common/ers.hpp>
@@ -39,6 +40,14 @@ static struct eri *auth_db_ers; //For reutilizing player login structures.
 static DBMap* auth_db; // int32 id -> struct auth_node*
 static bool char_init_done = false; //server already initialized? Used for InterInitOnce and vending loadings
 
+struct s_headlesspc_spawn_request {
+	int16 m;
+	uint16 x;
+	uint16 y;
+};
+
+static std::unordered_map<uint32, s_headlesspc_spawn_request> headlesspc_spawn_requests;
+
 static const int32 packet_len_table[0x3d] = { // U - used, F - free
 	60, 3,-1,-1,10,-1, 6,-1,	// 2af8-2aff: U->2af8, U->2af9, U->2afa, U->2afb, U->2afc, U->2afd, U->2afe, U->2aff
 	 6,-1,18, 7,-1, -1, 28 + MAP_NAME_LENGTH_EXT, 10,	// 2b00-2b07: U->2b00, U->2b01, U->2b02, U->2b03, U->2b04, U->2b05, U->2b06, U->2b07
@@ -47,6 +56,7 @@ static const int32 packet_len_table[0x3d] = { // U - used, F - free
 	 2,10, 2,-1,-1,-1, 2, 7,	// 2b18-2b1f: U->2b18, U->2b19, U->2b1a, U->2b1b, U->2b1c, U->2b1d, U->2b1e, U->2b1f
 	-1,10, 8, 2, 2,14,19,19,	// 2b20-2b27: U->2b20, U->2b21, U->2b22, U->2b23, U->2b24, U->2b25, U->2b26, U->2b27
 	-1, 0, 6,15, 0, 6,-1,-1,	// 2b28-2b2f: U->2b28, F->2b29, U->2b2a, U->2b2b, F->2b2c, U->2b2d, U->2b2e, U->2b2f
+	 6,-1, 0, 0, 0,	// 2b30-2b34: U->2b30, U->2b31
  };
 
 //Used Packets:
@@ -105,6 +115,8 @@ static const int32 packet_len_table[0x3d] = { // U - used, F - free
 //2b2d: Outgoing, chrif_bsdata_request -> request bonus_script for pc_authok'ed char.
 //2b2e: Outgoing, chrif_bsdata_save -> Send bonus_script of player for saving.
 //2b2f: Incoming, chrif_bsdata_received -> received bonus_script of player for loading.
+//2b30: Outgoing, chrif_headlesspc_request_spawn -> request raw character load by char_id for headless BL_PC bring-up.
+//2b31: Incoming, chrif_headlesspc_spawn_reply -> character load reply for headless BL_PC bring-up.
 
 int32 chrif_connected = 0;
 int32 char_fd = -1;
@@ -619,6 +631,37 @@ int32 chrif_skillcooldown_request(uint32 account_id, uint32 char_id) {
 	WFIFOL(char_fd, 6) = char_id;
 	WFIFOSET(char_fd, 10);
 	return 0;
+}
+
+bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y) {
+	if (!chrif_isconnected() || char_id == 0 || m < 0)
+		return false;
+
+	if (map_charid2sd(char_id) != nullptr)
+		return false;
+
+	if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end())
+		return false;
+
+	headlesspc_spawn_requests[char_id] = { m, x, y };
+
+	WFIFOHEAD(char_fd, 6);
+	WFIFOW(char_fd, 0) = 0x2b30;
+	WFIFOL(char_fd, 2) = char_id;
+	WFIFOSET(char_fd, 6);
+
+	return true;
+}
+
+bool chrif_headlesspc_remove(uint32 char_id) {
+	headlesspc_spawn_requests.erase(char_id);
+
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
+		map_quit(sd);
+		return true;
+	}
+
+	return false;
 }
 
 /*==========================================
@@ -1316,6 +1359,73 @@ int32 chrif_save_scdata( const map_session_data* sd ) { //parses the sc_data of 
 	return 0;
 }
 
+static void chrif_headlesspc_spawn_reply(int32 fd) {
+	uint16 packet_len = RFIFOW(fd, 2);
+	bool ok = RFIFOB(fd, 4) != 0;
+	uint32 requested_char_id = RFIFOL(fd, 5);
+
+	if (!ok) {
+		headlesspc_spawn_requests.erase(requested_char_id);
+		ShowWarning("headless_pc: char-server rejected a headless character load request for char_id %u.\n",
+			requested_char_id);
+		return;
+	}
+
+	if (packet_len - 9 != sizeof(struct mmo_charstatus)) {
+		ShowError("headless_pc: data size mismatch while receiving char-server load reply! %d != %" PRIuPTR "\n", packet_len - 9, sizeof(struct mmo_charstatus));
+		headlesspc_spawn_requests.erase(requested_char_id);
+		return;
+	}
+
+	struct mmo_charstatus status = {};
+	TBL_PC* sd;
+	memcpy(&status, RFIFOP(fd, 9), sizeof(struct mmo_charstatus));
+
+	auto it = headlesspc_spawn_requests.find(status.char_id);
+	if (it == headlesspc_spawn_requests.end())
+		return;
+
+	s_headlesspc_spawn_request request = it->second;
+	headlesspc_spawn_requests.erase(it);
+
+	if (map_id2sd(status.account_id) != nullptr || map_charid2sd(status.char_id) != nullptr) {
+		ShowWarning("headless_pc: character %u/%u is already online on this map-server.\n",
+			status.account_id, status.char_id);
+		chrif_char_offline_nsd(status.account_id, status.char_id);
+		return;
+	}
+
+	if (status.pet_id > 0 || status.hom_id > 0 || status.mer_id > 0 || status.ele_id > 0) {
+		ShowWarning("headless_pc: character %u has unsupported companion state for Phase 0 headless bring-up.\n",
+			status.char_id);
+		chrif_char_offline_nsd(status.account_id, status.char_id);
+		return;
+	}
+
+	struct map_data* mapdata = map_getmapdata(request.m);
+	if (mapdata == nullptr) {
+		chrif_char_offline_nsd(status.account_id, status.char_id);
+		return;
+	}
+
+	safestrncpy(status.last_point.map, mapdata->name, sizeof(status.last_point.map));
+	status.last_point.x = request.x;
+	status.last_point.y = request.y;
+	status.last_point_instanceid = mapdata->instance_id;
+
+	CREATE(sd, TBL_PC, 1);
+	new (sd) map_session_data();
+	sd->fd = 0;
+	pc_setnewpc(sd, status.account_id, status.char_id, 0, gettick(), status.sex, 0);
+	sd->state.headless_bot = true;
+
+	if (!pc_authok(sd, 0, 0, 0, &status, false)) {
+		chrif_char_offline_nsd(status.account_id, status.char_id);
+		sd->~map_session_data();
+		aFree(sd);
+	}
+}
+
 //Retrieve and load sc_data for a player. [Skotlex]
 int32 chrif_load_scdata(int32 fd) {
 
@@ -1792,6 +1902,7 @@ int32 chrif_parse(int32 fd) {
 			case 0x2b27: chrif_authfail(fd); break;
 			case 0x2b2b: chrif_parse_ack_vipActive(fd); break;
 			case 0x2b2f: chrif_bsdata_received(fd); break;
+			case 0x2b31: chrif_headlesspc_spawn_reply(fd); break;
 			default:
 				ShowError("chrif_parse : unknown packet (session #%d): 0x%x. Disconnecting.\n", fd, cmd);
 				set_eof(fd);

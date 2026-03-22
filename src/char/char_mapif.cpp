@@ -1090,6 +1090,49 @@ int32 chmapif_parse_reqauth(int32 fd, int32 id){
 }
 
 /**
+ * Request a raw character load for headless BL_PC bring-up.
+ * @param fd: map-server link
+ * @param id: map-server id
+ * @return 0 when not enough data was received, 1 otherwise
+ */
+int32 chmapif_parse_headlesspc_loadreq(int32 fd, int32 id) {
+	if (RFIFOREST(fd) < 6)
+		return 0;
+
+	uint32 char_id = RFIFOL(fd, 2);
+	RFIFOSKIP(fd, 6);
+
+	struct mmo_charstatus char_dat = {};
+	bool ok = false;
+
+	if (char_id > 0 && char_mmo_char_fromsql(char_id, &char_dat, true)) {
+		std::shared_ptr<struct online_char_data> online = util::umap_find(char_get_onlinedb(), char_dat.account_id);
+
+		if (online == nullptr || online->char_id == static_cast<uint32>(-1) || online->server == -1) {
+			ok = true;
+		} else {
+			ShowWarning("headless_pc: char-server rejected load for character %u on account %u because it is already online on server %d.\n",
+				char_dat.char_id, char_dat.account_id, online->server);
+		}
+	}
+
+	uint16 packet_len = static_cast<uint16>(9 + (ok ? sizeof(struct mmo_charstatus) : 0));
+	WFIFOHEAD(fd, packet_len);
+	WFIFOW(fd, 0) = 0x2b31;
+	WFIFOW(fd, 2) = packet_len;
+	WFIFOB(fd, 4) = ok ? 1 : 0;
+	WFIFOL(fd, 5) = char_id;
+
+	if (ok) {
+		memcpy(WFIFOP(fd, 9), &char_dat, sizeof(struct mmo_charstatus));
+		char_set_char_online(id, char_dat.char_id, char_dat.account_id);
+	}
+
+	WFIFOSET(fd, packet_len);
+	return 1;
+}
+
+/**
  * ip address update
  * @param fd: wich fd to parse from
  * @return : 0 not enough data received, 1 success
@@ -1441,6 +1484,7 @@ int32 chmapif_parse(int32 fd){
 			case 0x2b26: next=chmapif_parse_reqauth(fd,id); break;
 			case 0x2b28: next=chmapif_parse_reqcharban(fd); break; //charban
 			case 0x2b2a: next=chmapif_parse_reqcharunban(fd); break; //charunban
+			case 0x2b30: next=chmapif_parse_headlesspc_loadreq(fd,id); break;
 			//case 0x2b2c: /*free*/; break;
 			case 0x2b2d: next=chmapif_bonus_script_get(fd); break; //Load data
 			case 0x2b2e: next=chmapif_bonus_script_save(fd); break;//Save data
