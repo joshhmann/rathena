@@ -68,7 +68,7 @@ The project is aiming for a "living world" private server with:
 
 ## Current Milestone
 
-Baseline playable development environment.
+Subsystem planning after the atmosphere baseline.
 
 Definition of done:
 
@@ -97,13 +97,22 @@ That means:
 - make towns and common maps feel inhabited before attempting true bot systems
 - treat ML, LLM, and external AI control as future integrations, not current dependencies
 
+## Atmosphere Status
+
+The living-world atmosphere layer is accepted as a functional baseline:
+
+- town and hub rollout is complete
+- framework helpers are in active use
+- merchant and event proof slices exist
+- fakeplayer-backed field traffic is proven on `prt_fild08`
+- remaining atmosphere work is polish and selective expansion, not new foundation work
+
 ## Next Milestones
 
-1. Treat the town and hub rollout as the accepted baseline and only polish coordinates later where needed.
-2. Use the framework and merchant/event proofs as the baseline behavior layer.
-3. Validate fakeplayer-backed field traffic as the next real milestone.
-4. Expand pseudo-player usage selectively only where it improves atmosphere more than NPCs do.
-5. Keep true bots and external AI integrations on the backburner until the world layer is already strong.
+1. Freeze `headless_pc_v1` Phase 0 as the first true subsystem target.
+2. Build one inert headless `BL_PC` actor with no client socket.
+3. Keep real party, merchant, and controller logic out of scope until that actor lifecycle works.
+4. Treat any further atmosphere work as optional polish unless it directly helps the subsystem.
 
 ## Open Questions
 

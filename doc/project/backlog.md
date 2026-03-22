@@ -8,11 +8,8 @@ enough. Avoid deep source divergence.
 
 ## Immediate Tasks
 
-- validate and polish the fakeplayer-backed `prt_fild08` field slice
-- document fakeplayer as an approved selective tool, not future-only work
-- keep the framework helpers aligned with the active town, merchant, event, and field lanes
-- decide where pseudo-player actors actually improve atmosphere over NPCs
-- define the first persistent bot-state schema for future party and merchant systems
+- freeze `headless_pc_v1` Phase 0 so the first PC-backed bot implementation stays narrow
+- translate the Phase 0 design freeze into concrete source tasks for the first inert headless PC
 
 ## Existing rAthena Custom NPCs Worth Evaluating
 
@@ -73,7 +70,10 @@ adapted without committing to heavy engine work.
 
 - map-aware coordinate polish for towns and hub-service clusters
 - more hand-authored landmark-based ambient placements
+- additional fakeplayer field slices beyond `prt_fild08`
+- more pseudo-player merchant/event presentation polish
 - fully generalized pseudo-player actor system across all maps
+- PC-backed bot controller work after `headless_pc_v1` Phase 0
 - bot-style autonomous actors
 - ML-driven behavior systems
 - LLM-generated dialogue systems

@@ -113,7 +113,7 @@ Implementation note:
 
 ## Milestone 4: Fakeplayer-Backed Overworld Activity
 
-Status: next
+Status: complete
 
 Goals:
 
@@ -135,9 +135,15 @@ Exit criteria:
 - fakeplayer walkers remain a presentation layer, not true bots
 - performance remains normal
 
+Implementation note:
+
+- `prt_fild08` is the accepted proof map for this milestone
+- the current presentation uses conservative client-safe fakeplayer appearances
+- further field rollout is optional polish, not a gating requirement for subsystem work
+
 ## Milestone 5: Broader Pseudo-Player Systems
 
-Status: planned
+Status: complete for ambiance scope
 
 Goals:
 
@@ -156,6 +162,18 @@ Constraints:
 - towns and services remain primarily NPC-driven by default
 - no promise of true player semantics
 - keep fakeplayer usage selective, not universal
+
+Implementation note:
+
+- the next design freeze inside this milestone is `headless_pc_v1` Phase 0
+- that phase defines the first real PC-backed bot target
+- reference: [headless-pc-v1-phase0.md](/root/dev/rathena/doc/project/headless-pc-v1-phase0.md)
+- for the atmosphere lane, this milestone is considered complete once:
+  - town ambience is fakeplayer-backed where appropriate
+  - one field slice is fakeplayer-backed
+  - merchant/event proofs exist
+  - bot-state schema is documented
+- true party, merchant, and player semantics are subsystem work, not remaining ambiance work
 
 ## Milestone 6: External AI Bridge
 
