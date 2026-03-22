@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWManukController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefLocal; callsub S_RefFrontierWorker; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefRunner;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Frontier towns feel alive through persistence.","Manuk isn't polished, but it is real.","I respect places like this."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Hard places build practical habits.","The camp runs because people keep working.","Manuk feels active through effort."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Outpost towns leave strong impressions because they have to.","Manuk feels exposed, but not weak.","You remember frontier places."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("A frontier market is built on necessity first.","People buy what keeps them moving.","Manuk trade is practical and direct."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Short distances feel longer in camps like this.","Every message matters more out here.","Frontier towns run on communication too."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Frontier towns feel alive through persistence.","Manuk isn't polished, but it is real.","I respect places like this."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Hard places build practical habits.","The camp runs because people keep working.","Manuk feels active through effort."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Outpost towns leave strong impressions because they have to.","Manuk feels exposed, but not weak.","You remember frontier places."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A frontier market is built on necessity first.","People buy what keeps them moving.","Manuk trade is practical and direct."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Short distances feel longer in camps like this.","Every message matters more out here.","Frontier towns run on communication too."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefLocal: .active_npc$[0]="Manuk Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Manuk Local",1,263,144; break; case 2: callfunc "F_LW_SetActor","Manuk Local",1,277,137; break; case 3: callfunc "F_LW_SetActor","Manuk Local",1,286,146; break; } return;
-S_RefFrontierWorker: .active_npc$[1]="Frontier Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Frontier Worker",1,272,144; break; case 2: callfunc "F_LW_SetActor","Frontier Worker",1,288,139; break; case 3: callfunc "F_LW_SetActor","Frontier Worker",1,257,152; break; } return;
-S_RefVisitor: .active_npc$[2]="Outpost Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Outpost Visitor",1,280,144; break; case 2: callfunc "F_LW_SetActor","Outpost Visitor",1,292,151; break; case 3: callfunc "F_LW_SetActor","Outpost Visitor",1,261,133; break; } return;
-S_RefVendor: .active_npc$[3]="Manuk Supplier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Manuk Supplier",1,269,144; break; case 2: callfunc "F_LW_SetActor","Manuk Supplier",1,283,157; break; case 3: callfunc "F_LW_SetActor","Manuk Supplier",1,296,144; break; } return;
-S_RefRunner: .active_npc$[4]="Camp Runner"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Camp Runner",1,275,144; break; case 2: callfunc "F_LW_SetActor","Camp Runner",1,263,131; break; case 3: callfunc "F_LW_SetActor","Camp Runner",1,300,152; break; } return;
+S_RefLocal: .active_npc$[0]="Manuk Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Manuk Local",1,263,144; break; case 2: callfunc "F_LW_SetAmbientActor","Manuk Local",1,277,137; break; case 3: callfunc "F_LW_SetAmbientActor","Manuk Local",1,286,146; break; } return;
+S_RefFrontierWorker: .active_npc$[1]="Frontier Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Frontier Worker",1,272,144; break; case 2: callfunc "F_LW_SetAmbientActor","Frontier Worker",1,288,139; break; case 3: callfunc "F_LW_SetAmbientActor","Frontier Worker",1,257,152; break; } return;
+S_RefVisitor: .active_npc$[2]="Outpost Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Outpost Visitor",1,280,144; break; case 2: callfunc "F_LW_SetAmbientActor","Outpost Visitor",1,292,151; break; case 3: callfunc "F_LW_SetAmbientActor","Outpost Visitor",1,261,133; break; } return;
+S_RefVendor: .active_npc$[3]="Manuk Supplier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Manuk Supplier",1,269,144; break; case 2: callfunc "F_LW_SetAmbientActor","Manuk Supplier",1,283,157; break; case 3: callfunc "F_LW_SetAmbientActor","Manuk Supplier",1,296,144; break; } return;
+S_RefRunner: .active_npc$[4]="Camp Runner"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Camp Runner",1,275,144; break; case 2: callfunc "F_LW_SetAmbientActor","Camp Runner",1,263,131; break; case 3: callfunc "F_LW_SetAmbientActor","Camp Runner",1,300,152; break; } return;
 }
 manuk,263,144,4	script	Manuk Local	4_F_01,{ mes "[Manuk Local]"; mes F_Rand("Frontier towns feel alive through persistence.","Manuk feels exposed, but real.","I like places that don't pretend."); close; }
 manuk,272,144,4	script	Frontier Worker	4_M_02,{ mes "[Frontier Worker]"; mes F_Rand("The camp runs because people keep pushing it forward.","Manuk's life comes from effort.","Hard places demand practical habits."); close; }

@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWEinbrochController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefWorker; callsub S_RefMechanic; callsub S_RefTraveler; callsub S_RefMerchant; callsub S_RefRailRider; callsub S_RefLocal;
@@ -14,23 +14,23 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Einbroch never really stops humming.","Industry gives the town its heartbeat.","A working city has its own kind of life."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Machines are easier than people until they break.","There's always one more repair waiting.","You can smell work in the air here."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("I came through for the station and stayed to look around.","Travel towns always feel transitional.","Einbroch feels built for movement."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Workers spend well after a long shift.","A practical town makes practical business.","No one lingers here without a reason."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("The rail makes nearby towns feel closer than they are.","Transit keeps the city alive.","People underestimate how much stations matter."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("Einbroch is harsh, but it earns your respect.","Some people hate the smoke. I call it familiar.","The city feels honest about what it is."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Einbroch never really stops humming.","Industry gives the town its heartbeat.","A working city has its own kind of life."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Machines are easier than people until they break.","There's always one more repair waiting.","You can smell work in the air here."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I came through for the station and stayed to look around.","Travel towns always feel transitional.","Einbroch feels built for movement."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Workers spend well after a long shift.","A practical town makes practical business.","No one lingers here without a reason."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("The rail makes nearby towns feel closer than they are.","Transit keeps the city alive.","People underestimate how much stations matter."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Einbroch is harsh, but it earns your respect.","Some people hate the smoke. I call it familiar.","The city feels honest about what it is."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefWorker: .active_npc$[0]="Factory Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Factory Worker",1,50,203; break; case 2: callfunc "F_LW_SetActor","Factory Worker",1,67,198; break; case 3: callfunc "F_LW_SetActor","Factory Worker",1,75,209; break; } return;
-S_RefMechanic: .active_npc$[1]="Mechanic"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Mechanic",1,61,210; break; case 2: callfunc "F_LW_SetActor","Mechanic",1,80,202; break; case 3: callfunc "F_LW_SetActor","Mechanic",1,89,194; break; } return;
-S_RefTraveler: .active_npc$[2]="Station Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Station Traveler",1,57,202; break; case 2: callfunc "F_LW_SetActor","Station Traveler",1,72,217; break; case 3: callfunc "F_LW_SetActor","Station Traveler",1,92,207; break; } return;
-S_RefMerchant: .active_npc$[3]="Shift Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Shift Merchant",1,54,188; break; case 2: callfunc "F_LW_SetActor","Shift Merchant",1,70,190; break; case 3: callfunc "F_LW_SetActor","Shift Merchant",1,83,215; break; } return;
-S_RefRailRider: .active_npc$[4]="Rail Passenger"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Rail Passenger",1,64,206; break; case 2: callfunc "F_LW_SetActor","Rail Passenger",1,57,220; break; case 3: callfunc "F_LW_SetActor","Rail Passenger",1,95,197; break; } return;
-S_RefLocal: .active_npc$[5]="Einbroch Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Einbroch Local",1,58,195; break; case 2: callfunc "F_LW_SetActor","Einbroch Local",1,86,184; break; case 3: callfunc "F_LW_SetActor","Einbroch Local",1,100,204; break; } return;
+S_RefWorker: .active_npc$[0]="Factory Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Factory Worker",1,50,203; break; case 2: callfunc "F_LW_SetAmbientActor","Factory Worker",1,67,198; break; case 3: callfunc "F_LW_SetAmbientActor","Factory Worker",1,75,209; break; } return;
+S_RefMechanic: .active_npc$[1]="Mechanic"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Mechanic",1,61,210; break; case 2: callfunc "F_LW_SetAmbientActor","Mechanic",1,80,202; break; case 3: callfunc "F_LW_SetAmbientActor","Mechanic",1,89,194; break; } return;
+S_RefTraveler: .active_npc$[2]="Station Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Station Traveler",1,57,202; break; case 2: callfunc "F_LW_SetAmbientActor","Station Traveler",1,72,217; break; case 3: callfunc "F_LW_SetAmbientActor","Station Traveler",1,92,207; break; } return;
+S_RefMerchant: .active_npc$[3]="Shift Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Shift Merchant",1,54,188; break; case 2: callfunc "F_LW_SetAmbientActor","Shift Merchant",1,70,190; break; case 3: callfunc "F_LW_SetAmbientActor","Shift Merchant",1,83,215; break; } return;
+S_RefRailRider: .active_npc$[4]="Rail Passenger"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Rail Passenger",1,64,206; break; case 2: callfunc "F_LW_SetAmbientActor","Rail Passenger",1,57,220; break; case 3: callfunc "F_LW_SetAmbientActor","Rail Passenger",1,95,197; break; } return;
+S_RefLocal: .active_npc$[5]="Einbroch Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Einbroch Local",1,58,195; break; case 2: callfunc "F_LW_SetAmbientActor","Einbroch Local",1,86,184; break; case 3: callfunc "F_LW_SetAmbientActor","Einbroch Local",1,100,204; break; } return;
 }
 einbroch,50,203,4	script	Factory Worker	4_M_02,{ mes "[Factory Worker]"; mes F_Rand("The city runs on labor, not appearances.","A long shift makes the town feel smaller.","Busy work keeps Einbroch moving."); close; }
 einbroch,61,210,4	script	Mechanic	4W_M_02,{ mes "[Mechanic]"; mes F_Rand("Everything works until it doesn't.","Industrial towns always need repair work.","I trust tools more than luck."); close; }

@@ -2,11 +2,11 @@
 
 ## Lane 1: Script-Only Baseline
 
-This is the active lane for current implementation.
+This remains the default lane for current implementation.
 
 Includes:
 - town ambient actors
-- field patrol actors
+- town service and merchant NPCs
 - semi-functional merchant actors
 - mob-backed event fillers
 
@@ -15,17 +15,20 @@ Constraints:
 - no external AI dependency
 - no true fake-player behavior
 
-## Lane 2: Source-Assisted Later
+## Lane 2: Selective Source-Assisted Fake Players
 
-This lane is allowed later only if the script-only baseline proves insufficient.
+This lane is now active and approved for selective use.
 
 Examples:
-- stronger actor control
-- more complex event participation logic
-- improved target selection or coordination
-- deeper performance-driven behavior systems
+- field walkers that should read like real adventurers
+- pseudo-player guards, travelers, and couriers
+- selective merchant or event presentation upgrades
+- source-backed actor spawning with script-owned routes and schedules
 
-This lane is not in scope until the script-only baseline is clearly exhausted.
+Policy:
+- use this only where NPC or mob presentation is not convincing enough
+- scripts still own schedules, routes, chatter, respawn, and cleanup
+- this is a presentation/control primitive, not a real player session
 
 ## Lane 3: True Fake-Player / Bot Systems
 
@@ -40,4 +43,4 @@ Examples:
 Policy:
 - document only for now
 - do not design current implementation around it
-- do not block script-only progress on it
+- do not block atmosphere work on it

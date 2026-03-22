@@ -17,9 +17,9 @@ filler scripts reusable and consistent.
 - merchant controllers
   - visible merchant actors with shop interfaces
 - field controllers
-  - mob-backed patrol actors
+  - pseudo-player or other field-actor controllers
 - event filler controllers
-  - mob-backed scripted participants
+  - scripted participants with map-specific presentation
 - `hub_services.txt`
   - separate convenience layer, not part of actor behavior logic
 
@@ -49,14 +49,14 @@ filler scripts reusable and consistent.
 
 ### Field Actors
 
-- mob-backed actors
-- waypoint routes via `unitwalk`
+- preferably fakeplayer-backed walkers when player-like traffic is the goal
+- script-controlled waypoint routes via `unitwalk`
 - use `sleep2` between chained route callbacks
 - gated by map population when practical
 
 ### Event Fillers
 
-- mob-backed scripted participants
+- mob-backed or fakeplayer-backed scripted participants
 - role-based state tracked by the event controller
 - custom event logic only
 - not a substitute for real player slots
@@ -72,3 +72,4 @@ filler scripts reusable and consistent.
 - use the framework for behavior systems
 - keep hub-service duplication separate
 - keep coordinate polish optional unless placement is broken
+- keep fakeplayer usage selective and script-orchestrated

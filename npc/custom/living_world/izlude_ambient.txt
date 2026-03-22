@@ -12,7 +12,7 @@
 OnInit:
 	setarray .active_npc$[0], "", "", "", "", "", "";
 	initnpctimer;
-	donpcevent strnpcinfo(3) + "::OnAmbientRefresh";
+	setnpctimer 89000;
 	end;
 
 OnTimer90000:
@@ -41,12 +41,12 @@ S_DoAmbientTalk:
 	if (.@count < 1) return;
 	.@actor = .@available[rand(.@count)];
 	switch (.@actor) {
-	case 0: npctalk F_Rand("The cargo from Alberta came in early today.","Keep the gangplank clear, we've got freight moving.","Izlude never stays quiet for long."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Another ferry, another pile of luggage.","If you're seasick, stand away from the edge.","Dock work is easier when the weather behaves."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("I just got here, but I already want to explore everything.","Everyone says Izlude is where real adventures start.","I should buy supplies before I head out."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("I only meant to pass through, but this town grows on you.","The harbor makes even waiting feel lively.","The road to Prontera feels shorter from here."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("New adventurers always look lost for the first hour.","The swordman route is busy again today.","You can tell a lot about a town from its docks."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("Fish bite better before the crowd gets loud.","A harbor town should smell like salt and bait.","I like the quiet corners near the water."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("The cargo from Alberta came in early today.","Keep the gangplank clear, we've got freight moving.","Izlude never stays quiet for long."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Another ferry, another pile of luggage.","If you're seasick, stand away from the edge.","Dock work is easier when the weather behaves."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I just got here, but I already want to explore everything.","Everyone says Izlude is where real adventures start.","I should buy supplies before I head out."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I only meant to pass through, but this town grows on you.","The harbor makes even waiting feel lively.","The road to Prontera feels shorter from here."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("New adventurers always look lost for the first hour.","The swordman route is busy again today.","You can tell a lot about a town from its docks."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Fish bite better before the crowd gets loud.","A harbor town should smell like salt and bait.","I like the quiet corners near the water."); break;
 	}
 	return;
 
@@ -57,32 +57,32 @@ S_DoAmbientEmotion:
 			.@available[.@count++] = .@i;
 	if (.@count < 1) return;
 	.@actor = .@available[rand(.@count)];
-	emotion F_Rand(ET_THINK, ET_HUM, ET_DELIGHT, ET_STARE_ABOUT), getnpcid(0, .active_npc$[.@actor]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], F_Rand(ET_THINK, ET_HUM, ET_DELIGHT, ET_STARE_ABOUT);
 	return;
 
 S_RefreshDockWorker:
 	.active_npc$[0] = "Dock Worker";
-	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Dock Worker", 1, 113, 155; break; case 2: callfunc "F_LW_SetActor", "Dock Worker", 1, 129, 146; break; case 3: callfunc "F_LW_SetActor", "Dock Worker", 1, 141, 145; break; }
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetAmbientActor", "Dock Worker", 1, 113, 155; break; case 2: callfunc "F_LW_SetAmbientActor", "Dock Worker", 1, 129, 146; break; case 3: callfunc "F_LW_SetAmbientActor", "Dock Worker", 1, 141, 145; break; }
 	return;
 S_RefreshDeckhand:
 	.active_npc$[1] = "Deckhand";
-	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Deckhand", 1, 97, 173; break; case 2: callfunc "F_LW_SetActor", "Deckhand", 1, 124, 174; break; case 3: callfunc "F_LW_SetActor", "Deckhand", 1, 153, 167; break; }
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetAmbientActor", "Deckhand", 1, 97, 173; break; case 2: callfunc "F_LW_SetAmbientActor", "Deckhand", 1, 124, 174; break; case 3: callfunc "F_LW_SetAmbientActor", "Deckhand", 1, 153, 167; break; }
 	return;
 S_RefreshNovice:
 	.active_npc$[2] = "Excited Novice";
-	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Excited Novice", 1, 125, 149; break; case 2: callfunc "F_LW_SetActor", "Excited Novice", 1, 134, 130; break; case 3: callfunc "F_LW_SetActor", "Excited Novice", 1, 109, 135; break; }
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetAmbientActor", "Excited Novice", 1, 125, 149; break; case 2: callfunc "F_LW_SetAmbientActor", "Excited Novice", 1, 134, 130; break; case 3: callfunc "F_LW_SetAmbientActor", "Excited Novice", 1, 109, 135; break; }
 	return;
 S_RefreshTraveler:
 	.active_npc$[3] = "Passing Traveler";
-	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Passing Traveler", 1, 117, 150; break; case 2: callfunc "F_LW_SetActor", "Passing Traveler", 1, 145, 151; break; case 3: callfunc "F_LW_SetActor", "Passing Traveler", 1, 127, 121; break; }
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetAmbientActor", "Passing Traveler", 1, 117, 150; break; case 2: callfunc "F_LW_SetAmbientActor", "Passing Traveler", 1, 145, 151; break; case 3: callfunc "F_LW_SetAmbientActor", "Passing Traveler", 1, 127, 121; break; }
 	return;
 S_RefreshGuideKid:
 	.active_npc$[4] = "Harbor Kid";
-	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Harbor Kid", 1, 121, 132; break; case 2: callfunc "F_LW_SetActor", "Harbor Kid", 1, 139, 138; break; case 3: callfunc "F_LW_SetActor", "Harbor Kid", 1, 103, 147; break; }
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetAmbientActor", "Harbor Kid", 1, 121, 132; break; case 2: callfunc "F_LW_SetAmbientActor", "Harbor Kid", 1, 139, 138; break; case 3: callfunc "F_LW_SetAmbientActor", "Harbor Kid", 1, 103, 147; break; }
 	return;
 S_RefreshFisher:
 	.active_npc$[5] = "Patient Fisher";
-	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetActor", "Patient Fisher", 1, 100, 182; break; case 2: callfunc "F_LW_SetActor", "Patient Fisher", 1, 133, 181; break; case 3: callfunc "F_LW_SetActor", "Patient Fisher", 1, 148, 177; break; }
+	switch (rand(1, 3)) { case 1: callfunc "F_LW_SetAmbientActor", "Patient Fisher", 1, 100, 182; break; case 2: callfunc "F_LW_SetAmbientActor", "Patient Fisher", 1, 133, 181; break; case 3: callfunc "F_LW_SetAmbientActor", "Patient Fisher", 1, 148, 177; break; }
 	return;
 }
 

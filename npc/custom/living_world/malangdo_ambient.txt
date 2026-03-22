@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWMalangdoController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefLocal; callsub S_RefFisher; callsub S_RefPetLover; callsub S_RefVisitor; callsub S_RefVendor;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Malangdo feels playful without losing its routine.","Fishing towns carry a good kind of looseness.","I like the island energy here."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Water gives a town half its character.","Fishing keeps Malangdo grounded.","The island feels alive through small motion."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Pet people make a town feel warmer almost immediately.","Malangdo has that kind of warmth.","The place feels friendly by default."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Island towns this distinct don't need to shout to be memorable.","I came curious and stayed amused.","Malangdo is easy to like."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Even playful places still need stalls and supplies.","A strong mood can help trade as much as location.","Malangdo sells its atmosphere well."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Malangdo feels playful without losing its routine.","Fishing towns carry a good kind of looseness.","I like the island energy here."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Water gives a town half its character.","Fishing keeps Malangdo grounded.","The island feels alive through small motion."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Pet people make a town feel warmer almost immediately.","Malangdo has that kind of warmth.","The place feels friendly by default."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Island towns this distinct don't need to shout to be memorable.","I came curious and stayed amused.","Malangdo is easy to like."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Even playful places still need stalls and supplies.","A strong mood can help trade as much as location.","Malangdo sells its atmosphere well."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT);
 	return;
-S_RefLocal: .active_npc$[0]="Malangdo Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Malangdo Local",1,123,114; break; case 2: callfunc "F_LW_SetActor","Malangdo Local",1,136,108; break; case 3: callfunc "F_LW_SetActor","Malangdo Local",1,146,117; break; } return;
-S_RefFisher: .active_npc$[1]="Island Fisher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Island Fisher",1,132,114; break; case 2: callfunc "F_LW_SetActor","Island Fisher",1,148,110; break; case 3: callfunc "F_LW_SetActor","Island Fisher",1,118,121; break; } return;
-S_RefPetLover: .active_npc$[2]="Pet Lover"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Pet Lover",1,140,114; break; case 2: callfunc "F_LW_SetActor","Pet Lover",1,153,123; break; case 3: callfunc "F_LW_SetActor","Pet Lover",1,124,103; break; } return;
-S_RefVisitor: .active_npc$[3]="Malangdo Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Malangdo Visitor",1,129,114; break; case 2: callfunc "F_LW_SetActor","Malangdo Visitor",1,120,128; break; case 3: callfunc "F_LW_SetActor","Malangdo Visitor",1,158,114; break; } return;
-S_RefVendor: .active_npc$[4]="Malangdo Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Malangdo Vendor",1,135,114; break; case 2: callfunc "F_LW_SetActor","Malangdo Vendor",1,145,127; break; case 3: callfunc "F_LW_SetActor","Malangdo Vendor",1,160,120; break; } return;
+S_RefLocal: .active_npc$[0]="Malangdo Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Malangdo Local",1,123,114; break; case 2: callfunc "F_LW_SetAmbientActor","Malangdo Local",1,136,108; break; case 3: callfunc "F_LW_SetAmbientActor","Malangdo Local",1,146,117; break; } return;
+S_RefFisher: .active_npc$[1]="Island Fisher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Island Fisher",1,132,114; break; case 2: callfunc "F_LW_SetAmbientActor","Island Fisher",1,148,110; break; case 3: callfunc "F_LW_SetAmbientActor","Island Fisher",1,118,121; break; } return;
+S_RefPetLover: .active_npc$[2]="Pet Lover"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Pet Lover",1,140,114; break; case 2: callfunc "F_LW_SetAmbientActor","Pet Lover",1,153,123; break; case 3: callfunc "F_LW_SetAmbientActor","Pet Lover",1,124,103; break; } return;
+S_RefVisitor: .active_npc$[3]="Malangdo Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Malangdo Visitor",1,129,114; break; case 2: callfunc "F_LW_SetAmbientActor","Malangdo Visitor",1,120,128; break; case 3: callfunc "F_LW_SetAmbientActor","Malangdo Visitor",1,158,114; break; } return;
+S_RefVendor: .active_npc$[4]="Malangdo Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Malangdo Vendor",1,135,114; break; case 2: callfunc "F_LW_SetAmbientActor","Malangdo Vendor",1,145,127; break; case 3: callfunc "F_LW_SetAmbientActor","Malangdo Vendor",1,160,120; break; } return;
 }
 malangdo,123,114,4	script	Malangdo Local	4_F_01,{ mes "[Malangdo Local]"; mes F_Rand("Malangdo feels lively in a relaxed way.","Island towns have their own easy confidence.","I like how playful it feels."); close; }
 malangdo,132,114,4	script	Island Fisher	4_M_02,{ mes "[Island Fisher]"; mes F_Rand("Fishing towns move with the water more than the clock.","Malangdo feels grounded by the sea.","The island stays active through small routines."); close; }

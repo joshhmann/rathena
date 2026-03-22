@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWMidCampController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefCampWorker; callsub S_RefTraveler; callsub S_RefVendor; callsub S_RefScout; callsub S_RefMessenger;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Mid Camp feels temporary, but never inactive.","Staging hubs live through movement and preparation.","This place is all function, and that gives it life."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Transit camps feel alive because no one stays still for long.","People pass through here with clear reasons.","Mid Camp has forward momentum."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("A staging camp still runs on trade.","People buy what keeps them moving safely.","Utility shapes the whole market here."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Scouts give a place like this its edge.","Outward-looking camps feel different from settled towns.","Mid Camp always feels ready."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Messages matter more in transit hubs than most people realize.","A camp like this runs on communication.","Mid Camp moves because information moves."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Mid Camp feels temporary, but never inactive.","Staging hubs live through movement and preparation.","This place is all function, and that gives it life."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Transit camps feel alive because no one stays still for long.","People pass through here with clear reasons.","Mid Camp has forward momentum."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A staging camp still runs on trade.","People buy what keeps them moving safely.","Utility shapes the whole market here."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Scouts give a place like this its edge.","Outward-looking camps feel different from settled towns.","Mid Camp always feels ready."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Messages matter more in transit hubs than most people realize.","A camp like this runs on communication.","Mid Camp moves because information moves."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefCampWorker: .active_npc$[0]="Camp Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Camp Worker",1,194,289; break; case 2: callfunc "F_LW_SetActor","Camp Worker",1,207,283; break; case 3: callfunc "F_LW_SetActor","Camp Worker",1,216,292; break; } return;
-S_RefTraveler: .active_npc$[1]="Transit Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Transit Traveler",1,203,289; break; case 2: callfunc "F_LW_SetActor","Transit Traveler",1,218,286; break; case 3: callfunc "F_LW_SetActor","Transit Traveler",1,188,297; break; } return;
-S_RefVendor: .active_npc$[2]="Camp Supplier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Camp Supplier",1,200,289; break; case 2: callfunc "F_LW_SetActor","Camp Supplier",1,214,301; break; case 3: callfunc "F_LW_SetActor","Camp Supplier",1,226,289; break; } return;
-S_RefScout: .active_npc$[3]="Frontier Scout"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Frontier Scout",1,206,289; break; case 2: callfunc "F_LW_SetActor","Frontier Scout",1,192,277; break; case 3: callfunc "F_LW_SetActor","Frontier Scout",1,229,298; break; } return;
-S_RefMessenger: .active_npc$[4]="Camp Messenger"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Camp Messenger",1,209,289; break; case 2: callfunc "F_LW_SetActor","Camp Messenger",1,196,303; break; case 3: callfunc "F_LW_SetActor","Camp Messenger",1,232,282; break; } return;
+S_RefCampWorker: .active_npc$[0]="Camp Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Camp Worker",1,194,289; break; case 2: callfunc "F_LW_SetAmbientActor","Camp Worker",1,207,283; break; case 3: callfunc "F_LW_SetAmbientActor","Camp Worker",1,216,292; break; } return;
+S_RefTraveler: .active_npc$[1]="Transit Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Transit Traveler",1,203,289; break; case 2: callfunc "F_LW_SetAmbientActor","Transit Traveler",1,218,286; break; case 3: callfunc "F_LW_SetAmbientActor","Transit Traveler",1,188,297; break; } return;
+S_RefVendor: .active_npc$[2]="Camp Supplier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Camp Supplier",1,200,289; break; case 2: callfunc "F_LW_SetAmbientActor","Camp Supplier",1,214,301; break; case 3: callfunc "F_LW_SetAmbientActor","Camp Supplier",1,226,289; break; } return;
+S_RefScout: .active_npc$[3]="Frontier Scout"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Frontier Scout",1,206,289; break; case 2: callfunc "F_LW_SetAmbientActor","Frontier Scout",1,192,277; break; case 3: callfunc "F_LW_SetAmbientActor","Frontier Scout",1,229,298; break; } return;
+S_RefMessenger: .active_npc$[4]="Camp Messenger"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Camp Messenger",1,209,289; break; case 2: callfunc "F_LW_SetAmbientActor","Camp Messenger",1,196,303; break; case 3: callfunc "F_LW_SetAmbientActor","Camp Messenger",1,232,282; break; } return;
 }
 mid_camp,194,289,4	script	Camp Worker	4_M_02,{ mes "[Camp Worker]"; mes F_Rand("Staging camps stay alive through effort and preparation.","Mid Camp feels active because people keep it moving.","Function gives the place its life."); close; }
 mid_camp,203,289,4	script	Transit Traveler	4_M_03,{ mes "[Transit Traveler]"; mes F_Rand("No one passes through a camp like this without purpose.","Mid Camp feels driven forward.","Transit hubs have their own atmosphere."); close; }

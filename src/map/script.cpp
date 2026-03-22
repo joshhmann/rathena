@@ -11440,6 +11440,88 @@ BUILDIN_FUNC(areamonster)
 }
 
 /*==========================================
+ * Create a fake player using a mob base and
+ * player-class view data.
+ *
+ * fakeplayer(map, x, y, name, job_id, sex,
+ *   hair_style, hair_color, weapon, shield,
+ *   head_top, head_mid, head_bottom, option,
+ *   cloth_color)
+ * Returns the GID of the created fake player
+ *------------------------------------------*/
+BUILDIN_FUNC(fakeplayer)
+{
+	const char* mapn = script_getstr(st, 2);
+	int32 x = script_getnum(st, 3);
+	int32 y = script_getnum(st, 4);
+	const char* name = script_getstr(st, 5);
+	int32 class_ = script_getnum(st, 6);
+	int32 sex = script_getnum(st, 7);
+	int32 hair_style = script_getnum(st, 8);
+	int32 hair_color = script_getnum(st, 9);
+	int32 weapon = script_getnum(st, 10);
+	int32 shield = script_getnum(st, 11);
+	int32 head_top = script_getnum(st, 12);
+	int32 head_mid = script_getnum(st, 13);
+	int32 head_bottom = script_getnum(st, 14);
+	int32 option = script_getnum(st, 15);
+	int32 cloth_color = script_getnum(st, 16);
+	map_session_data* sd = map_id2sd(st->rid);
+	int16 m;
+	TBL_MOB* md;
+
+	if (!pcdb_checkid(class_)) {
+		ShowWarning("buildin_fakeplayer: Attempted to use non-player class %d\n", class_);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_FAILURE;
+	}
+
+	if (sd && strcmp(mapn, "this") == 0)
+		m = sd->m;
+	else
+		m = map_mapname2mapid(mapn);
+
+	if (m < 0) {
+		ShowWarning("buildin_fakeplayer: Invalid map \"%s\"\n", mapn);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_FAILURE;
+	}
+
+	// Use a harmless poring as the behavior base, then switch the visible class
+	// into the player-view lane before the unit is spawned to clients.
+	md = mob_once_spawn_sub(sd, m, static_cast<int16>(x), static_cast<int16>(y), name, 1002, "", SZ_SMALL, AI_NONE);
+
+	if (md == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_FAILURE;
+	}
+
+	md->ud.immune_attack = true;
+	md->special_state.ai = AI_NONE;
+	md->next_walktime = INVALID_TIMER;
+	md->sc.option = static_cast<uint16>(option);
+
+	status_set_viewdata(md, class_);
+
+	if (md->vd != nullptr) {
+		md->vd->sex = static_cast<char>(sex);
+		md->vd->look[LOOK_HAIR] = cap_value(hair_style, MIN_HAIR_STYLE, MAX_HAIR_STYLE);
+		md->vd->look[LOOK_HAIR_COLOR] = cap_value(hair_color, MIN_HAIR_COLOR, MAX_HAIR_COLOR);
+		md->vd->look[LOOK_WEAPON] = weapon;
+		md->vd->look[LOOK_SHIELD] = shield;
+		md->vd->look[LOOK_HEAD_TOP] = head_top;
+		md->vd->look[LOOK_HEAD_MID] = head_mid;
+		md->vd->look[LOOK_HEAD_BOTTOM] = head_bottom;
+		md->vd->look[LOOK_CLOTHES_COLOR] = cap_value(cloth_color, MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
+	}
+
+	mob_spawn(md);
+	script_pushint(st, md->id);
+
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * KillMonster subcheck, verify if mob to kill ain't got an even to handle, could be force kill by allflag
  *------------------------------------------*/
  static int32 buildin_killmonster_sub_strip(block_list *bl,va_list ap)
@@ -28335,6 +28417,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(setunitname,"is"),
 	BUILDIN_DEF(setunittitle,"is"),
 	BUILDIN_DEF(getunittitle,"i"),
+	BUILDIN_DEF(fakeplayer,"siisiiiiiiiiiii"),
 	BUILDIN_DEF(getunitdata,"i*"),
 	BUILDIN_DEF(setunitdata,"iiv"),
 	BUILDIN_DEF(unitwalk,"iii?"),

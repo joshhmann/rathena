@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWPayonController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefResident; callsub S_RefArcher; callsub S_RefVendor; callsub S_RefPilgrim; callsub S_RefMessenger; callsub S_RefVisitor;
@@ -14,24 +14,24 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Payon always feels calmer than the road.","Some towns shout. This one breathes.","I like how slowly the day moves here."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("You can always tell who's new by how they hold a bow.","The training grounds draw plenty of eager faces.","The archers here never stay idle for long."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Quiet towns still need supplies.","People buy more than they admit before a hunt.","A steady town makes for steady business."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Payon always feels calmer than the road.","Some towns shout. This one breathes.","I like how slowly the day moves here."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("You can always tell who's new by how they hold a bow.","The training grounds draw plenty of eager faces.","The archers here never stay idle for long."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Quiet towns still need supplies.","People buy more than they admit before a hunt.","A steady town makes for steady business."); break;
 	case 3: npctalk F_Rand("The old paths around Payon still feel sacred.","Travelers slow down when they reach this place.","I came for peace and found it."); break;
-	case 4: npctalk F_Rand("I'm crossing town again before sunset.","Even quiet towns run on errands.","The palace road stays busier than people think."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("I stopped for a short visit and ended up staying the day.","Payon feels welcoming without trying too hard.","A calm town is easy to like."), .active_npc$[.@actor]; break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I'm crossing town again before sunset.","Even quiet towns run on errands.","The palace road stays busier than people think."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I stopped for a short visit and ended up staying the day.","Payon feels welcoming without trying too hard.","A calm town is easy to like."); break;
 	}
 	return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefResident: .active_npc$[0]="Payon Resident"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Payon Resident",1,171,107; break; case 2: callfunc "F_LW_SetActor","Payon Resident",1,186,103; break; case 3: callfunc "F_LW_SetActor","Payon Resident",1,165,120; break; } return;
-S_RefArcher: .active_npc$[1]="Young Archer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Young Archer",1,177,116; break; case 2: callfunc "F_LW_SetActor","Young Archer",1,192,108; break; case 3: callfunc "F_LW_SetActor","Young Archer",1,156,110; break; } return;
-S_RefVendor: .active_npc$[2]="Supply Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Supply Vendor",1,183,106; break; case 2: callfunc "F_LW_SetActor","Supply Vendor",1,169,97; break; case 3: callfunc "F_LW_SetActor","Supply Vendor",1,160,116; break; } return;
-S_RefPilgrim: .active_npc$[3]="Quiet Pilgrim"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Quiet Pilgrim",1,174,90; break; case 2: callfunc "F_LW_SetActor","Quiet Pilgrim",1,187,92; break; case 3: callfunc "F_LW_SetActor","Quiet Pilgrim",1,200,108; break; } return;
-S_RefMessenger: .active_npc$[4]="Town Messenger"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Town Messenger",1,179,106; break; case 2: callfunc "F_LW_SetActor","Town Messenger",1,167,129; break; case 3: callfunc "F_LW_SetActor","Town Messenger",1,194,116; break; } return;
-S_RefVisitor: .active_npc$[5]="Visiting Hunter"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Visiting Hunter",1,164,101; break; case 2: callfunc "F_LW_SetActor","Visiting Hunter",1,198,100; break; case 3: callfunc "F_LW_SetActor","Visiting Hunter",1,176,126; break; } return;
+S_RefResident: .active_npc$[0]="Payon Resident"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Payon Resident",1,171,107; break; case 2: callfunc "F_LW_SetAmbientActor","Payon Resident",1,186,103; break; case 3: callfunc "F_LW_SetAmbientActor","Payon Resident",1,165,120; break; } return;
+S_RefArcher: .active_npc$[1]="Young Archer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Young Archer",1,177,116; break; case 2: callfunc "F_LW_SetAmbientActor","Young Archer",1,192,108; break; case 3: callfunc "F_LW_SetAmbientActor","Young Archer",1,156,110; break; } return;
+S_RefVendor: .active_npc$[2]="Supply Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Supply Vendor",1,183,106; break; case 2: callfunc "F_LW_SetAmbientActor","Supply Vendor",1,169,97; break; case 3: callfunc "F_LW_SetAmbientActor","Supply Vendor",1,160,116; break; } return;
+S_RefPilgrim: .active_npc$[3]="Quiet Pilgrim"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Quiet Pilgrim",1,174,90; break; case 2: callfunc "F_LW_SetAmbientActor","Quiet Pilgrim",1,187,92; break; case 3: callfunc "F_LW_SetAmbientActor","Quiet Pilgrim",1,200,108; break; } return;
+S_RefMessenger: .active_npc$[4]="Town Messenger"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Town Messenger",1,179,106; break; case 2: callfunc "F_LW_SetAmbientActor","Town Messenger",1,167,129; break; case 3: callfunc "F_LW_SetAmbientActor","Town Messenger",1,194,116; break; } return;
+S_RefVisitor: .active_npc$[5]="Visiting Hunter"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Visiting Hunter",1,164,101; break; case 2: callfunc "F_LW_SetAmbientActor","Visiting Hunter",1,198,100; break; case 3: callfunc "F_LW_SetAmbientActor","Visiting Hunter",1,176,126; break; } return;
 }
 payon,171,107,4	script	Payon Resident	4_F_01,{ mes "[Payon Resident]"; mes F_Rand("There's comfort in a familiar road.","I like towns that don't need to prove themselves.","Payon feels best when you slow down."); close; }
 payon,177,116,4	script	Young Archer	4_F_KID2,{ mes "[Young Archer]"; mes F_Rand("I practice here whenever I can.","Payon makes you want to train seriously.","One day I'll leave town with confidence."); close; }

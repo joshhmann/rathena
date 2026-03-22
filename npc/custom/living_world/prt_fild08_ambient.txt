@@ -1,0 +1,257 @@
+//===== rAthena Script =======================================
+//= Prontera Field 08 Ambient Activity
+//============================================================
+
+-	script	LWPrtFild08Controller	FAKE_NPC,{
+	end;
+
+OnInit:
+	.map$ = "prt_fild08";
+	.spawned = 0;
+	callfunc "F_LW_SetActor", "Roadside Camper", 0;
+	initnpctimer;
+	setnpctimer 5000;
+	end;
+
+OnTimer30000:
+	if (!callfunc("F_LW_MapHasUsers", .map$)) {
+		if (.spawned)
+			callsub S_DespawnActors;
+		callfunc "F_LW_SetActor", "Roadside Camper", 0;
+		setnpctimer 0;
+		end;
+	}
+
+	callfunc "F_LW_SetActor", "Roadside Camper", 1, 266, 255;
+
+	if (!.spawned) {
+		callsub S_SpawnActors;
+		setnpctimer 0;
+		end;
+	}
+
+	callsub S_EnsureActors;
+	if (rand(100) <= 18)
+		callsub S_FieldTalk;
+	setnpctimer 0;
+	end;
+
+S_SpawnActors:
+	.guard_west = callfunc("F_LW_SpawnFakePlayer", .map$, 198, 336, "Road Guard", Job_Swordman, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+	.guard_east = callfunc("F_LW_SpawnFakePlayer", .map$, 328, 238, "Road Guard", Job_Swordman, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+	.traveler_a = callfunc("F_LW_SpawnFakePlayer", .map$, 182, 352, "Traveling Adventurer", Job_Swordman, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+	.traveler_b = callfunc("F_LW_SpawnFakePlayer", .map$, 348, 224, "Traveling Adventurer", Job_Archer, Sex_Female, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+	.courier = callfunc("F_LW_SpawnFakePlayer", .map$, 230, 320, "Road Courier", Job_Merchant, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+	callsub S_SetAmbientActorMode, .guard_west;
+	callsub S_SetAmbientActorMode, .guard_east;
+	callsub S_SetAmbientActorMode, .traveler_a;
+	callsub S_SetAmbientActorMode, .traveler_b;
+	callsub S_SetAmbientActorMode, .courier;
+	setunitdata .courier, UMOB_SPEED, 120;
+	.spawned = 1;
+	sleep 200;
+	callsub S_StartGuardWest;
+	callsub S_StartGuardEast;
+	callsub S_StartTravelerA;
+	callsub S_StartTravelerB;
+	callsub S_StartCourier;
+	return;
+
+S_DespawnActors:
+	if (unitexists(.guard_west))
+		unitkill .guard_west;
+	if (unitexists(.guard_east))
+		unitkill .guard_east;
+	if (unitexists(.traveler_a))
+		unitkill .traveler_a;
+	if (unitexists(.traveler_b))
+		unitkill .traveler_b;
+	if (unitexists(.courier))
+		unitkill .courier;
+	.guard_west = 0;
+	.guard_east = 0;
+	.traveler_a = 0;
+	.traveler_b = 0;
+	.courier = 0;
+	.spawned = 0;
+	return;
+
+S_EnsureActors:
+	if (!unitexists(.guard_west)) {
+		.guard_west = callfunc("F_LW_SpawnFakePlayer", .map$, 198, 336, "Road Guard", Job_Swordman, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+		callsub S_SetAmbientActorMode, .guard_west;
+		sleep 100;
+		callsub S_StartGuardWest;
+	}
+	if (!unitexists(.guard_east)) {
+		.guard_east = callfunc("F_LW_SpawnFakePlayer", .map$, 328, 238, "Road Guard", Job_Swordman, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+		callsub S_SetAmbientActorMode, .guard_east;
+		sleep 100;
+		callsub S_StartGuardEast;
+	}
+	if (!unitexists(.traveler_a)) {
+		.traveler_a = callfunc("F_LW_SpawnFakePlayer", .map$, 182, 352, "Traveling Adventurer", Job_Swordman, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+		callsub S_SetAmbientActorMode, .traveler_a;
+		sleep 100;
+		callsub S_StartTravelerA;
+	}
+	if (!unitexists(.traveler_b)) {
+		.traveler_b = callfunc("F_LW_SpawnFakePlayer", .map$, 348, 224, "Traveling Adventurer", Job_Archer, Sex_Female, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+		callsub S_SetAmbientActorMode, .traveler_b;
+		sleep 100;
+		callsub S_StartTravelerB;
+	}
+	if (!unitexists(.courier)) {
+		.courier = callfunc("F_LW_SpawnFakePlayer", .map$, 230, 320, "Road Courier", Job_Merchant, Sex_Male, 1, 0, 0, 0, 0, 0, 0, 0, 0);
+		callsub S_SetAmbientActorMode, .courier;
+		setunitdata .courier, UMOB_SPEED, 120;
+		sleep 100;
+		callsub S_StartCourier;
+	}
+	return;
+
+S_SetAmbientActorMode:
+	.@gid = getarg(0);
+	if (!unitexists(.@gid))
+		return;
+	setunitdata .@gid, UMOB_MODE, MD_CANMOVE | MD_NORANDOMWALK;
+	setunitdata .@gid, UMOB_DMGIMMUNE, 1;
+	return;
+
+S_FieldTalk:
+	.@count = 0;
+	if (unitexists(.guard_west))
+		.@actor[.@count++] = .guard_west;
+	if (unitexists(.guard_east))
+		.@actor[.@count++] = .guard_east;
+	if (unitexists(.traveler_a))
+		.@actor[.@count++] = .traveler_a;
+	if (unitexists(.traveler_b))
+		.@actor[.@count++] = .traveler_b;
+	if (unitexists(.courier))
+		.@actor[.@count++] = .courier;
+	if (.@count < 1)
+		return;
+	unittalk .@actor[rand(.@count)], F_Rand("The road between Prontera and Izlude feels busier every week.","Stay to the road and you'll make decent time.","Traffic picks up whenever the weather is clear.","Couriers always move faster than they look.");
+	return;
+
+S_StartGuardWest:
+	unitwalk .guard_west, 220, 323, strnpcinfo(3) + "::OnGuardWestLeg2";
+	return;
+
+S_StartGuardEast:
+	unitwalk .guard_east, 347, 224, strnpcinfo(3) + "::OnGuardEastLeg2";
+	return;
+
+S_StartTravelerA:
+	unitwalk .traveler_a, 225, 324, strnpcinfo(3) + "::OnTravelerALeg2";
+	return;
+
+S_StartTravelerB:
+	unitwalk .traveler_b, 322, 243, strnpcinfo(3) + "::OnTravelerBLeg2";
+	return;
+
+S_StartCourier:
+	unitwalk .courier, 270, 286, strnpcinfo(3) + "::OnCourierLeg2";
+	return;
+
+OnGuardWestLeg2:
+	sleep2 250;
+	if (.guard_west && unitexists(.guard_west))
+		unitwalk .guard_west, 252, 302, strnpcinfo(3) + "::OnGuardWestLeg3";
+	end;
+
+OnGuardWestLeg3:
+	if (rand(100) <= 25)
+		unittalk .guard_west, "Keep the road clear and the trip stays easy.";
+	sleep2 250;
+	if (.guard_west && unitexists(.guard_west))
+		unitwalk .guard_west, 198, 336, strnpcinfo(3) + "::OnGuardWestLeg2";
+	end;
+
+OnGuardEastLeg2:
+	sleep2 250;
+	if (.guard_east && unitexists(.guard_east))
+		unitwalk .guard_east, 364, 214, strnpcinfo(3) + "::OnGuardEastLeg3";
+	end;
+
+OnGuardEastLeg3:
+	if (rand(100) <= 25)
+		unittalk .guard_east, "Izlude traffic never really stops.";
+	sleep2 250;
+	if (.guard_east && unitexists(.guard_east))
+		unitwalk .guard_east, 328, 238, strnpcinfo(3) + "::OnGuardEastLeg2";
+	end;
+
+OnTravelerALeg2:
+	if (rand(100) <= 35)
+		unittalk .traveler_a, "Another stretch of road before the docks.";
+	sleep2 300;
+	if (.traveler_a && unitexists(.traveler_a))
+		unitwalk .traveler_a, 286, 281, strnpcinfo(3) + "::OnTravelerALeg3";
+	end;
+
+OnTravelerALeg3:
+	sleep2 300;
+	if (.traveler_a && unitexists(.traveler_a))
+		unitwalk .traveler_a, 348, 232, strnpcinfo(3) + "::OnTravelerALeg4";
+	end;
+
+OnTravelerALeg4:
+	if (rand(100) <= 35)
+		unittalk .traveler_a, "Izlude should be just ahead now.";
+	sleep2 300;
+	if (.traveler_a && unitexists(.traveler_a))
+		unitwalk .traveler_a, 182, 352, strnpcinfo(3) + "::OnTravelerALeg2";
+	end;
+
+OnTravelerBLeg2:
+	if (rand(100) <= 35)
+		unittalk .traveler_b, "The east road looks clear today.";
+	sleep2 300;
+	if (.traveler_b && unitexists(.traveler_b))
+		unitwalk .traveler_b, 292, 272, strnpcinfo(3) + "::OnTravelerBLeg3";
+	end;
+
+OnTravelerBLeg3:
+	sleep2 300;
+	if (.traveler_b && unitexists(.traveler_b))
+		unitwalk .traveler_b, 348, 224, strnpcinfo(3) + "::OnTravelerBLeg4";
+	end;
+
+OnTravelerBLeg4:
+	if (rand(100) <= 35)
+		unittalk .traveler_b, "I'll loop back toward Izlude and make time there.";
+	sleep2 300;
+	if (.traveler_b && unitexists(.traveler_b))
+		unitwalk .traveler_b, 322, 243, strnpcinfo(3) + "::OnTravelerBLeg2";
+	end;
+
+OnCourierLeg2:
+	if (rand(100) <= 40)
+		unittalk .courier, "Delivery from Prontera. No delays.";
+	sleep2 200;
+	if (.courier && unitexists(.courier))
+		unitwalk .courier, 312, 250, strnpcinfo(3) + "::OnCourierLeg3";
+	end;
+
+OnCourierLeg3:
+	sleep2 200;
+	if (.courier && unitexists(.courier))
+		unitwalk .courier, 356, 218, strnpcinfo(3) + "::OnCourierLeg4";
+	end;
+
+OnCourierLeg4:
+	if (rand(100) <= 40)
+		unittalk .courier, "Dockside parcel, right on schedule.";
+	sleep2 200;
+	if (.courier && unitexists(.courier))
+		unitwalk .courier, 230, 320, strnpcinfo(3) + "::OnCourierLeg2";
+	end;
+}
+
+prt_fild08,266,255,4	script	Roadside Camper	4_F_01,{
+	mes "[Roadside Camper]";
+	mes F_Rand("It's a good road, just long enough to make a rest worthwhile.","You see all kinds between Prontera and Izlude.","The traffic feels calmer if you sit and listen for a while.");
+	close;
+}

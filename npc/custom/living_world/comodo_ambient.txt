@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWComodoController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefLocal; callsub S_RefNightGuest; callsub S_RefMerchant; callsub S_RefPerformer; callsub S_RefTraveler; callsub S_RefCourier;
@@ -14,23 +14,23 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Comodo likes being lively.","A leisure town shouldn't feel sleepy.","People come here to loosen up."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Night towns feel different even in daylight.","Comodo always feels like the evening is coming.","Some places are built for staying out."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Relaxed towns still spend money.","A playful mood is good for trade.","People buy differently when they're here for fun."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("A town like this needs people who add to the mood.","Comodo works best when it feels a little theatrical.","You can feel the nightlife even before dark."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("I came because everyone said Comodo was fun.","Some towns invite you to linger. This one does.","It feels easy to lose track of time here."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("A lively town still runs on errands and deliveries.","Even leisure districts need structure underneath.","Comodo hides its logistics well."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Comodo likes being lively.","A leisure town shouldn't feel sleepy.","People come here to loosen up."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Night towns feel different even in daylight.","Comodo always feels like the evening is coming.","Some places are built for staying out."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Relaxed towns still spend money.","A playful mood is good for trade.","People buy differently when they're here for fun."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A town like this needs people who add to the mood.","Comodo works best when it feels a little theatrical.","You can feel the nightlife even before dark."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I came because everyone said Comodo was fun.","Some towns invite you to linger. This one does.","It feels easy to lose track of time here."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A lively town still runs on errands and deliveries.","Even leisure districts need structure underneath.","Comodo hides its logistics well."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT);
 	return;
-S_RefLocal: .active_npc$[0]="Comodo Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Comodo Local",1,175,159; break; case 2: callfunc "F_LW_SetActor","Comodo Local",1,190,151; break; case 3: callfunc "F_LW_SetActor","Comodo Local",1,201,160; break; } return;
-S_RefNightGuest: .active_npc$[1]="Nightlife Regular"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Nightlife Regular",1,184,158; break; case 2: callfunc "F_LW_SetActor","Nightlife Regular",1,197,170; break; case 3: callfunc "F_LW_SetActor","Nightlife Regular",1,170,170; break; } return;
-S_RefMerchant: .active_npc$[2]="Leisure Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Leisure Merchant",1,181,158; break; case 2: callfunc "F_LW_SetActor","Leisure Merchant",1,194,148; break; case 3: callfunc "F_LW_SetActor","Leisure Merchant",1,205,161; break; } return;
-S_RefPerformer: .active_npc$[3]="Street Performer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Street Performer",1,188,158; break; case 2: callfunc "F_LW_SetActor","Street Performer",1,201,176; break; case 3: callfunc "F_LW_SetActor","Street Performer",1,166,162; break; } return;
-S_RefTraveler: .active_npc$[4]="Relaxed Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Relaxed Traveler",1,178,145; break; case 2: callfunc "F_LW_SetActor","Relaxed Traveler",1,206,154; break; case 3: callfunc "F_LW_SetActor","Relaxed Traveler",1,160,158; break; } return;
-S_RefCourier: .active_npc$[5]="Venue Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Venue Courier",1,184,158; break; case 2: callfunc "F_LW_SetActor","Venue Courier",1,171,149; break; case 3: callfunc "F_LW_SetActor","Venue Courier",1,209,169; break; } return;
+S_RefLocal: .active_npc$[0]="Comodo Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Comodo Local",1,175,159; break; case 2: callfunc "F_LW_SetAmbientActor","Comodo Local",1,190,151; break; case 3: callfunc "F_LW_SetAmbientActor","Comodo Local",1,201,160; break; } return;
+S_RefNightGuest: .active_npc$[1]="Nightlife Regular"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Nightlife Regular",1,184,158; break; case 2: callfunc "F_LW_SetAmbientActor","Nightlife Regular",1,197,170; break; case 3: callfunc "F_LW_SetAmbientActor","Nightlife Regular",1,170,170; break; } return;
+S_RefMerchant: .active_npc$[2]="Leisure Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Leisure Merchant",1,181,158; break; case 2: callfunc "F_LW_SetAmbientActor","Leisure Merchant",1,194,148; break; case 3: callfunc "F_LW_SetAmbientActor","Leisure Merchant",1,205,161; break; } return;
+S_RefPerformer: .active_npc$[3]="Street Performer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Street Performer",1,188,158; break; case 2: callfunc "F_LW_SetAmbientActor","Street Performer",1,201,176; break; case 3: callfunc "F_LW_SetAmbientActor","Street Performer",1,166,162; break; } return;
+S_RefTraveler: .active_npc$[4]="Relaxed Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Relaxed Traveler",1,178,145; break; case 2: callfunc "F_LW_SetAmbientActor","Relaxed Traveler",1,206,154; break; case 3: callfunc "F_LW_SetAmbientActor","Relaxed Traveler",1,160,158; break; } return;
+S_RefCourier: .active_npc$[5]="Venue Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Venue Courier",1,184,158; break; case 2: callfunc "F_LW_SetAmbientActor","Venue Courier",1,171,149; break; case 3: callfunc "F_LW_SetAmbientActor","Venue Courier",1,209,169; break; } return;
 }
 comodo,175,159,4	script	Comodo Local	4_F_01,{ mes "[Comodo Local]"; mes F_Rand("Comodo works best when it feels lively.","A leisure town should invite people to stay.","I like the energy here."); close; }
 comodo,184,158,4	script	Nightlife Regular	4_M_03,{ mes "[Nightlife Regular]"; mes F_Rand("This town feels like evening even before sunset.","Comodo is at its best when people linger.","A good leisure town has momentum."); close; }

@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWBrasilisController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefLocal; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefGuide; callsub S_RefPerformer;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Brasilis feels festive without forcing it.","A colorful town should feel active in the streets.","The atmosphere does half the work here."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Tourist towns live or die by feeling memorable.","Brasilis knows how to be memorable.","I like how open and bright it feels."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("A lively town gives merchants good rhythm.","People buy differently in places built for celebration.","Color and business mix well here."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Visitors always need direction before they appreciate a place.","Brasilis is easier to enjoy once you know where to wander.","Good guidance preserves the mood."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("A festive town needs people who add to the street energy.","Brasilis feels best when it looks in motion.","Atmosphere benefits from performance."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Brasilis feels festive without forcing it.","A colorful town should feel active in the streets.","The atmosphere does half the work here."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Tourist towns live or die by feeling memorable.","Brasilis knows how to be memorable.","I like how open and bright it feels."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A lively town gives merchants good rhythm.","People buy differently in places built for celebration.","Color and business mix well here."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Visitors always need direction before they appreciate a place.","Brasilis is easier to enjoy once you know where to wander.","Good guidance preserves the mood."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A festive town needs people who add to the street energy.","Brasilis feels best when it looks in motion.","Atmosphere benefits from performance."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT);
 	return;
-S_RefLocal: .active_npc$[0]="Brasilis Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Brasilis Local",1,185,222; break; case 2: callfunc "F_LW_SetActor","Brasilis Local",1,199,215; break; case 3: callfunc "F_LW_SetActor","Brasilis Local",1,208,226; break; } return;
-S_RefVisitor: .active_npc$[1]="Festive Tourist"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Festive Tourist",1,194,221; break; case 2: callfunc "F_LW_SetActor","Festive Tourist",1,211,219; break; case 3: callfunc "F_LW_SetActor","Festive Tourist",1,178,229; break; } return;
-S_RefVendor: .active_npc$[2]="Festival Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Festival Vendor",1,191,221; break; case 2: callfunc "F_LW_SetActor","Festival Vendor",1,204,233; break; case 3: callfunc "F_LW_SetActor","Festival Vendor",1,216,222; break; } return;
-S_RefGuide: .active_npc$[3]="Festival Guide"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Festival Guide",1,197,221; break; case 2: callfunc "F_LW_SetActor","Festival Guide",1,183,212; break; case 3: callfunc "F_LW_SetActor","Festival Guide",1,221,230; break; } return;
-S_RefPerformer: .active_npc$[4]="Street Dancer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Street Dancer",1,200,221; break; case 2: callfunc "F_LW_SetActor","Street Dancer",1,188,236; break; case 3: callfunc "F_LW_SetActor","Street Dancer",1,224,217; break; } return;
+S_RefLocal: .active_npc$[0]="Brasilis Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Brasilis Local",1,185,222; break; case 2: callfunc "F_LW_SetAmbientActor","Brasilis Local",1,199,215; break; case 3: callfunc "F_LW_SetAmbientActor","Brasilis Local",1,208,226; break; } return;
+S_RefVisitor: .active_npc$[1]="Festive Tourist"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Festive Tourist",1,194,221; break; case 2: callfunc "F_LW_SetAmbientActor","Festive Tourist",1,211,219; break; case 3: callfunc "F_LW_SetAmbientActor","Festive Tourist",1,178,229; break; } return;
+S_RefVendor: .active_npc$[2]="Festival Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Festival Vendor",1,191,221; break; case 2: callfunc "F_LW_SetAmbientActor","Festival Vendor",1,204,233; break; case 3: callfunc "F_LW_SetAmbientActor","Festival Vendor",1,216,222; break; } return;
+S_RefGuide: .active_npc$[3]="Festival Guide"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Festival Guide",1,197,221; break; case 2: callfunc "F_LW_SetAmbientActor","Festival Guide",1,183,212; break; case 3: callfunc "F_LW_SetAmbientActor","Festival Guide",1,221,230; break; } return;
+S_RefPerformer: .active_npc$[4]="Street Dancer"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Street Dancer",1,200,221; break; case 2: callfunc "F_LW_SetAmbientActor","Street Dancer",1,188,236; break; case 3: callfunc "F_LW_SetAmbientActor","Street Dancer",1,224,217; break; } return;
 }
 brasilis,185,222,4	script	Brasilis Local	4_F_01,{ mes "[Brasilis Local]"; mes F_Rand("Brasilis knows how to feel bright and active.","I like towns that wear their atmosphere openly.","The energy here is part of the place."); close; }
 brasilis,194,221,4	script	Festive Tourist	4_M_03,{ mes "[Festive Tourist]"; mes F_Rand("Tourist towns can feel hollow. Brasilis doesn't.","This place feels lively in a grounded way.","I understand why people talk about it."); close; }

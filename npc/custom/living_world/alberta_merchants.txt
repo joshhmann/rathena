@@ -8,15 +8,12 @@
 OnInit:
 	setarray .active_npc$[0], "", "", "";
 	initnpctimer;
-	callfunc "F_LW_SetScheduledActor", "Alberta Fishmonger", 6, 18, 63, 236;
-	callfunc "F_LW_SetScheduledActor", "Dock Quartermaster", 8, 21, 72, 226;
-	callfunc "F_LW_SetScheduledActor", "Curio Dealer", 10, 23, 59, 223;
-	if (callfunc("F_LW_IsHourInWindow", 6, 18))
-		.active_npc$[0] = "Alberta Fishmonger";
-	if (callfunc("F_LW_IsHourInWindow", 8, 21))
-		.active_npc$[1] = "Dock Quartermaster";
-	if (callfunc("F_LW_IsHourInWindow", 10, 23))
-		.active_npc$[2] = "Curio Dealer";
+	callfunc "F_LW_SetActor", "Alberta Fishmonger", 1, 46, 246;
+	callfunc "F_LW_SetActor", "Dock Quartermaster", 1, 50, 244;
+	callfunc "F_LW_SetActor", "Curio Dealer", 1, 43, 243;
+	.active_npc$[0] = "Alberta Fishmonger";
+	.active_npc$[1] = "Dock Quartermaster";
+	.active_npc$[2] = "Curio Dealer";
 	end;
 
 OnTimer120000:
@@ -25,9 +22,6 @@ OnTimer120000:
 	end;
 
 OnMerchantRefresh:
-	callsub S_RefFishmonger;
-	callsub S_RefQuartermaster;
-	callsub S_RefCurioDealer;
 	if (rand(100) <= 20)
 		callsub S_Talk;
 	if (rand(100) <= 25)
@@ -72,71 +66,42 @@ S_Emote:
 	emotion callfunc("F_LW_RandEmotion"), getnpcid(0, .active_npc$[.@actor]);
 	return;
 
-	S_RefFishmonger:
-		.active_npc$[0] = "";
-		.@pick = rand(2);
-		if (.@pick == 0)
-			.@active = callfunc("F_LW_SetScheduledActor", "Alberta Fishmonger", 6, 18, 63, 236);
-		else
-			.@active = callfunc("F_LW_SetScheduledActor", "Alberta Fishmonger", 6, 18, 69, 232);
-	if (.@active)
-		.active_npc$[0] = "Alberta Fishmonger";
-	return;
-
-	S_RefQuartermaster:
-		.active_npc$[1] = "";
-		.@pick = rand(2);
-		if (.@pick == 0)
-			.@active = callfunc("F_LW_SetScheduledActor", "Dock Quartermaster", 8, 21, 72, 226);
-		else
-			.@active = callfunc("F_LW_SetScheduledActor", "Dock Quartermaster", 8, 21, 78, 230);
-	if (.@active)
-		.active_npc$[1] = "Dock Quartermaster";
-	return;
-
-	S_RefCurioDealer:
-		.active_npc$[2] = "";
-		.@pick = rand(2);
-		if (.@pick == 0)
-			.@active = callfunc("F_LW_SetScheduledActor", "Curio Dealer", 10, 23, 59, 223);
-		else
-			.@active = callfunc("F_LW_SetScheduledActor", "Curio Dealer", 10, 23, 67, 220);
-	if (.@active)
-		.active_npc$[2] = "Curio Dealer";
-	return;
 }
 
-alberta,63,236,4	script	Alberta Fishmonger	4W_M_02,{
+alberta,46,246,4	script	Alberta Fishmonger	4W_M_02,{
 	mes "[Alberta Fishmonger]";
 	mes "Fresh stock from the harbor. Want to browse?";
 	switch(select("Browse wares:Not now")) {
 	case 1:
+		close2;
 		callshop "lw_alb_fish_shop",1;
-		close;
+		end;
 	default:
 		close;
 	}
 }
 
-alberta,72,226,4	script	Dock Quartermaster	4_M_02,{
+alberta,50,244,4	script	Dock Quartermaster	4_M_02,{
 	mes "[Dock Quartermaster]";
 	mes "Set out prepared or stay dockside regretting it.";
 	switch(select("Buy provisions:Leave")) {
 	case 1:
+		close2;
 		callshop "lw_alb_supply_shop",1;
-		close;
+		end;
 	default:
 		close;
 	}
 }
 
-alberta,59,223,4	script	Curio Dealer	4_F_01,{
+alberta,43,243,4	script	Curio Dealer	4_F_01,{
 	mes "[Curio Dealer]";
 	mes "Ports collect oddities. Some are even useful.";
 	switch(select("See curios:Maybe later")) {
 	case 1:
+		close2;
 		callshop "lw_alb_curio_shop",1;
-		close;
+		end;
 	default:
 		close;
 	}

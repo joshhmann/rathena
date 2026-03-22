@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWAldebaranController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefClockWorker; callsub S_RefCanalLocal; callsub S_RefMerchant; callsub S_RefVisitor; callsub S_RefCourier; callsub S_RefWatcher;
@@ -14,23 +14,23 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("A town of clocks teaches you to respect timing.","The mechanisms never really rest.","Aldebaran runs best when everyone keeps pace."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("A town of clocks teaches you to respect timing.","The mechanisms never really rest.","Aldebaran runs best when everyone keeps pace."); break;
 	case 1: npctalk F_Rand("The canals make this place feel calmer than it is.","I like how orderly Aldebaran feels.","This town has its own rhythm."); break;
-	case 2: npctalk F_Rand("Merchants like towns that stay predictable.","A steady town makes steady business.","People stop here longer than they plan."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("I came for the famous clock tower and stayed for the town.","Aldebaran feels measured in a good way.","Even the streets seem deliberate."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Running errands is easier when the streets are sensible.","Messages move fast in tidy towns.","Noisy cities tire me out. This one doesn't."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("People in Aldebaran always seem to know what hour it is.","The tower gives this city a spine.","I like watching travelers look up for the first time."), .active_npc$[.@actor]; break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Merchants like towns that stay predictable.","A steady town makes steady business.","People stop here longer than they plan."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I came for the famous clock tower and stayed for the town.","Aldebaran feels measured in a good way.","Even the streets seem deliberate."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Running errands is easier when the streets are sensible.","Messages move fast in tidy towns.","Noisy cities tire me out. This one doesn't."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("People in Aldebaran always seem to know what hour it is.","The tower gives this city a spine.","I like watching travelers look up for the first time."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefClockWorker: .active_npc$[0]="Clock Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Clock Worker",1,128,118; break; case 2: callfunc "F_LW_SetActor","Clock Worker",1,143,111; break; case 3: callfunc "F_LW_SetActor","Clock Worker",1,152,120; break; } return;
-S_RefCanalLocal: .active_npc$[1]="Canal Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Canal Local",1,134,130; break; case 2: callfunc "F_LW_SetActor","Canal Local",1,122,107; break; case 3: callfunc "F_LW_SetActor","Canal Local",1,158,108; break; } return;
-S_RefMerchant: .active_npc$[2]="Measured Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Measured Merchant",1,135,118; break; case 2: callfunc "F_LW_SetActor","Measured Merchant",1,147,125; break; case 3: callfunc "F_LW_SetActor","Measured Merchant",1,120,123; break; } return;
-S_RefVisitor: .active_npc$[3]="Clocktower Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Clocktower Visitor",1,140,104; break; case 2: callfunc "F_LW_SetActor","Clocktower Visitor",1,152,132; break; case 3: callfunc "F_LW_SetActor","Clocktower Visitor",1,117,134; break; } return;
-S_RefCourier: .active_npc$[4]="Town Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Town Courier",1,138,118; break; case 2: callfunc "F_LW_SetActor","Town Courier",1,126,140; break; case 3: callfunc "F_LW_SetActor","Town Courier",1,160,126; break; } return;
-S_RefWatcher: .active_npc$[5]="Tower Watcher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Tower Watcher",1,145,101; break; case 2: callfunc "F_LW_SetActor","Tower Watcher",1,115,114; break; case 3: callfunc "F_LW_SetActor","Tower Watcher",1,155,137; break; } return;
+S_RefClockWorker: .active_npc$[0]="Clock Worker"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Clock Worker",1,128,118; break; case 2: callfunc "F_LW_SetAmbientActor","Clock Worker",1,143,111; break; case 3: callfunc "F_LW_SetAmbientActor","Clock Worker",1,152,120; break; } return;
+S_RefCanalLocal: .active_npc$[1]="Canal Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Canal Local",1,134,130; break; case 2: callfunc "F_LW_SetAmbientActor","Canal Local",1,122,107; break; case 3: callfunc "F_LW_SetAmbientActor","Canal Local",1,158,108; break; } return;
+S_RefMerchant: .active_npc$[2]="Measured Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Measured Merchant",1,135,118; break; case 2: callfunc "F_LW_SetAmbientActor","Measured Merchant",1,147,125; break; case 3: callfunc "F_LW_SetAmbientActor","Measured Merchant",1,120,123; break; } return;
+S_RefVisitor: .active_npc$[3]="Clocktower Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Clocktower Visitor",1,140,104; break; case 2: callfunc "F_LW_SetAmbientActor","Clocktower Visitor",1,152,132; break; case 3: callfunc "F_LW_SetAmbientActor","Clocktower Visitor",1,117,134; break; } return;
+S_RefCourier: .active_npc$[4]="Town Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Town Courier",1,138,118; break; case 2: callfunc "F_LW_SetAmbientActor","Town Courier",1,126,140; break; case 3: callfunc "F_LW_SetAmbientActor","Town Courier",1,160,126; break; } return;
+S_RefWatcher: .active_npc$[5]="Tower Watcher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Tower Watcher",1,145,101; break; case 2: callfunc "F_LW_SetAmbientActor","Tower Watcher",1,115,114; break; case 3: callfunc "F_LW_SetAmbientActor","Tower Watcher",1,155,137; break; } return;
 }
 aldebaran,128,118,4	script	Clock Worker	4_M_02,{ mes "[Clock Worker]"; mes F_Rand("The city runs on timing and maintenance.","Aldebaran punishes sloppy work.","You start hearing rhythm everywhere after a while."); close; }
 aldebaran,134,130,4	script	Canal Local	4_F_01,{ mes "[Canal Local]"; mes F_Rand("The canals make the town feel grounded.","I like places with structure.","Aldebaran has a quiet confidence."); close; }

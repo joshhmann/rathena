@@ -1,0 +1,82 @@
+// --------------------------------------------------------------
+// Living World Fake Player Test
+// --------------------------------------------------------------
+
+prontera,150,185,4	script	Fake Player Lab	4_F_KAFRA1,{
+	mes "[Fake Player Lab]";
+	mes "This is a source-backed fake-player prototype.";
+	switch(select("Respawn Walker:Clear Walker:Status")) {
+	case 1:
+		donpcevent strnpcinfo(3)+"::OnRespawnWalker";
+		mes "[Fake Player Lab]";
+		mes "Respawned ^0055FFRoad Tester^000000 near the fountain.";
+		close;
+
+	case 2:
+		if (.gid && unitexists(.gid)) {
+			unitkill(.gid);
+			.gid = 0;
+			mes "[Fake Player Lab]";
+			mes "Cleared the current test walker.";
+		} else {
+			mes "[Fake Player Lab]";
+			mes "No active fake player is running.";
+		}
+		close;
+
+	default:
+		mes "[Fake Player Lab]";
+		if (.gid && unitexists(.gid))
+			mes "Active test walker GID: "+ .gid;
+		else
+			mes "No active fake player right now.";
+		close;
+	}
+
+OnInit:
+	.gid = 0;
+	initnpctimer;
+	end;
+
+OnTimer3000:
+	donpcevent strnpcinfo(3)+"::OnEnsureWalker";
+	end;
+
+OnTimer10000:
+	donpcevent strnpcinfo(3)+"::OnEnsureWalker";
+	end;
+
+OnTimer20000:
+	donpcevent strnpcinfo(3)+"::OnEnsureWalker";
+	end;
+
+OnEnsureWalker:
+	if (.gid && unitexists(.gid))
+		end;
+
+	.gid = fakeplayer("prontera",156,186,"Road Tester",Job_Swordman,Sex_Male,1,0,1,0,0,0,0,0,0);
+	if (!.gid)
+		end;
+
+	unitwalk(.gid,162,186,strnpcinfo(3)+"::OnWalkToEast");
+	end;
+
+OnRespawnWalker:
+	if (.gid && unitexists(.gid))
+		unitkill(.gid);
+	.gid = 0;
+	donpcevent strnpcinfo(3)+"::OnEnsureWalker";
+	end;
+
+OnWalkToEast:
+	sleep2 1200;
+	if (.gid && unitexists(.gid))
+		unitwalk(.gid,156,186,strnpcinfo(3)+"::OnWalkToWest");
+	end;
+
+OnWalkToWest:
+	sleep2 1200;
+	if (.gid && unitexists(.gid))
+		unitwalk(.gid,162,186,strnpcinfo(3)+"::OnWalkToEast");
+	end;
+}

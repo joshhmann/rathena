@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWUmbalaController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefLocal; callsub S_RefGuide; callsub S_RefVisitor; callsub S_RefTrader; callsub S_RefRunner;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Umbala feels alive in every direction.","Tree towns move differently from ground towns.","I like how open the air feels here."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Visitors always need help reading a place like this.","Umbala rewards people who pay attention.","A town in the canopy needs its own sense of direction."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Some towns feel far from everything else. Umbala feels like its own world.","I came because it was different, and it is.","The city stays with you."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Even unusual towns still trade and eat and prepare.","People here buy more practical things than you'd think.","A strong town can still be welcoming."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("You learn the heights and paths quickly or not at all.","Errands in Umbala keep your legs honest.","This town expects you to adapt."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Umbala feels alive in every direction.","Tree towns move differently from ground towns.","I like how open the air feels here."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Visitors always need help reading a place like this.","Umbala rewards people who pay attention.","A town in the canopy needs its own sense of direction."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Some towns feel far from everything else. Umbala feels like its own world.","I came because it was different, and it is.","The city stays with you."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Even unusual towns still trade and eat and prepare.","People here buy more practical things than you'd think.","A strong town can still be welcoming."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("You learn the heights and paths quickly or not at all.","Errands in Umbala keep your legs honest.","This town expects you to adapt."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_STARE_ABOUT,ET_THINK), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_HUM,ET_DELIGHT,ET_STARE_ABOUT,ET_THINK);
 	return;
-S_RefLocal: .active_npc$[0]="Umbala Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Umbala Local",1,96,148; break; case 2: callfunc "F_LW_SetActor","Umbala Local",1,110,141; break; case 3: callfunc "F_LW_SetActor","Umbala Local",1,118,154; break; } return;
-S_RefGuide: .active_npc$[1]="Path Guide"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Path Guide",1,105,149; break; case 2: callfunc "F_LW_SetActor","Path Guide",1,117,144; break; case 3: callfunc "F_LW_SetActor","Path Guide",1,92,158; break; } return;
-S_RefVisitor: .active_npc$[2]="Umbala Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Umbala Visitor",1,102,138; break; case 2: callfunc "F_LW_SetActor","Umbala Visitor",1,121,149; break; case 3: callfunc "F_LW_SetActor","Umbala Visitor",1,88,147; break; } return;
-S_RefTrader: .active_npc$[3]="Canopy Trader"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Canopy Trader",1,100,148; break; case 2: callfunc "F_LW_SetActor","Canopy Trader",1,114,160; break; case 3: callfunc "F_LW_SetActor","Canopy Trader",1,124,142; break; } return;
-S_RefRunner: .active_npc$[4]="Tree Runner"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Tree Runner",1,107,148; break; case 2: callfunc "F_LW_SetActor","Tree Runner",1,95,136; break; case 3: callfunc "F_LW_SetActor","Tree Runner",1,126,156; break; } return;
+S_RefLocal: .active_npc$[0]="Umbala Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Umbala Local",1,96,148; break; case 2: callfunc "F_LW_SetAmbientActor","Umbala Local",1,110,141; break; case 3: callfunc "F_LW_SetAmbientActor","Umbala Local",1,118,154; break; } return;
+S_RefGuide: .active_npc$[1]="Path Guide"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Path Guide",1,105,149; break; case 2: callfunc "F_LW_SetAmbientActor","Path Guide",1,117,144; break; case 3: callfunc "F_LW_SetAmbientActor","Path Guide",1,92,158; break; } return;
+S_RefVisitor: .active_npc$[2]="Umbala Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Umbala Visitor",1,102,138; break; case 2: callfunc "F_LW_SetAmbientActor","Umbala Visitor",1,121,149; break; case 3: callfunc "F_LW_SetAmbientActor","Umbala Visitor",1,88,147; break; } return;
+S_RefTrader: .active_npc$[3]="Canopy Trader"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Canopy Trader",1,100,148; break; case 2: callfunc "F_LW_SetAmbientActor","Canopy Trader",1,114,160; break; case 3: callfunc "F_LW_SetAmbientActor","Canopy Trader",1,124,142; break; } return;
+S_RefRunner: .active_npc$[4]="Tree Runner"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Tree Runner",1,107,148; break; case 2: callfunc "F_LW_SetAmbientActor","Tree Runner",1,95,136; break; case 3: callfunc "F_LW_SetAmbientActor","Tree Runner",1,126,156; break; } return;
 }
 umbala,96,148,4	script	Umbala Local	4_F_01,{ mes "[Umbala Local]"; mes F_Rand("Umbala moves differently from every other town I know.","You feel the air and the height here.","It's easy to remember a place like this."); close; }
 umbala,105,149,4	script	Path Guide	4_M_02,{ mes "[Path Guide]"; mes F_Rand("Newcomers always need direction in Umbala.","The town makes more sense once you stop fighting it.","Different places need different instincts."); close; }

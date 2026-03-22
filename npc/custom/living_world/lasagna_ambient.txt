@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWLasagnaController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefLocal; callsub S_RefSailor; callsub S_RefVisitor; callsub S_RefVendor; callsub S_RefChild;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Lasagna feels bright without being frantic.","Doram towns have a different kind of energy.","This place feels cheerful in a grounded way."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Harbor work gives Lasagna a steady pulse.","The docks keep the town practical.","Even a playful town needs real routines."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Visitors usually remember Lasagna immediately.","It's hard not to like a town with this much character.","Some places win people over fast."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Good food and simple trade keep the whole place moving.","Lasagna has charm and ordinary commerce together.","The town sells its mood without trying too hard."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Young Doram make the town feel even livelier.","You can hear the energy before you see it sometimes.","Lasagna feels built for community."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Lasagna feels bright without being frantic.","Doram towns have a different kind of energy.","This place feels cheerful in a grounded way."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Harbor work gives Lasagna a steady pulse.","The docks keep the town practical.","Even a playful town needs real routines."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Visitors usually remember Lasagna immediately.","It's hard not to like a town with this much character.","Some places win people over fast."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Good food and simple trade keep the whole place moving.","Lasagna has charm and ordinary commerce together.","The town sells its mood without trying too hard."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Young Doram make the town feel even livelier.","You can hear the energy before you see it sometimes.","Lasagna feels built for community."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT);
 	return;
-S_RefLocal: .active_npc$[0]="Lasagna Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Lasagna Local",1,215,186; break; case 2: callfunc "F_LW_SetActor","Lasagna Local",1,224,191; break; case 3: callfunc "F_LW_SetActor","Lasagna Local",1,230,184; break; } return;
-S_RefSailor: .active_npc$[1]="Lasagna Sailor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Lasagna Sailor",1,227,187; break; case 2: callfunc "F_LW_SetActor","Lasagna Sailor",1,235,179; break; case 3: callfunc "F_LW_SetActor","Lasagna Sailor",1,218,194; break; } return;
-S_RefVisitor: .active_npc$[2]="Lasagna Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Lasagna Visitor",1,221,181; break; case 2: callfunc "F_LW_SetActor","Lasagna Visitor",1,233,190; break; case 3: callfunc "F_LW_SetActor","Lasagna Visitor",1,239,183; break; } return;
-S_RefVendor: .active_npc$[3]="Doram Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Doram Vendor",1,219,189; break; case 2: callfunc "F_LW_SetActor","Doram Vendor",1,231,196; break; case 3: callfunc "F_LW_SetActor","Doram Vendor",1,240,188; break; } return;
-S_RefChild: .active_npc$[4]="Doram Child"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Doram Child",1,226,194; break; case 2: callfunc "F_LW_SetActor","Doram Child",1,237,176; break; case 3: callfunc "F_LW_SetActor","Doram Child",1,214,179; break; } return;
+S_RefLocal: .active_npc$[0]="Lasagna Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Lasagna Local",1,215,186; break; case 2: callfunc "F_LW_SetAmbientActor","Lasagna Local",1,224,191; break; case 3: callfunc "F_LW_SetAmbientActor","Lasagna Local",1,230,184; break; } return;
+S_RefSailor: .active_npc$[1]="Lasagna Sailor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Lasagna Sailor",1,227,187; break; case 2: callfunc "F_LW_SetAmbientActor","Lasagna Sailor",1,235,179; break; case 3: callfunc "F_LW_SetAmbientActor","Lasagna Sailor",1,218,194; break; } return;
+S_RefVisitor: .active_npc$[2]="Lasagna Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Lasagna Visitor",1,221,181; break; case 2: callfunc "F_LW_SetAmbientActor","Lasagna Visitor",1,233,190; break; case 3: callfunc "F_LW_SetAmbientActor","Lasagna Visitor",1,239,183; break; } return;
+S_RefVendor: .active_npc$[3]="Doram Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Doram Vendor",1,219,189; break; case 2: callfunc "F_LW_SetAmbientActor","Doram Vendor",1,231,196; break; case 3: callfunc "F_LW_SetAmbientActor","Doram Vendor",1,240,188; break; } return;
+S_RefChild: .active_npc$[4]="Doram Child"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Doram Child",1,226,194; break; case 2: callfunc "F_LW_SetAmbientActor","Doram Child",1,237,176; break; case 3: callfunc "F_LW_SetAmbientActor","Doram Child",1,214,179; break; } return;
 }
 lasagna,215,186,4	script	Lasagna Local	4_DR_F_01,{ mes "[Lasagna Local]"; mes F_Rand("Lasagna keeps a bright mood without feeling fake.","Doram towns really do feel different.","I like how warm the place is."); close; }
 lasagna,227,187,4	script	Lasagna Sailor	4_CAT_SAILOR1,{ mes "[Lasagna Sailor]"; mes F_Rand("Dock work keeps Lasagna honest.","The harbor gives the town its rhythm.","Even cheerful places run on routine."); close; }

@@ -2,15 +2,17 @@
 
 ## Current Focus
 
-Make the server feel alive using stock rAthena plus carefully chosen custom
-scripts. Avoid deep source divergence.
+Make the server feel alive using rAthena-first patterns, then selective
+source-backed pseudo-player actors where NPC and mob tricks are not convincing
+enough. Avoid deep source divergence.
 
 ## Immediate Tasks
 
-- document what script-only rAthena can and cannot support for living-world systems
-- refactor the current living-world helpers into a real framework layer
-- add a semi-functional merchant proof slice
-- add a mob-backed event filler proof slice
+- validate and polish the fakeplayer-backed `prt_fild08` field slice
+- document fakeplayer as an approved selective tool, not future-only work
+- keep the framework helpers aligned with the active town, merchant, event, and field lanes
+- decide where pseudo-player actors actually improve atmosphere over NPCs
+- define the first persistent bot-state schema for future party and merchant systems
 
 ## Existing rAthena Custom NPCs Worth Evaluating
 
@@ -55,10 +57,10 @@ adapted without committing to heavy engine work.
 ## Content Expansion Order
 
 1. town/hub baseline complete
-2. framework and capability pass
-3. merchant simulation proof
-4. event filler proof
-5. one nearby field map
+2. framework and capability pass complete
+3. merchant and event proof slices complete
+4. one nearby fakeplayer-backed field map
+5. selective pseudo-player expansion where presentation matters
 
 ## Codebase Rules
 
@@ -71,7 +73,7 @@ adapted without committing to heavy engine work.
 
 - map-aware coordinate polish for towns and hub-service clusters
 - more hand-authored landmark-based ambient placements
-- fake player entities
+- fully generalized pseudo-player actor system across all maps
 - bot-style autonomous actors
 - ML-driven behavior systems
 - LLM-generated dialogue systems

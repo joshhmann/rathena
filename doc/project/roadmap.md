@@ -9,8 +9,9 @@ For now, the project should prioritize:
 1. stable upstream-compatible server behavior
 2. believable town and field atmosphere
 3. reusable script systems
-4. content curation from existing rAthena assets
-5. only later, deeper simulation or AI-driven behavior
+4. selective source-backed pseudo-player actors where presentation matters
+5. content curation from existing rAthena assets
+6. only later, deeper simulation or AI-driven behavior
 
 ML, LLM, and external agent control are explicitly backburner items until the
 server already feels alive through normal rAthena systems.
@@ -80,9 +81,9 @@ Implementation note:
 - service clusters are intentionally simple for now
 - map-aware coordinate polish is deferred to a later pass
 
-## Milestone 3: Living World Framework
+## Milestone 3: Living World Framework And Proofs
 
-Status: next
+Status: complete
 
 Goals:
 
@@ -102,31 +103,61 @@ Exit criteria:
 - script-only boundaries are documented clearly
 - new framework helpers are in active use
 - one semi-functional merchant pocket works
-- one mob-backed event filler prototype works
+- one event filler prototype works
 
-## Milestone 4: Overworld Activity
+Implementation note:
 
-Status: planned
+- this milestone started as a script-only framework pass
+- it now also includes the first approved source-backed primitive: `fakeplayer()`
+- scripts remain the orchestration layer even when source-backed actors are used
+
+## Milestone 4: Fakeplayer-Backed Overworld Activity
+
+Status: next
 
 Goals:
 
 - make early leveling routes feel observed and used
 - create the illusion of adventurer traffic outside towns
+- validate pseudo-player walkers as the field-actor foundation
 
 Scope:
 
 - one field map near a starter city
-- patrol-like or presence-rotation actors
-- optional guard or traveler staging points
+- fakeplayer-backed guards, travelers, and courier traffic
+- script-controlled routes, respawn, and presence gating
 - event-driven chatter rather than heavy AI
 
 Exit criteria:
 
 - one field map feels noticeably less empty
-- no combat/system exploits introduced
+- actors read as player-like, not mob-like
+- fakeplayer walkers remain a presentation layer, not true bots
 - performance remains normal
 
-## Milestone 5: External AI Bridge
+## Milestone 5: Broader Pseudo-Player Systems
+
+Status: planned
+
+Goals:
+
+- selectively extend fakeplayer-backed actors into other atmospheric roles
+- improve merchant, event, and town presentation where NPCs are not convincing enough
+
+Scope:
+
+- selective town walkers
+- merchant stand-ins where useful
+- event participants using pseudo-player visuals
+- first persistent bot-state schema
+
+Constraints:
+
+- towns and services remain primarily NPC-driven by default
+- no promise of true player semantics
+- keep fakeplayer usage selective, not universal
+
+## Milestone 6: External AI Bridge
 
 Status: deferred
 

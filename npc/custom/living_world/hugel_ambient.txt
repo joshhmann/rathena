@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWHugelController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefHunter; callsub S_RefTraveler; callsub S_RefLocal; callsub S_RefMerchant; callsub S_RefChild; callsub S_RefCourier;
@@ -14,23 +14,23 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Remote towns build strong people.","Hunters give Hugel its edge.","You can feel the frontier in the air here."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("It takes effort to reach Hugel, which makes arriving matter.","Remote places always develop their own mood.","I like towns that feel a little apart from everything else."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Hugel feels smaller than the stories around it.","A remote town still collects interesting people.","Places at the edge of things feel memorable."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Distance makes supplies more important.","Travel towns survive on preparation.","People stock up carefully out here."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("I like seeing who comes through town.","Hugel gets more visitors than you'd think.","Remote doesn't mean dead."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("Messages take longer when the town is this far out.","You learn to plan ahead in Hugel.","Distance changes how people live."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Remote towns build strong people.","Hunters give Hugel its edge.","You can feel the frontier in the air here."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("It takes effort to reach Hugel, which makes arriving matter.","Remote places always develop their own mood.","I like towns that feel a little apart from everything else."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Hugel feels smaller than the stories around it.","A remote town still collects interesting people.","Places at the edge of things feel memorable."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Distance makes supplies more important.","Travel towns survive on preparation.","People stock up carefully out here."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I like seeing who comes through town.","Hugel gets more visitors than you'd think.","Remote doesn't mean dead."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Messages take longer when the town is this far out.","You learn to plan ahead in Hugel.","Distance changes how people live."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefHunter: .active_npc$[0]="Local Hunter"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Local Hunter",1,80,151; break; case 2: callfunc "F_LW_SetActor","Local Hunter",1,96,145; break; case 3: callfunc "F_LW_SetActor","Local Hunter",1,107,156; break; } return;
-S_RefTraveler: .active_npc$[1]="Road Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Road Traveler",1,89,150; break; case 2: callfunc "F_LW_SetActor","Road Traveler",1,101,160; break; case 3: callfunc "F_LW_SetActor","Road Traveler",1,73,140; break; } return;
-S_RefLocal: .active_npc$[2]="Hugel Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Hugel Local",1,92,150; break; case 2: callfunc "F_LW_SetActor","Hugel Local",1,110,144; break; case 3: callfunc "F_LW_SetActor","Hugel Local",1,68,155; break; } return;
-S_RefMerchant: .active_npc$[3]="Frontier Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Frontier Merchant",1,86,150; break; case 2: callfunc "F_LW_SetActor","Frontier Merchant",1,99,138; break; case 3: callfunc "F_LW_SetActor","Frontier Merchant",1,115,151; break; } return;
-S_RefChild: .active_npc$[4]="Curious Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Curious Local",1,92,163; break; case 2: callfunc "F_LW_SetActor","Curious Local",1,78,146; break; case 3: callfunc "F_LW_SetActor","Curious Local",1,108,164; break; } return;
-S_RefCourier: .active_npc$[5]="Outpost Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Outpost Courier",1,89,150; break; case 2: callfunc "F_LW_SetActor","Outpost Courier",1,72,160; break; case 3: callfunc "F_LW_SetActor","Outpost Courier",1,116,142; break; } return;
+S_RefHunter: .active_npc$[0]="Local Hunter"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Local Hunter",1,80,151; break; case 2: callfunc "F_LW_SetAmbientActor","Local Hunter",1,96,145; break; case 3: callfunc "F_LW_SetAmbientActor","Local Hunter",1,107,156; break; } return;
+S_RefTraveler: .active_npc$[1]="Road Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Road Traveler",1,89,150; break; case 2: callfunc "F_LW_SetAmbientActor","Road Traveler",1,101,160; break; case 3: callfunc "F_LW_SetAmbientActor","Road Traveler",1,73,140; break; } return;
+S_RefLocal: .active_npc$[2]="Hugel Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Hugel Local",1,92,150; break; case 2: callfunc "F_LW_SetAmbientActor","Hugel Local",1,110,144; break; case 3: callfunc "F_LW_SetAmbientActor","Hugel Local",1,68,155; break; } return;
+S_RefMerchant: .active_npc$[3]="Frontier Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Frontier Merchant",1,86,150; break; case 2: callfunc "F_LW_SetAmbientActor","Frontier Merchant",1,99,138; break; case 3: callfunc "F_LW_SetAmbientActor","Frontier Merchant",1,115,151; break; } return;
+S_RefChild: .active_npc$[4]="Curious Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Curious Local",1,92,163; break; case 2: callfunc "F_LW_SetAmbientActor","Curious Local",1,78,146; break; case 3: callfunc "F_LW_SetAmbientActor","Curious Local",1,108,164; break; } return;
+S_RefCourier: .active_npc$[5]="Outpost Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Outpost Courier",1,89,150; break; case 2: callfunc "F_LW_SetAmbientActor","Outpost Courier",1,72,160; break; case 3: callfunc "F_LW_SetAmbientActor","Outpost Courier",1,116,142; break; } return;
 }
 hugel,80,151,4	script	Local Hunter	4_M_03,{ mes "[Local Hunter]"; mes F_Rand("Hugel feels like a town that knows the wild nearby.","Remote places make hunters practical.","You don't stay soft in a place like this."); close; }
 hugel,89,150,4	script	Road Traveler	4_F_02,{ mes "[Road Traveler]"; mes F_Rand("Getting here makes the town feel more valuable.","Remote towns leave stronger memories.","Hugel has a frontier calm I like."); close; }

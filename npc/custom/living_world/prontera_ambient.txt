@@ -23,7 +23,7 @@ OnInit:
 		"City Clerk Runner";
 	setarray .active_npc$[0], "", "", "", "", "", "", "", "";
 	initnpctimer;
-	donpcevent strnpcinfo(3) + "::OnAmbientRefresh";
+	setnpctimer 89000;
 	end;
 
 OnTimer90000:
@@ -59,66 +59,66 @@ S_DoAmbientTalk:
 	switch (.@actor) {
 	case 0:
 		switch (rand(1, 4)) {
-		case 1: npctalk "The central market is crowded again today.", .active_npc$[.@actor]; break;
-		case 2: npctalk "I knew I forgot to buy apples from the south side.", .active_npc$[.@actor]; break;
-		case 3: npctalk "Prontera has everything if you know where to look.", .active_npc$[.@actor]; break;
-		case 4: npctalk "I should stop shopping, but one more stop won't hurt.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "The central market is crowded again today."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I knew I forgot to buy apples from the south side."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Prontera has everything if you know where to look."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I should stop shopping, but one more stop won't hurt."; break;
 		}
 		break;
 	case 1:
 		switch (rand(1, 4)) {
-		case 1: npctalk "I heard the merchants near the square got new stock in.", .active_npc$[.@actor]; break;
-		case 2: npctalk "The shopping boards make it easier to find a good deal.", .active_npc$[.@actor]; break;
-		case 3: npctalk "Everyone says Prontera is expensive, but I still like it here.", .active_npc$[.@actor]; break;
-		case 4: npctalk "I only came for one thing and somehow ended up browsing everything.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I heard the merchants near the square got new stock in."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "The shopping boards make it easier to find a good deal."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Everyone says Prontera is expensive, but I still like it here."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I only came for one thing and somehow ended up browsing everything."; break;
 		}
 		break;
 	case 2:
 		switch (rand(1, 4)) {
-		case 1: npctalk "The northern tavern is livelier after sunset.", .active_npc$[.@actor]; break;
-		case 2: npctalk "Adventurers tell the same stories louder every night.", .active_npc$[.@actor]; break;
-		case 3: npctalk "If you want rumors, listen near the tavern.", .active_npc$[.@actor]; break;
-		case 4: npctalk "One drink turns into three when the stories are good.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "The northern tavern is livelier after sunset."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Adventurers tell the same stories louder every night."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "If you want rumors, listen near the tavern."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "One drink turns into three when the stories are good."; break;
 		}
 		break;
 	case 3:
 		switch (rand(1, 4)) {
-		case 1: npctalk "The inn is full again. Travelers must be pouring in.", .active_npc$[.@actor]; break;
-		case 2: npctalk "I should rest before heading back out to the fields.", .active_npc$[.@actor]; break;
-		case 3: npctalk "Prontera's inn is never quiet for long.", .active_npc$[.@actor]; break;
-		case 4: npctalk "I miss quiet roads, but the city has its charm.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "The inn is full again. Travelers must be pouring in."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I should rest before heading back out to the fields."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Prontera's inn is never quiet for long."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I miss quiet roads, but the city has its charm."; break;
 		}
 		break;
 	case 4:
 		switch (rand(1, 4)) {
-		case 1: npctalk "My boss said to watch the market, not buy from it.", .active_npc$[.@actor]; break;
-		case 2: npctalk "If I carry one more crate across town, I want a raise.", .active_npc$[.@actor]; break;
-		case 3: npctalk "The traders near the fountain are busiest after noon.", .active_npc$[.@actor]; break;
-		case 4: npctalk "Merchants always need another pair of hands in Prontera.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "My boss said to watch the market, not buy from it."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "If I carry one more crate across town, I want a raise."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "The traders near the fountain are busiest after noon."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Merchants always need another pair of hands in Prontera."; break;
 		}
 		break;
 	case 5:
 		switch (rand(1, 4)) {
-		case 1: npctalk "I finally made it to the capital!", .active_npc$[.@actor]; break;
-		case 2: npctalk "The guards make Prontera feel safer than the road.", .active_npc$[.@actor]; break;
-		case 3: npctalk "I should ask the guide where the good training grounds are.", .active_npc$[.@actor]; break;
-		case 4: npctalk "Someday I'll be strong enough to leave the city without worrying.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I finally made it to the capital!"; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "The guards make Prontera feel safer than the road."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I should ask the guide where the good training grounds are."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Someday I'll be strong enough to leave the city without worrying."; break;
 		}
 		break;
 	case 6:
 		switch (rand(1, 4)) {
-		case 1: npctalk "West gate traffic never really stops.", .active_npc$[.@actor]; break;
-		case 2: npctalk "I've seen more rookies come through Prontera this week than all month.", .active_npc$[.@actor]; break;
-		case 3: npctalk "Rest, resupply, then back out to the fields.", .active_npc$[.@actor]; break;
-		case 4: npctalk "If you're heading out, bring more potions than you think you need.", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "West gate traffic never really stops."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I've seen more rookies come through Prontera this week than all month."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Rest, resupply, then back out to the fields."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "If you're heading out, bring more potions than you think you need."; break;
 		}
 		break;
 	case 7:
 		switch (rand(1, 4)) {
-		case 1: npctalk "I have errands on both sides of the city today.", .active_npc$[.@actor]; break;
-		case 2: npctalk "City Hall paperwork never stays finished for long.", .active_npc$[.@actor]; break;
-		case 3: npctalk "Prontera grows busier every season.", .active_npc$[.@actor]; break;
-		case 4: npctalk "Running messages across town counts as exercise, right?", .active_npc$[.@actor]; break;
+		case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "I have errands on both sides of the city today."; break;
+		case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "City Hall paperwork never stays finished for long."; break;
+		case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Prontera grows busier every season."; break;
+		case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], "Running messages across town counts as exercise, right?"; break;
 		}
 		break;
 	}
@@ -134,12 +134,12 @@ S_DoAmbientEmotion:
 
 	.@actor = .@available[rand(.@count)];
 	switch (rand(1, 6)) {
-	case 1: emotion ET_THINK, getnpcid(0, .active_npc$[.@actor]); break;
-	case 2: emotion ET_HUM, getnpcid(0, .active_npc$[.@actor]); break;
-	case 3: emotion ET_DELIGHT, getnpcid(0, .active_npc$[.@actor]); break;
-	case 4: emotion ET_THROB, getnpcid(0, .active_npc$[.@actor]); break;
-	case 5: emotion ET_PROFUSELY_SWEAT, getnpcid(0, .active_npc$[.@actor]); break;
-	case 6: emotion ET_STARE_ABOUT, getnpcid(0, .active_npc$[.@actor]); break;
+	case 1: callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], ET_THINK; break;
+	case 2: callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], ET_HUM; break;
+	case 3: callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], ET_DELIGHT; break;
+	case 4: callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], ET_THROB; break;
+	case 5: callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], ET_PROFUSELY_SWEAT; break;
+	case 6: callfunc "F_LW_ActorEmotion", .active_npc$[.@actor], ET_STARE_ABOUT; break;
 	}
 	return;
 
@@ -147,9 +147,9 @@ S_RefreshBusyShopper:
 	.@pick = rand(1, 3);
 	.active_npc$[0] = "Busy Shopper";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Busy Shopper", 1, 171, 232; break;
-	case 2: callfunc "F_LW_SetActor", "Busy Shopper", 1, 186, 236; break;
-	case 3: callfunc "F_LW_SetActor", "Busy Shopper", 1, 150, 230; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Busy Shopper", 1, 171, 232; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Busy Shopper", 1, 186, 236; break;
+	case 3: callfunc "F_LW_SetAmbientActor", "Busy Shopper", 1, 150, 230; break;
 	}
 	return;
 
@@ -157,24 +157,24 @@ S_RefreshMarketBrowser:
 	.@pick = rand(1, 3);
 	.active_npc$[1] = "Market Browser";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Market Browser", 1, 176, 247; break;
-	case 2: callfunc "F_LW_SetActor", "Market Browser", 1, 160, 196; break;
-	case 3: callfunc "F_LW_SetActor", "Market Browser", 1, 145, 214; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Market Browser", 1, 176, 247; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Market Browser", 1, 160, 196; break;
+	case 3: callfunc "F_LW_SetAmbientActor", "Market Browser", 1, 145, 214; break;
 	}
 	return;
 
 S_RefreshTavernRegular:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 17 || .@hour > 23) {
-		callfunc "F_LW_SetActor", "Tavern Regular", 0;
+		callfunc "F_LW_SetAmbientActor", "Tavern Regular", 0;
 		.active_npc$[2] = "";
 		return;
 	}
 	.@pick = rand(1, 2);
 	.active_npc$[2] = "Tavern Regular";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Tavern Regular", 1, 208, 160; break;
-	case 2: callfunc "F_LW_SetActor", "Tavern Regular", 1, 203, 184; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Tavern Regular", 1, 208, 160; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Tavern Regular", 1, 203, 184; break;
 	}
 	return;
 
@@ -182,25 +182,25 @@ S_RefreshInnVisitor:
 	.@pick = rand(1, 3);
 	.active_npc$[3] = "Inn Visitor";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Inn Visitor", 1, 205, 196; break;
-	case 2: callfunc "F_LW_SetActor", "Inn Visitor", 1, 197, 188; break;
-	case 3: callfunc "F_LW_SetActor", "Inn Visitor", 1, 157, 188; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Inn Visitor", 1, 205, 196; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Inn Visitor", 1, 197, 188; break;
+	case 3: callfunc "F_LW_SetAmbientActor", "Inn Visitor", 1, 157, 188; break;
 	}
 	return;
 
 S_RefreshMerchAsst:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 8 || .@hour > 20) {
-		callfunc "F_LW_SetActor", "Merchant Assistant", 0;
+		callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 0;
 		.active_npc$[4] = "";
 		return;
 	}
 	.@pick = rand(1, 3);
 	.active_npc$[4] = "Merchant Assistant";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Merchant Assistant", 1, 173, 244; break;
-	case 2: callfunc "F_LW_SetActor", "Merchant Assistant", 1, 182, 249; break;
-	case 3: callfunc "F_LW_SetActor", "Merchant Assistant", 1, 132, 220; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 1, 173, 244; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 1, 182, 249; break;
+	case 3: callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 1, 132, 220; break;
 	}
 	return;
 
@@ -208,40 +208,40 @@ S_RefreshNoviceAdv:
 	.@pick = rand(1, 3);
 	.active_npc$[5] = "Novice Adventurer";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Novice Adventurer", 1, 153, 187; break;
-	case 2: callfunc "F_LW_SetActor", "Novice Adventurer", 1, 120, 84; break;
-	case 3: callfunc "F_LW_SetActor", "Novice Adventurer", 1, 209, 156; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Novice Adventurer", 1, 153, 187; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Novice Adventurer", 1, 120, 84; break;
+	case 3: callfunc "F_LW_SetAmbientActor", "Novice Adventurer", 1, 209, 156; break;
 	}
 	return;
 
 S_RefreshTravelSword:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 10 || .@hour > 22) {
-		callfunc "F_LW_SetActor", "Traveling Swordsman", 0;
+		callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 0;
 		.active_npc$[6] = "";
 		return;
 	}
 	.@pick = rand(1, 3);
 	.active_npc$[6] = "Traveling Swordsman";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "Traveling Swordsman", 1, 62, 333; break;
-	case 2: callfunc "F_LW_SetActor", "Traveling Swordsman", 1, 99, 184; break;
-	case 3: callfunc "F_LW_SetActor", "Traveling Swordsman", 1, 208, 153; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 1, 62, 333; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 1, 99, 184; break;
+	case 3: callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 1, 208, 153; break;
 	}
 	return;
 
 S_RefreshCityClerkRunner:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 9 || .@hour > 18) {
-		callfunc "F_LW_SetActor", "City Clerk Runner", 0;
+		callfunc "F_LW_SetAmbientActor", "City Clerk Runner", 0;
 		.active_npc$[7] = "";
 		return;
 	}
 	.@pick = rand(1, 2);
 	.active_npc$[7] = "City Clerk Runner";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetActor", "City Clerk Runner", 1, 77, 95; break;
-	case 2: callfunc "F_LW_SetActor", "City Clerk Runner", 1, 130, 183; break;
+	case 1: callfunc "F_LW_SetAmbientActor", "City Clerk Runner", 1, 77, 95; break;
+	case 2: callfunc "F_LW_SetAmbientActor", "City Clerk Runner", 1, 130, 183; break;
 	}
 	return;
 }

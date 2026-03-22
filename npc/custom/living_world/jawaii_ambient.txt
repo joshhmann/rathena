@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWJawaiiController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefGuest; callsub S_RefLocal; callsub S_RefHost; callsub S_RefVisitor; callsub S_RefVendor;
@@ -14,21 +14,21 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Jawaii is built for people to linger.","Resort towns should feel relaxed and occupied.","A place like this needs easy charm."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Living in a resort town changes your pace.","Jawaii feels casual in a deliberate way.","Some places are designed around mood."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Hospitality is half the town's identity here.","A resort survives on how it makes people feel.","Welcoming people is real work."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("I expected a novelty town, but it has more personality than that.","Jawaii is easy to spend time in.","The whole place invites you to relax."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Even relaxed towns still run on shops and supplies.","People on holiday still buy things constantly.","Mood is good for business."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Jawaii is built for people to linger.","Resort towns should feel relaxed and occupied.","A place like this needs easy charm."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Living in a resort town changes your pace.","Jawaii feels casual in a deliberate way.","Some places are designed around mood."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Hospitality is half the town's identity here.","A resort survives on how it makes people feel.","Welcoming people is real work."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("I expected a novelty town, but it has more personality than that.","Jawaii is easy to spend time in.","The whole place invites you to relax."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Even relaxed towns still run on shops and supplies.","People on holiday still buy things constantly.","Mood is good for business."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<5;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_HUM,ET_DELIGHT,ET_THROB,ET_STARE_ABOUT);
 	return;
-S_RefGuest: .active_npc$[0]="Resort Guest"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Resort Guest",1,241,139; break; case 2: callfunc "F_LW_SetActor","Resort Guest",1,255,133; break; case 3: callfunc "F_LW_SetActor","Resort Guest",1,265,143; break; } return;
-S_RefLocal: .active_npc$[1]="Jawaii Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Jawaii Local",1,250,139; break; case 2: callfunc "F_LW_SetActor","Jawaii Local",1,263,150; break; case 3: callfunc "F_LW_SetActor","Jawaii Local",1,236,148; break; } return;
-S_RefHost: .active_npc$[2]="Resort Host"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Resort Host",1,247,139; break; case 2: callfunc "F_LW_SetActor","Resort Host",1,259,127; break; case 3: callfunc "F_LW_SetActor","Resort Host",1,269,138; break; } return;
-S_RefVisitor: .active_npc$[3]="Relaxed Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Relaxed Visitor",1,253,139; break; case 2: callfunc "F_LW_SetActor","Relaxed Visitor",1,240,128; break; case 3: callfunc "F_LW_SetActor","Relaxed Visitor",1,272,150; break; } return;
-S_RefVendor: .active_npc$[4]="Resort Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Resort Vendor",1,245,139; break; case 2: callfunc "F_LW_SetActor","Resort Vendor",1,257,153; break; case 3: callfunc "F_LW_SetActor","Resort Vendor",1,267,130; break; } return;
+S_RefGuest: .active_npc$[0]="Resort Guest"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Resort Guest",1,241,139; break; case 2: callfunc "F_LW_SetAmbientActor","Resort Guest",1,255,133; break; case 3: callfunc "F_LW_SetAmbientActor","Resort Guest",1,265,143; break; } return;
+S_RefLocal: .active_npc$[1]="Jawaii Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Jawaii Local",1,250,139; break; case 2: callfunc "F_LW_SetAmbientActor","Jawaii Local",1,263,150; break; case 3: callfunc "F_LW_SetAmbientActor","Jawaii Local",1,236,148; break; } return;
+S_RefHost: .active_npc$[2]="Resort Host"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Resort Host",1,247,139; break; case 2: callfunc "F_LW_SetAmbientActor","Resort Host",1,259,127; break; case 3: callfunc "F_LW_SetAmbientActor","Resort Host",1,269,138; break; } return;
+S_RefVisitor: .active_npc$[3]="Relaxed Visitor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Relaxed Visitor",1,253,139; break; case 2: callfunc "F_LW_SetAmbientActor","Relaxed Visitor",1,240,128; break; case 3: callfunc "F_LW_SetAmbientActor","Relaxed Visitor",1,272,150; break; } return;
+S_RefVendor: .active_npc$[4]="Resort Vendor"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Resort Vendor",1,245,139; break; case 2: callfunc "F_LW_SetAmbientActor","Resort Vendor",1,257,153; break; case 3: callfunc "F_LW_SetAmbientActor","Resort Vendor",1,267,130; break; } return;
 }
 jawaii,241,139,4	script	Resort Guest	4_F_02,{ mes "[Resort Guest]"; mes F_Rand("Jawaii is easy to linger in.","A resort town should make staying feel natural.","This place knows its role well."); close; }
 jawaii,250,139,4	script	Jawaii Local	4_F_01,{ mes "[Jawaii Local]"; mes F_Rand("Living in a resort town changes your pace.","Jawaii is built around atmosphere.","The mood here is intentional."); close; }

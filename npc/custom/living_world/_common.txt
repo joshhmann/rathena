@@ -72,3 +72,96 @@ function	script	F_LW_SpawnMobActor	{
 	monster getarg(0), getarg(1), getarg(2), getarg(3), getarg(4), 1;
 	return $@mobid[0];
 }
+
+function	script	F_LW_SpawnFakePlayer	{
+	return fakeplayer(
+		getarg(0), getarg(1), getarg(2), getarg(3), getarg(4),
+		getarg(5), getarg(6), getarg(7), getarg(8), getarg(9),
+		getarg(10), getarg(11), getarg(12), getarg(13), getarg(14)
+	);
+}
+
+function	script	F_LW_GetAmbientSeed	{
+	.@name$ = getarg(0);
+	return getnpcid(0, .@name$);
+}
+
+function	script	F_LW_GetAmbientActorId	{
+	.@seed = callfunc("F_LW_GetAmbientSeed", getarg(0));
+	if (!.@seed)
+		return 0;
+	return getd("$LW_AmbientGid_" + .@seed);
+}
+
+function	script	F_LW_SetAmbientActor	{
+	.@name$ = getarg(0);
+	.@show = getarg(1);
+	.@seed = callfunc("F_LW_GetAmbientSeed", .@name$);
+	if (!.@seed)
+		return 0;
+	.@gid = getd("$LW_AmbientGid_" + .@seed);
+
+	hideonnpc .@name$;
+
+	if (!.@show) {
+		if (.@gid && unitexists(.@gid))
+			unitkill .@gid;
+		setd("$LW_AmbientGid_" + .@seed, 0);
+		return 0;
+	}
+
+	.@x = getarg(2);
+	.@y = getarg(3);
+	.@map$ = "";
+	.@ox = 0;
+	.@oy = 0;
+	getmapxy(.@map$, .@ox, .@oy, BL_NPC, .@name$);
+	if (.@map$ == "")
+		return 0;
+
+	if (.@gid && unitexists(.@gid)) {
+		unitwalk .@gid, .@x, .@y;
+		return .@gid;
+	}
+
+	setarray .@jobs[0], Job_Swordman, Job_Merchant, Job_Archer, Job_Acolyte, Job_Thief, Job_Mage;
+	.@gid = callfunc(
+		"F_LW_SpawnFakePlayer",
+		.@map$, .@x, .@y, .@name$,
+		getelementofarray(.@jobs, .@seed % getarraysize(.@jobs)),
+		(.@seed % 2) ? Sex_Female : Sex_Male,
+		1, 0,
+		0, 0, 0, 0, 0, 0, 0
+	);
+	if (!.@gid)
+		return 0;
+
+	setunitdata .@gid, UMOB_MODE, MD_CANMOVE | MD_NORANDOMWALK;
+	setunitdata .@gid, UMOB_DMGIMMUNE, 1;
+	setd("$LW_AmbientGid_" + .@seed, .@gid);
+	return .@gid;
+}
+
+function	script	F_LW_ActorTalk	{
+	.@name$ = getarg(0);
+	.@msg$ = getarg(1);
+	.@gid = callfunc("F_LW_GetAmbientActorId", .@name$);
+	if (.@gid && unitexists(.@gid)) {
+		unittalk .@gid, .@msg$;
+		return;
+	}
+	npctalk .@msg$, .@name$;
+	return;
+}
+
+function	script	F_LW_ActorEmotion	{
+	.@name$ = getarg(0);
+	.@emotion = getarg(1);
+	.@gid = callfunc("F_LW_GetAmbientActorId", .@name$);
+	if (.@gid && unitexists(.@gid)) {
+		emotion .@emotion, .@gid;
+		return;
+	}
+	emotion .@emotion, getnpcid(0, .@name$);
+	return;
+}

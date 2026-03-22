@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWYunoController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefScholar; callsub S_RefStudent; callsub S_RefAirshipGuest; callsub S_RefBookTrader; callsub S_RefResearcher; callsub S_RefCourier;
@@ -14,23 +14,23 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Yuno feels like everyone is thinking three things at once.","Scholars make a city feel sharper.","A town in the sky should sound like questions."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("Every student here wants to look less lost than they are.","The academy gives the city its pulse.","I pretend I know what everyone else is talking about."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Airship towns are never as still as they look.","Travelers arrive with stories and leave with more.","The platform makes the whole city feel connected."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("Book towns still need merchants.","Scholars buy stranger things than adventurers do.","Knowledge has its own market."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Research never really ends, it only pauses.","Yuno feels restless in a productive way.","Curiosity keeps this town alive."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Yuno feels like everyone is thinking three things at once.","Scholars make a city feel sharper.","A town in the sky should sound like questions."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Every student here wants to look less lost than they are.","The academy gives the city its pulse.","I pretend I know what everyone else is talking about."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Airship towns are never as still as they look.","Travelers arrive with stories and leave with more.","The platform makes the whole city feel connected."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Book towns still need merchants.","Scholars buy stranger things than adventurers do.","Knowledge has its own market."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Research never really ends, it only pauses.","Yuno feels restless in a productive way.","Curiosity keeps this town alive."); break;
 	case 5: npctalk F_Rand("A flying city still needs ground-level errands.","Messages move faster when everyone is already in a hurry.","Yuno likes momentum."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_STARE_ABOUT);
 	return;
-S_RefScholar: .active_npc$[0]="Sky Scholar"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Sky Scholar",1,157,46; break; case 2: callfunc "F_LW_SetActor","Sky Scholar",1,170,41; break; case 3: callfunc "F_LW_SetActor","Sky Scholar",1,177,52; break; } return;
-S_RefStudent: .active_npc$[1]="Young Student"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Young Student",1,162,55; break; case 2: callfunc "F_LW_SetActor","Young Student",1,180,45; break; case 3: callfunc "F_LW_SetActor","Young Student",1,149,57; break; } return;
-S_RefAirshipGuest: .active_npc$[2]="Airship Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Airship Traveler",1,167,45; break; case 2: callfunc "F_LW_SetActor","Airship Traveler",1,185,41; break; case 3: callfunc "F_LW_SetActor","Airship Traveler",1,154,34; break; } return;
-S_RefBookTrader: .active_npc$[3]="Book Trader"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Book Trader",1,164,45; break; case 2: callfunc "F_LW_SetActor","Book Trader",1,173,59; break; case 3: callfunc "F_LW_SetActor","Book Trader",1,146,47; break; } return;
-S_RefResearcher: .active_npc$[4]="Restless Researcher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Restless Researcher",1,160,32; break; case 2: callfunc "F_LW_SetActor","Restless Researcher",1,177,63; break; case 3: callfunc "F_LW_SetActor","Restless Researcher",1,188,51; break; } return;
-S_RefCourier: .active_npc$[5]="Campus Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Campus Courier",1,166,45; break; case 2: callfunc "F_LW_SetActor","Campus Courier",1,152,63; break; case 3: callfunc "F_LW_SetActor","Campus Courier",1,183,58; break; } return;
+S_RefScholar: .active_npc$[0]="Sky Scholar"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Sky Scholar",1,157,46; break; case 2: callfunc "F_LW_SetAmbientActor","Sky Scholar",1,170,41; break; case 3: callfunc "F_LW_SetAmbientActor","Sky Scholar",1,177,52; break; } return;
+S_RefStudent: .active_npc$[1]="Young Student"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Young Student",1,162,55; break; case 2: callfunc "F_LW_SetAmbientActor","Young Student",1,180,45; break; case 3: callfunc "F_LW_SetAmbientActor","Young Student",1,149,57; break; } return;
+S_RefAirshipGuest: .active_npc$[2]="Airship Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Airship Traveler",1,167,45; break; case 2: callfunc "F_LW_SetAmbientActor","Airship Traveler",1,185,41; break; case 3: callfunc "F_LW_SetAmbientActor","Airship Traveler",1,154,34; break; } return;
+S_RefBookTrader: .active_npc$[3]="Book Trader"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Book Trader",1,164,45; break; case 2: callfunc "F_LW_SetAmbientActor","Book Trader",1,173,59; break; case 3: callfunc "F_LW_SetAmbientActor","Book Trader",1,146,47; break; } return;
+S_RefResearcher: .active_npc$[4]="Restless Researcher"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Restless Researcher",1,160,32; break; case 2: callfunc "F_LW_SetAmbientActor","Restless Researcher",1,177,63; break; case 3: callfunc "F_LW_SetAmbientActor","Restless Researcher",1,188,51; break; } return;
+S_RefCourier: .active_npc$[5]="Campus Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Campus Courier",1,166,45; break; case 2: callfunc "F_LW_SetAmbientActor","Campus Courier",1,152,63; break; case 3: callfunc "F_LW_SetAmbientActor","Campus Courier",1,183,58; break; } return;
 }
 yuno,157,46,4	script	Sky Scholar	4_F_01,{ mes "[Sky Scholar]"; mes F_Rand("Yuno makes it hard to stop thinking.","A city of study should feel busy in the mind.","I like towns built around curiosity."); close; }
 yuno,162,55,4	script	Young Student	4_M_KID1,{ mes "[Young Student]"; mes F_Rand("Everyone here seems one step ahead of me.","That makes me want to catch up.","Studying in Yuno feels serious."); close; }

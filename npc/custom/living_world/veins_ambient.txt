@@ -3,7 +3,7 @@
 //============================================================
 
 -	script	LWVeinsController	FAKE_NPC,{ end;
-OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; end;
+OnInit: setarray .active_npc$[0], "", "", "", "", "", ""; initnpctimer; setnpctimer 89000; end;
 OnTimer90000: donpcevent strnpcinfo(3) + "::OnAmbientRefresh"; setnpctimer 0; end;
 OnAmbientRefresh:
 	callsub S_RefTraveler; callsub S_RefLocal; callsub S_RefMerchant; callsub S_RefBathGuest; callsub S_RefCourier; callsub S_RefGuide;
@@ -14,23 +14,23 @@ S_Talk:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
 	.@actor=.@a[rand(.@c)];
 	switch(.@actor){
-	case 0: npctalk F_Rand("Desert roads make a town like this feel earned.","Veins is a relief when you've walked too long.","A town of heat still knows how to welcome people."), .active_npc$[.@actor]; break;
-	case 1: npctalk F_Rand("The heat shapes how everyone moves here.","Veins has a rough calm to it.","You learn when to hurry and when not to."), .active_npc$[.@actor]; break;
-	case 2: npctalk F_Rand("Travelers buy more in hot towns than they realize.","A rest stop can become a whole economy.","Veins business depends on weary feet."), .active_npc$[.@actor]; break;
-	case 3: npctalk F_Rand("People underestimate what a bath town can mean on the road.","A place to recover gives a town a purpose.","Veins knows how to feel like a pause."), .active_npc$[.@actor]; break;
-	case 4: npctalk F_Rand("Heat makes every errand feel longer.","Deliveries don't stop just because the sun is cruel.","I know all the shady routes by now."), .active_npc$[.@actor]; break;
-	case 5: npctalk F_Rand("Most visitors look tired before they look around.","A hot town teaches patience quickly.","Veins has its own kind of hospitality."), .active_npc$[.@actor]; break;
+	case 0: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Desert roads make a town like this feel earned.","Veins is a relief when you've walked too long.","A town of heat still knows how to welcome people."); break;
+	case 1: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("The heat shapes how everyone moves here.","Veins has a rough calm to it.","You learn when to hurry and when not to."); break;
+	case 2: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Travelers buy more in hot towns than they realize.","A rest stop can become a whole economy.","Veins business depends on weary feet."); break;
+	case 3: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("People underestimate what a bath town can mean on the road.","A place to recover gives a town a purpose.","Veins knows how to feel like a pause."); break;
+	case 4: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Heat makes every errand feel longer.","Deliveries don't stop just because the sun is cruel.","I know all the shady routes by now."); break;
+	case 5: callfunc "F_LW_ActorTalk", .active_npc$[.@actor], F_Rand("Most visitors look tired before they look around.","A hot town teaches patience quickly.","Veins has its own kind of hospitality."); break;
 	} return;
 S_Emote:
 	.@c=0; for(.@i=0;.@i<6;++.@i) if(.active_npc$[.@i]!="") .@a[.@c++]=.@i; if(.@c<1) return;
-	emotion F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_PROFUSELY_SWEAT), getnpcid(0,.active_npc$[.@a[rand(.@c)]]);
+	callfunc "F_LW_ActorEmotion", .active_npc$[.@a[rand(.@c)]], F_Rand(ET_THINK,ET_HUM,ET_DELIGHT,ET_PROFUSELY_SWEAT);
 	return;
-S_RefTraveler: .active_npc$[0]="Weary Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Weary Traveler",1,209,122; break; case 2: callfunc "F_LW_SetActor","Weary Traveler",1,222,116; break; case 3: callfunc "F_LW_SetActor","Weary Traveler",1,231,126; break; } return;
-S_RefLocal: .active_npc$[1]="Veins Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Veins Local",1,217,121; break; case 2: callfunc "F_LW_SetActor","Veins Local",1,229,135; break; case 3: callfunc "F_LW_SetActor","Veins Local",1,205,133; break; } return;
-S_RefMerchant: .active_npc$[2]="Road Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Road Merchant",1,214,121; break; case 2: callfunc "F_LW_SetActor","Road Merchant",1,227,120; break; case 3: callfunc "F_LW_SetActor","Road Merchant",1,238,130; break; } return;
-S_RefBathGuest: .active_npc$[3]="Bath Guest"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Bath Guest",1,211,110; break; case 2: callfunc "F_LW_SetActor","Bath Guest",1,236,112; break; case 3: callfunc "F_LW_SetActor","Bath Guest",1,202,118; break; } return;
-S_RefCourier: .active_npc$[4]="Heat-Worn Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Heat-Worn Courier",1,220,121; break; case 2: callfunc "F_LW_SetActor","Heat-Worn Courier",1,210,140; break; case 3: callfunc "F_LW_SetActor","Heat-Worn Courier",1,240,120; break; } return;
-S_RefGuide: .active_npc$[5]="Town Guide"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetActor","Town Guide",1,217,105; break; case 2: callfunc "F_LW_SetActor","Town Guide",1,243,123; break; case 3: callfunc "F_LW_SetActor","Town Guide",1,198,127; break; } return;
+S_RefTraveler: .active_npc$[0]="Weary Traveler"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Weary Traveler",1,209,122; break; case 2: callfunc "F_LW_SetAmbientActor","Weary Traveler",1,222,116; break; case 3: callfunc "F_LW_SetAmbientActor","Weary Traveler",1,231,126; break; } return;
+S_RefLocal: .active_npc$[1]="Veins Local"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Veins Local",1,217,121; break; case 2: callfunc "F_LW_SetAmbientActor","Veins Local",1,229,135; break; case 3: callfunc "F_LW_SetAmbientActor","Veins Local",1,205,133; break; } return;
+S_RefMerchant: .active_npc$[2]="Road Merchant"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Road Merchant",1,214,121; break; case 2: callfunc "F_LW_SetAmbientActor","Road Merchant",1,227,120; break; case 3: callfunc "F_LW_SetAmbientActor","Road Merchant",1,238,130; break; } return;
+S_RefBathGuest: .active_npc$[3]="Bath Guest"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Bath Guest",1,211,110; break; case 2: callfunc "F_LW_SetAmbientActor","Bath Guest",1,236,112; break; case 3: callfunc "F_LW_SetAmbientActor","Bath Guest",1,202,118; break; } return;
+S_RefCourier: .active_npc$[4]="Heat-Worn Courier"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Heat-Worn Courier",1,220,121; break; case 2: callfunc "F_LW_SetAmbientActor","Heat-Worn Courier",1,210,140; break; case 3: callfunc "F_LW_SetAmbientActor","Heat-Worn Courier",1,240,120; break; } return;
+S_RefGuide: .active_npc$[5]="Town Guide"; switch(rand(1,3)){ case 1: callfunc "F_LW_SetAmbientActor","Town Guide",1,217,105; break; case 2: callfunc "F_LW_SetAmbientActor","Town Guide",1,243,123; break; case 3: callfunc "F_LW_SetAmbientActor","Town Guide",1,198,127; break; } return;
 }
 veins,209,122,4	script	Weary Traveler	4_M_03,{ mes "[Weary Traveler]"; mes F_Rand("A town like this feels like mercy after the road.","Veins knows how to welcome tired people.","The heat makes shade feel precious."); close; }
 veins,217,121,4	script	Veins Local	4_F_01,{ mes "[Veins Local]"; mes F_Rand("You learn to live with the heat, not against it.","Veins moves slower, but not lazily.","This town has its own endurance."); close; }
