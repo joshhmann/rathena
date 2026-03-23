@@ -1210,7 +1210,7 @@ static void clif_set_unit_idle( const block_list* bl, bool walking, send_target 
 	}
 }
 
-static void clif_spawn_unit( const block_list* bl, enum send_target target ){
+static void clif_spawn_unit_to( const block_list* bl, const block_list* tbl, enum send_target target ){
 	nullpo_retv( bl );
 
 	const map_session_data* sd = BL_CAST(BL_PC,bl);
@@ -1253,7 +1253,7 @@ static void clif_spawn_unit( const block_list* bl, enum send_target target ){
 		WBUFPOS( &p.PosDir[0], 0, bl->x, bl->y, unit_getdir( bl ) );
 		p.xSize = p.ySize = ( sd ) ? 5 : 0;
 
-		clif_send( &p, sizeof( p ), bl, target );
+		clif_send( &p, sizeof( p ), tbl ? tbl : bl, target );
 		return;
 	}
 #endif
@@ -1359,8 +1359,12 @@ static void clif_spawn_unit( const block_list* bl, enum send_target target ){
 #endif
 		clif_send( &p, sizeof( p ), bl, SELF );
 	}else{
-		clif_send( &p, sizeof( p ), bl, target );
+		clif_send( &p, sizeof( p ), tbl ? tbl : bl, target );
 	}
+}
+
+static void clif_spawn_unit( const block_list* bl, enum send_target target ){
+	clif_spawn_unit_to( bl, bl, target );
 }
 
 /*==========================================
@@ -5060,7 +5064,16 @@ void clif_getareachar_unit( map_session_data* sd,block_list *bl ){
 	if( ud && ud->walktimer != INVALID_TIMER ){
 		clif_set_unit_walking( *bl, sd, *ud, SELF );
 	}else{
-		clif_set_unit_idle( bl, false, SELF, sd );
+		if( bl->type == BL_PC ){
+			map_session_data* dstsd = BL_CAST(BL_PC, bl);
+			if( dstsd != nullptr && dstsd->state.headless_bot ){
+				clif_spawn_unit_to( bl, sd, SELF );
+			}else{
+				clif_set_unit_idle( bl, false, SELF, sd );
+			}
+		}else{
+			clif_set_unit_idle( bl, false, SELF, sd );
+		}
 	}
 
 	clif_refresh_clothcolor( *bl, SELF, sd );

@@ -522,3 +522,45 @@ This slice still does not implement:
 - player-facing restore/reset ownership rules
 - full bot provisioning or controller persistence above the runtime ledger
 - late-join observer visibility after restore
+
+## Slice 9: Late-Observer Visibility After Restore
+
+### Goal
+
+Fix the remaining visibility bug where restored headless PCs were active
+server-side but not enumerated for a client that logged in later.
+
+### Files Touched
+
+- `src/map/clif.cpp`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added a single-target spawn helper in `clif.cpp` so the spawn packet can be
+  sent to one observer instead of only through the normal area broadcast path.
+- Updated `clif_getareachar_unit()` so standing headless PCs use the targeted
+  spawn packet path when they are introduced to a late observer.
+- Kept walking actors on the existing walking packet path.
+- Left ordinary live PCs and non-PC units on the existing idle path.
+
+### Validation
+
+- rebuilt `map-server` successfully
+- restarted the server stack
+- let the durable runtime set restore active headless actors:
+  - `assa` at `prontera 156 184`
+  - `codexalt` at `prontera 160 186`
+- logged in OpenKore later as `codex`
+- `pl` enumerated all expected nearby actors:
+  - `assa`
+  - `codexalt`
+  - `Road Tester`
+
+### Deferrals
+
+This slice still does not implement:
+
+- movement-specific late-viewer fixes beyond the existing walking path
+- client-specific visual validation beyond OpenKore and prior desktop checks
+- any broader refactor of the PC area-char enumeration pipeline

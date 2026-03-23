@@ -169,17 +169,22 @@ Symptom:
 
 Current handling:
 
-- server-side restore is working:
-  - durable row is replayed
-  - stale online state is reconciled
-  - headless actor reaches active runtime state again
-- late-join observer visibility is not yet guaranteed
+- fixed
+- server-side restore replays durable rows correctly
+- newly joined observers now enumerate restored headless PCs through the
+  nearby-player path
 
-Required future work:
+Root cause:
 
-- audit the late-viewer area-char path for socketless `BL_PC`
-- confirm restored headless PCs are included in newly joined clients' nearby
-  actor enumeration
+- `clif_getareachar_unit()` advertised standing headless PCs through the idle
+  packet path
+- late observers needed the spawn-style packet path for socketless `BL_PC`
+
+Fix:
+
+- added a single-target spawn helper in `clif.cpp`
+- headless PCs in the late-viewer area-char path now use the spawn packet when
+  they are standing still
 
 ## Multi-Actor Coverage
 
