@@ -564,3 +564,116 @@ This slice still does not implement:
 - movement-specific late-viewer fixes beyond the existing walking path
 - client-specific visual validation beyond OpenKore and prior desktop checks
 - any broader refactor of the PC area-char enumeration pipeline
+
+## Slice 10: Durable Lifecycle Ack History
+
+### Goal
+
+Make completed lifecycle history survive restart so the headless smoke surface
+can still answer:
+
+- last spawn-ready ack
+- last remove/save ack
+- last reconcile ack
+- last reconcile result
+
+even after in-memory runtime maps have been wiped.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260323.sql`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added a new SQL table:
+  - `headless_pc_lifecycle`
+- Persisted lifecycle completions there:
+  - spawn-ready ack from `chrif_headlesspc_mark_spawn_ready()`
+  - remove/save ack from `chrif_save_ack()`
+  - reconcile ack/result from `chrif_headlesspc_reconcile_reply()`
+- Added DB fallback reads in the public query helpers:
+  - `headlesspc_spawnack(char_id)`
+  - `headlesspc_ack(char_id)`
+  - `headlesspc_reconcileack(char_id)`
+  - `headlesspc_reconcileresult(char_id)`
+- Bootstrapped the next request sequence counters from the persisted ack maxima
+  during `chrif_on_ready()` so post-restart sequence numbers do not restart from
+  `1`.
+
+### Validation
+
+- rebuilt `map-server` successfully
+- applied [upgrade_20260323.sql](/root/dev/rathena/sql-files/upgrades/upgrade_20260323.sql)
+- removed and reconciled `codexalt`, then confirmed SQL state:
+  - spawn ack `2`
+  - remove ack `1`
+  - reconcile ack `1`
+  - reconcile result `already clear`
+- restarted the full stack
+- logged back in with OpenKore and confirmed `Headless Smoke` still reported:
+  - `codexalt spawn-ready ack seq: 2`
+  - `codexalt remove/save ack seq: 1`
+  - `codexalt reconcile ack seq: 1`
+  - `codexalt reconcile result: already clear`
+
+### Deferrals
+
+This slice still does not implement:
+
+- durable pending-request journaling
+- restart restoration of in-flight request intent
+- operator-facing lifecycle history beyond the dev harness
+
+## Slice 11: First Headless Control Primitive
+
+### Goal
+
+Add the first real runtime control primitive on top of inert `headless_pc`
+without opening the full behavior/AI scope.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added:
+  - `chrif_headlesspc_setpos(char_id, map, x, y)`
+  - script buildin `headlesspc_setpos(char_id, map$, x, y)`
+- Implementation rules:
+  - only active local headless PCs can be repositioned
+  - absent actors are refused
+  - non-headless live players are refused
+  - pending spawn/remove actors are refused
+- The primitive reuses `pc_setpos(...)` and updates the active runtime ledger
+  row immediately after a successful move.
+
+### Validation
+
+- restored `codexalt` as an active headless actor
+- used `Headless Smoke -> Move codexalt east`
+- the smoke NPC returned `codexalt moved to 165,186`
+- SQL confirmed the active runtime ledger row updated to:
+  - `prontera 165 186`
+- the observer no longer saw `codexalt` in the original nearby list, which is
+  consistent with the actor having been repositioned away from the observer's
+  starting pocket
+
+### Deferrals
+
+This slice still does not implement:
+
+- movement/pathing
+- follow/assist behavior
+- scheduler/controller ownership
+- any autonomous behavior on top of `setpos`

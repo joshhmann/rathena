@@ -11556,6 +11556,27 @@ BUILDIN_FUNC(headlesspc_remove)
 }
 
 /*==========================================
+ * Reposition a live headless BL_PC by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_setpos)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* mapname = script_getstr(st, 3);
+	uint16 x = script_getnum(st, 4);
+	uint16 y = script_getnum(st, 5);
+	int16 m = map_mapname2mapid(mapname);
+	bool ok = false;
+
+	if (m >= 0)
+		ok = chrif_headlesspc_setpos(char_id, m, x, y);
+	else
+		ShowWarning("headless_pc: invalid map \"%s\" passed to headlesspc_setpos.\n", mapname);
+
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Query headless BL_PC lifecycle status by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_status)
@@ -28529,6 +28550,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(fakeplayer,"siisiiiiiiiiiii"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),
+	BUILDIN_DEF(headlesspc_setpos,"isii"),
 	BUILDIN_DEF(headlesspc_status,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
 	BUILDIN_DEF(headlesspc_spawnack,"i"),

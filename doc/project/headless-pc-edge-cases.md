@@ -5,7 +5,9 @@ This document tracks the current weird-case matrix for `headless_pc`.
 ## Current Model
 
 - headless PCs are runtime-only `BL_PC` actors loaded from existing `char_id`
-- lifecycle state and ack tracking are map-server in-memory only
+- lifecycle state is map-server in-memory
+- completed spawn/remove/reconcile ack history now persists in
+  `headless_pc_lifecycle`
 - spawn-ready active actors now also persist a minimal runtime ledger row keyed
   by `char_id`
 - restore policy is active-only:
@@ -153,11 +155,35 @@ This is intentional and should remain a hard guard.
 
 Current handling:
 
-- spawn/remove ack sequences are in-memory only
-- they reset on restart
+- completed spawn/remove/reconcile ack sequences persist in
+  `headless_pc_lifecycle`
+- reconcile result persists there as well
+- script surfaces now fall back to the persisted lifecycle row after restart:
+  - `headlesspc_spawnack(char_id)`
+  - `headlesspc_ack(char_id)`
+  - `headlesspc_reconcileack(char_id)`
+  - `headlesspc_reconcileresult(char_id)`
 
-This is acceptable for current dev slices and not acceptable for long-term
-controller/provisioning work.
+Current limits:
+
+- pending request state is still in-memory only
+- request sequence counters are bootstrapped from persisted ack maxima on ready,
+  but no per-request journal exists yet
+
+### 12. First control primitive
+
+Current handling:
+
+- one minimal control primitive exists:
+  - `headlesspc_setpos(char_id, map$, x, y)`
+- it only succeeds for an active local headless actor
+- it refuses absent, pending, or non-headless live actors
+- successful reposition updates the active runtime ledger row immediately
+
+Current limits:
+
+- this is a teleport/reposition primitive, not movement AI
+- no waypointing, follow logic, or autonomous behavior is attached to it
 
 ### 11. Late observer after restore
 

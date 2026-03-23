@@ -62,6 +62,7 @@ static std::unordered_map<uint32, uint8> headlesspc_reconcile_result_code;
 static uint32 headlesspc_next_reconcile_seq = 1;
 static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
 static const char* headlesspc_runtime_table = "headless_pc_runtime";
+static const char* headlesspc_lifecycle_table = "headless_pc_lifecycle";
 
 static void headlesspc_clear_pending_spawn(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
@@ -112,6 +113,131 @@ static bool headlesspc_runtime_delete(uint32 char_id) {
 	}
 
 	return had_row;
+}
+
+static bool headlesspc_lifecycle_ensure_row(uint32 char_id) {
+	if (char_id == 0)
+		return false;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `%s` (`char_id`) VALUES ('%u') ON DUPLICATE KEY UPDATE `updated_at` = CURRENT_TIMESTAMP",
+		headlesspc_lifecycle_table, char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to ensure lifecycle row for char_id %u.\n", char_id);
+		return false;
+	}
+
+	return true;
+}
+
+static void headlesspc_lifecycle_persist_spawn_ack(uint32 char_id, uint32 seq) {
+	if (char_id == 0 || seq == 0)
+		return;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `%s` (`char_id`, `spawn_ack_seq`) VALUES ('%u', '%u') "
+		"ON DUPLICATE KEY UPDATE `spawn_ack_seq` = GREATEST(`spawn_ack_seq`, VALUES(`spawn_ack_seq`)), `updated_at` = CURRENT_TIMESTAMP",
+		headlesspc_lifecycle_table, char_id, seq)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to persist spawn ack for char_id %u.\n", char_id);
+	}
+}
+
+static void headlesspc_lifecycle_persist_remove_ack(uint32 char_id, uint32 seq) {
+	if (char_id == 0 || seq == 0)
+		return;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `%s` (`char_id`, `remove_ack_seq`) VALUES ('%u', '%u') "
+		"ON DUPLICATE KEY UPDATE `remove_ack_seq` = GREATEST(`remove_ack_seq`, VALUES(`remove_ack_seq`)), `updated_at` = CURRENT_TIMESTAMP",
+		headlesspc_lifecycle_table, char_id, seq)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to persist remove ack for char_id %u.\n", char_id);
+	}
+}
+
+static void headlesspc_lifecycle_persist_reconcile(uint32 char_id, uint32 seq, uint8 result) {
+	if (char_id == 0 || seq == 0)
+		return;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `%s` (`char_id`, `reconcile_ack_seq`, `reconcile_result`) VALUES ('%u', '%u', '%u') "
+		"ON DUPLICATE KEY UPDATE `reconcile_ack_seq` = GREATEST(`reconcile_ack_seq`, VALUES(`reconcile_ack_seq`)), `reconcile_result` = VALUES(`reconcile_result`), `updated_at` = CURRENT_TIMESTAMP",
+		headlesspc_lifecycle_table, char_id, seq, result)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to persist reconcile state for char_id %u.\n", char_id);
+	}
+}
+
+static bool headlesspc_lifecycle_fetch(uint32 char_id, uint32* spawn_ack, uint32* remove_ack, uint32* reconcile_ack, uint8* reconcile_result) {
+	if (char_id == 0)
+		return false;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT `spawn_ack_seq`, `remove_ack_seq`, `reconcile_ack_seq`, `reconcile_result` FROM `%s` WHERE `char_id` = '%u' LIMIT 1",
+		headlesspc_lifecycle_table, char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to fetch lifecycle row for char_id %u.\n", char_id);
+		return false;
+	}
+
+	if (Sql_NextRow(mmysql_handle) != SQL_SUCCESS) {
+		Sql_FreeResult(mmysql_handle);
+		return false;
+	}
+
+	char* data = nullptr;
+	if (spawn_ack != nullptr) {
+		Sql_GetData(mmysql_handle, 0, &data, nullptr);
+		*spawn_ack = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+	}
+	if (remove_ack != nullptr) {
+		Sql_GetData(mmysql_handle, 1, &data, nullptr);
+		*remove_ack = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+	}
+	if (reconcile_ack != nullptr) {
+		Sql_GetData(mmysql_handle, 2, &data, nullptr);
+		*reconcile_ack = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+	}
+	if (reconcile_result != nullptr) {
+		Sql_GetData(mmysql_handle, 3, &data, nullptr);
+		*reconcile_result = static_cast<uint8>(strtoul(data ? data : "0", nullptr, 10));
+	}
+
+	Sql_FreeResult(mmysql_handle);
+	return true;
+}
+
+static void headlesspc_lifecycle_bootstrap_sequences(void) {
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT COALESCE(MAX(`spawn_ack_seq`), 0), COALESCE(MAX(`remove_ack_seq`), 0), COALESCE(MAX(`reconcile_ack_seq`), 0) FROM `%s`",
+		headlesspc_lifecycle_table)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to bootstrap lifecycle sequences.\n");
+		return;
+	}
+
+	if (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		char* data = nullptr;
+		uint32 seq = 0;
+
+		Sql_GetData(mmysql_handle, 0, &data, nullptr);
+		seq = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+		if (headlesspc_next_spawn_seq < seq + 1)
+			headlesspc_next_spawn_seq = seq + 1;
+
+		Sql_GetData(mmysql_handle, 1, &data, nullptr);
+		seq = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+		if (headlesspc_next_remove_seq < seq + 1)
+			headlesspc_next_remove_seq = seq + 1;
+
+		Sql_GetData(mmysql_handle, 2, &data, nullptr);
+		seq = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+		if (headlesspc_next_reconcile_seq < seq + 1)
+			headlesspc_next_reconcile_seq = seq + 1;
+	}
+
+	Sql_FreeResult(mmysql_handle);
 }
 
 static int32 headlesspc_restore_persisted_active(void) {
@@ -581,6 +707,7 @@ static void chrif_save_ack(int32 fd) {
 
 	if (auto it = headlesspc_remove_request_seq.find(char_id); it != headlesspc_remove_request_seq.end()) {
 		headlesspc_remove_ack_seq[char_id] = it->second;
+		headlesspc_lifecycle_persist_remove_ack(char_id, it->second);
 		headlesspc_remove_request_seq.erase(it);
 	}
 
@@ -602,6 +729,7 @@ static void chrif_headlesspc_reconcile_reply(int32 fd) {
 
 	if (auto it = headlesspc_reconcile_request_seq.find(char_id); it != headlesspc_reconcile_request_seq.end()) {
 		headlesspc_reconcile_ack_seq[char_id] = it->second;
+		headlesspc_lifecycle_persist_reconcile(char_id, it->second, result);
 		headlesspc_reconcile_request_seq.erase(it);
 	}
 
@@ -768,6 +896,8 @@ void chrif_on_ready(void) {
 		char_init_done = true;
 	}
 
+	headlesspc_lifecycle_bootstrap_sequences();
+
 	int32 restored = headlesspc_restore_persisted_active();
 	if (restored > 0)
 		ShowInfo("headless_pc: queued restore for %d persisted active actor(s).\n", restored);
@@ -894,6 +1024,31 @@ bool chrif_headlesspc_request_reconcile(uint32 char_id) {
 	return true;
 }
 
+bool chrif_headlesspc_setpos(uint32 char_id, int16 m, uint16 x, uint16 y) {
+	if (char_id == 0 || m < 0)
+		return false;
+
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot)
+		return false;
+
+	if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end())
+		return false;
+
+	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
+	if (pc_setpos(sd, map_id2index(m), x, y, CLR_TELEPORT) != SETPOS_OK) {
+		ShowWarning("headless_pc: failed to reposition char_id %u to map %d (%u,%u).\n",
+			char_id, m, x, y);
+		return false;
+	}
+
+	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	headlesspc_lifecycle_ensure_row(char_id);
+	return true;
+}
+
 int32 chrif_headlesspc_restoreall(void) {
 	return headlesspc_restore_persisted_active();
 }
@@ -921,6 +1076,10 @@ uint32 chrif_headlesspc_ack(uint32 char_id) {
 	if (auto it = headlesspc_remove_ack_seq.find(char_id); it != headlesspc_remove_ack_seq.end())
 		return it->second;
 
+	uint32 persisted = 0;
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, &persisted, nullptr, nullptr))
+		return persisted;
+
 	return 0;
 }
 
@@ -930,6 +1089,10 @@ uint32 chrif_headlesspc_spawn_ack(uint32 char_id) {
 
 	if (auto it = headlesspc_spawn_ack_seq.find(char_id); it != headlesspc_spawn_ack_seq.end())
 		return it->second;
+
+	uint32 persisted = 0;
+	if (headlesspc_lifecycle_fetch(char_id, &persisted, nullptr, nullptr, nullptr))
+		return persisted;
 
 	return 0;
 }
@@ -941,6 +1104,10 @@ uint32 chrif_headlesspc_reconcile_ack(uint32 char_id) {
 	if (auto it = headlesspc_reconcile_ack_seq.find(char_id); it != headlesspc_reconcile_ack_seq.end())
 		return it->second;
 
+	uint32 persisted = 0;
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, &persisted, nullptr))
+		return persisted;
+
 	return 0;
 }
 
@@ -951,6 +1118,10 @@ int32 chrif_headlesspc_reconcile_result(uint32 char_id) {
 	if (auto it = headlesspc_reconcile_result_code.find(char_id); it != headlesspc_reconcile_result_code.end())
 		return it->second;
 
+	uint8 persisted = HEADLESSPC_RECONCILE_NONE;
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, nullptr, &persisted))
+		return persisted;
+
 	return HEADLESSPC_RECONCILE_NONE;
 }
 
@@ -960,6 +1131,7 @@ void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
 
 	if (auto it = headlesspc_spawn_request_seq.find(char_id); it != headlesspc_spawn_request_seq.end()) {
 		headlesspc_spawn_ack_seq[char_id] = it->second;
+		headlesspc_lifecycle_persist_spawn_ack(char_id, it->second);
 		headlesspc_spawn_request_seq.erase(it);
 	}
 
