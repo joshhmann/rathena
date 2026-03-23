@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <common/cbasetypes.hpp>
 #include <common/ers.hpp>
@@ -47,6 +48,7 @@ struct s_headlesspc_spawn_request {
 };
 
 static std::unordered_map<uint32, s_headlesspc_spawn_request> headlesspc_spawn_requests;
+static std::unordered_set<uint32> headlesspc_logout_requests;
 
 static const int32 packet_len_table[0x3d] = { // U - used, F - free
 	60, 3,-1,-1,10,-1, 6,-1,	// 2af8-2aff: U->2af8, U->2af9, U->2afa, U->2afb, U->2afc, U->2afd, U->2afe, U->2aff
@@ -147,6 +149,9 @@ struct auth_node* chrif_auth_check(uint32 account_id, uint32 char_id, enum sd_st
 
 bool chrif_auth_delete(uint32 account_id, uint32 char_id, enum sd_state state) {
 	struct auth_node *node;
+
+	if (state == ST_LOGOUT)
+		headlesspc_logout_requests.erase(char_id);
 
 	if ( (node = chrif_auth_check(account_id, char_id, state) ) ) {
 		int32 fd = node->sd ? node->sd->fd : node->fd;
@@ -637,6 +642,9 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 	if (!chrif_isconnected() || char_id == 0 || m < 0)
 		return false;
 
+	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
 	if (map_charid2sd(char_id) != nullptr)
 		return false;
 
@@ -657,11 +665,34 @@ bool chrif_headlesspc_remove(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
 
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
+		if (!sd->state.headless_bot) {
+			ShowWarning("headless_pc: refused to remove non-headless character %u/%u through headlesspc_remove.\n",
+				sd->status.account_id, sd->status.char_id);
+			return false;
+		}
+
+		headlesspc_logout_requests.insert(char_id);
 		map_quit(sd);
 		return true;
 	}
 
-	return false;
+	return headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end();
+}
+
+int32 chrif_headlesspc_status(uint32 char_id) {
+	if (char_id == 0)
+		return HEADLESSPC_STATUS_ABSENT;
+
+	if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end())
+		return HEADLESSPC_STATUS_PENDING_SPAWN;
+
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr)
+		return sd->state.headless_bot ? HEADLESSPC_STATUS_ACTIVE : HEADLESSPC_STATUS_OCCUPIED;
+
+	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return HEADLESSPC_STATUS_PENDING_REMOVE;
+
+	return HEADLESSPC_STATUS_ABSENT;
 }
 
 /*==========================================

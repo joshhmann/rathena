@@ -26,6 +26,14 @@ enum e_chrif_save_opt {
 	CSAVE_QUITTING = CSAVE_QUIT|CSAVE_CHANGE_MAPSERV|CSAVE_AUTOTRADE,
 };
 
+enum e_headlesspc_status {
+	HEADLESSPC_STATUS_ABSENT = 0,
+	HEADLESSPC_STATUS_PENDING_SPAWN = 1,
+	HEADLESSPC_STATUS_ACTIVE = 2,
+	HEADLESSPC_STATUS_PENDING_REMOVE = 3,
+	HEADLESSPC_STATUS_OCCUPIED = 4,
+};
+
 struct auth_node {
 	uint32 account_id, char_id;
 	int32 login_id1, login_id2, sex, fd;
@@ -89,6 +97,7 @@ int32 chrif_bsdata_request(uint32 char_id);
 int32 chrif_bsdata_save(map_session_data *sd, bool quit);
 bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y);
 bool chrif_headlesspc_remove(uint32 char_id);
+int32 chrif_headlesspc_status(uint32 char_id);
 
 void do_final_chrif(void);
 void do_init_chrif(void);

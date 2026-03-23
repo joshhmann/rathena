@@ -4,7 +4,7 @@ prontera,154,181,4	script	Headless PC Lab	4_F_02,{
 	mes "[Headless PC Lab]";
 	mes "This is a dev-only harness for Phase 0 inert headless PCs.";
 	next;
-	switch(select("Spawn by char_id:Remove by char_id:Cancel")) {
+	switch(select("Spawn by char_id:Status by char_id:Remove by char_id:Cancel")) {
 	case 1:
 		input .@char_id;
 		input .@map$;
@@ -16,6 +16,27 @@ prontera,154,181,4	script	Headless PC Lab	4_F_02,{
 			mes "Spawn request failed.";
 		close;
 	case 2:
+		input .@char_id;
+		.@status = headlesspc_status(.@char_id);
+		switch(.@status) {
+		case 1:
+			mes "Status: pending spawn.";
+			break;
+		case 2:
+			mes "Status: active headless PC.";
+			break;
+		case 3:
+			mes "Status: pending remove/save.";
+			break;
+		case 4:
+			mes "Status: occupied by a non-headless live player.";
+			break;
+		default:
+			mes "Status: absent.";
+			break;
+		}
+		close;
+	case 3:
 		input .@char_id;
 		if (headlesspc_remove(.@char_id))
 			mes "Headless PC removed or pending spawn cleared.";

@@ -2,7 +2,7 @@
 
 prontera,154,179,4	script	Headless Smoke	4_F_01,{
 	mes "[Headless Smoke]";
-	switch(select("Spawn codexalt:Remove codexalt:Cancel")) {
+	switch(select("Spawn codexalt:Status codexalt:Remove codexalt:Cancel")) {
 	case 1:
 		if (headlesspc_spawn(150002, "prontera", 160, 186))
 			mes "Spawn request queued for codexalt.";
@@ -10,6 +10,26 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 			mes "Spawn request failed.";
 		close;
 	case 2:
+		.@status = headlesspc_status(150002);
+		switch(.@status) {
+		case 1:
+			mes "codexalt status: pending spawn.";
+			break;
+		case 2:
+			mes "codexalt status: active.";
+			break;
+		case 3:
+			mes "codexalt status: pending remove/save.";
+			break;
+		case 4:
+			mes "codexalt status: occupied by a non-headless live player.";
+			break;
+		default:
+			mes "codexalt status: absent.";
+			break;
+		}
+		close;
+	case 3:
 		if (headlesspc_remove(150002))
 			mes "Remove request queued for codexalt.";
 		else

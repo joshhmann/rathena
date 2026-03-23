@@ -119,3 +119,54 @@ This slice also intentionally rejects characters with active companion state:
 - homunculus
 - mercenary
 - elemental
+
+## Slice 2: Safe Remove And Lifecycle Status
+
+### Goal
+
+Harden the inert headless-PC lifecycle so remove operations only target
+headless actors and the dev harness can report lifecycle state directly.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_lab.txt`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+
+### Runtime Path Changes
+
+- Added a small lifecycle status enum for `headless_pc`:
+  - absent
+  - pending spawn
+  - active
+  - pending remove/save
+  - occupied by a non-headless live player
+- Added `headlesspc_status(char_id)` as a dev-only script buildin.
+- Added a map-side `headlesspc_logout_requests` set so pending remove/save state
+  is visible before final save ACK returns.
+- Updated `headlesspc_remove(char_id)` so it refuses to call `map_quit()` on a
+  non-headless live player.
+- Cleared pending remove/save state when `ST_LOGOUT` auth nodes are deleted.
+- Extended both dev harness NPCs so the lifecycle state can be checked in-game.
+
+### Validation
+
+- source build completed successfully through the normal restart flow
+- `map-server` loaded the updated dev harness scripts without parser errors
+- OpenKore verified the fixed smoke harness end-to-end:
+  - `Spawn codexalt`
+  - `Status codexalt` -> `active`
+  - nearby player list shows `codexalt`
+  - `Remove codexalt`
+  - `Status codexalt` -> `absent`
+  - DB `char.online` returns to `0`
+
+### Deferrals
+
+This slice still does not implement:
+
+- automated retry/recovery for stale logout state across restart
+- generalized lifecycle assertions outside the dev harness
+- party, merchant, combat, or controller behavior
