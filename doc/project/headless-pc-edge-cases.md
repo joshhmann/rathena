@@ -23,18 +23,19 @@ Symptom:
 Current handling:
 
 - char-server refuses the load
-- map-side pending spawn state is cleared
-- targeted recovery now exists:
+- map-server now auto-queues targeted reconcile and retries the stored spawn
+  once when the reject looks like stale online state
+- targeted recovery also exists explicitly:
   - `headlesspc_reconcile(char_id)`
   - `headlesspc_reconcileack(char_id)`
   - `headlesspc_reconcileresult(char_id)`
 
 Current limits:
 
-- reconciliation is manual, not automatic
 - it only clears state owned by the current map-server or already-detached
   entries
-- after reconciliation, the actor still needs a normal respawn request
+- the automatic lane only covers the pre-spawn reject path
+- restart loss still needs explicit reprovision/respawn
 
 ### 2. Character already online on map-server
 
@@ -87,6 +88,8 @@ Current handling:
 - ack/history is lost on restart
 - targeted stale online cleanup now exists without a full server restart:
   - `headlesspc_reconcile(char_id)`
+- normal spawn now auto-retries through that reconcile path when the stale state
+  is hit during bring-up
 - reconcile only clears the stale online marker
 - actor runtime state is not recovered; respawn is still required
 

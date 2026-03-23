@@ -155,23 +155,21 @@ OnInterIfInitOnce:
 	end;
 
 OnTimer1000:
-	debugmes "[headless_pc autotest] starting reconcile smoke.";
-	debugmes "[headless_pc autotest] reconcile queued while clear: " + headlesspc_reconcile(150002) + ".";
-	end;
-
-OnTimer3000:
-	debugmes "[headless_pc autotest] reconcile while clear ack/result: ack=" + headlesspc_reconcileack(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
+	debugmes "[headless_pc autotest] starting auto-retry smoke.";
 	debugmes "[headless_pc autotest] spawn queued for codexalt: " + headlesspc_spawn(150002, "prontera", 160, 186) + ".";
 	end;
 
+OnTimer3000:
+	debugmes "[headless_pc autotest] mid state: status=" + headlesspc_status(150002) + ", spawnack=" + headlesspc_spawnack(150002) + ", reconcile_ack=" + headlesspc_reconcileack(150002) + ", reconcile_result=" + headlesspc_reconcileresult(150002) + ".";
+	end;
+
 OnTimer7000:
-	debugmes "[headless_pc autotest] status/spawnack after spawn: status=" + headlesspc_status(150002) + ", spawnack=" + headlesspc_spawnack(150002) + ".";
-	debugmes "[headless_pc autotest] reconcile queued while active: " + headlesspc_reconcile(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
+	debugmes "[headless_pc autotest] final active state: status=" + headlesspc_status(150002) + ", spawnack=" + headlesspc_spawnack(150002) + ", reconcile_ack=" + headlesspc_reconcileack(150002) + ", reconcile_result=" + headlesspc_reconcileresult(150002) + ".";
 	debugmes "[headless_pc autotest] remove queued for codexalt: " + headlesspc_remove(150002) + ".";
 	end;
 
 OnTimer11000:
-	debugmes "[headless_pc autotest] final status/removeack/reconcile: status=" + headlesspc_status(150002) + ", removeack=" + headlesspc_ack(150002) + ", reconcile_ack=" + headlesspc_reconcileack(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
+	debugmes "[headless_pc autotest] cleanup state: status=" + headlesspc_status(150002) + ", removeack=" + headlesspc_ack(150002) + ", reconcile_ack=" + headlesspc_reconcileack(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
 	stopnpctimer;
 	end;
 }

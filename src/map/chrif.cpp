@@ -147,6 +147,20 @@ static int32 chrif_state = 0;
 int32 other_mapserver_count=0; //Holds count of how many other map servers are online (apart of this instance) [Skotlex]
 char charserver_name[NAME_LENGTH];
 
+static void headlesspc_send_spawn_request(uint32 char_id) {
+	WFIFOHEAD(char_fd, 6);
+	WFIFOW(char_fd, 0) = 0x2b30;
+	WFIFOL(char_fd, 2) = char_id;
+	WFIFOSET(char_fd, 6);
+}
+
+static void headlesspc_send_reconcile_request(uint32 char_id) {
+	WFIFOHEAD(char_fd, 6);
+	WFIFOW(char_fd, 0) = 0x2b32;
+	WFIFOL(char_fd, 2) = char_id;
+	WFIFOSET(char_fd, 6);
+}
+
 //Interval at which map server updates online listing. [Valaris]
 #define CHECK_INTERVAL 3600000
 //Interval at which map server sends number of connected users. [Skotlex]
@@ -478,6 +492,22 @@ static void chrif_headlesspc_reconcile_reply(int32 fd) {
 	}
 
 	headlesspc_reconcile_result_code[char_id] = result;
+
+	if ((result == HEADLESSPC_RECONCILE_RECONCILED || result == HEADLESSPC_RECONCILE_ALREADY_CLEAR)
+		&& headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end()
+		&& map_charid2sd(char_id) == nullptr
+		&& headlesspc_logout_requests.find(char_id) == headlesspc_logout_requests.end()) {
+		ShowInfo("headless_pc: retrying headless spawn for char_id %u after reconcile result %u.\n",
+			char_id, result);
+		headlesspc_send_spawn_request(char_id);
+		return;
+	}
+
+	if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end()
+		&& result != HEADLESSPC_RECONCILE_RECONCILED
+		&& result != HEADLESSPC_RECONCILE_ALREADY_CLEAR) {
+		headlesspc_clear_pending_spawn(char_id);
+	}
 }
 
 // request to move a character between mapservers
@@ -697,11 +727,7 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 
 	headlesspc_spawn_requests[char_id] = { m, x, y };
 	headlesspc_spawn_request_seq[char_id] = headlesspc_next_spawn_seq++;
-
-	WFIFOHEAD(char_fd, 6);
-	WFIFOW(char_fd, 0) = 0x2b30;
-	WFIFOL(char_fd, 2) = char_id;
-	WFIFOSET(char_fd, 6);
+	headlesspc_send_spawn_request(char_id);
 
 	return true;
 }
@@ -744,11 +770,7 @@ bool chrif_headlesspc_request_reconcile(uint32 char_id) {
 		return false;
 
 	headlesspc_reconcile_request_seq[char_id] = headlesspc_next_reconcile_seq++;
-
-	WFIFOHEAD(char_fd, 6);
-	WFIFOW(char_fd, 0) = 0x2b32;
-	WFIFOL(char_fd, 2) = char_id;
-	WFIFOSET(char_fd, 6);
+	headlesspc_send_reconcile_request(char_id);
 
 	return true;
 }
@@ -1520,6 +1542,17 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 	uint32 requested_char_id = RFIFOL(fd, 5);
 
 	if (!ok) {
+		if (headlesspc_spawn_requests.find(requested_char_id) != headlesspc_spawn_requests.end()
+			&& headlesspc_reconcile_request_seq.find(requested_char_id) == headlesspc_reconcile_request_seq.end()
+			&& headlesspc_logout_requests.find(requested_char_id) == headlesspc_logout_requests.end()
+			&& map_charid2sd(requested_char_id) == nullptr) {
+			headlesspc_reconcile_request_seq[requested_char_id] = headlesspc_next_reconcile_seq++;
+			headlesspc_send_reconcile_request(requested_char_id);
+			ShowInfo("headless_pc: spawn for char_id %u was rejected; queued reconcile.\n",
+				requested_char_id);
+			return;
+		}
+
 		headlesspc_clear_pending_spawn(requested_char_id);
 		ShowWarning("headless_pc: char-server rejected a headless character load request for char_id %u.\n",
 			requested_char_id);

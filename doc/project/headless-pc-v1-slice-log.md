@@ -391,3 +391,64 @@ This slice still does not implement:
 - durable lifecycle ledger across restart
 - verified reproduction of a true stale-online entry from a map-server crash
 - recovery of runtime actor state after reconciliation
+
+## Slice 7: Automatic Reconcile-And-Retry On Spawn Reject
+
+### Goal
+
+Eliminate the manual two-step for the common stale-online bring-up failure:
+
+- spawn rejected by char-server
+- manual reconcile
+- manual respawn
+
+The runtime should keep the original spawn intent and retry automatically once
+reconcile succeeds.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/char/char_mapif.cpp` (temporary validation hook only, removed before commit)
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added internal packet helpers for:
+  - headless spawn request
+  - headless reconcile request
+- When `0x2b31` returns a rejected headless load:
+  - keep the original spawn request in memory
+  - queue a reconcile request automatically if the actor is not locally present
+    and no remove/save is pending
+- When `0x2b33` returns:
+  - if result is `reconciled` or `already clear`
+  - and the original spawn request is still pending
+  - retry the original spawn automatically
+- If reconcile returns a hard refusal or invalid character result while a spawn
+  request is pending, the pending spawn is cleared.
+
+### Validation
+
+- full rebuild completed successfully
+- server restart completed successfully
+- validated with a temporary one-shot forced reject for `codexalt`
+- observed runtime sequence:
+  - initial spawn request queued
+  - forced char-server reject
+  - automatic reconcile queued by map-server
+  - reconcile result `already clear`
+  - automatic spawn retry
+  - `codexalt` became active and world-visible
+  - spawn-ready ack incremented to `1`
+- removed the temporary forced-reject validation hook before committing
+- left the hidden smoke controller disabled after validation
+
+### Deferrals
+
+This slice still does not implement:
+
+- multi-retry backoff logic
+- durable retry intent across restart
+- automatic respawn after restart loss
+- recovery of runtime actor state that was already live at crash time
