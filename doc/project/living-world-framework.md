@@ -73,3 +73,4 @@ filler scripts reusable and consistent.
 - keep hub-service duplication separate
 - keep coordinate polish optional unless placement is broken
 - keep fakeplayer usage selective and script-orchestrated
+- keep scripts procedural; move real lifecycle complexity into source helpers

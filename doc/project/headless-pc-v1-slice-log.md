@@ -170,3 +170,49 @@ This slice still does not implement:
 - automated retry/recovery for stale logout state across restart
 - generalized lifecycle assertions outside the dev harness
 - party, merchant, combat, or controller behavior
+
+## Slice 3: Remove/Save Completion Ack
+
+### Goal
+
+Expose a dedicated completion signal for headless remove/save so scripts can
+tell the difference between:
+
+- remove requested
+- actor absent from the world
+- final save ACK completed
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_lab.txt`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+
+### Runtime Path Changes
+
+- Added a monotonic per-character remove request sequence on the map side.
+- Captured the final completed remove/save sequence when `chrif_save_ack()`
+  returns from char-server.
+- Added `headlesspc_ack(char_id)` as a script buildin.
+- Extended the lab and smoke harnesses to show the last completed ack sequence.
+
+### Validation
+
+- full rebuild completed successfully
+- server restart completed successfully
+- OpenKore verified:
+  - `Ack codexalt` returns `0` before removal
+  - `Spawn codexalt` keeps ack at `0`
+  - `Remove codexalt` triggers logout/save
+  - `Ack codexalt` returns `1` after final save completion
+  - DB `char.online` returns to `0`
+
+### Deferrals
+
+This slice still does not implement:
+
+- a dedicated spawn completion ack
+- ack/history persistence across restart
+- generalized wait primitives beyond the dev harness

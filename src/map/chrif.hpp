@@ -98,6 +98,7 @@ int32 chrif_bsdata_save(map_session_data *sd, bool quit);
 bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y);
 bool chrif_headlesspc_remove(uint32 char_id);
 int32 chrif_headlesspc_status(uint32 char_id);
+uint32 chrif_headlesspc_ack(uint32 char_id);
 
 void do_final_chrif(void);
 void do_init_chrif(void);

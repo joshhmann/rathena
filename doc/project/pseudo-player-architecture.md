@@ -28,6 +28,21 @@ Do not build party, commerce, or bot logic directly into `fakeplayer()`.
 
 `fakeplayer()` should remain the body and rendering primitive.
 
+## Script Design Rule
+
+Do not try to make the rAthena script layer object-oriented.
+
+Preferred long-term split:
+
+- scripts handle orchestration, menus, and simple state routing
+- C++ handles typed lifecycle/state helpers
+- persistent data handles identity, policy, and provisioning
+
+Using `select` / `switch` in scripts is acceptable and expected.
+The project should avoid large ad hoc script logic trees only by moving
+complexity into narrow source helpers and data-backed state, not by inventing
+fake OOP patterns in NPC script.
+
 ## Subsystems
 
 ### 1. Body Layer
@@ -255,4 +270,3 @@ The next use of this architecture should be:
 After that, the next design target should be:
 
 - define the first persistent bot-state schema
-

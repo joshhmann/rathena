@@ -208,6 +208,24 @@ Headless PCs only need the world side.
 The runtime actor needs an explicit bot/headless marker. Do not rely on `fd`
 sentinels alone as the only distinction.
 
+## Script Vs Runtime Design Rule
+
+Keep the design split explicit:
+
+- rAthena scripts stay procedural
+- harnesses and small orchestration flows may use `select` / `switch`
+- lifecycle complexity belongs in C++ runtime helpers, typed enums, and
+  explicit state transitions
+
+Do not try to force object-oriented structure into the script layer.
+
+Long-term maintainability should come from:
+
+- narrow buildins
+- typed lifecycle/status enums
+- state-machine style runtime helpers
+- later, data-backed bot provisioning/state
+
 ## Acceptance Criteria
 
 Phase 0 is successful when the project can state all of these clearly:

@@ -49,6 +49,9 @@ struct s_headlesspc_spawn_request {
 
 static std::unordered_map<uint32, s_headlesspc_spawn_request> headlesspc_spawn_requests;
 static std::unordered_set<uint32> headlesspc_logout_requests;
+static std::unordered_map<uint32, uint32> headlesspc_remove_request_seq;
+static std::unordered_map<uint32, uint32> headlesspc_remove_ack_seq;
+static uint32 headlesspc_next_remove_seq = 1;
 
 static const int32 packet_len_table[0x3d] = { // U - used, F - free
 	60, 3,-1,-1,10,-1, 6,-1,	// 2af8-2aff: U->2af8, U->2af9, U->2afa, U->2afb, U->2afc, U->2afd, U->2afe, U->2aff
@@ -433,7 +436,15 @@ int32 chrif_removemap(int32 fd) {
 
 // received after a character has been "final saved" on the char-server
 static void chrif_save_ack(int32 fd) {
-	chrif_auth_delete(RFIFOL(fd,2), RFIFOL(fd,6), ST_LOGOUT);
+	uint32 account_id = RFIFOL(fd,2);
+	uint32 char_id = RFIFOL(fd,6);
+
+	if (auto it = headlesspc_remove_request_seq.find(char_id); it != headlesspc_remove_request_seq.end()) {
+		headlesspc_remove_ack_seq[char_id] = it->second;
+		headlesspc_remove_request_seq.erase(it);
+	}
+
+	chrif_auth_delete(account_id, char_id, ST_LOGOUT);
 }
 
 // request to move a character between mapservers
@@ -671,6 +682,7 @@ bool chrif_headlesspc_remove(uint32 char_id) {
 			return false;
 		}
 
+		headlesspc_remove_request_seq[char_id] = headlesspc_next_remove_seq++;
 		headlesspc_logout_requests.insert(char_id);
 		map_quit(sd);
 		return true;
@@ -693,6 +705,16 @@ int32 chrif_headlesspc_status(uint32 char_id) {
 		return HEADLESSPC_STATUS_PENDING_REMOVE;
 
 	return HEADLESSPC_STATUS_ABSENT;
+}
+
+uint32 chrif_headlesspc_ack(uint32 char_id) {
+	if (char_id == 0)
+		return 0;
+
+	if (auto it = headlesspc_remove_ack_seq.find(char_id); it != headlesspc_remove_ack_seq.end())
+		return it->second;
+
+	return 0;
 }
 
 /*==========================================
