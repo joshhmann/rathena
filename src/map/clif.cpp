@@ -11485,8 +11485,11 @@ void clif_headless_pc_load(map_session_data *sd)
 	sd->state.debug_remove_map = 0;
 	sd->state.callshop = 0;
 
-	if (map_addblock(sd))
+	if (map_addblock(sd)) {
+		ShowWarning("headless_pc: map_addblock failed for %s (%u:%u)\n",
+			sd->status.name, sd->status.account_id, sd->status.char_id);
 		return;
+	}
 
 	clif_spawn(sd);
 

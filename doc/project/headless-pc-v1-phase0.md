@@ -138,6 +138,32 @@ The agreed Phase 1 implementation target after this design freeze should be:
 
 This is the first sequence the code should be shaped around.
 
+## Phase 0 Outcome
+
+Phase 0 is now implemented and proven at the baseline level.
+
+Confirmed:
+
+- one socketless `BL_PC` can be created from an existing `char_id`
+- the actor can complete the load pipeline without a client socket
+- the actor can become world-visible to another client
+- the actor can be exercised from a dev-only in-game harness and from OpenKore
+
+The key implementation fix beyond the initial bring-up was:
+
+- the temporary headless `map_session_data` had to be inserted into the player ID
+  DB early enough for async registry replies to find it
+
+Without that early registration:
+
+- `pc_reg_received()` never fired
+- `pc_scdata_received()` never fired
+- `pc_loaded` never flipped to true
+- `clif_headless_pc_load()` never ran
+- the actor existed server-side but never became visible in-world
+
+That specific issue is now resolved.
+
 ## First Source Touch Points
 
 The first implementation pass should expect changes around:

@@ -1418,9 +1418,11 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 	sd->fd = 0;
 	pc_setnewpc(sd, status.account_id, status.char_id, 0, gettick(), status.sex, 0);
 	sd->state.headless_bot = true;
+	map_addiddb(sd);
 
 	if (!pc_authok(sd, 0, 0, 0, &status, false)) {
 		chrif_char_offline_nsd(status.account_id, status.char_id);
+		map_deliddb(sd);
 		sd->~map_session_data();
 		aFree(sd);
 	}
