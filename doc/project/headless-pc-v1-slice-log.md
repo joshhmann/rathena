@@ -216,3 +216,52 @@ This slice still does not implement:
 - a dedicated spawn completion ack
 - ack/history persistence across restart
 - generalized wait primitives beyond the dev harness
+
+## Slice 4: Spawn-Ready Completion Ack
+
+### Goal
+
+Expose a dedicated completion signal for headless spawn so scripts can tell the
+difference between:
+
+- spawn requested
+- actor loaded internally
+- actor actually world-visible and ready
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/clif.cpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_lab.txt`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+
+### Runtime Path Changes
+
+- Added a monotonic per-character spawn request sequence on the map side.
+- Added a completed spawn-ready ack sequence.
+- Marked spawn-ready completion from `clif_headless_pc_load()` after:
+  - `map_addblock(sd)`
+  - `clif_spawn(sd)`
+- Added `headlesspc_spawnack(char_id)` as a script buildin.
+- Extended the lab and smoke harnesses to show the last completed spawn-ready
+  ack sequence.
+
+### Validation
+
+- full rebuild completed successfully
+- server restart completed successfully
+- OpenKore verified:
+  - `Spawn Ack codexalt` returns `0` before spawn
+  - `Spawn codexalt` queues the request
+  - `Spawn Ack codexalt` returns `1` only after the actor is visible
+  - nearby player list shows `codexalt`
+
+### Deferrals
+
+This slice still does not implement:
+
+- persistence of ack/history across restart
+- generalized wait primitives beyond the dev harness
+- higher-level bot controller semantics

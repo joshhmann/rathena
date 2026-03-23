@@ -11492,6 +11492,7 @@ void clif_headless_pc_load(map_session_data *sd)
 	}
 
 	clif_spawn(sd);
+	chrif_headlesspc_mark_spawn_ready(sd->status.char_id);
 
 	if (sd->status.party_id)
 		party_send_movemap(sd);

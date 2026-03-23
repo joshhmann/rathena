@@ -49,6 +49,9 @@ struct s_headlesspc_spawn_request {
 
 static std::unordered_map<uint32, s_headlesspc_spawn_request> headlesspc_spawn_requests;
 static std::unordered_set<uint32> headlesspc_logout_requests;
+static std::unordered_map<uint32, uint32> headlesspc_spawn_request_seq;
+static std::unordered_map<uint32, uint32> headlesspc_spawn_ack_seq;
+static uint32 headlesspc_next_spawn_seq = 1;
 static std::unordered_map<uint32, uint32> headlesspc_remove_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_remove_ack_seq;
 static uint32 headlesspc_next_remove_seq = 1;
@@ -663,6 +666,7 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 		return false;
 
 	headlesspc_spawn_requests[char_id] = { m, x, y };
+	headlesspc_spawn_request_seq[char_id] = headlesspc_next_spawn_seq++;
 
 	WFIFOHEAD(char_fd, 6);
 	WFIFOW(char_fd, 0) = 0x2b30;
@@ -715,6 +719,26 @@ uint32 chrif_headlesspc_ack(uint32 char_id) {
 		return it->second;
 
 	return 0;
+}
+
+uint32 chrif_headlesspc_spawn_ack(uint32 char_id) {
+	if (char_id == 0)
+		return 0;
+
+	if (auto it = headlesspc_spawn_ack_seq.find(char_id); it != headlesspc_spawn_ack_seq.end())
+		return it->second;
+
+	return 0;
+}
+
+void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
+	if (char_id == 0)
+		return;
+
+	if (auto it = headlesspc_spawn_request_seq.find(char_id); it != headlesspc_spawn_request_seq.end()) {
+		headlesspc_spawn_ack_seq[char_id] = it->second;
+		headlesspc_spawn_request_seq.erase(it);
+	}
 }
 
 /*==========================================

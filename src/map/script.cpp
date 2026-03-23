@@ -11578,6 +11578,17 @@ BUILDIN_FUNC(headlesspc_ack)
 }
 
 /*==========================================
+ * Query last completed headless spawn-ready ack sequence by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_spawnack)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_spawn_ack(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * KillMonster subcheck, verify if mob to kill ain't got an even to handle, could be force kill by allflag
  *------------------------------------------*/
  static int32 buildin_killmonster_sub_strip(block_list *bl,va_list ap)
@@ -28478,6 +28489,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(headlesspc_status,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
+	BUILDIN_DEF(headlesspc_spawnack,"i"),
 	BUILDIN_DEF(getunitdata,"i*"),
 	BUILDIN_DEF(setunitdata,"iiv"),
 	BUILDIN_DEF(unitwalk,"iii?"),

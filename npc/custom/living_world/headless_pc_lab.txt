@@ -4,7 +4,7 @@ prontera,154,181,4	script	Headless PC Lab	4_F_02,{
 	mes "[Headless PC Lab]";
 	mes "This is a dev-only harness for Phase 0 inert headless PCs.";
 	next;
-	switch(select("Spawn by char_id:Status by char_id:Ack by char_id:Remove by char_id:Cancel")) {
+	switch(select("Spawn by char_id:Status by char_id:Spawn Ack by char_id:Remove Ack by char_id:Remove by char_id:Cancel")) {
 	case 1:
 		input .@char_id;
 		input .@map$;
@@ -38,9 +38,13 @@ prontera,154,181,4	script	Headless PC Lab	4_F_02,{
 		close;
 	case 3:
 		input .@char_id;
-		mes "Remove/save ack seq: " + headlesspc_ack(.@char_id) + ".";
+		mes "Spawn-ready ack seq: " + headlesspc_spawnack(.@char_id) + ".";
 		close;
 	case 4:
+		input .@char_id;
+		mes "Remove/save ack seq: " + headlesspc_ack(.@char_id) + ".";
+		close;
+	case 5:
 		input .@char_id;
 		if (headlesspc_remove(.@char_id))
 			mes "Headless PC removed or pending spawn cleared.";
