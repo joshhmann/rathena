@@ -11622,6 +11622,15 @@ BUILDIN_FUNC(headlesspc_reconcileresult)
 }
 
 /*==========================================
+ * Queue restore for all persisted active headless PCs.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_restoreall)
+{
+	script_pushint(st, chrif_headlesspc_restoreall());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * KillMonster subcheck, verify if mob to kill ain't got an even to handle, could be force kill by allflag
  *------------------------------------------*/
  static int32 buildin_killmonster_sub_strip(block_list *bl,va_list ap)
@@ -28526,6 +28535,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_reconcile,"i"),
 	BUILDIN_DEF(headlesspc_reconcileack,"i"),
 	BUILDIN_DEF(headlesspc_reconcileresult,"i"),
+	BUILDIN_DEF(headlesspc_restoreall,""),
 	BUILDIN_DEF(getunitdata,"i*"),
 	BUILDIN_DEF(setunitdata,"iiv"),
 	BUILDIN_DEF(unitwalk,"iii?"),

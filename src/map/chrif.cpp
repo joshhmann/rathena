@@ -13,6 +13,7 @@
 #include <common/malloc.hpp>
 #include <common/nullpo.hpp>
 #include <common/showmsg.hpp>
+#include <common/sql.hpp>
 #include <common/socket.hpp>
 #include <common/strlib.hpp>
 #include <common/timer.hpp>
@@ -59,10 +60,121 @@ static std::unordered_map<uint32, uint32> headlesspc_reconcile_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_reconcile_ack_seq;
 static std::unordered_map<uint32, uint8> headlesspc_reconcile_result_code;
 static uint32 headlesspc_next_reconcile_seq = 1;
+static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
+static const char* headlesspc_runtime_table = "headless_pc_runtime";
 
 static void headlesspc_clear_pending_spawn(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
 	headlesspc_spawn_request_seq.erase(char_id);
+}
+
+static bool headlesspc_runtime_upsert(uint32 char_id, int16 m, uint16 x, uint16 y) {
+	const char* mapname = map_mapid2mapname(m);
+
+	if (char_id == 0 || mapname == nullptr)
+		return false;
+
+	char esc_map[MAP_NAME_LENGTH_EXT * 2 + 1] = "";
+	Sql_EscapeStringLen(mmysql_handle, esc_map, mapname, strnlen(mapname, MAP_NAME_LENGTH_EXT));
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `%s` (`char_id`, `map_name`, `x`, `y`, `state`) "
+		"VALUES ('%u', '%s', '%u', '%u', '%u') "
+		"ON DUPLICATE KEY UPDATE `map_name` = VALUES(`map_name`), `x` = VALUES(`x`), `y` = VALUES(`y`), `state` = VALUES(`state`), `updated_at` = CURRENT_TIMESTAMP",
+		headlesspc_runtime_table, char_id, esc_map, x, y, HEADLESSPC_RUNTIME_ACTIVE)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to upsert runtime ledger row for char_id %u.\n", char_id);
+		return false;
+	}
+
+	return true;
+}
+
+static bool headlesspc_runtime_delete(uint32 char_id) {
+	if (char_id == 0)
+		return false;
+
+	bool had_row = false;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle, "SELECT 1 FROM `%s` WHERE `char_id` = '%u' LIMIT 1", headlesspc_runtime_table, char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to probe runtime ledger row for char_id %u.\n", char_id);
+		return false;
+	}
+
+	had_row = Sql_NextRow(mmysql_handle) == SQL_SUCCESS;
+	Sql_FreeResult(mmysql_handle);
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle, "DELETE FROM `%s` WHERE `char_id` = '%u'", headlesspc_runtime_table, char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to delete runtime ledger row for char_id %u.\n", char_id);
+		return false;
+	}
+
+	return had_row;
+}
+
+static int32 headlesspc_restore_persisted_active(void) {
+	int32 queued = 0;
+
+	if (!chrif_isconnected())
+		return 0;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT `char_id`, `map_name`, `x`, `y` FROM `%s` WHERE `state` = '%u'",
+		headlesspc_runtime_table, HEADLESSPC_RUNTIME_ACTIVE)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to query runtime ledger for restore.\n");
+		return 0;
+	}
+
+	while (SQL_SUCCESS == Sql_NextRow(mmysql_handle)) {
+		char* data = nullptr;
+		uint32 char_id = 0;
+		char mapname[MAP_NAME_LENGTH_EXT] = "";
+		uint16 x = 0;
+		uint16 y = 0;
+
+		Sql_GetData(mmysql_handle, 0, &data, nullptr);
+		char_id = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+		Sql_GetData(mmysql_handle, 1, &data, nullptr);
+		safestrncpy(mapname, data ? data : "", sizeof(mapname));
+		Sql_GetData(mmysql_handle, 2, &data, nullptr);
+		x = static_cast<uint16>(strtoul(data ? data : "0", nullptr, 10));
+		Sql_GetData(mmysql_handle, 3, &data, nullptr);
+		y = static_cast<uint16>(strtoul(data ? data : "0", nullptr, 10));
+
+		if (char_id == 0)
+			continue;
+
+		int16 m = map_mapname2mapid(mapname);
+		if (m < 0) {
+			ShowWarning("headless_pc: deleting runtime ledger row for char_id %u because map \"%s\" is invalid.\n",
+				char_id, mapname);
+			headlesspc_runtime_delete(char_id);
+			continue;
+		}
+
+		if (map_charid2sd(char_id) != nullptr)
+			continue;
+
+		if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end())
+			continue;
+
+		if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+			continue;
+
+		if (chrif_headlesspc_request_spawn(char_id, m, x, y)) {
+			queued++;
+			continue;
+		}
+
+		ShowWarning("headless_pc: restore could not queue spawn for char_id %u on %s (%u,%u); leaving runtime ledger row in place.\n",
+			char_id, mapname, x, y);
+	}
+
+	Sql_FreeResult(mmysql_handle);
+	return queued;
 }
 
 static const int32 packet_len_table[0x3d] = { // U - used, F - free
@@ -472,6 +584,8 @@ static void chrif_save_ack(int32 fd) {
 		headlesspc_remove_request_seq.erase(it);
 	}
 
+	headlesspc_runtime_delete(char_id);
+
 	chrif_auth_delete(account_id, char_id, ST_LOGOUT);
 }
 
@@ -653,6 +767,10 @@ void chrif_on_ready(void) {
 		do_init_vending_autotrade();
 		char_init_done = true;
 	}
+
+	int32 restored = headlesspc_restore_persisted_active();
+	if (restored > 0)
+		ShowInfo("headless_pc: queued restore for %d persisted active actor(s).\n", restored);
 }
 
 
@@ -734,6 +852,7 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 
 bool chrif_headlesspc_remove(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
+	bool cleared_runtime = headlesspc_runtime_delete(char_id);
 
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
 		if (!sd->state.headless_bot) {
@@ -748,7 +867,7 @@ bool chrif_headlesspc_remove(uint32 char_id) {
 		return true;
 	}
 
-	return headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end();
+	return cleared_runtime || headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end();
 }
 
 bool chrif_headlesspc_request_reconcile(uint32 char_id) {
@@ -773,6 +892,10 @@ bool chrif_headlesspc_request_reconcile(uint32 char_id) {
 	headlesspc_send_reconcile_request(char_id);
 
 	return true;
+}
+
+int32 chrif_headlesspc_restoreall(void) {
+	return headlesspc_restore_persisted_active();
 }
 
 int32 chrif_headlesspc_status(uint32 char_id) {
@@ -839,6 +962,9 @@ void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
 		headlesspc_spawn_ack_seq[char_id] = it->second;
 		headlesspc_spawn_request_seq.erase(it);
 	}
+
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
+		headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
 }
 
 /*==========================================
@@ -1586,6 +1712,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 
 	if (status.pet_id > 0 || status.hom_id > 0 || status.mer_id > 0 || status.ele_id > 0) {
 		headlesspc_clear_pending_spawn(status.char_id);
+		headlesspc_runtime_delete(status.char_id);
 		ShowWarning("headless_pc: character %u has unsupported companion state for Phase 0 headless bring-up.\n",
 			status.char_id);
 		chrif_char_offline_nsd(status.account_id, status.char_id);
@@ -1615,6 +1742,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 		chrif_char_offline_nsd(status.account_id, status.char_id);
 		map_deliddb(sd);
 		headlesspc_clear_pending_spawn(status.char_id);
+		headlesspc_runtime_delete(status.char_id);
 		sd->~map_session_data();
 		aFree(sd);
 	}

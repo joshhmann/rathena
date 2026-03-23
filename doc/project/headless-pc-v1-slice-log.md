@@ -452,3 +452,73 @@ This slice still does not implement:
 - durable retry intent across restart
 - automatic respawn after restart loss
 - recovery of runtime actor state that was already live at crash time
+
+## Slice 8: Active-Only Restart Durability
+
+### Goal
+
+Persist the set of spawn-ready active headless actors and restore them
+automatically after map/char readiness, without making pending spawn/remove
+durable.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260322.sql`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added a minimal SQL runtime ledger table:
+  - `headless_pc_runtime`
+  - keyed by `char_id`
+  - stores runtime `map_name`, `x`, `y`, and `state`
+- Added internal helpers in `chrif.cpp` to:
+  - upsert a runtime row when a headless actor reaches spawn-ready
+  - delete a runtime row when removal is accepted or logout/save completes
+  - replay the persisted active set through the existing headless spawn path
+- Wired automatic restore into `chrif_on_ready()`, so restore runs after:
+  - initial startup
+  - later char-server reconnect
+- Kept restore active-only by design:
+  - pending spawn never writes a runtime row
+  - remove deletes the runtime row immediately, before `map_quit()`
+- Added a dev-only buildin:
+  - `headlesspc_restoreall()`
+- Extended `Headless Smoke` with a manual “Restore persisted active set” path
+  that uses the same restore helper as automatic startup restore.
+
+### Validation
+
+- full rebuild completed successfully
+- database upgrade applied cleanly for the new runtime ledger table
+- server restart completed successfully
+- validated with OpenKore and the smoke harness:
+  - spawned active headless actors and confirmed runtime rows were written
+  - removed a headless actor and confirmed the runtime row was cleared before
+    final save ACK
+  - restarted map-server and confirmed persisted active actors were re-queued
+    automatically from `chrif_on_ready()`
+  - confirmed stale online state during restore still flows through the
+    existing reconcile-and-retry lane
+  - confirmed manual `headlesspc_restoreall()` reuses the same replay logic and
+    does not duplicate already-active actors
+- additional finding:
+  - restored headless PCs came back server-side and were logged in again
+  - a later-joining OpenKore observer did not enumerate them in `pl`
+  - treat that as a separate late-viewer visibility bug, not a restore-ledger
+    failure
+
+### Deferrals
+
+This slice still does not implement:
+
+- durable persistence for pending spawn/remove
+- durable spawn/remove/reconcile ack history
+- player-facing restore/reset ownership rules
+- full bot provisioning or controller persistence above the runtime ledger
+- late-join observer visibility after restore

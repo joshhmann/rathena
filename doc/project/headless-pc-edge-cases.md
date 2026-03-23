@@ -6,7 +6,11 @@ This document tracks the current weird-case matrix for `headless_pc`.
 
 - headless PCs are runtime-only `BL_PC` actors loaded from existing `char_id`
 - lifecycle state and ack tracking are map-server in-memory only
-- no restart recovery exists yet
+- spawn-ready active actors now also persist a minimal runtime ledger row keyed
+  by `char_id`
+- restore policy is active-only:
+  - spawn-ready active actors restore automatically
+  - pending spawn/remove remains intentionally lossy across restart
 - dev harnesses are:
   - `Headless Smoke`
   - `Headless PC Lab`
@@ -83,20 +87,18 @@ Symptom:
 
 Current handling:
 
-- no automatic recovery path
-- headless runtime actors are treated as ephemeral
-- ack/history is lost on restart
-- targeted stale online cleanup now exists without a full server restart:
-  - `headlesspc_reconcile(char_id)`
-- normal spawn now auto-retries through that reconcile path when the stale state
-  is hit during bring-up
-- reconcile only clears the stale online marker
-- actor runtime state is not recovered; respawn is still required
+- spawn-ready active actors persist one row in `headless_pc_runtime`
+- restore runs automatically from `chrif_on_ready()`
+- restore uses persisted runtime `map/x/y`
+- stale online state during restore reuses the existing reconcile-and-retry lane
+- a dev-only manual replay surface also exists:
+  - `headlesspc_restoreall()`
 
-Required future work:
+Current limits:
 
-- explicit restart recovery policy
-- bot reprovision/relogin layer above `headless_pc`
+- restore is active-only; pending lifecycle is still intentionally lossy
+- ack/history is still in-memory and resets on restart
+- this is runtime presence durability, not full bot persistence
 
 ### 6. Restart during pending remove/save
 
@@ -106,13 +108,13 @@ Symptom:
 
 Current handling:
 
-- no durable lifecycle ledger
-- in-memory pending/ack tracking is lost
-- if the only leftover is stale online state, reconcile can clear it manually
+- remove deletes the durable runtime row immediately when accepted
+- restart before final save ACK will not resurrect the actor
+- in-memory pending/ack tracking is still lost
 
-Required future work:
+Current limit:
 
-- durable handoff/reconciliation if we need restart-safe operation
+- remove/save ack history still resets on restart
 
 ### 7. Spawn-ready path fails before visibility
 
@@ -157,6 +159,28 @@ Current handling:
 This is acceptable for current dev slices and not acceptable for long-term
 controller/provisioning work.
 
+### 11. Late observer after restore
+
+Symptom:
+
+- active headless PCs restore successfully after restart
+- a client already on-map before restore sees them
+- a client that logs in later may not enumerate them correctly
+
+Current handling:
+
+- server-side restore is working:
+  - durable row is replayed
+  - stale online state is reconciled
+  - headless actor reaches active runtime state again
+- late-join observer visibility is not yet guaranteed
+
+Required future work:
+
+- audit the late-viewer area-char path for socketless `BL_PC`
+- confirm restored headless PCs are included in newly joined clients' nearby
+  actor enumeration
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:
@@ -191,5 +215,5 @@ offline test character.
 
 - scripts stay procedural
 - lifecycle complexity stays in source helpers and typed enums
-- `headless_pc` remains ephemeral until restart recovery is intentionally built
+- `headless_pc` is durable for active runtime presence only
 - do not assume absence implies successful save; use ack helpers
