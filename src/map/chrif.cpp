@@ -35,8 +35,10 @@
 #include "pet.hpp"
 #include "script.hpp" // script_config
 #include "storage.hpp"
+#include "unit.hpp"
 
 static TIMER_FUNC(check_connect_char_server);
+static TIMER_FUNC(headlesspc_walk_poll_timer);
 
 static struct eri *auth_db_ers; //For reutilizing player login structures.
 static DBMap* auth_db; // int32 id -> struct auth_node*
@@ -60,6 +62,15 @@ static std::unordered_map<uint32, uint32> headlesspc_reconcile_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_reconcile_ack_seq;
 static std::unordered_map<uint32, uint8> headlesspc_reconcile_result_code;
 static uint32 headlesspc_next_reconcile_seq = 1;
+struct s_headlesspc_walk_request {
+	uint16 x;
+	uint16 y;
+	uint16 polls;
+};
+static std::unordered_map<uint32, s_headlesspc_walk_request> headlesspc_walk_requests;
+static std::unordered_map<uint32, uint32> headlesspc_walk_request_seq;
+static std::unordered_map<uint32, uint32> headlesspc_walk_ack_seq;
+static uint32 headlesspc_next_walk_seq = 1;
 static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
 static const char* headlesspc_runtime_table = "headless_pc_runtime";
 static const char* headlesspc_lifecycle_table = "headless_pc_lifecycle";
@@ -67,6 +78,11 @@ static const char* headlesspc_lifecycle_table = "headless_pc_lifecycle";
 static void headlesspc_clear_pending_spawn(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
 	headlesspc_spawn_request_seq.erase(char_id);
+}
+
+static void headlesspc_clear_pending_walk(uint32 char_id) {
+	headlesspc_walk_requests.erase(char_id);
+	headlesspc_walk_request_seq.erase(char_id);
 }
 
 static bool headlesspc_runtime_upsert(uint32 char_id, int16 m, uint16 x, uint16 y) {
@@ -169,12 +185,25 @@ static void headlesspc_lifecycle_persist_reconcile(uint32 char_id, uint32 seq, u
 	}
 }
 
-static bool headlesspc_lifecycle_fetch(uint32 char_id, uint32* spawn_ack, uint32* remove_ack, uint32* reconcile_ack, uint8* reconcile_result) {
+static void headlesspc_lifecycle_persist_walk_ack(uint32 char_id, uint32 seq) {
+	if (char_id == 0 || seq == 0)
+		return;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `%s` (`char_id`, `walk_ack_seq`) VALUES ('%u', '%u') "
+		"ON DUPLICATE KEY UPDATE `walk_ack_seq` = GREATEST(`walk_ack_seq`, VALUES(`walk_ack_seq`)), `updated_at` = CURRENT_TIMESTAMP",
+		headlesspc_lifecycle_table, char_id, seq)) {
+		Sql_ShowDebug(mmysql_handle);
+		ShowError("headless_pc: failed to persist walk ack for char_id %u.\n", char_id);
+	}
+}
+
+static bool headlesspc_lifecycle_fetch(uint32 char_id, uint32* spawn_ack, uint32* remove_ack, uint32* reconcile_ack, uint32* walk_ack, uint8* reconcile_result) {
 	if (char_id == 0)
 		return false;
 
 	if (SQL_ERROR == Sql_Query(mmysql_handle,
-		"SELECT `spawn_ack_seq`, `remove_ack_seq`, `reconcile_ack_seq`, `reconcile_result` FROM `%s` WHERE `char_id` = '%u' LIMIT 1",
+		"SELECT `spawn_ack_seq`, `remove_ack_seq`, `reconcile_ack_seq`, `walk_ack_seq`, `reconcile_result` FROM `%s` WHERE `char_id` = '%u' LIMIT 1",
 		headlesspc_lifecycle_table, char_id)) {
 		Sql_ShowDebug(mmysql_handle);
 		ShowError("headless_pc: failed to fetch lifecycle row for char_id %u.\n", char_id);
@@ -199,8 +228,12 @@ static bool headlesspc_lifecycle_fetch(uint32 char_id, uint32* spawn_ack, uint32
 		Sql_GetData(mmysql_handle, 2, &data, nullptr);
 		*reconcile_ack = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
 	}
-	if (reconcile_result != nullptr) {
+	if (walk_ack != nullptr) {
 		Sql_GetData(mmysql_handle, 3, &data, nullptr);
+		*walk_ack = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+	}
+	if (reconcile_result != nullptr) {
+		Sql_GetData(mmysql_handle, 4, &data, nullptr);
 		*reconcile_result = static_cast<uint8>(strtoul(data ? data : "0", nullptr, 10));
 	}
 
@@ -210,7 +243,7 @@ static bool headlesspc_lifecycle_fetch(uint32 char_id, uint32* spawn_ack, uint32
 
 static void headlesspc_lifecycle_bootstrap_sequences(void) {
 	if (SQL_ERROR == Sql_Query(mmysql_handle,
-		"SELECT COALESCE(MAX(`spawn_ack_seq`), 0), COALESCE(MAX(`remove_ack_seq`), 0), COALESCE(MAX(`reconcile_ack_seq`), 0) FROM `%s`",
+		"SELECT COALESCE(MAX(`spawn_ack_seq`), 0), COALESCE(MAX(`remove_ack_seq`), 0), COALESCE(MAX(`reconcile_ack_seq`), 0), COALESCE(MAX(`walk_ack_seq`), 0) FROM `%s`",
 		headlesspc_lifecycle_table)) {
 		Sql_ShowDebug(mmysql_handle);
 		ShowError("headless_pc: failed to bootstrap lifecycle sequences.\n");
@@ -235,6 +268,11 @@ static void headlesspc_lifecycle_bootstrap_sequences(void) {
 		seq = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
 		if (headlesspc_next_reconcile_seq < seq + 1)
 			headlesspc_next_reconcile_seq = seq + 1;
+
+		Sql_GetData(mmysql_handle, 3, &data, nullptr);
+		seq = static_cast<uint32>(strtoul(data ? data : "0", nullptr, 10));
+		if (headlesspc_next_walk_seq < seq + 1)
+			headlesspc_next_walk_seq = seq + 1;
 	}
 
 	Sql_FreeResult(mmysql_handle);
@@ -301,6 +339,42 @@ static int32 headlesspc_restore_persisted_active(void) {
 
 	Sql_FreeResult(mmysql_handle);
 	return queued;
+}
+
+static TIMER_FUNC(headlesspc_walk_poll_timer) {
+	uint32 char_id = static_cast<uint32>(id);
+	auto it = headlesspc_walk_requests.find(char_id);
+	if (it == headlesspc_walk_requests.end())
+		return 0;
+
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot || headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end()) {
+		headlesspc_clear_pending_walk(char_id);
+		return 0;
+	}
+
+	const unit_data* ud = unit_bl2ud(sd);
+	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+
+	if (sd->x == it->second.x && sd->y == it->second.y && (ud == nullptr || ud->walktimer == INVALID_TIMER)) {
+		if (auto seq_it = headlesspc_walk_request_seq.find(char_id); seq_it != headlesspc_walk_request_seq.end()) {
+			headlesspc_walk_ack_seq[char_id] = seq_it->second;
+			headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
+		}
+		headlesspc_clear_pending_walk(char_id);
+		return 0;
+	}
+
+	it->second.polls++;
+	if (it->second.polls >= 80) {
+		ShowWarning("headless_pc: walk request timed out for char_id %u before reaching (%u,%u).\n",
+			char_id, it->second.x, it->second.y);
+		headlesspc_clear_pending_walk(char_id);
+		return 0;
+	}
+
+	add_timer(tick + 250, headlesspc_walk_poll_timer, char_id, 0);
+	return 0;
 }
 
 static const int32 packet_len_table[0x3d] = { // U - used, F - free
@@ -711,6 +785,7 @@ static void chrif_save_ack(int32 fd) {
 		headlesspc_remove_request_seq.erase(it);
 	}
 
+	headlesspc_clear_pending_walk(char_id);
 	headlesspc_runtime_delete(char_id);
 
 	chrif_auth_delete(account_id, char_id, ST_LOGOUT);
@@ -982,6 +1057,7 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 
 bool chrif_headlesspc_remove(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
+	headlesspc_clear_pending_walk(char_id);
 	bool cleared_runtime = headlesspc_runtime_delete(char_id);
 
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
@@ -1038,6 +1114,8 @@ bool chrif_headlesspc_setpos(uint32 char_id, int16 m, uint16 x, uint16 y) {
 	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
 		return false;
 
+	headlesspc_clear_pending_walk(char_id);
+
 	if (pc_setpos(sd, map_id2index(m), x, y, CLR_TELEPORT) != SETPOS_OK) {
 		ShowWarning("headless_pc: failed to reposition char_id %u to map %d (%u,%u).\n",
 			char_id, m, x, y);
@@ -1046,6 +1124,42 @@ bool chrif_headlesspc_setpos(uint32 char_id, int16 m, uint16 x, uint16 y) {
 
 	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
 	headlesspc_lifecycle_ensure_row(char_id);
+	return true;
+}
+
+bool chrif_headlesspc_walkto(uint32 char_id, uint16 x, uint16 y) {
+	if (char_id == 0)
+		return false;
+
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot)
+		return false;
+
+	if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end())
+		return false;
+
+	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
+	if (headlesspc_walk_requests.find(char_id) != headlesspc_walk_requests.end())
+		return false;
+
+	if (x == sd->x && y == sd->y) {
+		headlesspc_walk_ack_seq[char_id] = headlesspc_next_walk_seq++;
+		headlesspc_lifecycle_persist_walk_ack(char_id, headlesspc_walk_ack_seq[char_id]);
+		return true;
+	}
+
+	if (!unit_walktoxy(sd, x, y, 0)) {
+		ShowWarning("headless_pc: failed to start walk request for char_id %u toward (%u,%u).\n",
+			char_id, x, y);
+		return false;
+	}
+
+	headlesspc_walk_requests[char_id] = { x, y, 0 };
+	headlesspc_walk_request_seq[char_id] = headlesspc_next_walk_seq++;
+	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	add_timer(gettick() + 250, headlesspc_walk_poll_timer, char_id, 0);
 	return true;
 }
 
@@ -1077,7 +1191,7 @@ uint32 chrif_headlesspc_ack(uint32 char_id) {
 		return it->second;
 
 	uint32 persisted = 0;
-	if (headlesspc_lifecycle_fetch(char_id, nullptr, &persisted, nullptr, nullptr))
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, &persisted, nullptr, nullptr, nullptr))
 		return persisted;
 
 	return 0;
@@ -1091,7 +1205,7 @@ uint32 chrif_headlesspc_spawn_ack(uint32 char_id) {
 		return it->second;
 
 	uint32 persisted = 0;
-	if (headlesspc_lifecycle_fetch(char_id, &persisted, nullptr, nullptr, nullptr))
+	if (headlesspc_lifecycle_fetch(char_id, &persisted, nullptr, nullptr, nullptr, nullptr))
 		return persisted;
 
 	return 0;
@@ -1105,7 +1219,7 @@ uint32 chrif_headlesspc_reconcile_ack(uint32 char_id) {
 		return it->second;
 
 	uint32 persisted = 0;
-	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, &persisted, nullptr))
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, &persisted, nullptr, nullptr))
 		return persisted;
 
 	return 0;
@@ -1119,10 +1233,24 @@ int32 chrif_headlesspc_reconcile_result(uint32 char_id) {
 		return it->second;
 
 	uint8 persisted = HEADLESSPC_RECONCILE_NONE;
-	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, nullptr, &persisted))
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, nullptr, nullptr, &persisted))
 		return persisted;
 
 	return HEADLESSPC_RECONCILE_NONE;
+}
+
+uint32 chrif_headlesspc_walk_ack(uint32 char_id) {
+	if (char_id == 0)
+		return 0;
+
+	if (auto it = headlesspc_walk_ack_seq.find(char_id); it != headlesspc_walk_ack_seq.end())
+		return it->second;
+
+	uint32 persisted = 0;
+	if (headlesspc_lifecycle_fetch(char_id, nullptr, nullptr, nullptr, &persisted, nullptr))
+		return persisted;
+
+	return 0;
 }
 
 void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
@@ -2566,6 +2694,7 @@ void do_init_chrif(void) {
 
 	add_timer_func_list(check_connect_char_server, "check_connect_char_server");
 	add_timer_func_list(auth_db_cleanup, "auth_db_cleanup");
+	add_timer_func_list(headlesspc_walk_poll_timer, "headlesspc_walk_poll_timer");
 
 	// establish map-char connection if not present
 	add_timer_interval(gettick() + 1000, check_connect_char_server, 0, 0, 10 * 1000);

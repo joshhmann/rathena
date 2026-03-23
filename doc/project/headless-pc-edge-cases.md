@@ -185,6 +185,26 @@ Current limits:
 - this is a teleport/reposition primitive, not movement AI
 - no waypointing, follow logic, or autonomous behavior is attached to it
 
+### 13. First walk primitive
+
+Current handling:
+
+- one minimal walking primitive exists:
+  - `headlesspc_walkto(char_id, x, y)`
+- it is same-map only and only succeeds for an active local headless actor
+- completion is tracked with:
+  - `headlesspc_walkack(char_id)`
+- runtime position is polled during the walk and written back into
+  `headless_pc_runtime`
+- completed walk ack history persists in `headless_pc_lifecycle`
+
+Current limits:
+
+- no path planner/controller owns the primitive yet
+- timeout/failure clears the pending walk, but there is no separate walk-failure
+  result API yet
+- this is still operator/script driven movement, not autonomous behavior
+
 ### 11. Late observer after restore
 
 Symptom:

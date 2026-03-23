@@ -677,3 +677,72 @@ This slice still does not implement:
 - follow/assist behavior
 - scheduler/controller ownership
 - any autonomous behavior on top of `setpos`
+
+## Slice 12: First Headless Walk Primitive
+
+### Goal
+
+Add the first real on-map movement primitive for `headless_pc` while keeping
+controller complexity out of scope.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260323.sql`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added:
+  - `chrif_headlesspc_walkto(char_id, x, y)`
+  - script buildin `headlesspc_walkto(char_id, x, y)`
+  - script buildin `headlesspc_walkack(char_id)`
+- Added map-side walk request tracking:
+  - pending target coordinates
+  - pending request sequence
+  - completed walk ack sequence
+- Added a small poll timer in `chrif.cpp`:
+  - watches an active headless actor after `unit_walktoxy(...)`
+  - updates `headless_pc_runtime` while movement is in progress
+  - marks walk completion only when the actor reaches the requested tile and is
+    no longer walking
+- Persisted completed walk ack history in:
+  - `headless_pc_lifecycle`
+- Extended the smoke harness with:
+  - `Walk codexalt east`
+  - `Walk codexalt center`
+  - `Walk Ack codexalt`
+  - `Walk Ack all`
+- Renamed the older teleport controls in the smoke harness to explicit
+  `Setpos` labels.
+
+### Validation
+
+- rebuilt `map-server` successfully
+- reapplied [upgrade_20260323.sql](/root/dev/rathena/sql-files/upgrades/upgrade_20260323.sql) to add `walk_ack_seq`
+- OpenKore validated the live movement path:
+  - `Spawn codexalt`
+  - `Walk Ack codexalt` -> `0`
+  - `Walk codexalt east`
+  - nearby player list later showed `codexalt` at `163,186`
+  - `Walk Ack codexalt` -> `1`
+- SQL confirmed:
+  - `headless_pc_runtime` updated to `prontera 163 186`
+  - `headless_pc_lifecycle.walk_ack_seq` updated to `1`
+- restarted the full stack
+- OpenKore confirmed after restart:
+  - `codexalt` restored at `163,186`
+  - `Walk Ack codexalt` still returned `1`
+
+### Deferrals
+
+This slice still does not implement:
+
+- a durable pending-walk journal
+- explicit walk-failure result codes
+- waypoint queues or route following
+- any ownership/controller logic above the primitive

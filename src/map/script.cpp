@@ -11577,6 +11577,19 @@ BUILDIN_FUNC(headlesspc_setpos)
 }
 
 /*==========================================
+ * Start a same-map walk for a live headless BL_PC by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_walkto)
+{
+	uint32 char_id = script_getnum(st, 2);
+	uint16 x = script_getnum(st, 3);
+	uint16 y = script_getnum(st, 4);
+
+	script_pushint(st, chrif_headlesspc_walkto(char_id, x, y) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Query headless BL_PC lifecycle status by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_status)
@@ -11628,6 +11641,17 @@ BUILDIN_FUNC(headlesspc_reconcileack)
 	uint32 char_id = script_getnum(st, 2);
 
 	script_pushint(st, chrif_headlesspc_reconcile_ack(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query last completed headless walk ack sequence by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_walkack)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_walk_ack(char_id));
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -28551,11 +28575,13 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(headlesspc_setpos,"isii"),
+	BUILDIN_DEF(headlesspc_walkto,"iii"),
 	BUILDIN_DEF(headlesspc_status,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
 	BUILDIN_DEF(headlesspc_spawnack,"i"),
 	BUILDIN_DEF(headlesspc_reconcile,"i"),
 	BUILDIN_DEF(headlesspc_reconcileack,"i"),
+	BUILDIN_DEF(headlesspc_walkack,"i"),
 	BUILDIN_DEF(headlesspc_reconcileresult,"i"),
 	BUILDIN_DEF(headlesspc_restoreall,""),
 	BUILDIN_DEF(getunitdata,"i*"),
