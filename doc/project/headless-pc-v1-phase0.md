@@ -219,6 +219,17 @@ Keep the design split explicit:
 
 Do not try to force object-oriented structure into the script layer.
 
+## SQL Change Rule
+
+When a `headless_pc` slice requires database changes:
+
+- commit the schema change in `sql-files/main.sql`
+- add a dated upgrade file under `sql-files/upgrades/`
+- if a slice needs a one-off data migration or operator-applied data fix,
+  commit that SQL as a repo artifact too instead of relying on shell history
+
+This keeps runtime/database expectations reproducible across environments.
+
 Long-term maintainability should come from:
 
 - narrow buildins

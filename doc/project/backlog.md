@@ -11,6 +11,7 @@ enough. Avoid deep source divergence.
 - freeze `headless_pc_v1` Phase 0 so the first PC-backed bot implementation stays narrow
 - translate the Phase 0 design freeze into concrete source tasks for the first inert headless PC
 - document each `headless_pc_v1` implementation slice as it lands
+- keep DB-affecting slices paired with checked-in SQL artifacts under `sql-files/`
 - keep the OpenKore smoke-test harness working as packet and map coverage evolve
 
 ## Existing rAthena Custom NPCs Worth Evaluating

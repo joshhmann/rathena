@@ -41,6 +41,15 @@ Minimum for each slice:
 - what was intentionally deferred
 - how the slice was validated
 
+If a slice changes database structure or requires persistent data changes, it
+must also leave behind an explicit SQL artifact in the repo:
+
+- schema/table changes go in `sql-files/main.sql` and a dated
+  `sql-files/upgrades/upgrade_YYYYMMDD.sql`
+- data backfills or required operator updates should also live in a checked-in
+  SQL file rather than only in ad hoc shell history
+- the slice log should mention the SQL file used
+
 For `headless_pc_v1`, the running log lives in:
 
 - `doc/project/headless-pc-v1-slice-log.md`
