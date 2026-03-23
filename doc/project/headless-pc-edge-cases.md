@@ -232,6 +232,27 @@ Fix:
 - headless PCs in the late-viewer area-char path now use the spawn packet when
   they are standing still
 
+### 12. In-memory route queue
+
+Current support:
+
+- one lightweight route queue exists on top of `headlesspc_walkto(...)`
+- scripts can:
+  - clear a route
+  - add waypoints
+  - start a route with optional looping
+  - stop a route
+  - query route status
+- the route queue is advanced by the existing walk completion poll timer
+
+Current limits:
+
+- routes are in-memory only and do not survive restart
+- there is no separate route-complete ack or route-failure result code
+- `setpos` and remove/save clear route state intentionally
+- stopping a route halts the current movement and keeps the actor at its last
+  reached runtime coordinate
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:

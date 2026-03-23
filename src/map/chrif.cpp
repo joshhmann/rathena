@@ -7,6 +7,7 @@
 #include <cstring>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include <common/cbasetypes.hpp>
 #include <common/ers.hpp>
@@ -67,9 +68,20 @@ struct s_headlesspc_walk_request {
 	uint16 y;
 	uint16 polls;
 };
+struct s_headlesspc_waypoint {
+	uint16 x;
+	uint16 y;
+};
+struct s_headlesspc_route_state {
+	std::vector<s_headlesspc_waypoint> waypoints;
+	size_t next_index;
+	bool loop;
+	bool running;
+};
 static std::unordered_map<uint32, s_headlesspc_walk_request> headlesspc_walk_requests;
 static std::unordered_map<uint32, uint32> headlesspc_walk_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_walk_ack_seq;
+static std::unordered_map<uint32, s_headlesspc_route_state> headlesspc_route_states;
 static uint32 headlesspc_next_walk_seq = 1;
 static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
 static const char* headlesspc_runtime_table = "headless_pc_runtime";
@@ -84,6 +96,12 @@ static void headlesspc_clear_pending_walk(uint32 char_id) {
 	headlesspc_walk_requests.erase(char_id);
 	headlesspc_walk_request_seq.erase(char_id);
 }
+
+static void headlesspc_route_reset(uint32 char_id) {
+	headlesspc_route_states.erase(char_id);
+}
+
+static bool headlesspc_route_start_next_walk(uint32 char_id);
 
 static bool headlesspc_runtime_upsert(uint32 char_id, int16 m, uint16 x, uint16 y) {
 	const char* mapname = map_mapid2mapname(m);
@@ -362,6 +380,7 @@ static TIMER_FUNC(headlesspc_walk_poll_timer) {
 			headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
 		}
 		headlesspc_clear_pending_walk(char_id);
+		headlesspc_route_start_next_walk(char_id);
 		return 0;
 	}
 
@@ -786,6 +805,7 @@ static void chrif_save_ack(int32 fd) {
 	}
 
 	headlesspc_clear_pending_walk(char_id);
+	headlesspc_route_reset(char_id);
 	headlesspc_runtime_delete(char_id);
 
 	chrif_auth_delete(account_id, char_id, ST_LOGOUT);
@@ -1058,6 +1078,7 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 bool chrif_headlesspc_remove(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
 	headlesspc_clear_pending_walk(char_id);
+	headlesspc_route_reset(char_id);
 	bool cleared_runtime = headlesspc_runtime_delete(char_id);
 
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
@@ -1115,6 +1136,7 @@ bool chrif_headlesspc_setpos(uint32 char_id, int16 m, uint16 x, uint16 y) {
 		return false;
 
 	headlesspc_clear_pending_walk(char_id);
+	headlesspc_route_reset(char_id);
 
 	if (pc_setpos(sd, map_id2index(m), x, y, CLR_TELEPORT) != SETPOS_OK) {
 		ShowWarning("headless_pc: failed to reposition char_id %u to map %d (%u,%u).\n",
@@ -1163,8 +1185,104 @@ bool chrif_headlesspc_walkto(uint32 char_id, uint16 x, uint16 y) {
 	return true;
 }
 
+static bool headlesspc_route_start_next_walk(uint32 char_id) {
+	auto route_it = headlesspc_route_states.find(char_id);
+	if (route_it == headlesspc_route_states.end())
+		return false;
+
+	s_headlesspc_route_state& route = route_it->second;
+	if (!route.running || route.waypoints.empty()) {
+		route.running = false;
+		return false;
+	}
+
+	if (headlesspc_walk_requests.find(char_id) != headlesspc_walk_requests.end())
+		return false;
+
+	if (route.next_index >= route.waypoints.size()) {
+		if (!route.loop) {
+			route.running = false;
+			return false;
+		}
+		route.next_index = 0;
+	}
+
+	const s_headlesspc_waypoint& waypoint = route.waypoints[route.next_index];
+	route.next_index++;
+
+	if (!chrif_headlesspc_walkto(char_id, waypoint.x, waypoint.y)) {
+		route.running = false;
+		return false;
+	}
+
+	return true;
+}
+
+bool chrif_headlesspc_routeclear(uint32 char_id) {
+	headlesspc_clear_pending_walk(char_id);
+	headlesspc_route_reset(char_id);
+	return true;
+}
+
+bool chrif_headlesspc_routeadd(uint32 char_id, uint16 x, uint16 y) {
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot || headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
+	auto& route = headlesspc_route_states[char_id];
+	route.waypoints.push_back({x, y});
+	if (!route.running && route.waypoints.size() == 1)
+		route.next_index = 0;
+	return true;
+}
+
+bool chrif_headlesspc_routestart(uint32 char_id, bool loop) {
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot || headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
+	auto route_it = headlesspc_route_states.find(char_id);
+	if (route_it == headlesspc_route_states.end() || route_it->second.waypoints.empty())
+		return false;
+
+	s_headlesspc_route_state& route = route_it->second;
+	route.loop = loop;
+	route.running = true;
+	if (route.next_index >= route.waypoints.size())
+		route.next_index = 0;
+
+	if (headlesspc_walk_requests.find(char_id) != headlesspc_walk_requests.end())
+		return true;
+
+	return headlesspc_route_start_next_walk(char_id);
+}
+
+bool chrif_headlesspc_routestop(uint32 char_id) {
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot)
+		return false;
+
+	auto route_it = headlesspc_route_states.find(char_id);
+	if (route_it != headlesspc_route_states.end())
+		route_it->second.running = false;
+
+	headlesspc_clear_pending_walk(char_id);
+	unit_stop_walking(sd, USW_FIXPOS);
+	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	return true;
+}
+
 int32 chrif_headlesspc_restoreall(void) {
 	return headlesspc_restore_persisted_active();
+}
+
+int32 chrif_headlesspc_routestatus(uint32 char_id) {
+	auto route_it = headlesspc_route_states.find(char_id);
+	if (route_it == headlesspc_route_states.end() || route_it->second.waypoints.empty())
+		return 0;
+	if (route_it->second.running)
+		return 2;
+	return 1;
 }
 
 int32 chrif_headlesspc_status(uint32 char_id) {

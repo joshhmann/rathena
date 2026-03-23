@@ -746,3 +746,68 @@ This slice still does not implement:
 - explicit walk-failure result codes
 - waypoint queues or route following
 - any ownership/controller logic above the primitive
+
+## Slice 13: In-Memory Route Queue On Top Of Walk
+
+### Goal
+
+Add a lightweight waypoint queue for active headless PCs so one actor can patrol
+multiple points without a script reissuing every individual `walkto`.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added in-memory route state in `chrif.cpp`:
+  - waypoint vector
+  - next waypoint index
+  - loop flag
+  - running flag
+- Added:
+  - `chrif_headlesspc_routeclear(char_id)`
+  - `chrif_headlesspc_routeadd(char_id, x, y)`
+  - `chrif_headlesspc_routestart(char_id, loop)`
+  - `chrif_headlesspc_routestop(char_id)`
+  - `chrif_headlesspc_routestatus(char_id)`
+- Added script buildins mirroring the same route API.
+- Extended the existing walk poll timer so a completed walk automatically starts
+  the next waypoint when a route is running.
+- Route state is cleared when:
+  - the actor is removed
+  - final save/remove ack completes
+  - `setpos` is used
+  - `routeclear` is called explicitly
+- `routestop` halts the route and current movement, then persists the current
+  runtime position back into `headless_pc_runtime`.
+
+### Validation
+
+- rebuilt `map-server`, `char-server`, and `login-server`
+- restarted the stack cleanly
+- OpenKore validated the route loop:
+  - `codexalt` already active in Prontera
+  - `Route status codexalt` -> `empty`
+  - `Route codexalt patrol`
+  - nearby player list showed `codexalt` move through:
+    - `163,186`
+    - `160,189`
+    - `163,189`
+  - `Route status codexalt` -> `running`
+- OpenKore validated route stop:
+  - `Route stop codexalt`
+  - nearby player list showed `codexalt` hold at `163,186` across repeated polls
+
+### Deferrals
+
+This slice still does not implement:
+
+- durable route persistence across restart
+- per-route completion or failure ack history
+- route editing while already running beyond the simple append semantics
+- higher-level controller ownership or scheduling
