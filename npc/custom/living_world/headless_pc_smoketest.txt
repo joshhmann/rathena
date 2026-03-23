@@ -1,8 +1,19 @@
 // Temporary dev-only smoke harness for fixed headless PC spawn/remove.
 
 prontera,154,179,4	script	Headless Smoke	4_F_01,{
+	function F_HS_StatusName;
+	function F_HS_StatusName {
+		switch(getarg(0)) {
+		case 1: return "pending spawn";
+		case 2: return "active";
+		case 3: return "pending remove/save";
+		case 4: return "occupied by a non-headless live player";
+		default: return "absent";
+		}
+	}
+
 	mes "[Headless Smoke]";
-	switch(select("Spawn codexalt:Status codexalt:Spawn Ack codexalt:Remove Ack codexalt:Remove codexalt:Cancel")) {
+	switch(select("Spawn codexalt:Spawn pair:Spawn trio:Status codexalt:Status all:Spawn Ack codexalt:Spawn Ack all:Remove Ack codexalt:Remove Ack all:Remove codexalt:Remove pair:Remove trio:Cancel")) {
 	case 1:
 		if (headlesspc_spawn(150002, "prontera", 160, 186))
 			mes "Spawn request queued for codexalt.";
@@ -10,38 +21,120 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 			mes "Spawn request failed.";
 		close;
 	case 2:
-		.@status = headlesspc_status(150002);
-		switch(.@status) {
-		case 1:
-			mes "codexalt status: pending spawn.";
-			break;
-		case 2:
-			mes "codexalt status: active.";
-			break;
-		case 3:
-			mes "codexalt status: pending remove/save.";
-			break;
-		case 4:
-			mes "codexalt status: occupied by a non-headless live player.";
-			break;
-		default:
-			mes "codexalt status: absent.";
-			break;
-		}
+		.@count = 0;
+		if (headlesspc_spawn(150000, "prontera", 158, 184))
+			.@count++;
+		if (headlesspc_spawn(150002, "prontera", 160, 186))
+			.@count++;
+		mes "Spawn pair queued: " + .@count + "/2.";
 		close;
 	case 3:
-		mes "codexalt spawn-ready ack seq: " + headlesspc_spawnack(150002) + ".";
+		.@count = 0;
+		if (headlesspc_spawn(150000, "prontera", 156, 184))
+			.@count++;
+		if (headlesspc_spawn(150001, "prontera", 158, 186))
+			.@count++;
+		if (headlesspc_spawn(150002, "prontera", 160, 188))
+			.@count++;
+		mes "Spawn trio queued: " + .@count + "/3.";
 		close;
 	case 4:
-		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
+		mes "codexalt status: " + F_HS_StatusName(headlesspc_status(150002)) + ".";
 		close;
 	case 5:
+		mes "assa status: " + F_HS_StatusName(headlesspc_status(150000)) + ".";
+		next;
+		mes "codex status: " + F_HS_StatusName(headlesspc_status(150001)) + ".";
+		next;
+		mes "codexalt status: " + F_HS_StatusName(headlesspc_status(150002)) + ".";
+		close;
+	case 6:
+		mes "codexalt spawn-ready ack seq: " + headlesspc_spawnack(150002) + ".";
+		close;
+	case 7:
+		mes "assa spawn-ready ack seq: " + headlesspc_spawnack(150000) + ".";
+		next;
+		mes "codex spawn-ready ack seq: " + headlesspc_spawnack(150001) + ".";
+		next;
+		mes "codexalt spawn-ready ack seq: " + headlesspc_spawnack(150002) + ".";
+		close;
+	case 8:
+		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
+		close;
+	case 9:
+		mes "assa remove/save ack seq: " + headlesspc_ack(150000) + ".";
+		next;
+		mes "codex remove/save ack seq: " + headlesspc_ack(150001) + ".";
+		next;
+		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
+		close;
+	case 10:
 		if (headlesspc_remove(150002))
 			mes "Remove request queued for codexalt.";
 		else
 			mes "Nothing to remove.";
 		close;
+	case 11:
+		.@count = 0;
+		if (headlesspc_remove(150000))
+			.@count++;
+		if (headlesspc_remove(150002))
+			.@count++;
+		mes "Remove pair queued: " + .@count + "/2.";
+		close;
+	case 12:
+		.@count = 0;
+		if (headlesspc_remove(150000))
+			.@count++;
+		if (headlesspc_remove(150001))
+			.@count++;
+		if (headlesspc_remove(150002))
+			.@count++;
+		mes "Remove trio queued: " + .@count + "/3.";
+		close;
 	default:
 		close;
 	}
+}
+
+-	script	HeadlessSmokeAuto	FAKE_NPC,{
+OnInit:
+	.autotest = 0;
+	end;
+
+OnInterIfInitOnce:
+	if (.autotest)
+		initnpctimer;
+	end;
+
+OnTimer1000:
+	debugmes "[headless_pc autotest] starting trio spawn smoke.";
+	.@count = 0;
+	if (headlesspc_spawn(150000, "prontera", 156, 184))
+		.@count++;
+	if (headlesspc_spawn(150001, "prontera", 158, 186))
+		.@count++;
+	if (headlesspc_spawn(150002, "prontera", 160, 188))
+		.@count++;
+	debugmes "[headless_pc autotest] trio spawn queued: " + .@count + "/3.";
+	end;
+
+OnTimer4000:
+	debugmes "[headless_pc autotest] statuses after spawn: assa=" + headlesspc_status(150000) + ", codex=" + headlesspc_status(150001) + ", codexalt=" + headlesspc_status(150002) + ".";
+	debugmes "[headless_pc autotest] spawn acks: assa=" + headlesspc_spawnack(150000) + ", codex=" + headlesspc_spawnack(150001) + ", codexalt=" + headlesspc_spawnack(150002) + ".";
+	.@count = 0;
+	if (headlesspc_remove(150000))
+		.@count++;
+	if (headlesspc_remove(150001))
+		.@count++;
+	if (headlesspc_remove(150002))
+		.@count++;
+	debugmes "[headless_pc autotest] trio remove queued: " + .@count + "/3.";
+	end;
+
+OnTimer7000:
+	debugmes "[headless_pc autotest] statuses after remove: assa=" + headlesspc_status(150000) + ", codex=" + headlesspc_status(150001) + ", codexalt=" + headlesspc_status(150002) + ".";
+	debugmes "[headless_pc autotest] remove acks: assa=" + headlesspc_ack(150000) + ", codex=" + headlesspc_ack(150001) + ", codexalt=" + headlesspc_ack(150002) + ".";
+	stopnpctimer;
+	end;
 }

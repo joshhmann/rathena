@@ -265,3 +265,67 @@ This slice still does not implement:
 - persistence of ack/history across restart
 - generalized wait primitives beyond the dev harness
 - higher-level bot controller semantics
+
+## Slice 5: Multi-Actor Smoke And Failed-Spawn Cleanup
+
+### Goal
+
+Harden the dev lifecycle surface around the three observability helpers by:
+
+- clearing stale pending spawn state on early bring-up failures
+- covering pair and trio spawn/remove flows
+- documenting the weird-case matrix explicitly
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added a small helper in `chrif.cpp` to clear pending spawn bookkeeping when a
+  headless spawn fails before activation.
+- Applied that cleanup on:
+  - char-server reject
+  - malformed reply size
+  - already-online local conflict
+  - unsupported companion state
+  - invalid target map
+  - `pc_authok()` failure
+- Expanded `Headless Smoke` with:
+  - pair spawn/remove
+  - trio spawn/remove
+  - aggregate status reporting
+  - aggregate spawn/remove ack reporting
+- Added a hidden timed trio autotest path in the smoke script, kept disabled by
+  default after validation.
+
+### Validation
+
+- full rebuild completed successfully
+- server restart completed successfully
+- scripted trio autotest proved:
+  - all three characters logged in as headless `BL_PC`s
+  - statuses reached `active` for all three
+  - spawn-ready acks incremented independently:
+    - `assa=1`
+    - `codex=2`
+    - `codexalt=3`
+  - all three removed cleanly
+  - statuses returned to `absent`
+  - remove/save acks incremented independently:
+    - `assa=1`
+    - `codex=2`
+    - `codexalt=3`
+- DB state after the autotest returned all three characters to `online = 0`
+- saved positions were updated to the scripted trio coordinates, proving the
+  save path completed for each actor
+
+### Deferrals
+
+This slice still does not implement:
+
+- restart recovery or reconciliation for active headless PCs
+- durable ack/history persistence
+- multi-actor visibility verification with a separate fourth observer

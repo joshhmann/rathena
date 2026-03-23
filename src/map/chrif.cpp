@@ -56,6 +56,11 @@ static std::unordered_map<uint32, uint32> headlesspc_remove_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_remove_ack_seq;
 static uint32 headlesspc_next_remove_seq = 1;
 
+static void headlesspc_clear_pending_spawn(uint32 char_id) {
+	headlesspc_spawn_requests.erase(char_id);
+	headlesspc_spawn_request_seq.erase(char_id);
+}
+
 static const int32 packet_len_table[0x3d] = { // U - used, F - free
 	60, 3,-1,-1,10,-1, 6,-1,	// 2af8-2aff: U->2af8, U->2af9, U->2afa, U->2afb, U->2afc, U->2afd, U->2afe, U->2aff
 	 6,-1,18, 7,-1, -1, 28 + MAP_NAME_LENGTH_EXT, 10,	// 2b00-2b07: U->2b00, U->2b01, U->2b02, U->2b03, U->2b04, U->2b05, U->2b06, U->2b07
@@ -1442,7 +1447,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 	uint32 requested_char_id = RFIFOL(fd, 5);
 
 	if (!ok) {
-		headlesspc_spawn_requests.erase(requested_char_id);
+		headlesspc_clear_pending_spawn(requested_char_id);
 		ShowWarning("headless_pc: char-server rejected a headless character load request for char_id %u.\n",
 			requested_char_id);
 		return;
@@ -1450,7 +1455,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 
 	if (packet_len - 9 != sizeof(struct mmo_charstatus)) {
 		ShowError("headless_pc: data size mismatch while receiving char-server load reply! %d != %" PRIuPTR "\n", packet_len - 9, sizeof(struct mmo_charstatus));
-		headlesspc_spawn_requests.erase(requested_char_id);
+		headlesspc_clear_pending_spawn(requested_char_id);
 		return;
 	}
 
@@ -1466,6 +1471,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 	headlesspc_spawn_requests.erase(it);
 
 	if (map_id2sd(status.account_id) != nullptr || map_charid2sd(status.char_id) != nullptr) {
+		headlesspc_clear_pending_spawn(status.char_id);
 		ShowWarning("headless_pc: character %u/%u is already online on this map-server.\n",
 			status.account_id, status.char_id);
 		chrif_char_offline_nsd(status.account_id, status.char_id);
@@ -1473,6 +1479,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 	}
 
 	if (status.pet_id > 0 || status.hom_id > 0 || status.mer_id > 0 || status.ele_id > 0) {
+		headlesspc_clear_pending_spawn(status.char_id);
 		ShowWarning("headless_pc: character %u has unsupported companion state for Phase 0 headless bring-up.\n",
 			status.char_id);
 		chrif_char_offline_nsd(status.account_id, status.char_id);
@@ -1481,6 +1488,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 
 	struct map_data* mapdata = map_getmapdata(request.m);
 	if (mapdata == nullptr) {
+		headlesspc_clear_pending_spawn(status.char_id);
 		chrif_char_offline_nsd(status.account_id, status.char_id);
 		return;
 	}
@@ -1500,6 +1508,7 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 	if (!pc_authok(sd, 0, 0, 0, &status, false)) {
 		chrif_char_offline_nsd(status.account_id, status.char_id);
 		map_deliddb(sd);
+		headlesspc_clear_pending_spawn(status.char_id);
 		sd->~map_session_data();
 		aFree(sd);
 	}
