@@ -34,6 +34,15 @@ enum e_headlesspc_status {
 	HEADLESSPC_STATUS_OCCUPIED = 4,
 };
 
+enum e_headlesspc_reconcile_result {
+	HEADLESSPC_RECONCILE_NONE = 0,
+	HEADLESSPC_RECONCILE_RECONCILED = 1,
+	HEADLESSPC_RECONCILE_ALREADY_CLEAR = 2,
+	HEADLESSPC_RECONCILE_REFUSED_OTHER_SERVER = 3,
+	HEADLESSPC_RECONCILE_REFUSED_LOCAL = 4,
+	HEADLESSPC_RECONCILE_INVALID_CHAR = 5,
+};
+
 struct auth_node {
 	uint32 account_id, char_id;
 	int32 login_id1, login_id2, sex, fd;
@@ -97,9 +106,12 @@ int32 chrif_bsdata_request(uint32 char_id);
 int32 chrif_bsdata_save(map_session_data *sd, bool quit);
 bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y);
 bool chrif_headlesspc_remove(uint32 char_id);
+bool chrif_headlesspc_request_reconcile(uint32 char_id);
 int32 chrif_headlesspc_status(uint32 char_id);
 uint32 chrif_headlesspc_ack(uint32 char_id);
 uint32 chrif_headlesspc_spawn_ack(uint32 char_id);
+uint32 chrif_headlesspc_reconcile_ack(uint32 char_id);
+int32 chrif_headlesspc_reconcile_result(uint32 char_id);
 void chrif_headlesspc_mark_spawn_ready(uint32 char_id);
 
 void do_final_chrif(void);

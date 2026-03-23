@@ -36,6 +36,7 @@ int32 chmapif_parse_save_scdata(int32 fd);
 int32 chmapif_parse_keepalive(int32 fd);
 int32 chmapif_parse_reqauth(int32 fd, int32 id);
 int32 chmapif_parse_headlesspc_loadreq(int32 fd, int32 id);
+int32 chmapif_parse_headlesspc_reconcile(int32 fd, int32 id);
 int32 chmapif_parse_updmapip(int32 fd, int32 id);
 
 int32 chmapif_vipack(int32 mapfd, uint32 aid, uint32 vip_time, uint32 groupid, uint8 flag);

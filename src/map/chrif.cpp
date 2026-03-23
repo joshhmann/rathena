@@ -55,6 +55,10 @@ static uint32 headlesspc_next_spawn_seq = 1;
 static std::unordered_map<uint32, uint32> headlesspc_remove_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_remove_ack_seq;
 static uint32 headlesspc_next_remove_seq = 1;
+static std::unordered_map<uint32, uint32> headlesspc_reconcile_request_seq;
+static std::unordered_map<uint32, uint32> headlesspc_reconcile_ack_seq;
+static std::unordered_map<uint32, uint8> headlesspc_reconcile_result_code;
+static uint32 headlesspc_next_reconcile_seq = 1;
 
 static void headlesspc_clear_pending_spawn(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
@@ -69,7 +73,7 @@ static const int32 packet_len_table[0x3d] = { // U - used, F - free
 	 2,10, 2,-1,-1,-1, 2, 7,	// 2b18-2b1f: U->2b18, U->2b19, U->2b1a, U->2b1b, U->2b1c, U->2b1d, U->2b1e, U->2b1f
 	-1,10, 8, 2, 2,14,19,19,	// 2b20-2b27: U->2b20, U->2b21, U->2b22, U->2b23, U->2b24, U->2b25, U->2b26, U->2b27
 	-1, 0, 6,15, 0, 6,-1,-1,	// 2b28-2b2f: U->2b28, F->2b29, U->2b2a, U->2b2b, F->2b2c, U->2b2d, U->2b2e, U->2b2f
-	 6,-1, 0, 0, 0,	// 2b30-2b34: U->2b30, U->2b31
+	 6,-1, 6, 9, 0,	// 2b30-2b34: U->2b30, U->2b31, U->2b32, U->2b33
  };
 
 //Used Packets:
@@ -130,6 +134,8 @@ static const int32 packet_len_table[0x3d] = { // U - used, F - free
 //2b2f: Incoming, chrif_bsdata_received -> received bonus_script of player for loading.
 //2b30: Outgoing, chrif_headlesspc_request_spawn -> request raw character load by char_id for headless BL_PC bring-up.
 //2b31: Incoming, chrif_headlesspc_spawn_reply -> character load reply for headless BL_PC bring-up.
+//2b32: Outgoing, chrif_headlesspc_request_reconcile -> request stale online-state reconciliation by char_id.
+//2b33: Incoming, chrif_headlesspc_reconcile_reply -> reconciliation result for one char_id.
 
 int32 chrif_connected = 0;
 int32 char_fd = -1;
@@ -455,6 +461,25 @@ static void chrif_save_ack(int32 fd) {
 	chrif_auth_delete(account_id, char_id, ST_LOGOUT);
 }
 
+static void chrif_headlesspc_reconcile_reply(int32 fd) {
+	uint16 packet_len = RFIFOW(fd, 2);
+
+	if (packet_len != 9) {
+		ShowError("headless_pc: invalid reconcile reply packet length %u.\n", packet_len);
+		return;
+	}
+
+	uint8 result = RFIFOB(fd, 4);
+	uint32 char_id = RFIFOL(fd, 5);
+
+	if (auto it = headlesspc_reconcile_request_seq.find(char_id); it != headlesspc_reconcile_request_seq.end()) {
+		headlesspc_reconcile_ack_seq[char_id] = it->second;
+		headlesspc_reconcile_request_seq.erase(it);
+	}
+
+	headlesspc_reconcile_result_code[char_id] = result;
+}
+
 // request to move a character between mapservers
 int32 chrif_changemapserver(map_session_data* sd, uint32 ip, uint16 port) {
 	nullpo_retr(-1, sd);
@@ -700,6 +725,34 @@ bool chrif_headlesspc_remove(uint32 char_id) {
 	return headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end();
 }
 
+bool chrif_headlesspc_request_reconcile(uint32 char_id) {
+	if (!chrif_isconnected() || char_id == 0)
+		return false;
+
+	if (headlesspc_spawn_requests.find(char_id) != headlesspc_spawn_requests.end())
+		return false;
+
+	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
+		headlesspc_reconcile_result_code[char_id] = HEADLESSPC_RECONCILE_REFUSED_LOCAL;
+		return false;
+	}
+
+	if (headlesspc_reconcile_request_seq.find(char_id) != headlesspc_reconcile_request_seq.end())
+		return false;
+
+	headlesspc_reconcile_request_seq[char_id] = headlesspc_next_reconcile_seq++;
+
+	WFIFOHEAD(char_fd, 6);
+	WFIFOW(char_fd, 0) = 0x2b32;
+	WFIFOL(char_fd, 2) = char_id;
+	WFIFOSET(char_fd, 6);
+
+	return true;
+}
+
 int32 chrif_headlesspc_status(uint32 char_id) {
 	if (char_id == 0)
 		return HEADLESSPC_STATUS_ABSENT;
@@ -734,6 +787,26 @@ uint32 chrif_headlesspc_spawn_ack(uint32 char_id) {
 		return it->second;
 
 	return 0;
+}
+
+uint32 chrif_headlesspc_reconcile_ack(uint32 char_id) {
+	if (char_id == 0)
+		return 0;
+
+	if (auto it = headlesspc_reconcile_ack_seq.find(char_id); it != headlesspc_reconcile_ack_seq.end())
+		return it->second;
+
+	return 0;
+}
+
+int32 chrif_headlesspc_reconcile_result(uint32 char_id) {
+	if (char_id == 0)
+		return HEADLESSPC_RECONCILE_NONE;
+
+	if (auto it = headlesspc_reconcile_result_code.find(char_id); it != headlesspc_reconcile_result_code.end())
+		return it->second;
+
+	return HEADLESSPC_RECONCILE_NONE;
 }
 
 void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
@@ -1991,6 +2064,7 @@ int32 chrif_parse(int32 fd) {
 			case 0x2b2b: chrif_parse_ack_vipActive(fd); break;
 			case 0x2b2f: chrif_bsdata_received(fd); break;
 			case 0x2b31: chrif_headlesspc_spawn_reply(fd); break;
+			case 0x2b33: chrif_headlesspc_reconcile_reply(fd); break;
 			default:
 				ShowError("chrif_parse : unknown packet (session #%d): 0x%x. Disconnecting.\n", fd, cmd);
 				set_eof(fd);

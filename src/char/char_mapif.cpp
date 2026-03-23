@@ -21,6 +21,15 @@
 
 using namespace rathena;
 
+enum e_headlesspc_reconcile_result_char : uint8 {
+	HEADLESSPC_RECONCILE_CHAR_NONE = 0,
+	HEADLESSPC_RECONCILE_CHAR_RECONCILED = 1,
+	HEADLESSPC_RECONCILE_CHAR_ALREADY_CLEAR = 2,
+	HEADLESSPC_RECONCILE_CHAR_REFUSED_OTHER_SERVER = 3,
+	HEADLESSPC_RECONCILE_CHAR_REFUSED_LOCAL = 4,
+	HEADLESSPC_RECONCILE_CHAR_INVALID_CHAR = 5,
+};
+
 /**
  * Packet send to all map-servers, attach to ourself
  * @param buf: packet to send in form of an array buffer
@@ -1133,6 +1142,45 @@ int32 chmapif_parse_headlesspc_loadreq(int32 fd, int32 id) {
 }
 
 /**
+ * Request stale online-state reconciliation for one character.
+ * Only clears state owned by the requesting map-server or already-detached
+ * online entries.
+ */
+int32 chmapif_parse_headlesspc_reconcile(int32 fd, int32 id) {
+	if (RFIFOREST(fd) < 6)
+		return 0;
+
+	uint32 char_id = RFIFOL(fd, 2);
+	RFIFOSKIP(fd, 6);
+
+	struct mmo_charstatus char_dat = {};
+	uint8 result = HEADLESSPC_RECONCILE_CHAR_INVALID_CHAR;
+
+	if (char_id > 0 && char_mmo_char_fromsql(char_id, &char_dat, true)) {
+		std::shared_ptr<struct online_char_data> online = util::umap_find(char_get_onlinedb(), char_dat.account_id);
+
+		if (online == nullptr || online->char_id != char_dat.char_id) {
+			result = HEADLESSPC_RECONCILE_CHAR_ALREADY_CLEAR;
+		} else if (online->server == id || online->server < 0) {
+			char_set_char_offline(char_dat.char_id, char_dat.account_id);
+			result = HEADLESSPC_RECONCILE_CHAR_RECONCILED;
+		} else {
+			result = HEADLESSPC_RECONCILE_CHAR_REFUSED_OTHER_SERVER;
+			ShowWarning("headless_pc: reconcile refused for character %u on account %u because it is online on server %d, not requester %d.\n",
+				char_dat.char_id, char_dat.account_id, online->server, id);
+		}
+	}
+
+	WFIFOHEAD(fd, 9);
+	WFIFOW(fd, 0) = 0x2b33;
+	WFIFOW(fd, 2) = 9;
+	WFIFOB(fd, 4) = result;
+	WFIFOL(fd, 5) = char_id;
+	WFIFOSET(fd, 9);
+	return 1;
+}
+
+/**
  * ip address update
  * @param fd: wich fd to parse from
  * @return : 0 not enough data received, 1 success
@@ -1485,6 +1533,7 @@ int32 chmapif_parse(int32 fd){
 			case 0x2b28: next=chmapif_parse_reqcharban(fd); break; //charban
 			case 0x2b2a: next=chmapif_parse_reqcharunban(fd); break; //charunban
 			case 0x2b30: next=chmapif_parse_headlesspc_loadreq(fd,id); break;
+			case 0x2b32: next=chmapif_parse_headlesspc_reconcile(fd,id); break;
 			//case 0x2b2c: /*free*/; break;
 			case 0x2b2d: next=chmapif_bonus_script_get(fd); break; //Load data
 			case 0x2b2e: next=chmapif_bonus_script_save(fd); break;//Save data

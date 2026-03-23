@@ -329,3 +329,65 @@ This slice still does not implement:
 - restart recovery or reconciliation for active headless PCs
 - durable ack/history persistence
 - multi-actor visibility verification with a separate fourth observer
+
+## Slice 6: Targeted Reconcile For Stale Online State
+
+### Goal
+
+Add a non-restart recovery lane for the common stuck case where char-server
+still believes a headless character is online even though no local runtime actor
+exists anymore.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `src/char/char_mapif.cpp`
+- `src/char/char_mapif.hpp`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added a targeted reconcile request packet:
+  - `0x2b32` map -> char request by `char_id`
+  - `0x2b33` char -> map result reply
+- Added map-side reconcile tracking:
+  - request sequence
+  - completed ack sequence
+  - last result code
+- Added script buildins:
+  - `headlesspc_reconcile(char_id)`
+  - `headlesspc_reconcileack(char_id)`
+  - `headlesspc_reconcileresult(char_id)`
+- Guarded reconcile requests so they are refused when:
+  - a local live actor already exists
+  - a spawn is pending
+  - a remove/save is pending
+- Limited char-server reconciliation to online entries owned by:
+  - the requesting map-server
+  - or detached/offline-in-transition entries
+- Expanded `Headless Smoke` with reconcile menu options and result views.
+
+### Validation
+
+- full rebuild completed successfully
+- server restart completed successfully
+- hidden smoke validation proved:
+  - reconcile against an already-clear offline `char_id` succeeds as a request
+  - reconcile ack increments
+  - reconcile result returns `already clear`
+  - spawning `codexalt` still works
+  - reconcile against a local live headless actor is refused immediately
+  - refusal result returns `refused: local live actor exists`
+  - remove/save still completes and DB returns `online = 0`
+
+### Deferrals
+
+This slice still does not implement:
+
+- automatic restart reconciliation
+- durable lifecycle ledger across restart
+- verified reproduction of a true stale-online entry from a map-server crash
+- recovery of runtime actor state after reconciliation

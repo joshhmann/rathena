@@ -2,6 +2,7 @@
 
 prontera,154,179,4	script	Headless Smoke	4_F_01,{
 	function F_HS_StatusName;
+	function F_HS_ReconcileName;
 	function F_HS_StatusName {
 		switch(getarg(0)) {
 		case 1: return "pending spawn";
@@ -11,9 +12,19 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 		default: return "absent";
 		}
 	}
+	function F_HS_ReconcileName {
+		switch(getarg(0)) {
+		case 1: return "reconciled stale online state";
+		case 2: return "already clear";
+		case 3: return "refused: another map-server owns the session";
+		case 4: return "refused: local live actor exists";
+		case 5: return "invalid char_id";
+		default: return "no result";
+		}
+	}
 
 	mes "[Headless Smoke]";
-	switch(select("Spawn codexalt:Spawn pair:Spawn trio:Status codexalt:Status all:Spawn Ack codexalt:Spawn Ack all:Remove Ack codexalt:Remove Ack all:Remove codexalt:Remove pair:Remove trio:Cancel")) {
+	switch(select("Spawn codexalt:Spawn pair:Spawn trio:Reconcile codexalt:Reconcile all:Status codexalt:Status all:Spawn Ack codexalt:Spawn Ack all:Remove Ack codexalt:Remove Ack all:Reconcile Ack codexalt:Reconcile Ack all:Reconcile Result codexalt:Reconcile Result all:Remove codexalt:Remove pair:Remove trio:Cancel")) {
 	case 1:
 		if (headlesspc_spawn(150002, "prontera", 160, 186))
 			mes "Spawn request queued for codexalt.";
@@ -39,42 +50,78 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 		mes "Spawn trio queued: " + .@count + "/3.";
 		close;
 	case 4:
-		mes "codexalt status: " + F_HS_StatusName(headlesspc_status(150002)) + ".";
+		if (headlesspc_reconcile(150002))
+			mes "Reconcile request queued for codexalt.";
+		else
+			mes "Reconcile request refused or unnecessary.";
 		close;
 	case 5:
+		.@count = 0;
+		if (headlesspc_reconcile(150000))
+			.@count++;
+		if (headlesspc_reconcile(150001))
+			.@count++;
+		if (headlesspc_reconcile(150002))
+			.@count++;
+		mes "Reconcile all queued: " + .@count + "/3.";
+		close;
+	case 6:
+		mes "codexalt status: " + F_HS_StatusName(headlesspc_status(150002)) + ".";
+		close;
+	case 7:
 		mes "assa status: " + F_HS_StatusName(headlesspc_status(150000)) + ".";
 		next;
 		mes "codex status: " + F_HS_StatusName(headlesspc_status(150001)) + ".";
 		next;
 		mes "codexalt status: " + F_HS_StatusName(headlesspc_status(150002)) + ".";
 		close;
-	case 6:
+	case 8:
 		mes "codexalt spawn-ready ack seq: " + headlesspc_spawnack(150002) + ".";
 		close;
-	case 7:
+	case 9:
 		mes "assa spawn-ready ack seq: " + headlesspc_spawnack(150000) + ".";
 		next;
 		mes "codex spawn-ready ack seq: " + headlesspc_spawnack(150001) + ".";
 		next;
 		mes "codexalt spawn-ready ack seq: " + headlesspc_spawnack(150002) + ".";
 		close;
-	case 8:
+	case 10:
 		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
 		close;
-	case 9:
+	case 11:
 		mes "assa remove/save ack seq: " + headlesspc_ack(150000) + ".";
 		next;
 		mes "codex remove/save ack seq: " + headlesspc_ack(150001) + ".";
 		next;
 		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
 		close;
-	case 10:
+	case 12:
+		mes "codexalt reconcile ack seq: " + headlesspc_reconcileack(150002) + ".";
+		close;
+	case 13:
+		mes "assa reconcile ack seq: " + headlesspc_reconcileack(150000) + ".";
+		next;
+		mes "codex reconcile ack seq: " + headlesspc_reconcileack(150001) + ".";
+		next;
+		mes "codexalt reconcile ack seq: " + headlesspc_reconcileack(150002) + ".";
+		close;
+	case 14:
+		mes "codexalt reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150002)) + ".";
+		close;
+	case 15:
+		mes "assa reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150000)) + ".";
+		next;
+		mes "codex reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150001)) + ".";
+		next;
+		mes "codexalt reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150002)) + ".";
+		close;
+	case 16:
 		if (headlesspc_remove(150002))
 			mes "Remove request queued for codexalt.";
 		else
 			mes "Nothing to remove.";
 		close;
-	case 11:
+	case 17:
 		.@count = 0;
 		if (headlesspc_remove(150000))
 			.@count++;
@@ -82,7 +129,7 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 			.@count++;
 		mes "Remove pair queued: " + .@count + "/2.";
 		close;
-	case 12:
+	case 18:
 		.@count = 0;
 		if (headlesspc_remove(150000))
 			.@count++;
@@ -108,33 +155,23 @@ OnInterIfInitOnce:
 	end;
 
 OnTimer1000:
-	debugmes "[headless_pc autotest] starting trio spawn smoke.";
-	.@count = 0;
-	if (headlesspc_spawn(150000, "prontera", 156, 184))
-		.@count++;
-	if (headlesspc_spawn(150001, "prontera", 158, 186))
-		.@count++;
-	if (headlesspc_spawn(150002, "prontera", 160, 188))
-		.@count++;
-	debugmes "[headless_pc autotest] trio spawn queued: " + .@count + "/3.";
+	debugmes "[headless_pc autotest] starting reconcile smoke.";
+	debugmes "[headless_pc autotest] reconcile queued while clear: " + headlesspc_reconcile(150002) + ".";
 	end;
 
-OnTimer4000:
-	debugmes "[headless_pc autotest] statuses after spawn: assa=" + headlesspc_status(150000) + ", codex=" + headlesspc_status(150001) + ", codexalt=" + headlesspc_status(150002) + ".";
-	debugmes "[headless_pc autotest] spawn acks: assa=" + headlesspc_spawnack(150000) + ", codex=" + headlesspc_spawnack(150001) + ", codexalt=" + headlesspc_spawnack(150002) + ".";
-	.@count = 0;
-	if (headlesspc_remove(150000))
-		.@count++;
-	if (headlesspc_remove(150001))
-		.@count++;
-	if (headlesspc_remove(150002))
-		.@count++;
-	debugmes "[headless_pc autotest] trio remove queued: " + .@count + "/3.";
+OnTimer3000:
+	debugmes "[headless_pc autotest] reconcile while clear ack/result: ack=" + headlesspc_reconcileack(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
+	debugmes "[headless_pc autotest] spawn queued for codexalt: " + headlesspc_spawn(150002, "prontera", 160, 186) + ".";
 	end;
 
 OnTimer7000:
-	debugmes "[headless_pc autotest] statuses after remove: assa=" + headlesspc_status(150000) + ", codex=" + headlesspc_status(150001) + ", codexalt=" + headlesspc_status(150002) + ".";
-	debugmes "[headless_pc autotest] remove acks: assa=" + headlesspc_ack(150000) + ", codex=" + headlesspc_ack(150001) + ", codexalt=" + headlesspc_ack(150002) + ".";
+	debugmes "[headless_pc autotest] status/spawnack after spawn: status=" + headlesspc_status(150002) + ", spawnack=" + headlesspc_spawnack(150002) + ".";
+	debugmes "[headless_pc autotest] reconcile queued while active: " + headlesspc_reconcile(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
+	debugmes "[headless_pc autotest] remove queued for codexalt: " + headlesspc_remove(150002) + ".";
+	end;
+
+OnTimer11000:
+	debugmes "[headless_pc autotest] final status/removeack/reconcile: status=" + headlesspc_status(150002) + ", removeack=" + headlesspc_ack(150002) + ", reconcile_ack=" + headlesspc_reconcileack(150002) + ", result=" + headlesspc_reconcileresult(150002) + ".";
 	stopnpctimer;
 	end;
 }

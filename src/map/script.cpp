@@ -11589,6 +11589,39 @@ BUILDIN_FUNC(headlesspc_spawnack)
 }
 
 /*==========================================
+ * Request stale online-state reconciliation by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_reconcile)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_request_reconcile(char_id) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query last completed headless reconcile ack sequence by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_reconcileack)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_reconcile_ack(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query last completed headless reconcile result by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_reconcileresult)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_reconcile_result(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * KillMonster subcheck, verify if mob to kill ain't got an even to handle, could be force kill by allflag
  *------------------------------------------*/
  static int32 buildin_killmonster_sub_strip(block_list *bl,va_list ap)
@@ -28490,6 +28523,9 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_status,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
 	BUILDIN_DEF(headlesspc_spawnack,"i"),
+	BUILDIN_DEF(headlesspc_reconcile,"i"),
+	BUILDIN_DEF(headlesspc_reconcileack,"i"),
+	BUILDIN_DEF(headlesspc_reconcileresult,"i"),
 	BUILDIN_DEF(getunitdata,"i*"),
 	BUILDIN_DEF(setunitdata,"iiv"),
 	BUILDIN_DEF(unitwalk,"iii?"),

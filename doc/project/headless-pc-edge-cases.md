@@ -24,10 +24,17 @@ Current handling:
 
 - char-server refuses the load
 - map-side pending spawn state is cleared
+- targeted recovery now exists:
+  - `headlesspc_reconcile(char_id)`
+  - `headlesspc_reconcileack(char_id)`
+  - `headlesspc_reconcileresult(char_id)`
 
-Future hardening:
+Current limits:
 
-- distinguish "real player online" from "stale online state" more explicitly
+- reconciliation is manual, not automatic
+- it only clears state owned by the current map-server or already-detached
+  entries
+- after reconciliation, the actor still needs a normal respawn request
 
 ### 2. Character already online on map-server
 
@@ -40,6 +47,7 @@ Current handling:
 - request is rejected
 - pending spawn state is cleared
 - char-server online state is pushed back offline for the rejected headless load
+- local reconciliation requests are refused explicitly
 
 ### 3. Unsupported companion state
 
@@ -74,10 +82,13 @@ Symptom:
 
 Current handling:
 
-- no recovery path
+- no automatic recovery path
 - headless runtime actors are treated as ephemeral
 - ack/history is lost on restart
-- stale online state may require a restart or explicit cleanup
+- targeted stale online cleanup now exists without a full server restart:
+  - `headlesspc_reconcile(char_id)`
+- reconcile only clears the stale online marker
+- actor runtime state is not recovered; respawn is still required
 
 Required future work:
 
@@ -94,6 +105,7 @@ Current handling:
 
 - no durable lifecycle ledger
 - in-memory pending/ack tracking is lost
+- if the only leftover is stale online state, reconcile can clear it manually
 
 Required future work:
 
