@@ -1018,3 +1018,48 @@ This slice still does not implement:
 - dynamic actor lists loaded from data
 - per-actor scheduling within one group controller
 - generalized group metrics or health reporting
+
+## Slice 18: Data-Driven Group Controller Shape
+
+### Goal
+
+Move group-controller membership and route definitions into controller data so
+future multi-actor controllers stop duplicating per-actor tick blocks.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_group_controller_demo.txt`
+
+### Runtime Path Changes
+
+- Added shared helper:
+  - `F_LW_HPC_ControllerReleaseOwned(char_id, owner$)`
+- Refactored the pair demo so the hidden controller now defines:
+  - actor count
+  - actor labels
+  - actor `char_id`s
+  - spawn map/coordinates
+  - route loop flags
+  - flattened route arrays with offsets/counts
+- Replaced the old per-actor `OnTick` blocks with:
+  - one indexed actor tick subroutine
+  - one indexed route-prime subroutine
+  - one controller-built status summary string for the visible NPC
+
+### Validation
+
+- restarted the stack cleanly
+- OpenKore validated:
+  - `Headless Pair Patrol -> Start pair patrol`
+  - `assa` and `codexalt` both became active and patrolled under the same owner
+  - `Status` now reports controller-defined actors through the summary builder
+  - `Stop pair patrol` released both actors cleanly
+
+### Deferrals
+
+This slice still does not implement:
+
+- loading actor membership from external data
+- a generic registry of controller definitions
+- per-actor schedule windows or behavior policies beyond patrol routes

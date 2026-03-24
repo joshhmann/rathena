@@ -336,9 +336,14 @@ Current support:
 
 Current limits:
 
-- actor membership is still hardcoded in script
-- there is no shared data-driven actor list format yet
-- group controllers still decide each actor's route inline
+- actor membership and patrol routes are now defined as controller data arrays
+- one indexed tick path can drive the full small group
+
+Current limits:
+
+- actor data still lives in script, not external data files
+- route types are still patrol-waypoint oriented
+- there is no generic registry/loader for controller definitions
 
 ## Multi-Actor Coverage
 
