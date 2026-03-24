@@ -1733,3 +1733,51 @@ This slice still does not fully prove:
 - cross-controller map-wide scheduling
 - more adaptive social routing under crowd pressure
 - controller-family folder split for `playerbot` scripts
+
+## Slice 30: Playerbot Script Folder Split
+
+### Goal
+
+Separate the `headless_pc` script lane from the broader `living_world` script
+lane so future playerbot controllers have a clear home.
+
+### Files Touched
+
+- `npc/scripts_custom.conf`
+- `npc/custom/playerbot/headless_pc_lab.txt`
+- `npc/custom/playerbot/headless_pc_smoketest.txt`
+- `npc/custom/playerbot/headless_pc_controller_demo.txt`
+- `npc/custom/playerbot/headless_pc_group_controller_demo.txt`
+- `npc/custom/playerbot/headless_pc_escort_demo.txt`
+- `npc/custom/playerbot/headless_pc_follower_demo.txt`
+- `npc/custom/playerbot/headless_pc_formation_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Moved the active `headless_pc` and playerbot-facing scripts from
+  `npc/custom/living_world/` into `npc/custom/playerbot/`.
+- Kept the shared helper surface in:
+  - `npc/custom/living_world/_common.txt`
+- Updated `npc/scripts_custom.conf` so the live loader now points at the
+  `playerbot` folder for the harnesses, demos, and social controllers.
+- Preserved the naming split:
+  - technical subsystem remains `headless_pc`
+  - broader script lane remains `playerbot`
+
+### Validation
+
+- `map-server` restart must load the moved files from
+  `npc/custom/playerbot/` with no missing-path or parser failures.
+- Existing visible NPC entry points should remain reachable after the move.
+
+### Deferrals
+
+This slice does not change:
+
+- the shared helper location in `living_world/_common.txt`
+- any C++ `headless_pc` runtime behavior
+- the current OpenKore limitation around honestly observing the social pulse
+  live
