@@ -1063,3 +1063,50 @@ This slice still does not implement:
 - loading actor membership from external data
 - a generic registry of controller definitions
 - per-actor schedule windows or behavior policies beyond patrol routes
+
+## Slice 19: Generic Controller Definition Registry
+
+### Goal
+
+Create one reusable script-side definition pattern for headless controllers so
+future group controllers can load actor membership and route points through
+shared helpers instead of inventing their own storage shape.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_group_controller_demo.txt`
+
+### Runtime Path Changes
+
+- Added shared definition helpers backed by dynamic script variables keyed by
+  controller name:
+  - `F_LW_HPC_DefReset`
+  - `F_LW_HPC_DefSetActor`
+  - `F_LW_HPC_DefAddRoutePoint`
+  - `F_LW_HPC_DefActorCount`
+  - `F_LW_HPC_DefBuildStatus`
+  - `F_LW_HPC_DefStop`
+  - `F_LW_HPC_DefTickActor`
+- Refactored `HeadlessPairController` to:
+  - register actor definitions on `OnInit`
+  - tick actors through the shared definition helper
+  - stop/release actors through the shared definition helper
+  - build visible status text from the shared definition registry
+
+### Validation
+
+- restarted the stack cleanly
+- OpenKore validated:
+  - `Headless Pair Patrol -> Start pair patrol`
+  - both registered actors became active and patrolled under one owner
+  - `Status` still reported both actors correctly through the shared registry
+  - `Stop pair patrol` released both actors cleanly
+
+### Deferrals
+
+This slice still does not implement:
+
+- external data-file loading for controller definitions
+- a generic scheduler/controller registry above the definition layer
+- behavior types beyond patrol-style route ownership

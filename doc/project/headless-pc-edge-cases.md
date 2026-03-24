@@ -333,17 +333,16 @@ Current support:
   - `assa`
   - `codexalt`
   under one controller owner label
+- controller definitions can now be registered through shared helpers keyed by
+  controller name
 
 Current limits:
 
-- actor membership and patrol routes are now defined as controller data arrays
-- one indexed tick path can drive the full small group
-
-Current limits:
-
-- actor data still lives in script, not external data files
+- actor data still lives in script `OnInit`, not external data files
 - route types are still patrol-waypoint oriented
-- there is no generic registry/loader for controller definitions
+- the current registry is script-backed, not SQL- or file-backed
+- there is no higher-level scheduler/controller directory above the definition
+  helper layer
 
 ## Multi-Actor Coverage
 

@@ -231,3 +231,114 @@ function	script	F_LW_HPC_EnsureActive	{
 	}
 	return (.@status == 2);
 }
+
+function	script	F_LW_HPC_DefReset	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	setd("$LWHD" + .@seed + "_AC", 0);
+	setd("$LWHS" + .@seed + "$", "");
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetActor	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_L$[" + .@i + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_C[" + .@i + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
+	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
+	setd("$LWHD" + .@seed + "_Y[" + .@i + "]", getarg(6));
+	setd("$LWHD" + .@seed + "_O[" + .@i + "]", getarg(7));
+	setd("$LWHD" + .@seed + "_RC[" + .@i + "]", 0);
+	if (getd("$LWHD" + .@seed + "_AC") < .@i + 1)
+		setd("$LWHD" + .@seed + "_AC", .@i + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefAddRoutePoint	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@j = getd("$LWHD" + .@seed + "_RC[" + .@i + "]");
+	setd("$LWHD" + .@seed + "_RX" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_RY" + .@i + "[" + .@j + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_RC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefActorCount	{
+	.@seed = getnpcid(0, getarg(0));
+	return getd("$LWHD" + .@seed + "_AC");
+}
+
+function	script	F_LW_HPC_DefBuildStatus	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@enabled = getarg(1);
+	.@summary$ = "Enabled: " + (.@enabled ? "yes" : "no") + ".";
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@label$ = getd("$LWHD" + .@seed + "_L$[" + .@i + "]");
+		.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+		.@owner$ = headlesspc_owner(.@char_id);
+		.@summary$ += "\n" + .@label$ + " owner/status/route: "
+			+ (.@owner$ == "" ? "<none>" : .@owner$) + " / "
+			+ headlesspc_status(.@char_id) + " / "
+			+ headlesspc_routestatus(.@char_id) + ".";
+	}
+	setd("$LWHS" + .@seed + "$", .@summary$);
+	return .@count;
+}
+
+function	script	F_LW_HPC_DefStop	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@owner$ = getarg(1);
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+		callfunc "F_LW_HPC_ControllerReleaseOwned", .@char_id, .@owner$;
+	}
+	return 1;
+}
+
+function	script	F_LW_HPC_DefTickActor	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@owner$ = getarg(1);
+	.@i = getarg(2);
+	.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+	.@map$ = getd("$LWHD" + .@seed + "_M$[" + .@i + "]");
+	.@x = getd("$LWHD" + .@seed + "_X[" + .@i + "]");
+	.@y = getd("$LWHD" + .@seed + "_Y[" + .@i + "]");
+	.@loop = getd("$LWHD" + .@seed + "_O[" + .@i + "]");
+	.@route_count = getd("$LWHD" + .@seed + "_RC[" + .@i + "]");
+
+	if (!callfunc("F_LW_HPC_EnsureActive", .@char_id, .@map$, .@x, .@y))
+		return 0;
+
+	.@current_owner$ = headlesspc_owner(.@char_id);
+	if (.@current_owner$ != "" && .@current_owner$ != .@owner$)
+		return 0;
+
+	if (!headlesspc_claim(.@char_id, .@owner$))
+		return 0;
+
+	if (headlesspc_routestatus(.@char_id) == 2)
+		return 1;
+
+	if (!headlesspc_owned_routeclear(.@char_id, .@owner$))
+		return 0;
+
+	for (.@j = 0; .@j < .@route_count; ++.@j) {
+		if (!headlesspc_owned_routeadd(
+			.@char_id, .@owner$,
+			getd("$LWHD" + .@seed + "_RX" + .@i + "[" + .@j + "]"),
+			getd("$LWHD" + .@seed + "_RY" + .@i + "[" + .@j + "]")
+		))
+			return 0;
+	}
+
+	return headlesspc_owned_routestart(.@char_id, .@owner$, .@loop);
+}
