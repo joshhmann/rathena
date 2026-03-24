@@ -1507,3 +1507,55 @@ This slice still does not implement:
 - social chatter/emote policy for headless actors
 - data-driven controller definitions outside script `OnInit`
 - loiter-state progression beyond the current shared route-priming baseline
+
+## Slice 26: Shared Loiter State Progression
+
+### Goal
+
+Give the reusable controller kit a real `loiter` movement mode so social actors
+can advance through anchor sets under shared helper control instead of behaving
+like dormant patrol routes.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Extended the shared actor-definition registry with loiter state:
+  - current anchor index
+  - pending walk flag
+  - last observed walk event
+- `F_LW_HPC_DefTickActor(...)` now treats `loiter` as its own mode:
+  - claims the actor
+  - resets loiter state on map mismatch
+  - spawns/repositions onto the first anchor when needed
+  - waits for walk completion through the existing walk-event surface
+  - advances to the next anchor once the actor reaches the current loiter tile
+  - queues the next owned `walkto(...)` leg directly instead of relying on
+    route status
+- Added a stale-route safety check so non-hold actors stop old route state when
+  moving back onto the controller's map
+
+### Validation
+
+- rebuilt and restarted the stack cleanly
+- OpenKore validated the Alberta social proof after clearing the old runtime set:
+  - `Headless Smoke -> Remove pair`
+  - `Headless Alberta Social -> Start market traffic`
+  - `assa` held the market anchor at `47,245`
+  - `codexalt` spawned at the loiter start `44,243`
+  - after controller settle, `codexalt` advanced to `47,246`
+  - `Status` reported:
+    - `assa owner/status/route: HeadlessAlbertaSocialController / 2 / 0 (hold)`
+    - `codexalt owner/status/route: HeadlessAlbertaSocialController / 2 / 0 (loiter)`
+
+### Deferrals
+
+This slice still does not implement:
+
+- randomized or schedule-aware loiter decisions
+- chatter/emote behavior tied to loiter state
+- congestion-aware anchor skipping beyond the current ordered progression

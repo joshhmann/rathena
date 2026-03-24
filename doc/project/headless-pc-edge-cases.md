@@ -500,8 +500,27 @@ Current limits:
 - no chatter/emote layer exists yet for headless actors
 - the current proof uses the existing test-character pool, so actor variety is
   constrained by the available characters
-- `loiter` currently shares the route-priming baseline and does not yet have a
-  richer progression/state policy of its own
+- `loiter` now advances through its anchor set through shared walk-state
+  tracking, but it is still ordered and deterministic
+
+### 23. Shared loiter progression
+
+Current support:
+
+- `loiter` is now a real shared controller mode, not just a route placeholder
+- shared helper state now tracks:
+  - current anchor index
+  - pending loiter walk
+  - last observed walk event
+- Alberta validated the current baseline:
+  - `codexalt` spawned at the loiter start `44,243`
+  - then advanced to `47,246` under the shared helper path
+
+Current limits:
+
+- loiter progression is ordered, not randomized
+- there is no schedule- or crowd-aware anchor scoring yet
+- chatter/emote output is still separate from controller movement state
 
 ## Multi-Actor Coverage
 
