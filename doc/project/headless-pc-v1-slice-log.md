@@ -1829,3 +1829,56 @@ This slice does not yet add:
 - global population caps across multiple controllers
 - automatic controller enable/disable from a world-level registry
 - per-controller budget arbitration
+
+## Slice 32: Controller Grace Window Policy
+
+### Goal
+
+Replace hard despawn-on-empty behavior with a shared controller grace-period
+policy so recurring bots feel parked or cooled down instead of instantly
+deleted from the world.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/bot-state-schema.md`
+- `doc/project/pseudo-player-architecture.md`
+- `doc/project/headless-pc-v1-phase0.md`
+- `doc/project/roadmap.md`
+- `doc/project/backlog.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added shared grace-policy definition helper:
+  - `F_LW_HPC_DefSetGraceMs`
+- Extended shared controller policy state with:
+  - configured grace duration
+  - active gate cooldown deadline
+- `F_LW_HPC_ControllerShouldRun(...)` now behaves as:
+  - immediate run when gate map demand is present
+  - grace-period run after demand disappears
+  - clean stand-down only after grace expires
+- `F_LW_HPC_DefBuildStatus(...)` now reports:
+  - grace duration
+  - whether gate cooldown is currently active
+- Alberta and Prontera social controllers now define non-zero grace windows
+  instead of dropping bots immediately when their map empties.
+
+### Validation
+
+- `map-server` restart must load the updated helper layer cleanly.
+- Social controllers should remain active for one grace window after demand on
+  the gated map disappears.
+- `Status` should show the new grace policy line.
+
+### Deferrals
+
+This slice does not yet add:
+
+- a parked/offline ledger separate from current runtime presence
+- global scheduler ownership of grace windows
+- cross-controller grace arbitration

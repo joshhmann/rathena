@@ -236,6 +236,8 @@ Current preferred policy direction:
   recurring "daily life" actors
 - let recurring actors be predictably online or offline by schedule/timezone so
   the world develops familiar faces rather than pure randomness
+- treat parking/offline as the normal lifecycle for recurring actors; avoid
+  destructive cleanup except for explicit operator retirement
 
 Implementation note:
 

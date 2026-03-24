@@ -19,6 +19,7 @@ NPC ambience:
 - they should be server-owned, not client cheats
 - they should eventually support limited party, event, and commerce behavior
 - they should improve a low-pop or offline server experience
+- they should feel like recurring characters, not disposable scene props
 
 ## Core Principle
 
@@ -92,12 +93,15 @@ Responsibilities:
 - progression flags
 - party/combat preferences
 - merchant configuration
+- progression continuity
+- recurring routine identity
 
 Recommended shape:
 
 - separate bot-state store, not embedded ad hoc into script locals
 - one stable bot identifier independent from current spawned GID
 - body spawn should read from bot state, not define bot identity itself
+- going offline should preserve identity and routine continuity
 
 Initial implementation recommendation:
 
@@ -131,6 +135,8 @@ Scheduler direction:
   moment the last player leaves
 - keep a recurring pool of named routine actors so some pseudo-players feel
   familiar across days
+- favor parking/offline transitions over destructive cleanup when a routine
+  actor is not currently needed
 - support selected multi-map traversal for travelers, couriers, escorts, and
   commuter-like roles
 - keep the number of globally active actors below the provisioned pool by
@@ -272,6 +278,8 @@ Dependencies:
 - do not couple bot state to a currently spawned body GID
 - do not build commerce or party logic directly into `fakeplayer()`
 - prefer script orchestration first, engine additions second
+- recurring pseudo-players should be provisioned once and reused, not recreated
+  from scratch every time a controller wants population
 
 ## Immediate Next Use
 

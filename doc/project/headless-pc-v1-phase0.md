@@ -20,6 +20,13 @@ The immediate target is:
 
 This is intentionally smaller than "playerbots".
 
+Long-term direction clarified by later slices:
+
+- the runtime body may appear and disappear
+- the underlying bot identity should persist
+- later party/progression systems should build on recurring characters, not
+  disposable actor rows
+
 ## Why This Comes Next
 
 The living-world layer now has:

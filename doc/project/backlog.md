@@ -17,6 +17,8 @@ enough. Avoid deep source divergence.
 - add despawn grace windows so controller-gated actors do not pop instantly when maps empty
 - define a persistent routine-pool policy for recurring daily-life actors
 - design connected-map traversal for selected world actors rather than only single-map loops
+- define parked/offline lifecycle rules for recurring provisioned bots so party
+  and progression systems can rely on continuity
 
 ## Existing rAthena Custom NPCs Worth Evaluating
 

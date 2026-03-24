@@ -29,6 +29,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefSetTickMs", .owner$, 2400;
 	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "alberta", 1;
 	callfunc "F_LW_HPC_DefSetStartStagger", .owner$, 500, 1800;
+	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, 15000;
 
 	// Anchored market regulars near the existing Alberta merchant pocket.
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "BotPc01", 150010, "alberta", 47, 245, 0;

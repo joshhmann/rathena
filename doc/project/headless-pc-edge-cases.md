@@ -218,6 +218,7 @@ Preferred upcoming handling:
 - use a short grace window so actors can finish a visible beat and avoid harsh
   world popping
 - after grace expires, release or park actors cleanly through the scheduler
+- do not treat grace expiry as identity deletion
 
 Why:
 
@@ -233,6 +234,7 @@ Preferred upcoming handling:
 - tie recurring presence to schedule/timezone windows where useful
 - reuse the same named actors for town, route, and merchant-style routines so
   the server develops familiar faces
+- later party/progression systems should reuse those same recurring identities
 
 Current limit:
 

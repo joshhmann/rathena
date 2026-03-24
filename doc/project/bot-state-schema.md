@@ -8,6 +8,14 @@ temporary spawned GIDs.
 
 This is a design schema, not a committed SQL migration yet.
 
+Important near-term rule:
+
+- the live `headless_pc` path currently reuses real account/character rows by
+  `char_id`
+- those rows should be treated as persistent reusable bot identities
+- controller stop or map-idle cleanup should park bots offline, not treat them
+  as disposable records
+
 ## Core Rule
 
 The spawned fakeplayer body is ephemeral.
@@ -37,6 +45,10 @@ Fields:
   - traveler, guard, merchant, local, event_rival, companion
 - `home_map`
   - default home/anchor map
+- `routine_pool`
+  - recurring region/cohort assignment
+- `timezone_policy`
+  - schedule/timezone grouping for routine presence
 - `personality_tag`
   - lightweight behavior flavor tag
 - `created_at`
@@ -83,10 +95,14 @@ Fields:
 - `current_y`
 - `current_state`
   - idle, walking, resting, merchanting, event, party, offline
+- `park_state`
+  - active, grace, parked
 - `spawned_gid`
   - nullable runtime reference only
 - `last_spawned_at`
 - `last_despawned_at`
+- `last_parked_at`
+- `despawn_grace_until`
 - `last_route_key`
 - `last_seen_tick`
 
@@ -109,6 +125,7 @@ Fields:
   - foreign key
 - `schedule_key`
 - `route_set_key`
+- `daily_routine_key`
 - `ambient_talk_pool_key`
 - `interaction_policy`
   - ambient_only, clickable, merchant, party_candidate
@@ -118,6 +135,10 @@ Fields:
   - none, fixed_shop, timed_shop, roaming_vendor
 - `field_policy`
   - none, patrol, traveler, escort
+- `presence_policy`
+  - always_on, demand_gated, schedule_gated, hybrid
+- `despawn_grace_ms`
+  - cooldown before parking when demand disappears
 
 Purpose:
 
@@ -158,6 +179,27 @@ Purpose:
 
 - stable party semantics independent of one spawned body
 
+### 7. `bot_progression_state`
+
+Deferred but explicitly expected for the fuller playerbot lane.
+
+Fields:
+
+- `bot_id`
+- `build_tag`
+- `progression_profile`
+- `base_level`
+- `job_level`
+- `equipment_profile`
+- `daily_activity_budget`
+- `last_progression_tick`
+
+Purpose:
+
+- preserve the feeling that recurring bots are living characters, not reset
+  props
+- support later progression, party, and role advancement systems
+
 ## Runtime Ownership
 
 ### Source Layer Owns
@@ -174,6 +216,7 @@ Purpose:
 - route selection
 - chatter/emotes
 - presence gating
+- despawn grace and parking decisions until a dedicated scheduler owns them
 
 ### State Layer Owns
 
@@ -181,6 +224,8 @@ Purpose:
 - appearance defaults
 - interaction policy
 - merchant and party capability flags
+- recurring routine policy
+- progression continuity
 
 ## Implementation Order
 
@@ -195,6 +240,7 @@ This is enough for:
 - stable pseudo-player identity
 - reproducible visuals
 - better controller ownership
+- parked/offline continuity without deleting bot identities
 
 ### Phase 2
 
@@ -208,18 +254,20 @@ This is enough for:
 
 - `bot_inventory`
 - `bot_party_state`
+- `bot_progression_state`
 
 This is enough for:
 
 - merchant bots
 - party-capable pseudo-players
+- progression-capable recurring playerbots
 
 ## Initial Defaults
 
 - bots are server-owned only
-- no account/login identity required
+- current live path may continue to reuse account/login identity until a deeper
+  provisioning layer replaces it
 - no char-select semantics
 - no real player inventory logic in phase 1
 - one bot maps to one active body at most
 - body absence must not destroy bot identity
-

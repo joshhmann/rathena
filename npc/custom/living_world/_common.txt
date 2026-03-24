@@ -288,6 +288,8 @@ function	script	F_LW_HPC_DefReset	{
 	setd("$LWHD" + .@seed + "_GU", 0);
 	setd("$LWHD" + .@seed + "_SM", 0);
 	setd("$LWHD" + .@seed + "_SX", 0);
+	setd("$LWHD" + .@seed + "_GR", 0);
+	setd("$LWHD" + .@seed + "_GD", 0);
 	return 1;
 }
 
@@ -314,6 +316,16 @@ function	script	F_LW_HPC_DefSetStartStagger	{
 	.@seed = getnpcid(0, .@controller$);
 	setd("$LWHD" + .@seed + "_SM", getarg(1));
 	setd("$LWHD" + .@seed + "_SX", getarg(2));
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetGraceMs	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@ms = getarg(1);
+	if (.@ms < 0)
+		.@ms = 0;
+	setd("$LWHD" + .@seed + "_GR", .@ms);
 	return 1;
 }
 
@@ -420,10 +432,14 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	.@gate_map$ = getd("$LWHD" + .@seed + "_GM$");
 	.@gate_users = getd("$LWHD" + .@seed + "_GU");
 	.@tick_ms = getd("$LWHD" + .@seed + "_TK");
+	.@grace_ms = getd("$LWHD" + .@seed + "_GR");
+	.@grace_deadline = getd("$LWHD" + .@seed + "_GD");
 	if (.@gate_map$ != "")
-		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms.";
+		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms.";
 	else
-		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms.";
+		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms.";
+	if (.@grace_deadline > gettimetick(2))
+		.@summary$ += " Gate cooldown active.";
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@label$ = getd("$LWHD" + .@seed + "_L$[" + .@i + "]");
@@ -445,9 +461,23 @@ function	script	F_LW_HPC_ControllerShouldRun	{
 	.@seed = getnpcid(0, .@controller$);
 	.@gate_map$ = getd("$LWHD" + .@seed + "_GM$");
 	.@gate_users = getd("$LWHD" + .@seed + "_GU");
+	.@grace_ms = getd("$LWHD" + .@seed + "_GR");
+	.@now = gettimetick(2);
+	.@deadline = getd("$LWHD" + .@seed + "_GD");
 	if (.@gate_map$ == "")
 		return 1;
-	return getmapusers(.@gate_map$) >= .@gate_users;
+	if (getmapusers(.@gate_map$) >= .@gate_users) {
+		if (.@deadline)
+			setd("$LWHD" + .@seed + "_GD", 0);
+		return 1;
+	}
+	if (.@grace_ms < 1)
+		return 0;
+	if (.@deadline < 1) {
+		setd("$LWHD" + .@seed + "_GD", .@now + .@grace_ms);
+		return 1;
+	}
+	return .@now < .@deadline;
 }
 
 function	script	F_LW_HPC_ControllerScheduleNext	{
