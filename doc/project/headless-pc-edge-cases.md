@@ -409,14 +409,21 @@ Current support:
   - reacts to walk event/result completion before issuing another follow leg
   - tracks leader map changes through a visible `handoff_count`
   - uses owned `setpos(...)` as the current map-change handoff policy
+  - waits for leader map-change coordinates to settle before computing the
+    destination anchor
+  - waits if no passable anchor exists yet on the destination map
+
+Validated now:
+
+- a full live leader warp from Prontera to Izlude through `Headless Follow`
+- stable follower handoff after the leader's new-map coordinates settle
+- passable-anchor selection on the destination map
 
 Current limits:
 
 - cross-map handoff is still a simple reposition, not a full follow transition
-- the current handoff policy is implemented and observable, but not yet
-  validated through a full live leader warp sequence
-- anchor selection is a fixed offset, not path- or collision-aware
-- there is no multi-follower formation logic yet
+- anchor selection is ordered passable-tile fallback, not path-aware routing
+- there is no multi-follower formation logic in this controller
 
 ### 20. Pair-formation controller
 
@@ -427,14 +434,25 @@ Current support:
 - the current demo:
   - follows live `codex` (`150001`)
   - claims `codexalt` (`150002`) and `assa` (`150000`)
-  - keeps them on two distinct east-of-leader anchors
+  - keeps them on two distinct anchors chosen from ordered fallback sets
   - tracks per-follower walk event/result state under one owner label
+  - retries the second follower on an alternate fallback set if it collides
+    with the first follower's chosen tile
+  - uses the same handoff-settling gate as the follower controller
+
+Validated now:
+
+- distinct nearby anchors in an open Prontera patch
+- distinct nearby anchors again in the tighter Prontera service patch around
+  `153,186`, with:
+  - `assa` at `154,187`
+  - `codexalt` at `154,186`
 
 Current limits:
 
 - formation size is fixed in script
-- blocked anchors can still produce per-follower `start failed` outcomes
-- there is no adaptive anchor fallback or spacing policy yet
+- blocked or crowded anchors can still exhaust the ordered fallback set
+- there is no broader spacing or congestion policy yet
 - there is no cross-map formation replay beyond simple owned reposition logic
 
 ## Multi-Actor Coverage

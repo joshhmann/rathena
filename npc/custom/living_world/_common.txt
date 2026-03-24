@@ -243,6 +243,33 @@ function	script	F_LW_HPC_WalkResultName	{
 	}
 }
 
+function	script	F_LW_HPC_PackPos	{
+	return getarg(0) * 10000 + getarg(1);
+}
+
+function	script	F_LW_HPC_UnpackX	{
+	return getarg(0) / 10000;
+}
+
+function	script	F_LW_HPC_UnpackY	{
+	return getarg(0) % 10000;
+}
+
+function	script	F_LW_HPC_FindPassableAnchor	{
+	.@map$ = getarg(0);
+	.@base_x = getarg(1);
+	.@base_y = getarg(2);
+	for (.@i = 3; .@i + 1 < getargcount(); .@i += 2) {
+		.@x = .@base_x + getarg(.@i);
+		.@y = .@base_y + getarg(.@i + 1);
+		if (checkcell(.@map$, .@x, .@y, cell_chkpass))
+			return callfunc("F_LW_HPC_PackPos", .@x, .@y);
+	}
+	if (checkcell(.@map$, .@base_x, .@base_y, cell_chkpass))
+		return callfunc("F_LW_HPC_PackPos", .@base_x, .@base_y);
+	return 0;
+}
+
 function	script	F_LW_HPC_DefReset	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);

@@ -3,7 +3,7 @@
 prontera,154,171,4	script	Headless Follow	4_M_MANAGER,{
 	.controller$ = "HeadlessFollowerController";
 	mes "[Headless Follow]";
-	switch(select("Start codexalt follow codex:Stop codexalt follow codex:Status:Cancel")) {
+	switch(select("Start codexalt follow codex:Stop codexalt follow codex:Status:Warp self to Izlude test:Warp self to Prontera test:Cancel")) {
 	case 1:
 		donpcevent .controller$ + "::OnStart";
 		mes "Follower controller enabled.";
@@ -16,6 +16,16 @@ prontera,154,171,4	script	Headless Follow	4_M_MANAGER,{
 		donpcevent .controller$ + "::OnBuildStatus";
 		mes getvariableofnpc(.status_summary$, .controller$);
 		close;
+	case 4:
+		mes "Warping to Izlude handoff test.";
+		close2;
+		warp "izlude", 123, 149;
+		end;
+	case 5:
+		mes "Warping to Prontera anchor test.";
+		close2;
+		warp "prontera", 156, 191;
+		end;
 	default:
 		close;
 	}
@@ -35,7 +45,10 @@ OnInit:
 	.last_walk_result = 0;
 	.walk_pending = 0;
 	.handoff_count = 0;
+	.handoff_pending = 0;
 	.last_leader_map$ = "";
+	.last_leader_x = 0;
+	.last_leader_y = 0;
 	.last_note$ = "";
 	.status_summary$ = "";
 	end;
@@ -45,7 +58,10 @@ OnStart:
 	.walk_pending = 0;
 	.last_walk_event = headlesspc_walkevent(.follower_char_id);
 	.last_walk_result = headlesspc_walkresult(.follower_char_id);
+	.handoff_pending = 0;
 	.last_leader_map$ = livepc_map(.leader_char_id);
+	.last_leader_x = livepc_x(.leader_char_id);
+	.last_leader_y = livepc_y(.leader_char_id);
 	.last_note$ = "Follower controller starting.";
 	stopnpctimer;
 	donpcevent strnpcinfo(3) + "::OnTick";
@@ -74,6 +90,7 @@ OnBuildStatus:
 	.status_summary$ += "\nFollower: " + (.@follower_map$ == "" ? "<absent>" : .@follower_map$ + " (" + .@follower_x + "," + .@follower_y + ")") + ".";
 	.status_summary$ += "\nStatus: " + headlesspc_status(.follower_char_id) + ".";
 	.status_summary$ += " Pending: " + (.walk_pending ? "yes" : "no") + ".";
+	.status_summary$ += " Handoff Pending: " + (.handoff_pending ? "yes" : "no") + ".";
 	.status_summary$ += "\nWalk Event: " + headlesspc_walkevent(.follower_char_id) + ".";
 	.status_summary$ += " Result: " + callfunc("F_LW_HPC_WalkResultName", headlesspc_walkresult(.follower_char_id)) + ".";
 	.status_summary$ += "\nHandoffs: " + .handoff_count + ".";
@@ -95,14 +112,38 @@ OnTick:
 
 	.@leader_x = livepc_x(.leader_char_id);
 	.@leader_y = livepc_y(.leader_char_id);
-	.@target_x = .@leader_x + .follow_dx;
-	.@target_y = .@leader_y + .follow_dy;
+	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, .follow_dx, .follow_dy, .follow_dx, .follow_dy + 1, .follow_dx, .follow_dy - 1, .follow_dx + 1, .follow_dy, 0, 1, 0, -1);
 
 	if (.last_leader_map$ != "" && .last_leader_map$ != .@leader_map$) {
 		.handoff_count++;
-		.last_note$ = "Leader map changed from " + .last_leader_map$ + " to " + .@leader_map$ + ".";
+		.handoff_pending = 1;
+		.last_note$ = "Leader map changed from " + .last_leader_map$ + " to " + .@leader_map$ + "; waiting for stable coords.";
+		.last_leader_map$ = .@leader_map$;
+		stopnpctimer;
+		initnpctimer;
+		end;
 	}
-	.last_leader_map$ = .@leader_map$;
+
+	if (.handoff_pending) {
+		if (.@leader_x == .last_leader_x && .@leader_y == .last_leader_y) {
+			.last_note$ = "Leader map changed, but coords are still settling.";
+			stopnpctimer;
+			initnpctimer;
+			end;
+		}
+		.handoff_pending = 0;
+		.last_note$ = "Leader handoff settled on " + .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ").";
+	}
+
+	if (!.@packed) {
+		.last_note$ = "Waiting for a passable anchor near the leader on " + .@leader_map$ + ".";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.@target_x = callfunc("F_LW_HPC_UnpackX", .@packed);
+	.@target_y = callfunc("F_LW_HPC_UnpackY", .@packed);
 
 	if (!callfunc("F_LW_HPC_EnsureActive", .follower_char_id, .@leader_map$, .@target_x, .@target_y)) {
 		.last_note$ = "Follower not active yet; spawn requested or pending.";
@@ -153,6 +194,9 @@ OnTick:
 	}
 
 	if (.walk_pending) {
+		.last_leader_map$ = .@leader_map$;
+		.last_leader_x = .@leader_x;
+		.last_leader_y = .@leader_y;
 		stopnpctimer;
 		initnpctimer;
 		end;
@@ -160,6 +204,9 @@ OnTick:
 
 	if (.@follower_x == .@target_x && .@follower_y == .@target_y) {
 		.last_note$ = "Follower holding leader anchor.";
+		.last_leader_map$ = .@leader_map$;
+		.last_leader_x = .@leader_x;
+		.last_leader_y = .@leader_y;
 		stopnpctimer;
 		initnpctimer;
 		end;
@@ -174,6 +221,10 @@ OnTick:
 		.last_walk_result = headlesspc_walkresult(.follower_char_id);
 		.last_note$ = "Follower walk request failed.";
 	}
+
+	.last_leader_map$ = .@leader_map$;
+	.last_leader_x = .@leader_x;
+	.last_leader_y = .@leader_y;
 
 	stopnpctimer;
 	initnpctimer;

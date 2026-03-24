@@ -1377,3 +1377,70 @@ This slice still does not implement:
 - collision-aware or fallback anchor selection for blocked tiles
 - dynamic formation resizing
 - role-specific formations beyond fixed offsets
+
+## Slice 24: Cross-Map Handoff Stabilization And Adaptive Anchors
+
+### Goal
+
+Harden the live follower and formation controllers so they do not reuse stale
+leader coordinates after a map change, and make formation anchors adaptive when
+the preferred tiles are blocked or crowded.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_follower_demo.txt`
+- `npc/custom/living_world/headless_pc_formation_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added shared packed-position helpers:
+  - `F_LW_HPC_PackPos`
+  - `F_LW_HPC_UnpackX`
+  - `F_LW_HPC_UnpackY`
+- Added shared adaptive anchor helper:
+  - `F_LW_HPC_FindPassableAnchor(map$, base_x, base_y, dx1, dy1, ...)`
+- The adaptive anchor helper now:
+  - checks candidate offsets with `checkcell(..., cell_chkpass)`
+  - returns `0` when no candidate tile is passable
+  - no longer falls back blindly to a non-passable base tile
+- The follower controller now:
+  - tracks the last stable leader `x/y` as well as map
+  - treats a leader map change as incomplete until the new coordinates differ
+    from the old-map coordinates
+  - waits when no passable anchor exists on the destination map
+  - exposes a visible `handoff_pending` state
+- The formation controller now:
+  - uses the same adaptive anchor helper for both followers
+  - retries the second follower on a different fallback set if it collides with
+    the first follower's chosen tile
+  - uses the same handoff-settling gate as the follower controller
+
+### Validation
+
+- restarted the stack cleanly
+- OpenKore validated true cross-map follower handoff:
+  - `Headless Follow -> Start codexalt follow codex`
+  - `Headless Follow -> Warp self to Izlude test`
+  - after controller settle, `headless_pc_runtime` showed:
+    - `codexalt` on `izlude 154 170`
+  - moving the live leader onto that area and listing nearby players showed:
+    - `codexalt []` at `155,169`
+  - this replaced the previously broken non-walkable handoff onto
+    `izlude 156,173`
+- OpenKore validated adaptive formation anchors in a tighter Prontera patch:
+  - `Headless Formation -> Start pair follow codex`
+  - moved live `codex` into the `prontera 153,186` service area
+  - nearby player list showed both followers on distinct adjacent anchors:
+    - `assa []` at `154,187`
+    - `codexalt []` at `154,186`
+
+### Deferrals
+
+This slice still does not implement:
+
+- durable persistence of route/controller state across restart
+- richer obstacle avoidance than ordered passable-anchor fallback
+- dynamic formation sizing or role-aware spacing
