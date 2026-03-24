@@ -874,3 +874,62 @@ This slice still does not implement:
 - owner persistence across restart
 - multi-controller arbitration beyond simple first-claim wins
 - scheduling or behavior trees above the demo patrol loop
+
+## Slice 15: Owner-Aware Mutation Policy
+
+### Goal
+
+Make ownership meaningful by separating normal controller mutation APIs from
+explicit admin/operator override APIs.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_controller_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added owner-checked runtime helpers:
+  - `chrif_headlesspc_owned_remove(...)`
+  - `chrif_headlesspc_owned_setpos(...)`
+  - `chrif_headlesspc_owned_walkto(...)`
+  - `chrif_headlesspc_owned_routeclear(...)`
+  - `chrif_headlesspc_owned_routeadd(...)`
+  - `chrif_headlesspc_owned_routestart(...)`
+  - `chrif_headlesspc_owned_routestop(...)`
+- Added matching script buildins:
+  - `headlesspc_owned_remove(...)`
+  - `headlesspc_owned_setpos(...)`
+  - `headlesspc_owned_walkto(...)`
+  - `headlesspc_owned_routeclear(...)`
+  - `headlesspc_owned_routeadd(...)`
+  - `headlesspc_owned_routestart(...)`
+  - `headlesspc_owned_routestop(...)`
+- Existing unowned `headlesspc_*` mutators remain available as explicit
+  admin/operator override tools.
+- Updated the demo controller to use the owner-checked route APIs instead of the
+  override path.
+
+### Validation
+
+- rebuilt and restarted the full stack
+- OpenKore validated the controller demo still works after the API split:
+  - `Headless Patrol -> Start codexalt patrol`
+  - later `Status` showed:
+    - `Enabled: yes`
+    - `Owner: HeadlessPatrolController`
+    - `Status: 2. Route: 2`
+  - `Headless Patrol -> Stop codexalt patrol` stopped the route cleanly
+- this confirmed the demo controller was able to mutate route state through the
+  owner-checked API surface rather than relying on override calls
+
+### Deferrals
+
+This slice still does not implement:
+
+- hard permissioning around who may use the override APIs
+- owner persistence across restart
+- owner-aware guards for every possible future headless mutation surface

@@ -11614,6 +11614,54 @@ BUILDIN_FUNC(headlesspc_release)
 }
 
 /*==========================================
+ * Owner-checked remove for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_remove)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+
+	script_pushint(st, chrif_headlesspc_owned_remove(char_id, owner) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Owner-checked reposition for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_setpos)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+	const char* mapname = script_getstr(st, 4);
+	uint16 x = script_getnum(st, 5);
+	uint16 y = script_getnum(st, 6);
+	int16 m = map_mapname2mapid(mapname);
+	bool ok = false;
+
+	if (m >= 0)
+		ok = chrif_headlesspc_owned_setpos(char_id, owner, m, x, y);
+	else
+		ShowWarning("headless_pc: invalid map \"%s\" passed to headlesspc_owned_setpos.\n", mapname);
+
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Owner-checked same-map walk for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_walkto)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+	uint16 x = script_getnum(st, 4);
+	uint16 y = script_getnum(st, 5);
+
+	script_pushint(st, chrif_headlesspc_owned_walkto(char_id, owner, x, y) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Clear the in-memory route for a live headless BL_PC by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_routeclear)
@@ -11621,6 +11669,18 @@ BUILDIN_FUNC(headlesspc_routeclear)
 	uint32 char_id = script_getnum(st, 2);
 
 	script_pushint(st, chrif_headlesspc_routeclear(char_id) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Owner-checked route clear for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_routeclear)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+
+	script_pushint(st, chrif_headlesspc_owned_routeclear(char_id, owner) ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -11638,6 +11698,20 @@ BUILDIN_FUNC(headlesspc_routeadd)
 }
 
 /*==========================================
+ * Owner-checked route add for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_routeadd)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+	uint16 x = script_getnum(st, 4);
+	uint16 y = script_getnum(st, 5);
+
+	script_pushint(st, chrif_headlesspc_owned_routeadd(char_id, owner, x, y) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Start the in-memory route for a live headless BL_PC.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_routestart)
@@ -11650,6 +11724,19 @@ BUILDIN_FUNC(headlesspc_routestart)
 }
 
 /*==========================================
+ * Owner-checked route start for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_routestart)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+	bool loop = script_getnum(st, 4) != 0;
+
+	script_pushint(st, chrif_headlesspc_owned_routestart(char_id, owner, loop) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Stop the in-memory route for a live headless BL_PC.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_routestop)
@@ -11657,6 +11744,18 @@ BUILDIN_FUNC(headlesspc_routestop)
 	uint32 char_id = script_getnum(st, 2);
 
 	script_pushint(st, chrif_headlesspc_routestop(char_id) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Owner-checked route stop for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owned_routestop)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+
+	script_pushint(st, chrif_headlesspc_owned_routestop(char_id, owner) ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -28675,10 +28774,17 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_walkto,"iii"),
 	BUILDIN_DEF(headlesspc_claim,"is"),
 	BUILDIN_DEF(headlesspc_release,"is"),
+	BUILDIN_DEF(headlesspc_owned_remove,"is"),
+	BUILDIN_DEF(headlesspc_owned_setpos,"issii"),
+	BUILDIN_DEF(headlesspc_owned_walkto,"isii"),
 	BUILDIN_DEF(headlesspc_routeclear,"i"),
+	BUILDIN_DEF(headlesspc_owned_routeclear,"is"),
 	BUILDIN_DEF(headlesspc_routeadd,"iii"),
+	BUILDIN_DEF(headlesspc_owned_routeadd,"isii"),
 	BUILDIN_DEF(headlesspc_routestart,"ii"),
+	BUILDIN_DEF(headlesspc_owned_routestart,"isi"),
 	BUILDIN_DEF(headlesspc_routestop,"i"),
+	BUILDIN_DEF(headlesspc_owned_routestop,"is"),
 	BUILDIN_DEF(headlesspc_status,"i"),
 	BUILDIN_DEF(headlesspc_owner,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),

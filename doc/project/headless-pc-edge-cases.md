@@ -16,6 +16,9 @@ This document tracks the current weird-case matrix for `headless_pc`.
 - dev harnesses are:
   - `Headless Smoke`
   - `Headless PC Lab`
+- controller policy is now split:
+  - owner-checked `headlesspc_owned_*` mutators for normal controllers
+  - unowned `headlesspc_*` mutators as explicit admin/operator override tools
 - OpenKore is the primary CLI observer
 
 ## Known Weird Cases
@@ -268,12 +271,39 @@ Current support:
 Current limits:
 
 - ownership is in-memory only and does not survive restart
-- admin/operator buildins are not owner-gated yet
+- admin/operator override buildins are intentionally not owner-gated
 - arbitration is intentionally simple:
   - unowned actor => first claim wins
   - same owner => re-claim succeeds
   - different owner => claim fails
 - owner labels are cleared on remove/final save, not persisted in SQL
+
+### 14. Owner-aware mutation policy
+
+Current support:
+
+- normal controller-facing mutation APIs now exist as owner-checked buildins:
+  - `headlesspc_owned_remove`
+  - `headlesspc_owned_setpos`
+  - `headlesspc_owned_walkto`
+  - `headlesspc_owned_routeclear`
+  - `headlesspc_owned_routeadd`
+  - `headlesspc_owned_routestart`
+  - `headlesspc_owned_routestop`
+- these require the actor to already be claimed by the same owner label
+
+Policy:
+
+- controller scripts should use `headlesspc_claim(...)` and the
+  `headlesspc_owned_*` mutators
+- GM/dev/operator harnesses may keep using the unowned `headlesspc_*` mutators
+  as explicit override tools
+
+Current limits:
+
+- override usage is by convention, not permission system
+- there is still no SQL-persisted owner state
+- the smoke harness still uses admin/operator override calls intentionally
 
 ## Multi-Actor Coverage
 

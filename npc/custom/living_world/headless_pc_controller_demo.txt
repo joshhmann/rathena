@@ -6,18 +6,11 @@ prontera,154,177,4	script	Headless Patrol	4_M_MANAGER,{
 	mes "[Headless Patrol]";
 	switch(select("Start codexalt patrol:Stop codexalt patrol:Status:Cancel")) {
 	case 1:
-		.enabled = 1;
-		set getvariableofnpc(.enabled, .controller$), 1;
-		donpcevent .controller$ + "::OnTick";
+		donpcevent .controller$ + "::OnStart";
 		mes "Controller enabled.";
 		close;
 	case 2:
-		.enabled = 0;
-		set getvariableofnpc(.enabled, .controller$), 0;
-		if (headlesspc_owner(150002) == .owner$) {
-			headlesspc_routestop(150002);
-			headlesspc_release(150002, .owner$);
-		}
+		donpcevent .controller$ + "::OnStop";
 		mes "Controller disabled.";
 		close;
 	case 3:
@@ -38,6 +31,19 @@ OnInit:
 	.enabled = 0;
 	end;
 
+OnStart:
+	.enabled = 1;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+
+OnStop:
+	.enabled = 0;
+	if (headlesspc_owner(150002) == .owner$) {
+		headlesspc_owned_routestop(150002, .owner$);
+		headlesspc_release(150002, .owner$);
+	}
+	end;
+
 OnTick:
 	if (!.enabled)
 		end;
@@ -54,12 +60,12 @@ OnTick:
 		if (.@owner$ == "" || .@owner$ == .owner$) {
 			if (headlesspc_claim(150002, .owner$)) {
 				if (headlesspc_routestatus(150002) != 2) {
-					headlesspc_routeclear(150002);
-					headlesspc_routeadd(150002, 160, 186);
-					headlesspc_routeadd(150002, 163, 186);
-					headlesspc_routeadd(150002, 163, 189);
-					headlesspc_routeadd(150002, 160, 189);
-					headlesspc_routestart(150002, 1);
+					headlesspc_owned_routeclear(150002, .owner$);
+					headlesspc_owned_routeadd(150002, .owner$, 160, 186);
+					headlesspc_owned_routeadd(150002, .owner$, 163, 186);
+					headlesspc_owned_routeadd(150002, .owner$, 163, 189);
+					headlesspc_owned_routeadd(150002, .owner$, 160, 189);
+					headlesspc_owned_routestart(150002, .owner$, 1);
 				}
 			}
 		}
