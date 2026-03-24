@@ -1559,3 +1559,53 @@ This slice still does not implement:
 - randomized or schedule-aware loiter decisions
 - chatter/emote behavior tied to loiter state
 - congestion-aware anchor skipping beyond the current ordered progression
+
+## Slice 27: Seeded Headless PC Provisioning Set
+
+### Goal
+
+Create a fast, repeatable provisioning baseline for multi-actor smoke tests by
+seeding ten deterministic bot identities that the current `headless_pc` runtime
+can load by `char_id`.
+
+### Files Touched
+
+- `sql-files/upgrades/upgrade_20260323_headless_pc_seed_bots.sql`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added a checked-in dev SQL artifact that seeds ten normal account+character
+  pairs:
+  - accounts `2000010-2000019`
+  - characters `150010-150019`
+  - names `BotPc01-BotPc10`
+- Kept the seeded characters intentionally simple:
+  - novice class
+  - level `1/1`
+  - offline by default
+  - saved in `prontera`
+- Documented the current provisioning rule by implementation:
+  - `headless_pc` still loads real `char` rows via char-server
+  - therefore the quick safe scaffold is real account+character pairs, not raw
+    orphan `char` rows
+- Extended `Headless Smoke` with batch options for the seeded set:
+  - spawn all ten
+  - view status/ack state for all ten
+  - remove all ten
+
+### Validation
+
+- the SQL seed is idempotent through `INSERT IGNORE`
+- the seeded IDs do not overlap the current hand-created test identities
+- the smoke harness now has one-click coverage for a ten-PC spawn/remove pass
+
+### Deferrals
+
+This slice still does not implement:
+
+- autonomous bot provisioning from in-game or source APIs
+- accountless bot identities
+- controller-aware batch provisioning
+- richer seeded loadouts beyond the novice baseline
