@@ -168,8 +168,16 @@ function	script	F_LW_ActorEmotion	{
 
 function	script	F_LW_HPC_ControllerStart	{
 	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@min_ms = getd("$LWHD" + .@seed + "_SM");
+	.@max_ms = getd("$LWHD" + .@seed + "_SX");
 	set getvariableofnpc(.enabled, .@controller$), 1;
-	donpcevent .@controller$ + "::OnTick";
+	if (.@max_ms > .@min_ms)
+		addtimer .@min_ms + rand(.@max_ms - .@min_ms + 1), .@controller$ + "::OnTick";
+	else if (.@min_ms > 0)
+		addtimer .@min_ms, .@controller$ + "::OnTick";
+	else
+		donpcevent .@controller$ + "::OnTick";
 	return 1;
 }
 
@@ -275,6 +283,37 @@ function	script	F_LW_HPC_DefReset	{
 	.@seed = getnpcid(0, .@controller$);
 	setd("$LWHD" + .@seed + "_AC", 0);
 	setd("$LWHS" + .@seed + "$", "");
+	setd("$LWHD" + .@seed + "_TK", 2200);
+	setd("$LWHD" + .@seed + "_GM$", "");
+	setd("$LWHD" + .@seed + "_GU", 0);
+	setd("$LWHD" + .@seed + "_SM", 0);
+	setd("$LWHD" + .@seed + "_SX", 0);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetTickMs	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@ms = getarg(1);
+	if (.@ms < 250)
+		.@ms = 250;
+	setd("$LWHD" + .@seed + "_TK", .@ms);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetMapGate	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	setd("$LWHD" + .@seed + "_GM$", getarg(1));
+	setd("$LWHD" + .@seed + "_GU", getarg(2));
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetStartStagger	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	setd("$LWHD" + .@seed + "_SM", getarg(1));
+	setd("$LWHD" + .@seed + "_SX", getarg(2));
 	return 1;
 }
 
@@ -378,6 +417,13 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	.@seed = getnpcid(0, .@controller$);
 	.@enabled = getarg(1);
 	.@summary$ = "Enabled: " + (.@enabled ? "yes" : "no") + ".";
+	.@gate_map$ = getd("$LWHD" + .@seed + "_GM$");
+	.@gate_users = getd("$LWHD" + .@seed + "_GU");
+	.@tick_ms = getd("$LWHD" + .@seed + "_TK");
+	if (.@gate_map$ != "")
+		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms.";
+	else
+		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms.";
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@label$ = getd("$LWHD" + .@seed + "_L$[" + .@i + "]");
@@ -392,6 +438,26 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	}
 	setd("$LWHS" + .@seed + "$", .@summary$);
 	return .@count;
+}
+
+function	script	F_LW_HPC_ControllerShouldRun	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@gate_map$ = getd("$LWHD" + .@seed + "_GM$");
+	.@gate_users = getd("$LWHD" + .@seed + "_GU");
+	if (.@gate_map$ == "")
+		return 1;
+	return getmapusers(.@gate_map$) >= .@gate_users;
+}
+
+function	script	F_LW_HPC_ControllerScheduleNext	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@tick_ms = getd("$LWHD" + .@seed + "_TK");
+	if (.@tick_ms < 250)
+		.@tick_ms = 250;
+	addtimer .@tick_ms, .@controller$ + "::OnTick";
+	return .@tick_ms;
 }
 
 function	script	F_LW_HPC_DefPulseActor	{

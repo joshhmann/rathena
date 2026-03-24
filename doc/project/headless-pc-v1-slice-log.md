@@ -1781,3 +1781,51 @@ This slice does not change:
 - any C++ `headless_pc` runtime behavior
 - the current OpenKore limitation around honestly observing the social pulse
   live
+
+## Slice 31: Shared Controller Policy Layer
+
+### Goal
+
+Add a reusable script-first controller policy surface so social controllers can
+share startup staggering, player-presence gating, and tick cadence.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added shared controller policy helpers:
+  - `F_LW_HPC_DefSetTickMs`
+  - `F_LW_HPC_DefSetMapGate`
+  - `F_LW_HPC_DefSetStartStagger`
+  - `F_LW_HPC_ControllerShouldRun`
+  - `F_LW_HPC_ControllerScheduleNext`
+- `F_LW_HPC_ControllerStart(...)` now respects optional stagger policy stored
+  on the controller definition.
+- Extended `F_LW_HPC_DefBuildStatus(...)` so controller status shows:
+  - gate map and minimum user threshold
+  - shared tick cadence
+- Alberta and Prontera social controllers now:
+  - define their own tick cadence
+  - define a simple local player-presence gate
+  - stand down owned actors cleanly when their gate map is empty
+  - reuse the shared next-tick scheduler instead of hardcoded `addtimer` values
+
+### Validation
+
+- `map-server` must reload cleanly with the updated helper surface.
+- Social controllers should still start normally when a player is present on
+  the gated map.
+- Controller `Status` should report the policy line as part of the summary.
+
+### Deferrals
+
+This slice does not yet add:
+
+- global population caps across multiple controllers
+- automatic controller enable/disable from a world-level registry
+- per-controller budget arbitration
