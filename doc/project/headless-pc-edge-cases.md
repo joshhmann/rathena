@@ -354,13 +354,18 @@ Current support:
   - NPC timer-driven follow-up
 - the controller resets the actor to a fixed escort start point before priming
   the run
- - the controller releases ownership on the next controller tick after issuing
-   the one-way leg
+- the controller releases ownership on the next controller tick after issuing
+  the one-way leg
+
+Current support now also includes:
+
+- script-readable `headlesspc_map/x/y` state settles to the escort destination
+- `headless_pc_runtime` settles to that same destination tile
+- walk completion ack advances only after the movement state settles or is
+  committed through the walk-timeout settle path
 
 Current limits:
 
-- observer-side movement is visible, but current script-readable
-  `headlesspc_map/x/y` state does not yet track that escort leg reliably
 - the current escort pattern follows a fixed one-way handoff, not a live leader
 - success/failure is still controller-local, not event-bus driven
 - there is no multi-leg escort choreography yet

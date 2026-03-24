@@ -1179,5 +1179,61 @@ This slice still does not implement:
 
 - following a live leader actor in real time
 - multi-leg escort choreography
-- exact movement-state reconciliation for scripted escort legs
 - escort failure/success events beyond final controller disable
+
+## Slice 21: Walk-State Settling And Escort Telemetry Fix
+
+### Goal
+
+Make script-visible headless-PC position state settle to the same tile that
+observers see after `walkto(...)` and escort-leg movement.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added internal helpers in `chrif.cpp` to read the current headless-PC
+  position from `unit_data` exact walk state, falling back to `sd->x/y` when no
+  walk state exists.
+- Updated headless runtime position readers to use those helpers for:
+  - script-visible `headlesspc_x(...)`
+  - script-visible `headlesspc_y(...)`
+  - spawn-ready runtime upsert
+  - `setpos(...)` runtime upsert
+  - `routestop(...)` runtime upsert
+  - walk poll ledger updates
+- Reworked walk completion polling so it no longer depends only on a fixed poll
+  count.
+- `headlesspc_walkto(...)` now stores a due tick based on
+  `unit_get_walkpath_time(...)`.
+- If the exact walk state still has not settled by that due tick, the poll path
+  commits the final destination tile with `unit_movepos(...)`, then advances the
+  walk ack and any queued route state.
+
+### Validation
+
+- rebuilt `map-server` successfully
+- restarted the stack cleanly
+- OpenKore validated:
+  - `Headless Smoke -> Setpos codexalt center`
+  - `Headless Escort -> Start codexalt escort`
+  - observer-side player list shows `codexalt` at `166,186`
+  - later `Headless Escort -> Status` reports:
+    - `Current: prontera (166,186)`
+    - `Walk Ack: 2626`
+- SQL validated:
+  - `headless_pc_runtime` row for `150002` settled to `prontera 166 186`
+  - `headless_pc_lifecycle.walk_ack_seq` advanced to `2626`
+
+### Deferrals
+
+This slice still does not implement:
+
+- walk-failure result codes beyond timeout settle
+- multi-leg escort choreography
+- live leader-follow behavior
+- evented arrival callbacks beyond existing controller-local logic

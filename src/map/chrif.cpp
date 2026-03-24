@@ -67,7 +67,7 @@ static uint32 headlesspc_next_reconcile_seq = 1;
 struct s_headlesspc_walk_request {
 	uint16 x;
 	uint16 y;
-	uint16 polls;
+	t_tick due_tick;
 };
 struct s_headlesspc_waypoint {
 	uint16 x;
@@ -118,6 +118,28 @@ static bool headlesspc_owner_matches(uint32 char_id, const char* owner) {
 		return false;
 
 	return it->second == owner;
+}
+
+static uint16 headlesspc_current_x(map_session_data* sd) {
+	if (sd == nullptr)
+		return 0;
+
+	unit_data* ud = unit_bl2ud(sd);
+	if (ud != nullptr)
+		return static_cast<uint16>(ud->getx(gettick()));
+
+	return static_cast<uint16>(sd->x);
+}
+
+static uint16 headlesspc_current_y(map_session_data* sd) {
+	if (sd == nullptr)
+		return 0;
+
+	unit_data* ud = unit_bl2ud(sd);
+	if (ud != nullptr)
+		return static_cast<uint16>(ud->gety(gettick()));
+
+	return static_cast<uint16>(sd->y);
 }
 
 static bool headlesspc_runtime_upsert(uint32 char_id, int16 m, uint16 x, uint16 y) {
@@ -389,9 +411,10 @@ static TIMER_FUNC(headlesspc_walk_poll_timer) {
 	}
 
 	const unit_data* ud = unit_bl2ud(sd);
-	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
 
-	if (sd->x == it->second.x && sd->y == it->second.y && (ud == nullptr || ud->walktimer == INVALID_TIMER)) {
+	if (headlesspc_current_x(sd) == it->second.x && headlesspc_current_y(sd) == it->second.y
+		&& (ud == nullptr || ud->walktimer == INVALID_TIMER)) {
 		if (auto seq_it = headlesspc_walk_request_seq.find(char_id); seq_it != headlesspc_walk_request_seq.end()) {
 			headlesspc_walk_ack_seq[char_id] = seq_it->second;
 			headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
@@ -401,11 +424,23 @@ static TIMER_FUNC(headlesspc_walk_poll_timer) {
 		return 0;
 	}
 
-	it->second.polls++;
-	if (it->second.polls >= 80) {
-		ShowWarning("headless_pc: walk request timed out for char_id %u before reaching (%u,%u).\n",
-			char_id, it->second.x, it->second.y);
+	if (DIFF_TICK(tick, it->second.due_tick) >= 0) {
+		if (headlesspc_current_x(sd) != it->second.x || headlesspc_current_y(sd) != it->second.y) {
+			if (!unit_movepos(sd, static_cast<int16>(it->second.x), static_cast<int16>(it->second.y), 0, false)) {
+				ShowWarning("headless_pc: walk settle failed for char_id %u toward (%u,%u).\n",
+					char_id, it->second.x, it->second.y);
+				headlesspc_clear_pending_walk(char_id);
+				return 0;
+			}
+			headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
+		}
+
+		if (auto seq_it = headlesspc_walk_request_seq.find(char_id); seq_it != headlesspc_walk_request_seq.end()) {
+			headlesspc_walk_ack_seq[char_id] = seq_it->second;
+			headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
+		}
 		headlesspc_clear_pending_walk(char_id);
+		headlesspc_route_start_next_walk(char_id);
 		return 0;
 	}
 
@@ -1163,7 +1198,7 @@ bool chrif_headlesspc_setpos(uint32 char_id, int16 m, uint16 x, uint16 y) {
 		return false;
 	}
 
-	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
 	headlesspc_lifecycle_ensure_row(char_id);
 	return true;
 }
@@ -1185,7 +1220,7 @@ bool chrif_headlesspc_walkto(uint32 char_id, uint16 x, uint16 y) {
 	if (headlesspc_walk_requests.find(char_id) != headlesspc_walk_requests.end())
 		return false;
 
-	if (x == sd->x && y == sd->y) {
+	if (x == headlesspc_current_x(sd) && y == headlesspc_current_y(sd)) {
 		headlesspc_walk_ack_seq[char_id] = headlesspc_next_walk_seq++;
 		headlesspc_lifecycle_persist_walk_ack(char_id, headlesspc_walk_ack_seq[char_id]);
 		return true;
@@ -1197,9 +1232,13 @@ bool chrif_headlesspc_walkto(uint32 char_id, uint16 x, uint16 y) {
 		return false;
 	}
 
-	headlesspc_walk_requests[char_id] = { x, y, 0 };
+	t_tick walk_time = unit_get_walkpath_time(*sd);
+	if (walk_time < 250)
+		walk_time = 250;
+
+	headlesspc_walk_requests[char_id] = { x, y, gettick() + walk_time + 100 };
 	headlesspc_walk_request_seq[char_id] = headlesspc_next_walk_seq++;
-	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
 	add_timer(gettick() + 250, headlesspc_walk_poll_timer, char_id, 0);
 	return true;
 }
@@ -1357,7 +1396,7 @@ bool chrif_headlesspc_routestop(uint32 char_id) {
 
 	headlesspc_clear_pending_walk(char_id);
 	unit_stop_walking(sd, USW_FIXPOS);
-	headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+	headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
 	return true;
 }
 
@@ -1396,13 +1435,13 @@ std::string chrif_headlesspc_map(uint32 char_id) {
 
 uint16 chrif_headlesspc_x(uint32 char_id) {
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
-		return sd->x;
+		return headlesspc_current_x(sd);
 	return 0;
 }
 
 uint16 chrif_headlesspc_y(uint32 char_id) {
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
-		return sd->y;
+		return headlesspc_current_y(sd);
 	return 0;
 }
 
@@ -1503,7 +1542,7 @@ void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
 	}
 
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
-		headlesspc_runtime_upsert(char_id, sd->m, sd->x, sd->y);
+		headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
 }
 
 /*==========================================
