@@ -1388,6 +1388,24 @@ std::string chrif_headlesspc_owner(uint32 char_id) {
 	return it->second;
 }
 
+std::string chrif_headlesspc_map(uint32 char_id) {
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
+		return map_getmapdata(sd->m)->name;
+	return "";
+}
+
+uint16 chrif_headlesspc_x(uint32 char_id) {
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
+		return sd->x;
+	return 0;
+}
+
+uint16 chrif_headlesspc_y(uint32 char_id) {
+	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr && sd->state.headless_bot)
+		return sd->y;
+	return 0;
+}
+
 int32 chrif_headlesspc_status(uint32 char_id) {
 	if (char_id == 0)
 		return HEADLESSPC_STATUS_ABSENT;

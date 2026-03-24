@@ -344,6 +344,27 @@ Current limits:
 - there is no higher-level scheduler/controller directory above the definition
   helper layer
 
+### 17. Escort-style staged movement
+
+Current support:
+
+- one non-patrol controller type now exists
+- the escort demo drives a headless PC through one owned escort leg using:
+  - `headlesspc_owned_walkto`
+  - NPC timer-driven follow-up
+- the controller resets the actor to a fixed escort start point before priming
+  the run
+ - the controller releases ownership on the next controller tick after issuing
+   the one-way leg
+
+Current limits:
+
+- observer-side movement is visible, but current script-readable
+  `headlesspc_map/x/y` state does not yet track that escort leg reliably
+- the current escort pattern follows a fixed one-way handoff, not a live leader
+- success/failure is still controller-local, not event-bus driven
+- there is no multi-leg escort choreography yet
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:

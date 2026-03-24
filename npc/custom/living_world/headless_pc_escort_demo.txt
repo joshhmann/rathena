@@ -1,0 +1,116 @@
+// Dev-only escort-style controller demo using a single owned walk leg.
+
+prontera,154,173,4	script	Headless Escort	4_M_MANAGER,{
+	.controller$ = "HeadlessEscortController";
+	mes "[Headless Escort]";
+	switch(select("Start codexalt escort:Stop codexalt escort:Status:Cancel")) {
+	case 1:
+		donpcevent .controller$ + "::OnStart";
+		mes "Escort controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Escort controller disabled.";
+		close;
+	case 3:
+		donpcevent .controller$ + "::OnBuildStatus";
+		mes getvariableofnpc(.status_summary$, .controller$);
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessEscortController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.char_id = 150002;
+	.enabled = 0;
+	.started = 0;
+	.status_summary$ = "";
+	.tick_ms = 1200;
+	.start_x = 160;
+	.start_y = 186;
+	.dest_x = 166;
+	.dest_y = 186;
+	end;
+
+OnStart:
+	.enabled = 1;
+	.started = 0;
+	if (headlesspc_status(.char_id) == 2) {
+		.@owner$ = headlesspc_owner(.char_id);
+		if (.@owner$ == "" || .@owner$ == .owner$) {
+			if (headlesspc_claim(.char_id, .owner$))
+				headlesspc_owned_setpos(.char_id, .owner$, "prontera", .start_x, .start_y);
+		}
+	}
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+
+OnStop:
+	.enabled = 0;
+	.started = 0;
+	stopnpctimer;
+	callfunc "F_LW_HPC_ControllerReleaseOwned", .char_id, .owner$;
+	end;
+
+OnBuildStatus:
+	.@owner$ = headlesspc_owner(.char_id);
+	.status_summary$ = "Enabled: " + (.enabled ? "yes" : "no") + ".";
+	.status_summary$ += "\nOwner: " + (.@owner$ == "" ? "<none>" : .@owner$) + ".";
+	.status_summary$ += "\nStatus: " + headlesspc_status(.char_id) + ".";
+	.status_summary$ += " Walk Ack: " + headlesspc_walkack(.char_id) + ".";
+	.status_summary$ += "\nCurrent: " + headlesspc_map(.char_id) + " (" + headlesspc_x(.char_id) + "," + headlesspc_y(.char_id) + ").";
+	.status_summary$ += "\nStarted: " + (.started ? "yes" : "no") + ".";
+	.status_summary$ += "\nLeg: (" + .start_x + "," + .start_y + ") -> (" + .dest_x + "," + .dest_y + ").";
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	if (!callfunc("F_LW_HPC_EnsureActive", .char_id, "prontera", .start_x, .start_y)) {
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.@owner$ = headlesspc_owner(.char_id);
+	if (.@owner$ != "" && .@owner$ != .owner$) {
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	if (!headlesspc_claim(.char_id, .owner$)) {
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	if (.started) {
+		stopnpctimer;
+		callfunc "F_LW_HPC_ControllerReleaseOwned", .char_id, .owner$;
+		.enabled = 0;
+		.started = 0;
+		end;
+	}
+
+	if (!headlesspc_owned_walkto(.char_id, .owner$, .dest_x, .dest_y)) {
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.started = 1;
+	stopnpctimer;
+	initnpctimer;
+	end;
+
+OnTimer1200:
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+}

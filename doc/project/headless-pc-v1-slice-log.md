@@ -1110,3 +1110,74 @@ This slice still does not implement:
 - external data-file loading for controller definitions
 - a generic scheduler/controller registry above the definition layer
 - behavior types beyond patrol-style route ownership
+
+## Slice 20: Escort-Style Controller Demo
+
+### Goal
+
+Prove the controller layer can drive a non-patrol behavior type with a simple
+owned escort leg instead of a looping patrol route.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/headless_pc_escort_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added script-readable position helpers:
+  - `headlesspc_map(char_id)`
+  - `headlesspc_x(char_id)`
+  - `headlesspc_y(char_id)`
+- Added a dev-only escort controller:
+  - visible NPC `Headless Escort`
+  - hidden controller `HeadlessEscortController`
+- The escort demo drives `codexalt` through one escort leg:
+  - reset to a fixed escort start point on `Start`
+  - issue one `headlesspc_owned_walkto(...)`
+  - release ownership and disable itself on the next controller tick
+- Replaced the hidden-controller follow-up scheduling with an NPC timer instead
+  of player-bound `addtimer`
+- Added controller-local status reporting for:
+  - enabled flag
+  - owner
+  - actor status
+  - walk ack
+  - current script-visible map/x/y
+  - started state
+
+### Validation
+
+- rebuilt `map-server` successfully
+- restarted the stack cleanly
+- OpenKore validated:
+  - the new `Headless Escort` NPC loads in Prontera
+  - starting the escort claims `codexalt`
+  - observer-side player list shows `codexalt` on the destination side at
+    `166,186`
+  - later `Status` reports:
+    - `Enabled: no`
+    - `Owner: <none>`
+    - `Started: no`
+  - stopping the escort releases ownership cleanly
+
+### Residual Gap
+
+- the current script-visible `headlesspc_map/x/y` values and runtime ledger
+  still report the escort start tile after the observer-side move is visible
+- this slice is accepted as a controller-pattern proof, not yet as
+  authoritative movement-state proof
+
+### Deferrals
+
+This slice still does not implement:
+
+- following a live leader actor in real time
+- multi-leg escort choreography
+- exact movement-state reconciliation for scripted escort legs
+- escort failure/success events beyond final controller disable

@@ -11852,6 +11852,43 @@ BUILDIN_FUNC(headlesspc_owner)
 }
 
 /*==========================================
+ * Query current map name for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_map)
+{
+	uint32 char_id = script_getnum(st, 2);
+	std::string mapname = chrif_headlesspc_map(char_id);
+
+	if (mapname.empty())
+		script_pushconststr(st, "");
+	else
+		script_pushstrcopy(st, mapname.c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query current x for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_x)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_x(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query current y for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_y)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_y(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Query last completed headless reconcile result by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_reconcileresult)
@@ -28787,6 +28824,9 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_owned_routestop,"is"),
 	BUILDIN_DEF(headlesspc_status,"i"),
 	BUILDIN_DEF(headlesspc_owner,"i"),
+	BUILDIN_DEF(headlesspc_map,"i"),
+	BUILDIN_DEF(headlesspc_x,"i"),
+	BUILDIN_DEF(headlesspc_y,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
 	BUILDIN_DEF(headlesspc_spawnack,"i"),
 	BUILDIN_DEF(headlesspc_reconcile,"i"),
