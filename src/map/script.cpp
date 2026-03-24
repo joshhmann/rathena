@@ -11590,6 +11590,30 @@ BUILDIN_FUNC(headlesspc_walkto)
 }
 
 /*==========================================
+ * Claim a live headless BL_PC for a named controller.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_claim)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+
+	script_pushint(st, chrif_headlesspc_claim(char_id, owner) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Release a claimed live headless BL_PC for a named controller.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_release)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* owner = script_getstr(st, 3);
+
+	script_pushint(st, chrif_headlesspc_release(char_id, owner) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Clear the in-memory route for a live headless BL_PC by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_routeclear)
@@ -11710,6 +11734,21 @@ BUILDIN_FUNC(headlesspc_routestatus)
 	uint32 char_id = script_getnum(st, 2);
 
 	script_pushint(st, chrif_headlesspc_routestatus(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query owner label for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_owner)
+{
+	uint32 char_id = script_getnum(st, 2);
+	std::string owner = chrif_headlesspc_owner(char_id);
+
+	if (owner.empty())
+		script_pushconststr(st, "");
+	else
+		script_pushstrcopy(st, owner.c_str());
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -28634,11 +28673,14 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(headlesspc_setpos,"isii"),
 	BUILDIN_DEF(headlesspc_walkto,"iii"),
+	BUILDIN_DEF(headlesspc_claim,"is"),
+	BUILDIN_DEF(headlesspc_release,"is"),
 	BUILDIN_DEF(headlesspc_routeclear,"i"),
 	BUILDIN_DEF(headlesspc_routeadd,"iii"),
 	BUILDIN_DEF(headlesspc_routestart,"ii"),
 	BUILDIN_DEF(headlesspc_routestop,"i"),
 	BUILDIN_DEF(headlesspc_status,"i"),
+	BUILDIN_DEF(headlesspc_owner,"i"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
 	BUILDIN_DEF(headlesspc_spawnack,"i"),
 	BUILDIN_DEF(headlesspc_reconcile,"i"),

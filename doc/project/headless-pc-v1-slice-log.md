@@ -811,3 +811,66 @@ This slice still does not implement:
 - per-route completion or failure ack history
 - route editing while already running beyond the simple append semantics
 - higher-level controller ownership or scheduling
+
+## Slice 14: First Ownership And Controller Demo
+
+### Goal
+
+Add the first lightweight ownership layer so a named controller can claim a
+headless actor, then prove that controller-driven patrol behavior works without
+using the smoke harness directly.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/scripts_custom.conf`
+- `npc/custom/living_world/headless_pc_controller_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added an in-memory owner label registry in `chrif.cpp`.
+- Added:
+  - `chrif_headlesspc_claim(char_id, owner$)`
+  - `chrif_headlesspc_release(char_id, owner$)`
+  - `chrif_headlesspc_owner(char_id)`
+- Added matching script buildins:
+  - `headlesspc_claim(char_id, owner$)`
+  - `headlesspc_release(char_id, owner$)`
+  - `headlesspc_owner(char_id)`
+- Owner labels are cleared when a headless actor is removed or reaches final
+  save/remove ack.
+- Added a dev-only demo controller at:
+  - `npc/custom/living_world/headless_pc_controller_demo.txt`
+- The demo controller:
+  - spawns `codexalt` if absent
+  - claims ownership as `HeadlessPatrolController`
+  - starts the existing Prontera patrol route if not already running
+  - releases the actor on stop
+
+### Validation
+
+- rebuilt and restarted the full stack
+- OpenKore validated the demo controller path through `Headless Patrol`:
+  - `Status` initially showed:
+    - `Enabled: no`
+    - `Owner: <none>`
+    - `Status: 2. Route: 0`
+  - `Start codexalt patrol`
+  - nearby player list showed `codexalt` move under controller control
+  - `Status` then showed:
+    - `Enabled: yes`
+    - `Owner: HeadlessPatrolController`
+    - `Status: 2. Route: 2`
+  - `Stop codexalt patrol` disabled the controller cleanly
+
+### Deferrals
+
+This slice still does not implement:
+
+- owner enforcement on every admin/operator buildin
+- owner persistence across restart
+- multi-controller arbitration beyond simple first-claim wins
+- scheduling or behavior trees above the demo patrol loop

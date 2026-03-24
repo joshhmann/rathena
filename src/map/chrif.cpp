@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -82,6 +83,7 @@ static std::unordered_map<uint32, s_headlesspc_walk_request> headlesspc_walk_req
 static std::unordered_map<uint32, uint32> headlesspc_walk_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_walk_ack_seq;
 static std::unordered_map<uint32, s_headlesspc_route_state> headlesspc_route_states;
+static std::unordered_map<uint32, std::string> headlesspc_owner_labels;
 static uint32 headlesspc_next_walk_seq = 1;
 static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
 static const char* headlesspc_runtime_table = "headless_pc_runtime";
@@ -99,6 +101,10 @@ static void headlesspc_clear_pending_walk(uint32 char_id) {
 
 static void headlesspc_route_reset(uint32 char_id) {
 	headlesspc_route_states.erase(char_id);
+}
+
+static void headlesspc_owner_reset(uint32 char_id) {
+	headlesspc_owner_labels.erase(char_id);
 }
 
 static bool headlesspc_route_start_next_walk(uint32 char_id);
@@ -806,6 +812,7 @@ static void chrif_save_ack(int32 fd) {
 
 	headlesspc_clear_pending_walk(char_id);
 	headlesspc_route_reset(char_id);
+	headlesspc_owner_reset(char_id);
 	headlesspc_runtime_delete(char_id);
 
 	chrif_auth_delete(account_id, char_id, ST_LOGOUT);
@@ -1079,6 +1086,7 @@ bool chrif_headlesspc_remove(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
 	headlesspc_clear_pending_walk(char_id);
 	headlesspc_route_reset(char_id);
+	headlesspc_owner_reset(char_id);
 	bool cleared_runtime = headlesspc_runtime_delete(char_id);
 
 	if (map_session_data* sd = map_charid2sd(char_id); sd != nullptr) {
@@ -1185,6 +1193,34 @@ bool chrif_headlesspc_walkto(uint32 char_id, uint16 x, uint16 y) {
 	return true;
 }
 
+bool chrif_headlesspc_claim(uint32 char_id, const char* owner) {
+	if (char_id == 0 || owner == nullptr || owner[0] == '\0')
+		return false;
+
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.headless_bot || headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
+		return false;
+
+	auto it = headlesspc_owner_labels.find(char_id);
+	if (it != headlesspc_owner_labels.end() && it->second != owner)
+		return false;
+
+	headlesspc_owner_labels[char_id] = owner;
+	return true;
+}
+
+bool chrif_headlesspc_release(uint32 char_id, const char* owner) {
+	if (char_id == 0 || owner == nullptr || owner[0] == '\0')
+		return false;
+
+	auto it = headlesspc_owner_labels.find(char_id);
+	if (it == headlesspc_owner_labels.end() || it->second != owner)
+		return false;
+
+	headlesspc_owner_labels.erase(it);
+	return true;
+}
+
 static bool headlesspc_route_start_next_walk(uint32 char_id) {
 	auto route_it = headlesspc_route_states.find(char_id);
 	if (route_it == headlesspc_route_states.end())
@@ -1283,6 +1319,13 @@ int32 chrif_headlesspc_routestatus(uint32 char_id) {
 	if (route_it->second.running)
 		return 2;
 	return 1;
+}
+
+std::string chrif_headlesspc_owner(uint32 char_id) {
+	auto it = headlesspc_owner_labels.find(char_id);
+	if (it == headlesspc_owner_labels.end())
+		return "";
+	return it->second;
 }
 
 int32 chrif_headlesspc_status(uint32 char_id) {

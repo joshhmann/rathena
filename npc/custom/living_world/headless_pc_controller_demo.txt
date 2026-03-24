@@ -1,0 +1,70 @@
+// Dev-only demo controller that claims codexalt and keeps a simple patrol alive.
+
+prontera,154,177,4	script	Headless Patrol	4_M_MANAGER,{
+	.controller$ = "HeadlessPatrolController";
+	.owner$ = .controller$;
+	mes "[Headless Patrol]";
+	switch(select("Start codexalt patrol:Stop codexalt patrol:Status:Cancel")) {
+	case 1:
+		.enabled = 1;
+		set getvariableofnpc(.enabled, .controller$), 1;
+		donpcevent .controller$ + "::OnTick";
+		mes "Controller enabled.";
+		close;
+	case 2:
+		.enabled = 0;
+		set getvariableofnpc(.enabled, .controller$), 0;
+		if (headlesspc_owner(150002) == .owner$) {
+			headlesspc_routestop(150002);
+			headlesspc_release(150002, .owner$);
+		}
+		mes "Controller disabled.";
+		close;
+	case 3:
+		mes "Enabled: " + (getvariableofnpc(.enabled, .controller$) ? "yes" : "no") + ".";
+		next;
+		mes "Owner: " + (headlesspc_owner(150002) == "" ? "<none>" : headlesspc_owner(150002)) + ".";
+		next;
+		mes "Status: " + headlesspc_status(150002) + ". Route: " + headlesspc_routestatus(150002) + ".";
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessPatrolController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.enabled = 0;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	.@status = headlesspc_status(150002);
+	if (.@status == 0) {
+		headlesspc_spawn(150002, "prontera", 160, 186);
+		addtimer 1000, strnpcinfo(3) + "::OnTick";
+		end;
+	}
+
+	if (.@status == 2) {
+		.@owner$ = headlesspc_owner(150002);
+		if (.@owner$ == "" || .@owner$ == .owner$) {
+			if (headlesspc_claim(150002, .owner$)) {
+				if (headlesspc_routestatus(150002) != 2) {
+					headlesspc_routeclear(150002);
+					headlesspc_routeadd(150002, 160, 186);
+					headlesspc_routeadd(150002, 163, 186);
+					headlesspc_routeadd(150002, 163, 189);
+					headlesspc_routeadd(150002, 160, 189);
+					headlesspc_routestart(150002, 1);
+				}
+			}
+		}
+	}
+
+	addtimer 2000, strnpcinfo(3) + "::OnTick";
+	end;
+}

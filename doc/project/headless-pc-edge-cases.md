@@ -253,6 +253,28 @@ Current limits:
 - stopping a route halts the current movement and keeps the actor at its last
   reached runtime coordinate
 
+### 13. In-memory ownership layer
+
+Current support:
+
+- active local headless PCs can be claimed by a named controller
+- scripts can:
+  - claim
+  - release
+  - query current owner label
+- a simple demo controller now uses this layer to keep `codexalt` patrolling
+  without manual smoke-menu route setup
+
+Current limits:
+
+- ownership is in-memory only and does not survive restart
+- admin/operator buildins are not owner-gated yet
+- arbitration is intentionally simple:
+  - unowned actor => first claim wins
+  - same owner => re-claim succeeds
+  - different owner => claim fails
+- owner labels are cleared on remove/final save, not persisted in SQL
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:
