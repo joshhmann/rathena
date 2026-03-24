@@ -933,3 +933,44 @@ This slice still does not implement:
 - hard permissioning around who may use the override APIs
 - owner persistence across restart
 - owner-aware guards for every possible future headless mutation surface
+
+## Slice 16: Script-Side Controller Framework Helpers
+
+### Goal
+
+Stop repeating the same start/stop/spawn/claim/route glue in every controller
+script and move that pattern into shared script helpers.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_controller_demo.txt`
+
+### Runtime Path Changes
+
+- Added shared script helpers:
+  - `F_LW_HPC_ControllerStart(controller$)`
+  - `F_LW_HPC_ControllerStop(controller$, char_id, owner$)`
+  - `F_LW_HPC_PrimeOwnedRoute(char_id, owner$, loop, x1, y1, ...)`
+  - `F_LW_HPC_EnsureActive(char_id, map$, x, y)`
+- Migrated the demo patrol controller onto those helpers:
+  - visible NPC now uses shared start/stop helpers
+  - hidden controller now uses shared active/spawn and route-priming helpers
+
+### Validation
+
+- restarted the stack cleanly
+- OpenKore validated the migrated patrol controller still works:
+  - `Headless Patrol -> Start codexalt patrol`
+  - later `Status` showed:
+    - `Enabled: yes`
+    - `Owner: HeadlessPatrolController`
+    - `Status: 2. Route: 2`
+
+### Deferrals
+
+This slice still does not implement:
+
+- a generalized multi-actor controller registry
+- shared schedule helpers specific to headless controllers
+- reusable escort/merchant/event controller templates

@@ -305,6 +305,24 @@ Current limits:
 - there is still no SQL-persisted owner state
 - the smoke harness still uses admin/operator override calls intentionally
 
+### 15. Script-side controller framework helpers
+
+Current support:
+
+- shared helper functions now exist for common headless controller patterns:
+  - start
+  - stop
+  - ensure active or spawn
+  - prime an owned patrol route from waypoint pairs
+- the patrol demo now uses those helpers instead of duplicating the controller
+  glue inline
+
+Current limits:
+
+- helpers are still waypoint/patrol oriented
+- there is no generic controller registry or template loader
+- higher-level behavior policies still live in each controller script
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:
