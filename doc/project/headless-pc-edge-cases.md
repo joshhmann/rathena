@@ -323,6 +323,23 @@ Current limits:
 - there is no generic controller registry or template loader
 - higher-level behavior policies still live in each controller script
 
+### 16. Small multi-actor controller pattern
+
+Current support:
+
+- one controller can now manage a small fixed set of headless PCs
+- shared group stop/release helper exists for owned actors
+- the current demo pattern manages:
+  - `assa`
+  - `codexalt`
+  under one controller owner label
+
+Current limits:
+
+- actor membership is still hardcoded in script
+- there is no shared data-driven actor list format yet
+- group controllers still decide each actor's route inline
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:

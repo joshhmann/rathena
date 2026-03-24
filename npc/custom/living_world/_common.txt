@@ -185,6 +185,20 @@ function	script	F_LW_HPC_ControllerStop	{
 	return 1;
 }
 
+function	script	F_LW_HPC_ControllerStopGroup	{
+	.@controller$ = getarg(0);
+	.@owner$ = getarg(1);
+	set getvariableofnpc(.enabled, .@controller$), 0;
+	for (.@i = 2; .@i < getargcount(); ++.@i) {
+		.@char_id = getarg(.@i);
+		if (headlesspc_owner(.@char_id) == .@owner$) {
+			headlesspc_owned_routestop(.@char_id, .@owner$);
+			headlesspc_release(.@char_id, .@owner$);
+		}
+	}
+	return 1;
+}
+
 function	script	F_LW_HPC_PrimeOwnedRoute	{
 	.@char_id = getarg(0);
 	.@owner$ = getarg(1);

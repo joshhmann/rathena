@@ -1,0 +1,70 @@
+// Dev-only multi-actor controller demo for a small distributed pair.
+
+prontera,154,175,4	script	Headless Pair Patrol	4_M_MANAGER,{
+	.controller$ = "HeadlessPairController";
+	.owner$ = .controller$;
+	mes "[Headless Pair Patrol]";
+	switch(select("Start pair patrol:Stop pair patrol:Status:Cancel")) {
+	case 1:
+		callfunc "F_LW_HPC_ControllerStart", .controller$;
+		mes "Pair controller enabled.";
+		close;
+	case 2:
+		callfunc "F_LW_HPC_ControllerStopGroup", .controller$, .owner$, 150000, 150002;
+		mes "Pair controller disabled.";
+		close;
+	case 3:
+		mes "Enabled: " + (getvariableofnpc(.enabled, .controller$) ? "yes" : "no") + ".";
+		next;
+		mes "assa owner/status/route: " + (headlesspc_owner(150000) == "" ? "<none>" : headlesspc_owner(150000)) + " / " + headlesspc_status(150000) + " / " + headlesspc_routestatus(150000) + ".";
+		next;
+		mes "codexalt owner/status/route: " + (headlesspc_owner(150002) == "" ? "<none>" : headlesspc_owner(150002)) + " / " + headlesspc_status(150002) + " / " + headlesspc_routestatus(150002) + ".";
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessPairController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.enabled = 0;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	// assa
+	if (callfunc("F_LW_HPC_EnsureActive", 150000, "prontera", 156, 184)) {
+		.@owner$ = headlesspc_owner(150000);
+		if (.@owner$ == "" || .@owner$ == .owner$) {
+			if (headlesspc_claim(150000, .owner$) && headlesspc_routestatus(150000) != 2) {
+				callfunc "F_LW_HPC_PrimeOwnedRoute",
+					150000, .owner$, 1,
+					156, 184,
+					159, 184,
+					159, 187,
+					156, 187;
+			}
+		}
+	}
+
+	// codexalt
+	if (callfunc("F_LW_HPC_EnsureActive", 150002, "prontera", 160, 186)) {
+		.@owner$ = headlesspc_owner(150002);
+		if (.@owner$ == "" || .@owner$ == .owner$) {
+			if (headlesspc_claim(150002, .owner$) && headlesspc_routestatus(150002) != 2) {
+				callfunc "F_LW_HPC_PrimeOwnedRoute",
+					150002, .owner$, 1,
+					160, 186,
+					163, 186,
+					163, 189,
+					160, 189;
+			}
+		}
+	}
+
+	addtimer 2500, strnpcinfo(3) + "::OnTick";
+	end;
+}

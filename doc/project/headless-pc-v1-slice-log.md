@@ -974,3 +974,47 @@ This slice still does not implement:
 - a generalized multi-actor controller registry
 - shared schedule helpers specific to headless controllers
 - reusable escort/merchant/event controller templates
+
+## Slice 17: Multi-Actor Controller Pattern
+
+### Goal
+
+Prove one controller can own and maintain a small set of headless PCs cleanly,
+not just a single actor.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_group_controller_demo.txt`
+- `npc/scripts_custom.conf`
+
+### Runtime Path Changes
+
+- Added shared helper:
+  - `F_LW_HPC_ControllerStopGroup(controller$, owner$, char_id...)`
+- Added a dev-only multi-actor demo controller:
+  - `Headless Pair Patrol`
+  - hidden controller `HeadlessPairController`
+- The group demo manages:
+  - `assa` (`150000`)
+  - `codexalt` (`150002`)
+- Each actor is:
+  - ensured active or spawned
+  - claimed by the same owner label
+  - assigned an independent owned patrol route
+
+### Validation
+
+- restarted the stack cleanly
+- OpenKore validated the pair controller:
+  - `Headless Pair Patrol -> Start pair patrol`
+  - both `assa` and `codexalt` remained active under one controller owner
+  - status reported owner/status/route for both actors
+
+### Deferrals
+
+This slice still does not implement:
+
+- dynamic actor lists loaded from data
+- per-actor scheduling within one group controller
+- generalized group metrics or health reporting
