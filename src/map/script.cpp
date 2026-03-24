@@ -11911,6 +11911,40 @@ BUILDIN_FUNC(headlesspc_y)
 }
 
 /*==========================================
+ * Emit overhead talk for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_talk)
+{
+	uint32 char_id = script_getnum(st, 2);
+	const char* message = script_getstr(st, 3);
+	TBL_PC* sd = map_charid2sd(char_id);
+
+	if (sd == nullptr || !sd->state.headless_bot)
+		return SCRIPT_CMD_FAILURE;
+
+	clif_disp_overhead(sd, message);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Emit an emotion for a live headless BL_PC.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_emote)
+{
+	uint32 char_id = script_getnum(st, 2);
+	int32 emotion = script_getnum(st, 3);
+	TBL_PC* sd = map_charid2sd(char_id);
+
+	if (emotion < ET_SURPRISE || emotion >= ET_MAX)
+		return SCRIPT_CMD_FAILURE;
+	if (sd == nullptr || !sd->state.headless_bot)
+		return SCRIPT_CMD_FAILURE;
+
+	clif_emotion(*sd, static_cast<emotion_type>(emotion));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Query last completed headless reconcile result by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_reconcileresult)
@@ -28888,6 +28922,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_map,"i"),
 	BUILDIN_DEF(headlesspc_x,"i"),
 	BUILDIN_DEF(headlesspc_y,"i"),
+	BUILDIN_DEF(headlesspc_talk,"is"),
+	BUILDIN_DEF(headlesspc_emote,"ii"),
 	BUILDIN_DEF(headlesspc_ack,"i"),
 	BUILDIN_DEF(headlesspc_spawnack,"i"),
 	BUILDIN_DEF(headlesspc_reconcile,"i"),

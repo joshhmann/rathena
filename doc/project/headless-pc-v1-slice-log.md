@@ -1609,3 +1609,68 @@ This slice still does not implement:
 - accountless bot identities
 - controller-aware batch provisioning
 - richer seeded loadouts beyond the novice baseline
+
+## Slice 28: Shared Social Pulse Hooks
+
+### Goal
+
+Add lightweight social chatter/emote support to the reusable `headless_pc`
+controller kit so `hold` and `loiter` actors can feel alive without introducing
+combat, schedule logic, or a separate behavior scheduler.
+
+### Files Touched
+
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_alberta_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added direct script buildins for live headless actors:
+  - `headlesspc_talk(char_id, message$)`
+  - `headlesspc_emote(char_id, emotion)`
+- Extended the shared controller kit with social pools:
+  - `F_LW_HPC_DefAddTalk`
+  - `F_LW_HPC_DefAddEmote`
+  - `F_LW_HPC_DefPulseActor`
+- Limited the pulse path to stable social modes only:
+  - `hold`
+  - `loiter`
+- Added low-frequency pulse throttling per actor through a stored next-pulse
+  timestamp so controllers do not spam overhead lines or emotions every tick.
+- Refactored the Alberta social proof onto the seeded bot identities:
+  - `BotPc01`
+  - `BotPc02`
+  - `BotPc03`
+  - `BotPc04`
+  - `BotPc05`
+- Expanded the Alberta proof from a two-actor setup to:
+  - two anchored market regulars
+  - three roaming loiter actors
+
+### Validation
+
+- `map-server` rebuilt cleanly with the new buildins
+- a real `restart` reload came up cleanly on the updated binary and scripts
+- OpenKore validated the refreshed Alberta proof after clearing the old
+  hand-created runtime actors:
+  - `Headless Smoke -> Remove pair`
+  - `Headless Alberta Social -> Start market traffic`
+  - nearby player list in Alberta showed:
+    - `BotPc01`
+    - `BotPc02`
+    - `BotPc03`
+    - `BotPc04`
+    - `BotPc05`
+- the visible proof is now running against the seeded provisioning set rather
+  than the original `assa/codexalt` pair
+
+### Deferrals
+
+This slice still does not fully prove:
+
+- visual confirmation of overhead chatter/emote pulses in the desktop client
+- randomized or schedule-aware social decisions
+- congestion-aware social fallback beyond the current ordered anchors
+- a second merchant/social controller on top of the same pulse helpers

@@ -307,6 +307,26 @@ function	script	F_LW_HPC_DefSetMode	{
 	return 1;
 }
 
+function	script	F_LW_HPC_DefAddTalk	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@j = getd("$LWHD" + .@seed + "_TC[" + .@i + "]");
+	setd("$LWHD" + .@seed + "_TM$" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_TC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefAddEmote	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@j = getd("$LWHD" + .@seed + "_EC[" + .@i + "]");
+	setd("$LWHD" + .@seed + "_EM" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_EC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
 function	script	F_LW_HPC_DefAddRoutePoint	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
@@ -348,10 +368,44 @@ function	script	F_LW_HPC_DefBuildStatus	{
 		.@summary$ += "\n" + .@label$ + " owner/status/route: "
 			+ (.@owner$ == "" ? "<none>" : .@owner$) + " / "
 			+ headlesspc_status(.@char_id) + " / "
-			+ headlesspc_routestatus(.@char_id) + " (" + .@mode$ + ").";
+			+ headlesspc_routestatus(.@char_id) + " (" + .@mode$ + ", pulse "
+			+ getd("$LWHD" + .@seed + "_NX[" + .@i + "]") + ").";
 	}
 	setd("$LWHS" + .@seed + "$", .@summary$);
 	return .@count;
+}
+
+function	script	F_LW_HPC_DefPulseActor	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+	.@mode$ = getd("$LWHD" + .@seed + "_T$[" + .@i + "]");
+	.@talk_count = getd("$LWHD" + .@seed + "_TC[" + .@i + "]");
+	.@emote_count = getd("$LWHD" + .@seed + "_EC[" + .@i + "]");
+	.@now = gettimetick(2);
+	.@next = getd("$LWHD" + .@seed + "_NX[" + .@i + "]");
+
+	if (.@mode$ != "hold" && .@mode$ != "loiter")
+		return 0;
+	if (headlesspc_status(.@char_id) != 2)
+		return 0;
+	if (.@now < .@next)
+		return 0;
+	if (.@talk_count < 1 && .@emote_count < 1)
+		return 0;
+
+	setd("$LWHD" + .@seed + "_NX[" + .@i + "]", .@now + 35 + rand(25));
+
+	if (.@talk_count > 0 && (.@emote_count < 1 || rand(100) < 65)) {
+		.@pick = rand(.@talk_count);
+		headlesspc_talk(.@char_id, getd("$LWHD" + .@seed + "_TM$" + .@i + "[" + .@pick + "]"));
+		return 1;
+	}
+
+	.@pick = rand(.@emote_count);
+	headlesspc_emote(.@char_id, getd("$LWHD" + .@seed + "_EM" + .@i + "[" + .@pick + "]"));
+	return 1;
 }
 
 function	script	F_LW_HPC_DefStop	{
@@ -400,6 +454,7 @@ function	script	F_LW_HPC_DefTickActor	{
 	if (.@mode$ == "hold") {
 		if (.@current_map$ != .@map$ || .@current_x != .@x || .@current_y != .@y)
 			return headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y);
+		callfunc "F_LW_HPC_DefPulseActor", .@controller$, .@i;
 		return 1;
 	}
 
@@ -427,6 +482,7 @@ function	script	F_LW_HPC_DefTickActor	{
 			.@loiter_pending = 0;
 			setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 0);
 			setd("$LWHD" + .@seed + "_LE[" + .@i + "]", .@current_walk_event);
+			callfunc "F_LW_HPC_DefPulseActor", .@controller$, .@i;
 		}
 
 		.@target_x = getd("$LWHD" + .@seed + "_AX" + .@i + "[" + .@loiter_index + "]");
