@@ -455,6 +455,54 @@ Current limits:
 - there is no broader spacing or congestion policy yet
 - there is no cross-map formation replay beyond simple owned reposition logic
 
+### 21. Reusable controller kit
+
+Current support:
+
+- the shared script helper layer now supports reusable actor-definition driven
+  controllers instead of only one-off demos
+- the current reusable action modes are:
+  - `hold`
+  - `patrol`
+  - `loiter`
+- the definition layer now handles:
+  - actor registration
+  - owner-aware activation
+  - hold-anchor positioning
+  - route priming from waypoint lists
+  - route priming from loiter anchor sets
+  - shared status summary output
+
+Current limits:
+
+- controller definitions still live in script `OnInit`
+- there is no higher-level scheduler yet
+- follower and formation remain specialized controllers on top of the shared
+  ownership/anchor helpers rather than pure definition-mode controllers
+
+### 22. Alberta merchant/social proof
+
+Current support:
+
+- Alberta now has a dev-only headless social controller proof built on the
+  reusable definition kit
+- the current proof uses:
+  - one anchored market regular in `hold` mode
+  - one roaming market actor in `loiter` mode
+- the scene is intentionally compact and uses the existing Alberta merchant
+  pocket as the anchor area
+- the current proof is enough to validate shared actor-definition startup and
+  Alberta placement with the existing test-character pool
+
+Current limits:
+
+- this is still a controller-architecture proof, not a full population system
+- no chatter/emote layer exists yet for headless actors
+- the current proof uses the existing test-character pool, so actor variety is
+  constrained by the available characters
+- `loiter` currently shares the route-priming baseline and does not yet have a
+  richer progression/state policy of its own
+
 ## Multi-Actor Coverage
 
 Current reusable manual pair test:

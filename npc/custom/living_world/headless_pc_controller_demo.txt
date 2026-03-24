@@ -29,30 +29,19 @@ prontera,154,177,4	script	Headless Patrol	4_M_MANAGER,{
 OnInit:
 	.owner$ = strnpcinfo(3);
 	.enabled = 0;
+	callfunc "F_LW_HPC_DefReset", .owner$;
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "codexalt", 150002, "prontera", 160, 186, 1;
+	callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 0, 160, 186;
+	callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 0, 163, 186;
+	callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 0, 163, 189;
+	callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 0, 160, 189;
 	end;
 
 OnTick:
 	if (!.enabled)
 		end;
 
-	if (!callfunc("F_LW_HPC_EnsureActive", 150002, "prontera", 160, 186)) {
-		addtimer 1000, strnpcinfo(3) + "::OnTick";
-		end;
-	}
-
-	.@owner$ = headlesspc_owner(150002);
-	if (.@owner$ == "" || .@owner$ == .owner$) {
-		if (headlesspc_claim(150002, .owner$)) {
-			if (headlesspc_routestatus(150002) != 2) {
-				callfunc "F_LW_HPC_PrimeOwnedRoute",
-					150002, .owner$, 1,
-					160, 186,
-					163, 186,
-					163, 189,
-					160, 189;
-			}
-		}
-	}
+	callfunc "F_LW_HPC_DefTickActor", .owner$, .owner$, 0;
 
 	addtimer 2000, strnpcinfo(3) + "::OnTick";
 	end;

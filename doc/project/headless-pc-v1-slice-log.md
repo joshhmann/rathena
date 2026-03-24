@@ -1444,3 +1444,66 @@ This slice still does not implement:
 - durable persistence of route/controller state across restart
 - richer obstacle avoidance than ordered passable-anchor fallback
 - dynamic formation sizing or role-aware spacing
+
+## Slice 25: Reusable Controller Kit And Alberta Social Proof
+
+### Goal
+
+Promote the current script-side controller helpers into a reusable
+`headless_pc` controller kit, then prove that the kit can drive a merchant/social
+scene in Alberta without writing another bespoke controller from scratch.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_controller_demo.txt`
+- `npc/custom/living_world/headless_pc_alberta_social_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Extended the shared actor-definition registry with explicit controller data:
+  - actor mode via `F_LW_HPC_DefSetMode(...)`
+  - anchor-set registration via `F_LW_HPC_DefAddAnchor(...)`
+- The reusable definition layer now supports three controller shapes cleanly:
+  - `hold`
+  - `patrol`
+  - `loiter`
+- `F_LW_HPC_DefTickActor(...)` now:
+  - enforces ownership
+  - handles hold actors through anchored `setpos(...)`
+  - primes patrol routes from route points
+  - primes loiter loops from anchor sets
+  - repositions actors back onto their controller map before restarting routes
+- The original single patrol demo now runs through the shared definition kit
+  instead of bespoke spawn/claim/route glue.
+- Added a new Alberta proof controller:
+  - visible NPC `Headless Alberta Social`
+  - hidden controller `HeadlessAlbertaSocialController`
+  - uses the shared definition kit rather than custom actor logic
+
+### Validation
+
+- rebuilt and restarted the stack cleanly
+- existing patrol/follower/formation controllers still loaded without parser
+  errors
+- OpenKore validated the Alberta proof:
+  - `Headless Alberta Social -> Start market traffic`
+  - `assa` spawned into the Alberta merchant pocket anchor at `47,245`
+  - `codexalt` spawned into the Alberta loiter set start at `44,243`
+  - nearby player list showed both actors in Alberta under controller control
+  - `Status` reported the shared-mode summary for both actors
+- OpenKore also revalidated the single patrol demo after the refactor:
+  - `Headless Patrol -> Start codexalt patrol`
+  - actor stayed active under the shared registry-based route path
+
+### Deferrals
+
+This slice still does not implement:
+
+- a world/map scheduler above the controller kit
+- social chatter/emote policy for headless actors
+- data-driven controller definitions outside script `OnInit`
+- loiter-state progression beyond the current shared route-priming baseline

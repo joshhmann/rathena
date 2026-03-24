@@ -1,0 +1,57 @@
+// Dev-only Alberta merchant/social controller proof using the shared headless controller kit.
+
+alberta,48,238,4	script	Headless Alberta Social	4_M_MANAGER,{
+	.controller$ = "HeadlessAlbertaSocialController";
+	mes "[Headless Alberta Social]";
+	switch(select("Start market traffic:Stop market traffic:Status:Cancel")) {
+	case 1:
+		callfunc "F_LW_HPC_ControllerStart", .controller$;
+		mes "Alberta social controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Alberta social controller disabled.";
+		close;
+	case 3:
+		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
+		mes getd("$LWHS" + getnpcid(0, .controller$) + "$");
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessAlbertaSocialController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.enabled = 0;
+	callfunc "F_LW_HPC_DefReset", .owner$;
+
+	// Anchored market regular near the existing Alberta merchant pocket.
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "assa", 150000, "alberta", 47, 245, 0;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";
+
+	// Short loiter loop across the pocket so the market feels used without looking crowded.
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 1, "codexalt", 150002, "alberta", 44, 243, 1;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "loiter";
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 44, 243;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 47, 246;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 51, 244;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 49, 241;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
+		callfunc "F_LW_HPC_DefTickActor", .owner$, .owner$, .@i;
+
+	addtimer 2200, strnpcinfo(3) + "::OnTick";
+	end;
+
+OnStop:
+	.enabled = 0;
+	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
+	return;
+}

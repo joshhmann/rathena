@@ -288,9 +288,19 @@ function	script	F_LW_HPC_DefSetActor	{
 	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
 	setd("$LWHD" + .@seed + "_Y[" + .@i + "]", getarg(6));
 	setd("$LWHD" + .@seed + "_O[" + .@i + "]", getarg(7));
+	setd("$LWHD" + .@seed + "_T$[" + .@i + "]", "patrol");
 	setd("$LWHD" + .@seed + "_RC[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_ACN[" + .@i + "]", 0);
 	if (getd("$LWHD" + .@seed + "_AC") < .@i + 1)
 		setd("$LWHD" + .@seed + "_AC", .@i + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetMode	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_T$[" + .@i + "]", getarg(2));
 	return 1;
 }
 
@@ -302,6 +312,17 @@ function	script	F_LW_HPC_DefAddRoutePoint	{
 	setd("$LWHD" + .@seed + "_RX" + .@i + "[" + .@j + "]", getarg(2));
 	setd("$LWHD" + .@seed + "_RY" + .@i + "[" + .@j + "]", getarg(3));
 	setd("$LWHD" + .@seed + "_RC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefAddAnchor	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@j = getd("$LWHD" + .@seed + "_ACN[" + .@i + "]");
+	setd("$LWHD" + .@seed + "_AX" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_AY" + .@i + "[" + .@j + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_ACN[" + .@i + "]", .@j + 1);
 	return 1;
 }
 
@@ -319,11 +340,12 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@label$ = getd("$LWHD" + .@seed + "_L$[" + .@i + "]");
 		.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+		.@mode$ = getd("$LWHD" + .@seed + "_T$[" + .@i + "]");
 		.@owner$ = headlesspc_owner(.@char_id);
 		.@summary$ += "\n" + .@label$ + " owner/status/route: "
 			+ (.@owner$ == "" ? "<none>" : .@owner$) + " / "
 			+ headlesspc_status(.@char_id) + " / "
-			+ headlesspc_routestatus(.@char_id) + ".";
+			+ headlesspc_routestatus(.@char_id) + " (" + .@mode$ + ").";
 	}
 	setd("$LWHS" + .@seed + "$", .@summary$);
 	return .@count;
@@ -351,7 +373,9 @@ function	script	F_LW_HPC_DefTickActor	{
 	.@x = getd("$LWHD" + .@seed + "_X[" + .@i + "]");
 	.@y = getd("$LWHD" + .@seed + "_Y[" + .@i + "]");
 	.@loop = getd("$LWHD" + .@seed + "_O[" + .@i + "]");
+	.@mode$ = getd("$LWHD" + .@seed + "_T$[" + .@i + "]");
 	.@route_count = getd("$LWHD" + .@seed + "_RC[" + .@i + "]");
+	.@anchor_count = getd("$LWHD" + .@seed + "_ACN[" + .@i + "]");
 
 	if (!callfunc("F_LW_HPC_EnsureActive", .@char_id, .@map$, .@x, .@y))
 		return 0;
@@ -363,19 +387,46 @@ function	script	F_LW_HPC_DefTickActor	{
 	if (!headlesspc_claim(.@char_id, .@owner$))
 		return 0;
 
+	.@current_map$ = headlesspc_map(.@char_id);
+	.@current_x = headlesspc_x(.@char_id);
+	.@current_y = headlesspc_y(.@char_id);
+
+	if (.@mode$ == "hold") {
+		if (.@current_map$ != .@map$ || .@current_x != .@x || .@current_y != .@y)
+			return headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y);
+		return 1;
+	}
+
+	if (.@current_map$ != .@map$) {
+		if (headlesspc_routestatus(.@char_id) != 0)
+			headlesspc_owned_routestop(.@char_id, .@owner$);
+		return headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y);
+	}
+
 	if (headlesspc_routestatus(.@char_id) == 2)
 		return 1;
 
 	if (!headlesspc_owned_routeclear(.@char_id, .@owner$))
 		return 0;
 
-	for (.@j = 0; .@j < .@route_count; ++.@j) {
-		if (!headlesspc_owned_routeadd(
-			.@char_id, .@owner$,
-			getd("$LWHD" + .@seed + "_RX" + .@i + "[" + .@j + "]"),
-			getd("$LWHD" + .@seed + "_RY" + .@i + "[" + .@j + "]")
-		))
-			return 0;
+	if (.@route_count > 0) {
+		for (.@j = 0; .@j < .@route_count; ++.@j) {
+			if (!headlesspc_owned_routeadd(
+				.@char_id, .@owner$,
+				getd("$LWHD" + .@seed + "_RX" + .@i + "[" + .@j + "]"),
+				getd("$LWHD" + .@seed + "_RY" + .@i + "[" + .@j + "]")
+			))
+				return 0;
+		}
+	} else {
+		for (.@j = 0; .@j < .@anchor_count; ++.@j) {
+			if (!headlesspc_owned_routeadd(
+				.@char_id, .@owner$,
+				getd("$LWHD" + .@seed + "_AX" + .@i + "[" + .@j + "]"),
+				getd("$LWHD" + .@seed + "_AY" + .@i + "[" + .@j + "]")
+			))
+				return 0;
+		}
 	}
 
 	return headlesspc_owned_routestart(.@char_id, .@owner$, .@loop);
