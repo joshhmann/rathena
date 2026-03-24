@@ -34,6 +34,8 @@ OnInit:
 	.last_walk_event = 0;
 	.last_walk_result = 0;
 	.walk_pending = 0;
+	.handoff_count = 0;
+	.last_leader_map$ = "";
 	.last_note$ = "";
 	.status_summary$ = "";
 	end;
@@ -43,6 +45,7 @@ OnStart:
 	.walk_pending = 0;
 	.last_walk_event = headlesspc_walkevent(.follower_char_id);
 	.last_walk_result = headlesspc_walkresult(.follower_char_id);
+	.last_leader_map$ = livepc_map(.leader_char_id);
 	.last_note$ = "Follower controller starting.";
 	stopnpctimer;
 	donpcevent strnpcinfo(3) + "::OnTick";
@@ -73,6 +76,7 @@ OnBuildStatus:
 	.status_summary$ += " Pending: " + (.walk_pending ? "yes" : "no") + ".";
 	.status_summary$ += "\nWalk Event: " + headlesspc_walkevent(.follower_char_id) + ".";
 	.status_summary$ += " Result: " + callfunc("F_LW_HPC_WalkResultName", headlesspc_walkresult(.follower_char_id)) + ".";
+	.status_summary$ += "\nHandoffs: " + .handoff_count + ".";
 	.status_summary$ += "\nNote: " + .last_note$;
 	end;
 
@@ -93,6 +97,12 @@ OnTick:
 	.@leader_y = livepc_y(.leader_char_id);
 	.@target_x = .@leader_x + .follow_dx;
 	.@target_y = .@leader_y + .follow_dy;
+
+	if (.last_leader_map$ != "" && .last_leader_map$ != .@leader_map$) {
+		.handoff_count++;
+		.last_note$ = "Leader map changed from " + .last_leader_map$ + " to " + .@leader_map$ + ".";
+	}
+	.last_leader_map$ = .@leader_map$;
 
 	if (!callfunc("F_LW_HPC_EnsureActive", .follower_char_id, .@leader_map$, .@target_x, .@target_y)) {
 		.last_note$ = "Follower not active yet; spawn requested or pending.";
@@ -133,7 +143,7 @@ OnTick:
 
 	if (.@follower_map$ != .@leader_map$) {
 		if (headlesspc_owned_setpos(.follower_char_id, .owner$, .@leader_map$, .@target_x, .@target_y))
-			.last_note$ = "Follower repositioned onto leader map.";
+			.last_note$ = "Follower handoff repositioned onto " + .@leader_map$ + " (" + .@target_x + "," + .@target_y + ").";
 		else
 			.last_note$ = "Follower map reposition failed.";
 		.walk_pending = 0;

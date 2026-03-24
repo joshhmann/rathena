@@ -407,14 +407,35 @@ Current support:
     - `livepc_y(char_id)`
   - keeps `codexalt` on a fixed east-of-leader anchor relative to live `codex`
   - reacts to walk event/result completion before issuing another follow leg
+  - tracks leader map changes through a visible `handoff_count`
+  - uses owned `setpos(...)` as the current map-change handoff policy
 
 Current limits:
 
-- leader-follow is same-map only for now
-- map-change handoff policy is still a simple reposition, not a full follow
-  transition
+- cross-map handoff is still a simple reposition, not a full follow transition
+- the current handoff policy is implemented and observable, but not yet
+  validated through a full live leader warp sequence
 - anchor selection is a fixed offset, not path- or collision-aware
 - there is no multi-follower formation logic yet
+
+### 20. Pair-formation controller
+
+Current support:
+
+- one controller can now maintain a small multi-follower formation around a
+  live leader
+- the current demo:
+  - follows live `codex` (`150001`)
+  - claims `codexalt` (`150002`) and `assa` (`150000`)
+  - keeps them on two distinct east-of-leader anchors
+  - tracks per-follower walk event/result state under one owner label
+
+Current limits:
+
+- formation size is fixed in script
+- blocked anchors can still produce per-follower `start failed` outcomes
+- there is no adaptive anchor fallback or spacing policy yet
+- there is no cross-map formation replay beyond simple owned reposition logic
 
 ## Multi-Actor Coverage
 

@@ -1,0 +1,172 @@
+// Dev-only multi-follower formation demo around a live leader.
+
+prontera,154,169,4	script	Headless Formation	4_M_MANAGER,{
+	.controller$ = "HeadlessFormationController";
+	mes "[Headless Formation]";
+	switch(select("Start pair follow codex:Stop pair follow codex:Status:Cancel")) {
+	case 1:
+		donpcevent .controller$ + "::OnStart";
+		mes "Formation controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Formation controller disabled.";
+		close;
+	case 3:
+		donpcevent .controller$ + "::OnBuildStatus";
+		mes getvariableofnpc(.status_summary$, .controller$);
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessFormationController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.enabled = 0;
+	.leader_char_id = 150001;
+	.actor_count = 2;
+	setarray .follower_char_id[0], 150002, 150000;
+	setarray .follower_label$[0], "codexalt", "assa";
+	setarray .follow_dx[0], 1, 1;
+	setarray .follow_dy[0], 0, 1;
+	.tick_ms = 900;
+	.handoff_count = 0;
+	.last_leader_map$ = "";
+	.status_summary$ = "";
+	.last_note$ = "";
+	for (.@i = 0; .@i < .actor_count; ++.@i) {
+		.walk_pending[.@i] = 0;
+		.last_walk_event[.@i] = 0;
+		.last_walk_result[.@i] = 0;
+	}
+	end;
+
+OnStart:
+	.enabled = 1;
+	.last_leader_map$ = livepc_map(.leader_char_id);
+	.last_note$ = "Formation controller starting.";
+	for (.@i = 0; .@i < .actor_count; ++.@i) {
+		.walk_pending[.@i] = 0;
+		.last_walk_event[.@i] = headlesspc_walkevent(.follower_char_id[.@i]);
+		.last_walk_result[.@i] = headlesspc_walkresult(.follower_char_id[.@i]);
+	}
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+
+OnStop:
+	.enabled = 0;
+	stopnpctimer;
+	callfunc "F_LW_HPC_ControllerStopGroup", strnpcinfo(3), .owner$, .follower_char_id[0], .follower_char_id[1];
+	for (.@i = 0; .@i < .actor_count; ++.@i)
+		.walk_pending[.@i] = 0;
+	.last_note$ = "Formation controller stopped.";
+	end;
+
+OnBuildStatus:
+	.@leader_map$ = livepc_map(.leader_char_id);
+	.@leader_x = livepc_x(.leader_char_id);
+	.@leader_y = livepc_y(.leader_char_id);
+	.status_summary$ = "Enabled: " + (.enabled ? "yes" : "no") + ".";
+	.status_summary$ += "\nLeader: " + (.@leader_map$ == "" ? "<offline>" : .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ")") + ".";
+	.status_summary$ += "\nHandoffs: " + .handoff_count + ".";
+	for (.@i = 0; .@i < .actor_count; ++.@i) {
+		.@char_id = .follower_char_id[.@i];
+		.@owner$ = headlesspc_owner(.@char_id);
+		.status_summary$ += "\n" + .follower_label$[.@i] + ": " + headlesspc_status(.@char_id) + ", owner=" + (.@owner$ == "" ? "<none>" : .@owner$);
+		.status_summary$ += ", pos=" + headlesspc_map(.@char_id) + " (" + headlesspc_x(.@char_id) + "," + headlesspc_y(.@char_id) + ")";
+		.status_summary$ += ", event=" + headlesspc_walkevent(.@char_id);
+		.status_summary$ += ", result=" + callfunc("F_LW_HPC_WalkResultName", headlesspc_walkresult(.@char_id));
+	}
+	.status_summary$ += "\nNote: " + .last_note$;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	.@leader_map$ = livepc_map(.leader_char_id);
+	if (.@leader_map$ == "") {
+		.last_note$ = "Leader is offline.";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.@leader_x = livepc_x(.leader_char_id);
+	.@leader_y = livepc_y(.leader_char_id);
+	if (.last_leader_map$ != "" && .last_leader_map$ != .@leader_map$) {
+		.handoff_count++;
+		.last_note$ = "Leader map changed from " + .last_leader_map$ + " to " + .@leader_map$ + ".";
+	}
+	.last_leader_map$ = .@leader_map$;
+
+	for (.@i = 0; .@i < .actor_count; ++.@i) {
+		.@char_id = .follower_char_id[.@i];
+		.@target_x = .@leader_x + .follow_dx[.@i];
+		.@target_y = .@leader_y + .follow_dy[.@i];
+
+		if (!callfunc("F_LW_HPC_EnsureActive", .@char_id, .@leader_map$, .@target_x, .@target_y)) {
+			.last_note$ = .follower_label$[.@i] + " not active yet; spawn requested or pending.";
+			continue;
+		}
+
+		.@owner$ = headlesspc_owner(.@char_id);
+		if (.@owner$ != "" && .@owner$ != .owner$) {
+			.last_note$ = .follower_label$[.@i] + " is claimed by another controller.";
+			continue;
+		}
+
+		if (!headlesspc_claim(.@char_id, .owner$)) {
+			.last_note$ = "Claim failed for " + .follower_label$[.@i] + ".";
+			continue;
+		}
+
+		.@walk_event = headlesspc_walkevent(.@char_id);
+		if (.walk_pending[.@i] && .@walk_event != .last_walk_event[.@i]) {
+			.last_walk_event[.@i] = .@walk_event;
+			.last_walk_result[.@i] = headlesspc_walkresult(.@char_id);
+			.walk_pending[.@i] = 0;
+		}
+
+		.@follower_map$ = headlesspc_map(.@char_id);
+		.@follower_x = headlesspc_x(.@char_id);
+		.@follower_y = headlesspc_y(.@char_id);
+
+		if (.@follower_map$ != .@leader_map$) {
+			if (headlesspc_owned_setpos(.@char_id, .owner$, .@leader_map$, .@target_x, .@target_y))
+				.last_note$ = .follower_label$[.@i] + " handoff repositioned onto " + .@leader_map$ + ".";
+			else
+				.last_note$ = .follower_label$[.@i] + " handoff reposition failed.";
+			.walk_pending[.@i] = 0;
+			continue;
+		}
+
+		if (.walk_pending[.@i])
+			continue;
+
+		if (.@follower_x == .@target_x && .@follower_y == .@target_y)
+			continue;
+
+		.last_walk_event[.@i] = headlesspc_walkevent(.@char_id);
+		if (headlesspc_owned_walkto(.@char_id, .owner$, .@target_x, .@target_y)) {
+			.walk_pending[.@i] = 1;
+			.last_note$ = .follower_label$[.@i] + " walk queued to (" + .@target_x + "," + .@target_y + ").";
+		} else {
+			.walk_pending[.@i] = 0;
+			.last_walk_result[.@i] = headlesspc_walkresult(.@char_id);
+			.last_note$ = .follower_label$[.@i] + " walk request failed.";
+		}
+	}
+
+	stopnpctimer;
+	initnpctimer;
+	end;
+
+OnTimer900:
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+}

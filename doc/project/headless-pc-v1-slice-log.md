@@ -1314,6 +1314,66 @@ a live leader instead of only driving fixed patrol or escort legs.
 This slice still does not implement:
 
 - persistent walk-event history across restart
-- live leader-follow across map changes with handoff policy
 - formation logic for more than one follower
 - path-aware anchor selection beyond a fixed offset
+
+## Slice 23: Leader-Handoff Policy And Pair Formation Demo
+
+### Goal
+
+Make the live-follower controller explicit about leader map handoffs and prove
+that one controller can keep more than one claimed headless follower in a small
+formation around a live leader.
+
+### Files Touched
+
+- `npc/custom/living_world/headless_pc_follower_demo.txt`
+- `npc/custom/living_world/headless_pc_formation_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Extended `HeadlessFollowerController` with explicit leader-handoff tracking:
+  - stores `last_leader_map$`
+  - increments `handoff_count` when the live leader changes maps
+  - surfaces handoff count in `Status`
+  - uses the existing owned `setpos(...)` path as the controller handoff policy
+    when follower and leader maps differ
+- Added a new dev-only pair-formation controller:
+  - visible NPC `Headless Formation`
+  - hidden controller `HeadlessFormationController`
+- The formation controller:
+  - follows live leader `codex` (`150001`)
+  - claims `codexalt` (`150002`) and `assa` (`150000`)
+  - keeps them on two distinct east-of-leader anchors
+  - tracks per-follower walk event/result state
+  - uses one owner label for both followers
+
+### Validation
+
+- restarted the stack cleanly
+- OpenKore validated the pair-formation controller:
+  - `Headless Formation -> Start pair follow codex`
+  - in an open Prontera patch around `160,186`, the formation held:
+    - `codexalt` at `161,186`
+    - `assa` at `161,187`
+  - returning to the controller area and checking `Status` later also showed
+    the pair holding distinct anchors around the live leader:
+    - leader `prontera (153,170)`
+    - `codexalt` at `154,170`
+    - `assa` at `154,171`
+- OpenKore also validated the follower controller status surface now includes:
+  - explicit `Handoffs`
+  - current leader/follower positions
+  - current walk terminal result
+
+### Deferrals
+
+This slice still does not implement:
+
+- validated cross-map handoff through a full live leader warp sequence
+- collision-aware or fallback anchor selection for blocked tiles
+- dynamic formation resizing
+- role-specific formations beyond fixed offsets
