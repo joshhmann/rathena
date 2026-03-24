@@ -13,6 +13,10 @@ enough. Avoid deep source divergence.
 - document each `headless_pc_v1` implementation slice as it lands
 - keep DB-affecting slices paired with checked-in SQL artifacts under `sql-files/`
 - keep the OpenKore smoke-test harness working as packet and map coverage evolve
+- build the first shared playerbot scheduler layer above the current controller kit
+- add despawn grace windows so controller-gated actors do not pop instantly when maps empty
+- define a persistent routine-pool policy for recurring daily-life actors
+- design connected-map traversal for selected world actors rather than only single-map loops
 
 ## Existing rAthena Custom NPCs Worth Evaluating
 
@@ -77,6 +81,7 @@ adapted without committing to heavy engine work.
 - more pseudo-player merchant/event presentation polish
 - fully generalized pseudo-player actor system across all maps
 - PC-backed bot controller work after `headless_pc_v1` Phase 0
+- larger-scale distributed playerbot load testing after the scheduler layer exists
 - bot-style autonomous actors
 - ML-driven behavior systems
 - LLM-generated dialogue systems

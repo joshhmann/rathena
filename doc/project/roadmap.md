@@ -219,6 +219,29 @@ Status: deferred
 
 Goals:
 
+## Playerbot Scheduler Direction
+
+The next playerbot/controller milestone should prefer a world scheduler over
+more one-off demos.
+
+Current preferred policy direction:
+
+- spawn headless actors only when a player is active on the relevant map or
+  route
+- do not despawn instantly when the last player leaves; use a short grace
+  window/cooldown first so the world does not visibly pop
+- allow some controllers to traverse connected field routes instead of living
+  on a single map forever
+- maintain a small persistent routine pool of identities that represent
+  recurring "daily life" actors
+- let recurring actors be predictably online or offline by schedule/timezone so
+  the world develops familiar faces rather than pure randomness
+
+Implementation note:
+
+- this is a scheduler/controller-policy concern, not a reason to bypass the
+  existing `headless_pc` ownership and lifecycle rules
+
 - let external systems influence the world without owning core gameplay truth
 
 Scope:

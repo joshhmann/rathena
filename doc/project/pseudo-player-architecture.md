@@ -123,6 +123,19 @@ Later enhancement:
 - richer target/skill logic
 - role-specific behavior controllers
 
+Scheduler direction:
+
+- prefer a shared scheduler that activates controllers by map demand and time
+  window rather than leaving every controller permanently hot
+- use short despawn grace periods when maps empty so actors do not disappear the
+  moment the last player leaves
+- keep a recurring pool of named routine actors so some pseudo-players feel
+  familiar across days
+- support selected multi-map traversal for travelers, couriers, escorts, and
+  commuter-like roles
+- keep the number of globally active actors below the provisioned pool by
+  activating only the subset currently needed
+
 This is where a future `expanded_ai` core import fits. It should inform
 decision-making, not define player semantics.
 
@@ -249,6 +262,7 @@ Dependencies:
 
 - expanded behavior engine
 - selective engine support beyond ambiance
+- scheduler-driven activation and persistent routine policy
 
 ## Implementation Rules
 

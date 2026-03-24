@@ -20,6 +20,8 @@ This document tracks the current weird-case matrix for `headless_pc`.
   - owner-checked `headlesspc_owned_*` mutators for normal controllers
   - unowned `headlesspc_*` mutators as explicit admin/operator override tools
 - OpenKore is the primary CLI observer
+- upcoming scheduler work should assume map-demand gating with a short despawn
+  grace period rather than instant hard despawn
 
 ## Known Weird Cases
 
@@ -207,6 +209,36 @@ Current limits:
 - timeout/failure clears the pending walk, but there is no separate walk-failure
   result API yet
 - this is still operator/script driven movement, not autonomous behavior
+
+### 14. Map empties while controller-owned actors are active
+
+Preferred upcoming handling:
+
+- do not despawn immediately when the last player leaves the map
+- use a short grace window so actors can finish a visible beat and avoid harsh
+  world popping
+- after grace expires, release or park actors cleanly through the scheduler
+
+Why:
+
+- instant despawn is technically simple but visually cheap
+- a grace window is a better fit for low-pop atmosphere
+
+### 15. Persistent daily-routine actors
+
+Preferred upcoming handling:
+
+- keep a stable provisioned pool of recurring identities
+- let only a subset be active at once
+- tie recurring presence to schedule/timezone windows where useful
+- reuse the same named actors for town, route, and merchant-style routines so
+  the server develops familiar faces
+
+Current limit:
+
+- current demos are controller-defined and runtime-oriented
+- there is not yet a scheduler or routine ledger deciding which recurring actors
+  should be active at a given time
 
 ### 11. Late observer after restore
 
