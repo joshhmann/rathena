@@ -1674,3 +1674,62 @@ This slice still does not fully prove:
 - randomized or schedule-aware social decisions
 - congestion-aware social fallback beyond the current ordered anchors
 - a second merchant/social controller on top of the same pulse helpers
+
+## Slice 29: Scheduled Social Pulse And Second Social Controller
+
+### Goal
+
+Extend the shared social pulse from a fixed low-frequency hook into a more
+useful reusable policy surface, then prove reuse with a second seeded
+merchant/social controller on another map.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_prontera_social_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added shared social-pulse definition helpers:
+  - `F_LW_HPC_DefSetPulseWindow`
+  - `F_LW_HPC_DefSetPulseTempo`
+- `F_LW_HPC_DefPulseActor(...)` now supports:
+  - optional hour-window gating
+  - per-actor randomized min/max pulse tempo
+  - per-actor talk-vs-emote weighting
+- Kept the feature script-first:
+  - no new C++ scheduler
+  - no new SQL schema
+  - no behavior moved out of the shared controller helper layer
+- Added a second seeded controller proof:
+  - visible NPC `Headless Prontera Social`
+  - hidden controller `HeadlessPronteraSocialController`
+  - actors `BotPc06-BotPc10`
+  - two hold anchors
+  - three loiter actors in the south-square commons
+
+### Validation
+
+- real `restart` reload completed cleanly
+- `map-server` loaded `3409` NPCs with the new Prontera controller present
+- OpenKore confirmed the new visible controller NPC in Prontera:
+  - `Headless Prontera Social` at `148,185`
+- OpenKore started the controller and then confirmed the seeded Prontera set:
+  - `BotPc06`
+  - `BotPc07`
+  - `BotPc08`
+  - `BotPc09`
+  - `BotPc10`
+- the Alberta seeded social set remained restorable and active after restart:
+  - `BotPc01-BotPc05`
+
+### Deferrals
+
+This slice still does not fully prove:
+
+- desktop-client confirmation of the overhead chatter/emote pulse itself
+- cross-controller map-wide scheduling
+- more adaptive social routing under crowd pressure
+- controller-family folder split for `playerbot` scripts

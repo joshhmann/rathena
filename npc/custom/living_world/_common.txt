@@ -327,6 +327,25 @@ function	script	F_LW_HPC_DefAddEmote	{
 	return 1;
 }
 
+function	script	F_LW_HPC_DefSetPulseWindow	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_PS[" + .@i + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_PE[" + .@i + "]", getarg(3));
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetPulseTempo	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_PM[" + .@i + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_PX[" + .@i + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_PT[" + .@i + "]", getarg(4));
+	return 1;
+}
+
 function	script	F_LW_HPC_DefAddRoutePoint	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
@@ -385,19 +404,34 @@ function	script	F_LW_HPC_DefPulseActor	{
 	.@emote_count = getd("$LWHD" + .@seed + "_EC[" + .@i + "]");
 	.@now = gettimetick(2);
 	.@next = getd("$LWHD" + .@seed + "_NX[" + .@i + "]");
+	.@pulse_start = getd("$LWHD" + .@seed + "_PS[" + .@i + "]");
+	.@pulse_end = getd("$LWHD" + .@seed + "_PE[" + .@i + "]");
+	.@pulse_min = getd("$LWHD" + .@seed + "_PM[" + .@i + "]");
+	.@pulse_max = getd("$LWHD" + .@seed + "_PX[" + .@i + "]");
+	.@talk_weight = getd("$LWHD" + .@seed + "_PT[" + .@i + "]");
 
 	if (.@mode$ != "hold" && .@mode$ != "loiter")
 		return 0;
 	if (headlesspc_status(.@char_id) != 2)
 		return 0;
+	if (.@pulse_start || .@pulse_end) {
+		if (!callfunc("F_LW_IsHourInWindow", .@pulse_start, .@pulse_end))
+			return 0;
+	}
 	if (.@now < .@next)
 		return 0;
 	if (.@talk_count < 1 && .@emote_count < 1)
 		return 0;
+	if (.@pulse_min < 10)
+		.@pulse_min = 35;
+	if (.@pulse_max < .@pulse_min)
+		.@pulse_max = .@pulse_min + 20;
+	if (.@talk_weight < 1)
+		.@talk_weight = 65;
 
-	setd("$LWHD" + .@seed + "_NX[" + .@i + "]", .@now + 35 + rand(25));
+	setd("$LWHD" + .@seed + "_NX[" + .@i + "]", .@now + .@pulse_min + rand(.@pulse_max - .@pulse_min + 1));
 
-	if (.@talk_count > 0 && (.@emote_count < 1 || rand(100) < 65)) {
+	if (.@talk_count > 0 && (.@emote_count < 1 || rand(100) < .@talk_weight)) {
 		.@pick = rand(.@talk_count);
 		headlesspc_talk(.@char_id, getd("$LWHD" + .@seed + "_TM$" + .@i + "[" + .@pick + "]"));
 		return 1;

@@ -1,0 +1,100 @@
+// Dev-only Prontera commons social controller using the shared headless controller kit.
+
+prontera,148,185,4	script	Headless Prontera Social	4_F_KAFRA1,{
+	.controller$ = "HeadlessPronteraSocialController";
+	mes "[Headless Prontera Social]";
+	switch(select("Start commons traffic:Stop commons traffic:Status:Cancel")) {
+	case 1:
+		callfunc "F_LW_HPC_ControllerStart", .controller$;
+		mes "Prontera social controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Prontera social controller disabled.";
+		close;
+	case 3:
+		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
+		mes getd("$LWHS" + getnpcid(0, .controller$) + "$");
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessPronteraSocialController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.enabled = 0;
+	callfunc "F_LW_HPC_DefReset", .owner$;
+
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "BotPc06", 150015, "prontera", 146, 188, 0;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "The south gate traffic never really stops.";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep moving and mind the square.";
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
+	callfunc "F_LW_HPC_DefSetPulseWindow", .owner$, 0, 7, 21;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .owner$, 0, 40, 70, 70;
+
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 1, "BotPc07", 150016, "prontera", 151, 186, 0;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "hold";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Supplies from Alberta came in before noon.";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Shops are busy again today.";
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_DELIGHT;
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_HUM;
+	callfunc "F_LW_HPC_DefSetPulseWindow", .owner$, 1, 9, 22;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .owner$, 1, 45, 80, 60;
+
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 2, "BotPc08", 150017, "prontera", 145, 184, 1;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 2, "loiter";
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 148, 187;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 152, 184;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 149, 182;
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "I was told the Kafra queue clears by dusk.";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "Prontera feels fuller every week.";
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_STARE_ABOUT;
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_QUESTION;
+	callfunc "F_LW_HPC_DefSetPulseWindow", .owner$, 2, 8, 20;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .owner$, 2, 30, 55, 55;
+
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 3, "BotPc09", 150018, "prontera", 153, 188, 1;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 3, "loiter";
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 188;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 150, 190;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 146, 189;
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "I only meant to pass through the square.";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "Someone said the west gate road is crowded.";
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_HUM;
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_THROB;
+	callfunc "F_LW_HPC_DefSetPulseWindow", .owner$, 3, 10, 23;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .owner$, 3, 35, 60, 50;
+
+	callfunc "F_LW_HPC_DefSetActor", .owner$, 4, "BotPc10", 150019, "prontera", 147, 190, 1;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 4, "loiter";
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 190;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 151, 189;
+	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 154, 186;
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "I should decide whether I'm staying the night.";
+	callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "The square's louder than I expected.";
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_THINK;
+	callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_PROFUSELY_SWEAT;
+	callfunc "F_LW_HPC_DefSetPulseWindow", .owner$, 4, 11, 23;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .owner$, 4, 30, 50, 45;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
+		callfunc "F_LW_HPC_DefTickActor", .owner$, .owner$, .@i;
+
+	addtimer 2200, strnpcinfo(3) + "::OnTick";
+	end;
+
+OnStop:
+	.enabled = 0;
+	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
+	return;
+}
