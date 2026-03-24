@@ -251,7 +251,7 @@ Current support:
 Current limits:
 
 - routes are in-memory only and do not survive restart
-- there is no separate route-complete ack or route-failure result code
+- there is no route-complete summary surface above per-walk event/result
 - `setpos` and remove/save clear route state intentionally
 - stopping a route halts the current movement and keeps the actor at its last
   reached runtime coordinate
@@ -367,8 +367,54 @@ Current support now also includes:
 Current limits:
 
 - the current escort pattern follows a fixed one-way handoff, not a live leader
-- success/failure is still controller-local, not event-bus driven
+- success/failure is exposed through walk event/result polling, not a pushed
+  event bus
 - there is no multi-leg escort choreography yet
+
+### 18. Walk terminal-event surface
+
+Current support:
+
+- scripts can now distinguish success and failure outcomes for headless walks
+- available surfaces are:
+  - `headlesspc_walkack(char_id)` for success-only completion
+  - `headlesspc_walkevent(char_id)` for any terminal walk outcome
+  - `headlesspc_walkresult(char_id)` for the last terminal result code
+- current result codes are:
+  - `arrived`
+  - `settled`
+  - `start failed`
+  - `settle failed`
+  - `cancelled`
+
+Current limits:
+
+- walk event/result state is in-memory only and resets on restart
+- there is no pushed script callback/event-bus surface yet
+- route-level success/failure is still assembled by controllers from per-walk
+  events
+
+### 19. Live leader follower controller
+
+Current support:
+
+- one controller can now follow a live regular `BL_PC`, not just fixed patrol
+  or escort coordinates
+- the current demo:
+  - reads leader position from:
+    - `livepc_map(char_id)`
+    - `livepc_x(char_id)`
+    - `livepc_y(char_id)`
+  - keeps `codexalt` on a fixed east-of-leader anchor relative to live `codex`
+  - reacts to walk event/result completion before issuing another follow leg
+
+Current limits:
+
+- leader-follow is same-map only for now
+- map-change handoff policy is still a simple reposition, not a full follow
+  transition
+- anchor selection is a fixed offset, not path- or collision-aware
+- there is no multi-follower formation logic yet
 
 ## Multi-Actor Coverage
 

@@ -30,9 +30,8 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 		default: return "empty";
 		}
 	}
-
 	mes "[Headless Smoke]";
-	switch(select("Spawn codexalt:Spawn pair:Spawn trio:Setpos codexalt east:Setpos codexalt center:Walk codexalt east:Walk codexalt center:Route codexalt patrol:Route stop codexalt:Route clear codexalt:Route status codexalt:Restore persisted active set:Reconcile codexalt:Reconcile all:Status codexalt:Status all:Spawn Ack codexalt:Spawn Ack all:Walk Ack codexalt:Walk Ack all:Remove Ack codexalt:Remove Ack all:Reconcile Ack codexalt:Reconcile Ack all:Reconcile Result codexalt:Reconcile Result all:Remove codexalt:Remove pair:Remove trio:Cancel")) {
+	switch(select("Spawn codexalt:Spawn pair:Spawn trio:Setpos codexalt east:Setpos codexalt center:Walk codexalt east:Walk codexalt center:Route codexalt patrol:Route stop codexalt:Route clear codexalt:Route status codexalt:Restore persisted active set:Reconcile codexalt:Reconcile all:Status codexalt:Status all:Spawn Ack codexalt:Spawn Ack all:Walk Ack codexalt:Walk Ack all:Walk Event codexalt:Walk Result codexalt:Remove Ack codexalt:Remove Ack all:Reconcile Ack codexalt:Reconcile Ack all:Reconcile Result codexalt:Reconcile Result all:Remove codexalt:Remove pair:Remove trio:Cancel")) {
 	case 1:
 		if (headlesspc_spawn(150002, "prontera", 160, 186))
 			mes "Spawn request queued for codexalt.";
@@ -157,42 +156,48 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 		mes "codexalt walk ack seq: " + headlesspc_walkack(150002) + ".";
 		close;
 	case 21:
-		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
+		mes "codexalt walk event seq: " + headlesspc_walkevent(150002) + ".";
 		close;
 	case 22:
+		mes "codexalt walk result: " + callfunc("F_LW_HPC_WalkResultName", headlesspc_walkresult(150002)) + ".";
+		close;
+	case 23:
+		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
+		close;
+	case 24:
 		mes "assa remove/save ack seq: " + headlesspc_ack(150000) + ".";
 		next;
 		mes "codex remove/save ack seq: " + headlesspc_ack(150001) + ".";
 		next;
 		mes "codexalt remove/save ack seq: " + headlesspc_ack(150002) + ".";
 		close;
-	case 23:
+	case 25:
 		mes "codexalt reconcile ack seq: " + headlesspc_reconcileack(150002) + ".";
 		close;
-	case 24:
+	case 26:
 		mes "assa reconcile ack seq: " + headlesspc_reconcileack(150000) + ".";
 		next;
 		mes "codex reconcile ack seq: " + headlesspc_reconcileack(150001) + ".";
 		next;
 		mes "codexalt reconcile ack seq: " + headlesspc_reconcileack(150002) + ".";
 		close;
-	case 25:
+	case 27:
 		mes "codexalt reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150002)) + ".";
 		close;
-	case 26:
+	case 28:
 		mes "assa reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150000)) + ".";
 		next;
 		mes "codex reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150001)) + ".";
 		next;
 		mes "codexalt reconcile result: " + F_HS_ReconcileName(headlesspc_reconcileresult(150002)) + ".";
 		close;
-	case 27:
+	case 29:
 		if (headlesspc_remove(150002))
 			mes "Remove request queued for codexalt.";
 		else
 			mes "Nothing to remove.";
 		close;
-	case 28:
+	case 30:
 		.@count = 0;
 		if (headlesspc_remove(150000))
 			.@count++;
@@ -200,7 +205,7 @@ prontera,154,179,4	script	Headless Smoke	4_F_01,{
 			.@count++;
 		mes "Remove pair queued: " + .@count + "/2.";
 		close;
-	case 29:
+	case 31:
 		.@count = 0;
 		if (headlesspc_remove(150000))
 			.@count++;

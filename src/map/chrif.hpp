@@ -44,6 +44,15 @@ enum e_headlesspc_reconcile_result {
 	HEADLESSPC_RECONCILE_INVALID_CHAR = 5,
 };
 
+enum e_headlesspc_walk_result {
+	HEADLESSPC_WALK_NONE = 0,
+	HEADLESSPC_WALK_ARRIVED = 1,
+	HEADLESSPC_WALK_SETTLED = 2,
+	HEADLESSPC_WALK_START_FAILED = 3,
+	HEADLESSPC_WALK_SETTLE_FAILED = 4,
+	HEADLESSPC_WALK_CANCELLED = 5,
+};
+
 struct auth_node {
 	uint32 account_id, char_id;
 	int32 login_id1, login_id2, sex, fd;
@@ -134,6 +143,8 @@ uint32 chrif_headlesspc_ack(uint32 char_id);
 uint32 chrif_headlesspc_spawn_ack(uint32 char_id);
 uint32 chrif_headlesspc_reconcile_ack(uint32 char_id);
 uint32 chrif_headlesspc_walk_ack(uint32 char_id);
+uint32 chrif_headlesspc_walk_event(uint32 char_id);
+int32 chrif_headlesspc_walk_result(uint32 char_id);
 int32 chrif_headlesspc_reconcile_result(uint32 char_id);
 void chrif_headlesspc_mark_spawn_ready(uint32 char_id);
 

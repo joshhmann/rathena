@@ -1,0 +1,176 @@
+// Dev-only live-leader follower demo using one claimed headless actor.
+
+prontera,154,171,4	script	Headless Follow	4_M_MANAGER,{
+	.controller$ = "HeadlessFollowerController";
+	mes "[Headless Follow]";
+	switch(select("Start codexalt follow codex:Stop codexalt follow codex:Status:Cancel")) {
+	case 1:
+		donpcevent .controller$ + "::OnStart";
+		mes "Follower controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Follower controller disabled.";
+		close;
+	case 3:
+		donpcevent .controller$ + "::OnBuildStatus";
+		mes getvariableofnpc(.status_summary$, .controller$);
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessFollowerController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.enabled = 0;
+	.leader_char_id = 150001;
+	.follower_char_id = 150002;
+	.follow_dx = 1;
+	.follow_dy = 0;
+	.follow_range = 0;
+	.tick_ms = 800;
+	.last_walk_event = 0;
+	.last_walk_result = 0;
+	.walk_pending = 0;
+	.last_note$ = "";
+	.status_summary$ = "";
+	end;
+
+OnStart:
+	.enabled = 1;
+	.walk_pending = 0;
+	.last_walk_event = headlesspc_walkevent(.follower_char_id);
+	.last_walk_result = headlesspc_walkresult(.follower_char_id);
+	.last_note$ = "Follower controller starting.";
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+
+OnStop:
+	.enabled = 0;
+	.walk_pending = 0;
+	.last_note$ = "Follower controller stopped.";
+	stopnpctimer;
+	callfunc "F_LW_HPC_ControllerReleaseOwned", .follower_char_id, .owner$;
+	end;
+
+OnBuildStatus:
+	.@leader_map$ = livepc_map(.leader_char_id);
+	.@leader_x = livepc_x(.leader_char_id);
+	.@leader_y = livepc_y(.leader_char_id);
+	.@follower_map$ = headlesspc_map(.follower_char_id);
+	.@follower_x = headlesspc_x(.follower_char_id);
+	.@follower_y = headlesspc_y(.follower_char_id);
+	.@owner$ = headlesspc_owner(.follower_char_id);
+
+	.status_summary$ = "Enabled: " + (.enabled ? "yes" : "no") + ".";
+	.status_summary$ += "\nOwner: " + (.@owner$ == "" ? "<none>" : .@owner$) + ".";
+	.status_summary$ += "\nLeader: " + (.@leader_map$ == "" ? "<offline>" : .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ")") + ".";
+	.status_summary$ += "\nFollower: " + (.@follower_map$ == "" ? "<absent>" : .@follower_map$ + " (" + .@follower_x + "," + .@follower_y + ")") + ".";
+	.status_summary$ += "\nStatus: " + headlesspc_status(.follower_char_id) + ".";
+	.status_summary$ += " Pending: " + (.walk_pending ? "yes" : "no") + ".";
+	.status_summary$ += "\nWalk Event: " + headlesspc_walkevent(.follower_char_id) + ".";
+	.status_summary$ += " Result: " + callfunc("F_LW_HPC_WalkResultName", headlesspc_walkresult(.follower_char_id)) + ".";
+	.status_summary$ += "\nNote: " + .last_note$;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+
+	.@leader_map$ = livepc_map(.leader_char_id);
+	if (.@leader_map$ == "") {
+		.walk_pending = 0;
+		.last_note$ = "Leader is offline.";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.@leader_x = livepc_x(.leader_char_id);
+	.@leader_y = livepc_y(.leader_char_id);
+	.@target_x = .@leader_x + .follow_dx;
+	.@target_y = .@leader_y + .follow_dy;
+
+	if (!callfunc("F_LW_HPC_EnsureActive", .follower_char_id, .@leader_map$, .@target_x, .@target_y)) {
+		.last_note$ = "Follower not active yet; spawn requested or pending.";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.@owner$ = headlesspc_owner(.follower_char_id);
+	if (.@owner$ != "" && .@owner$ != .owner$) {
+		.last_note$ = "Follower is claimed by another controller.";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	if (!headlesspc_claim(.follower_char_id, .owner$)) {
+		.last_note$ = "Claim failed.";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.@walk_event = headlesspc_walkevent(.follower_char_id);
+	if (.walk_pending && .@walk_event != .last_walk_event) {
+		.last_walk_event = .@walk_event;
+		.last_walk_result = headlesspc_walkresult(.follower_char_id);
+		.walk_pending = 0;
+		if (.last_walk_result <= 2)
+			.last_note$ = "Follower reached its last leader anchor.";
+		else
+			.last_note$ = "Follower walk ended with " + callfunc("F_LW_HPC_WalkResultName", .last_walk_result) + ".";
+	}
+
+	.@follower_map$ = headlesspc_map(.follower_char_id);
+	.@follower_x = headlesspc_x(.follower_char_id);
+	.@follower_y = headlesspc_y(.follower_char_id);
+
+	if (.@follower_map$ != .@leader_map$) {
+		if (headlesspc_owned_setpos(.follower_char_id, .owner$, .@leader_map$, .@target_x, .@target_y))
+			.last_note$ = "Follower repositioned onto leader map.";
+		else
+			.last_note$ = "Follower map reposition failed.";
+		.walk_pending = 0;
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	if (.walk_pending) {
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	if (.@follower_x == .@target_x && .@follower_y == .@target_y) {
+		.last_note$ = "Follower holding leader anchor.";
+		stopnpctimer;
+		initnpctimer;
+		end;
+	}
+
+	.last_walk_event = headlesspc_walkevent(.follower_char_id);
+	if (headlesspc_owned_walkto(.follower_char_id, .owner$, .@target_x, .@target_y)) {
+		.walk_pending = 1;
+		.last_note$ = "Follower walk queued to (" + .@target_x + "," + .@target_y + ").";
+	} else {
+		.walk_pending = 0;
+		.last_walk_result = headlesspc_walkresult(.follower_char_id);
+		.last_note$ = "Follower walk request failed.";
+	}
+
+	stopnpctimer;
+	initnpctimer;
+	end;
+
+OnTimer800:
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnTick";
+	end;
+}

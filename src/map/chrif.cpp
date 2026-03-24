@@ -82,12 +82,15 @@ struct s_headlesspc_route_state {
 static std::unordered_map<uint32, s_headlesspc_walk_request> headlesspc_walk_requests;
 static std::unordered_map<uint32, uint32> headlesspc_walk_request_seq;
 static std::unordered_map<uint32, uint32> headlesspc_walk_ack_seq;
+static std::unordered_map<uint32, uint32> headlesspc_walk_event_seq;
+static std::unordered_map<uint32, uint8> headlesspc_walk_result_code;
 static std::unordered_map<uint32, s_headlesspc_route_state> headlesspc_route_states;
 static std::unordered_map<uint32, std::string> headlesspc_owner_labels;
 static uint32 headlesspc_next_walk_seq = 1;
 static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
 static const char* headlesspc_runtime_table = "headless_pc_runtime";
 static const char* headlesspc_lifecycle_table = "headless_pc_lifecycle";
+static void headlesspc_lifecycle_persist_walk_ack(uint32 char_id, uint32 seq);
 
 static void headlesspc_clear_pending_spawn(uint32 char_id) {
 	headlesspc_spawn_requests.erase(char_id);
@@ -97,6 +100,22 @@ static void headlesspc_clear_pending_spawn(uint32 char_id) {
 static void headlesspc_clear_pending_walk(uint32 char_id) {
 	headlesspc_walk_requests.erase(char_id);
 	headlesspc_walk_request_seq.erase(char_id);
+}
+
+static void headlesspc_record_walk_event(uint32 char_id, uint8 result, bool ack_success) {
+	if (char_id == 0)
+		return;
+
+	headlesspc_walk_event_seq[char_id]++;
+	headlesspc_walk_result_code[char_id] = result;
+
+	if (!ack_success)
+		return;
+
+	if (auto seq_it = headlesspc_walk_request_seq.find(char_id); seq_it != headlesspc_walk_request_seq.end()) {
+		headlesspc_walk_ack_seq[char_id] = seq_it->second;
+		headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
+	}
 }
 
 static void headlesspc_route_reset(uint32 char_id) {
@@ -406,6 +425,7 @@ static TIMER_FUNC(headlesspc_walk_poll_timer) {
 
 	map_session_data* sd = map_charid2sd(char_id);
 	if (sd == nullptr || !sd->state.headless_bot || headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end()) {
+		headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_CANCELLED, false);
 		headlesspc_clear_pending_walk(char_id);
 		return 0;
 	}
@@ -415,10 +435,7 @@ static TIMER_FUNC(headlesspc_walk_poll_timer) {
 
 	if (headlesspc_current_x(sd) == it->second.x && headlesspc_current_y(sd) == it->second.y
 		&& (ud == nullptr || ud->walktimer == INVALID_TIMER)) {
-		if (auto seq_it = headlesspc_walk_request_seq.find(char_id); seq_it != headlesspc_walk_request_seq.end()) {
-			headlesspc_walk_ack_seq[char_id] = seq_it->second;
-			headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
-		}
+		headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_ARRIVED, true);
 		headlesspc_clear_pending_walk(char_id);
 		headlesspc_route_start_next_walk(char_id);
 		return 0;
@@ -429,16 +446,18 @@ static TIMER_FUNC(headlesspc_walk_poll_timer) {
 			if (!unit_movepos(sd, static_cast<int16>(it->second.x), static_cast<int16>(it->second.y), 0, false)) {
 				ShowWarning("headless_pc: walk settle failed for char_id %u toward (%u,%u).\n",
 					char_id, it->second.x, it->second.y);
+				headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_SETTLE_FAILED, false);
 				headlesspc_clear_pending_walk(char_id);
 				return 0;
 			}
 			headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
+			headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_SETTLED, true);
+			headlesspc_clear_pending_walk(char_id);
+			headlesspc_route_start_next_walk(char_id);
+			return 0;
 		}
 
-		if (auto seq_it = headlesspc_walk_request_seq.find(char_id); seq_it != headlesspc_walk_request_seq.end()) {
-			headlesspc_walk_ack_seq[char_id] = seq_it->second;
-			headlesspc_lifecycle_persist_walk_ack(char_id, seq_it->second);
-		}
+		headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_ARRIVED, true);
 		headlesspc_clear_pending_walk(char_id);
 		headlesspc_route_start_next_walk(char_id);
 		return 0;
@@ -1189,6 +1208,9 @@ bool chrif_headlesspc_setpos(uint32 char_id, int16 m, uint16 x, uint16 y) {
 	if (headlesspc_logout_requests.find(char_id) != headlesspc_logout_requests.end())
 		return false;
 
+	if (headlesspc_walk_requests.find(char_id) != headlesspc_walk_requests.end())
+		headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_CANCELLED, false);
+
 	headlesspc_clear_pending_walk(char_id);
 	headlesspc_route_reset(char_id);
 
@@ -1223,12 +1245,16 @@ bool chrif_headlesspc_walkto(uint32 char_id, uint16 x, uint16 y) {
 	if (x == headlesspc_current_x(sd) && y == headlesspc_current_y(sd)) {
 		headlesspc_walk_ack_seq[char_id] = headlesspc_next_walk_seq++;
 		headlesspc_lifecycle_persist_walk_ack(char_id, headlesspc_walk_ack_seq[char_id]);
+		headlesspc_walk_event_seq[char_id]++;
+		headlesspc_walk_result_code[char_id] = HEADLESSPC_WALK_ARRIVED;
 		return true;
 	}
 
 	if (!unit_walktoxy(sd, x, y, 0)) {
 		ShowWarning("headless_pc: failed to start walk request for char_id %u toward (%u,%u).\n",
 			char_id, x, y);
+		headlesspc_walk_event_seq[char_id]++;
+		headlesspc_walk_result_code[char_id] = HEADLESSPC_WALK_START_FAILED;
 		return false;
 	}
 
@@ -1394,6 +1420,9 @@ bool chrif_headlesspc_routestop(uint32 char_id) {
 	if (route_it != headlesspc_route_states.end())
 		route_it->second.running = false;
 
+	if (headlesspc_walk_requests.find(char_id) != headlesspc_walk_requests.end())
+		headlesspc_record_walk_event(char_id, HEADLESSPC_WALK_CANCELLED, false);
+
 	headlesspc_clear_pending_walk(char_id);
 	unit_stop_walking(sd, USW_FIXPOS);
 	headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
@@ -1529,6 +1558,26 @@ uint32 chrif_headlesspc_walk_ack(uint32 char_id) {
 		return persisted;
 
 	return 0;
+}
+
+uint32 chrif_headlesspc_walk_event(uint32 char_id) {
+	if (char_id == 0)
+		return 0;
+
+	if (auto it = headlesspc_walk_event_seq.find(char_id); it != headlesspc_walk_event_seq.end())
+		return it->second;
+
+	return 0;
+}
+
+int32 chrif_headlesspc_walk_result(uint32 char_id) {
+	if (char_id == 0)
+		return HEADLESSPC_WALK_NONE;
+
+	if (auto it = headlesspc_walk_result_code.find(char_id); it != headlesspc_walk_result_code.end())
+		return it->second;
+
+	return HEADLESSPC_WALK_NONE;
 }
 
 void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {

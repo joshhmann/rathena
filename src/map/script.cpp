@@ -11826,6 +11826,28 @@ BUILDIN_FUNC(headlesspc_walkack)
 }
 
 /*==========================================
+ * Query last completed headless walk terminal event sequence by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_walkevent)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_walk_event(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query last completed headless walk terminal result by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_walkresult)
+{
+	uint32 char_id = script_getnum(st, 2);
+
+	script_pushint(st, chrif_headlesspc_walk_result(char_id));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Query in-memory route status for a live headless BL_PC.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_routestatus)
@@ -11905,6 +11927,45 @@ BUILDIN_FUNC(headlesspc_reconcileresult)
 BUILDIN_FUNC(headlesspc_restoreall)
 {
 	script_pushint(st, chrif_headlesspc_restoreall());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query current map name for a live regular PC by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(livepc_map)
+{
+	uint32 char_id = script_getnum(st, 2);
+	TBL_PC* sd = map_charid2sd(char_id);
+
+	if (sd == nullptr || sd->state.headless_bot)
+		script_pushconststr(st, "");
+	else
+		script_pushstrcopy(st, map_getmapdata(sd->m)->name);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query current x for a live regular PC by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(livepc_x)
+{
+	uint32 char_id = script_getnum(st, 2);
+	TBL_PC* sd = map_charid2sd(char_id);
+
+	script_pushint(st, (sd != nullptr && !sd->state.headless_bot) ? sd->x : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query current y for a live regular PC by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(livepc_y)
+{
+	uint32 char_id = script_getnum(st, 2);
+	TBL_PC* sd = map_charid2sd(char_id);
+
+	script_pushint(st, (sd != nullptr && !sd->state.headless_bot) ? sd->y : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -28832,9 +28893,14 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(headlesspc_reconcile,"i"),
 	BUILDIN_DEF(headlesspc_reconcileack,"i"),
 	BUILDIN_DEF(headlesspc_walkack,"i"),
+	BUILDIN_DEF(headlesspc_walkevent,"i"),
+	BUILDIN_DEF(headlesspc_walkresult,"i"),
 	BUILDIN_DEF(headlesspc_routestatus,"i"),
 	BUILDIN_DEF(headlesspc_reconcileresult,"i"),
 	BUILDIN_DEF(headlesspc_restoreall,""),
+	BUILDIN_DEF(livepc_map,"i"),
+	BUILDIN_DEF(livepc_x,"i"),
+	BUILDIN_DEF(livepc_y,"i"),
 	BUILDIN_DEF(getunitdata,"i*"),
 	BUILDIN_DEF(setunitdata,"iiv"),
 	BUILDIN_DEF(unitwalk,"iii?"),

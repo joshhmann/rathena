@@ -232,6 +232,17 @@ function	script	F_LW_HPC_EnsureActive	{
 	return (.@status == 2);
 }
 
+function	script	F_LW_HPC_WalkResultName	{
+	switch(getarg(0)) {
+	case 1: return "arrived";
+	case 2: return "settled";
+	case 3: return "start failed";
+	case 4: return "settle failed";
+	case 5: return "cancelled";
+	default: return "none";
+	}
+}
+
 function	script	F_LW_HPC_DefReset	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);

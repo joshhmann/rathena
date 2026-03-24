@@ -1237,3 +1237,83 @@ This slice still does not implement:
 - multi-leg escort choreography
 - live leader-follow behavior
 - evented arrival callbacks beyond existing controller-local logic
+
+## Slice 22: Walk Terminal Events And Live Follower Demo
+
+### Goal
+
+Add explicit walk terminal results for scripts and prove a controller can follow
+a live leader instead of only driving fixed patrol or escort legs.
+
+### Files Touched
+
+- `src/map/chrif.cpp`
+- `src/map/chrif.hpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/headless_pc_smoketest.txt`
+- `npc/custom/living_world/headless_pc_follower_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Path Changes
+
+- Added a headless walk terminal-event surface:
+  - `headlesspc_walkevent(char_id)`
+  - `headlesspc_walkresult(char_id)`
+- Added walk result codes in `chrif.hpp`:
+  - `arrived`
+  - `settled`
+  - `start failed`
+  - `settle failed`
+  - `cancelled`
+- Walk terminal events now advance for:
+  - exact arrival
+  - timeout settle
+  - start failure
+  - settle failure
+  - cancellation from controller/operator interruption
+- Kept `headlesspc_walkack(...)` as the success-only sequence while
+  `headlesspc_walkevent(...)` represents any terminal outcome.
+- Added live regular-PC position readers for script controllers:
+  - `livepc_map(char_id)`
+  - `livepc_x(char_id)`
+  - `livepc_y(char_id)`
+- Added a dev-only live-follower controller:
+  - visible NPC `Headless Follow`
+  - hidden controller `HeadlessFollowerController`
+- The follower demo:
+  - tracks live leader `codex` (`150001`)
+  - claims headless follower `codexalt` (`150002`)
+  - keeps the follower on a simple east-of-leader anchor
+  - reacts to walk terminal events instead of assuming success
+
+### Validation
+
+- rebuilt `map-server` successfully
+- restarted the stack cleanly
+- OpenKore validated the new walk event surface:
+  - `Headless Smoke -> Setpos codexalt center`
+  - `Headless Smoke -> Walk codexalt east`
+  - `Walk Event codexalt` advanced
+  - `Walk Result codexalt` reported `settled`
+- OpenKore validated the live follower controller:
+  - `Headless Follow -> Start codexalt follow codex`
+  - `codexalt` moved onto the live leader anchor at `156,177`
+  - after moving live `codex` to `158,177`, `codexalt` reacquired and moved to
+    `159,177`
+  - `Headless Follow -> Status` reported:
+    - `Leader: prontera (158,177)`
+    - `Follower: prontera (159,177)`
+    - `Walk Event: 3`
+    - `Result: settled`
+
+### Deferrals
+
+This slice still does not implement:
+
+- persistent walk-event history across restart
+- live leader-follow across map changes with handoff policy
+- formation logic for more than one follower
+- path-aware anchor selection beyond a fixed offset
