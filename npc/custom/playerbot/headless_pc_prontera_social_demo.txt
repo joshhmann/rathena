@@ -30,6 +30,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "prontera", 1;
 	callfunc "F_LW_HPC_DefSetStartStagger", .owner$, 400, 1500;
 	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, 12000;
+	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, "park";
 
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "BotPc06", 150015, "prontera", 146, 188, 0;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";

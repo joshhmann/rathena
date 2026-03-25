@@ -290,6 +290,7 @@ function	script	F_LW_HPC_DefReset	{
 	setd("$LWHD" + .@seed + "_SX", 0);
 	setd("$LWHD" + .@seed + "_GR", 0);
 	setd("$LWHD" + .@seed + "_GD", 0);
+	setd("$LWHD" + .@seed + "_SP$", "release");
 	return 1;
 }
 
@@ -326,6 +327,16 @@ function	script	F_LW_HPC_DefSetGraceMs	{
 	if (.@ms < 0)
 		.@ms = 0;
 	setd("$LWHD" + .@seed + "_GR", .@ms);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetStopPolicy	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@policy$ = getarg(1);
+	if (.@policy$ != "park")
+		.@policy$ = "release";
+	setd("$LWHD" + .@seed + "_SP$", .@policy$);
 	return 1;
 }
 
@@ -434,10 +445,11 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	.@tick_ms = getd("$LWHD" + .@seed + "_TK");
 	.@grace_ms = getd("$LWHD" + .@seed + "_GR");
 	.@grace_deadline = getd("$LWHD" + .@seed + "_GD");
+	.@stop_policy$ = getd("$LWHD" + .@seed + "_SP$");
 	if (.@gate_map$ != "")
-		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms.";
+		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms, stop " + .@stop_policy$ + ".";
 	else
-		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms.";
+		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms, stop " + .@stop_policy$ + ".";
 	if (.@grace_deadline > gettimetick(2))
 		.@summary$ += " Gate cooldown active.";
 	.@count = getd("$LWHD" + .@seed + "_AC");
@@ -454,6 +466,28 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	}
 	setd("$LWHS" + .@seed + "$", .@summary$);
 	return .@count;
+}
+
+function	script	F_LW_HPC_DefCountActive	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	.@active = 0;
+	for (.@i = 0; .@i < .@count; ++.@i)
+		if (headlesspc_status(getd("$LWHD" + .@seed + "_C[" + .@i + "]")) == 2)
+			.@active++;
+	return .@active;
+}
+
+function	script	F_LW_HPC_DefCountParked	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	.@parked = 0;
+	for (.@i = 0; .@i < .@count; ++.@i)
+		if (headlesspc_status(getd("$LWHD" + .@seed + "_C[" + .@i + "]")) == 0)
+			.@parked++;
+	return .@parked;
 }
 
 function	script	F_LW_HPC_ControllerShouldRun	{
@@ -564,6 +598,8 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 	.@actor_cap = getd("$LWHS" + .@seed + "_AP");
 	.@tick_ms = getd("$LWHS" + .@seed + "_TK");
 	.@summary$ = "Enabled: " + (.@enabled ? "yes" : "no") + ".\nController cap/tick/actor cap: " + .@cap + " / " + .@tick_ms + "ms / " + .@actor_cap + ".";
+	.@active_total = 0;
+	.@parked_total = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
@@ -573,11 +609,17 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
 		.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 		.@active = getvariableofnpc(.enabled, .@controller$);
+		.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
+		.@live_parked = callfunc("F_LW_HPC_DefCountParked", .@controller$);
+		.@active_total += .@live_active;
+		.@parked_total += .@live_parked;
 		.@summary$ += "\n" + .@controller$ + ": " + (.@active ? "active" : "idle")
 			+ ", map " + .@map$ + " users " + .@users + "/" + .@need
 			+ ", priority " + .@prio + ", actors " + .@actors
-			+ ", map cap " + .@map_cap + ".";
+			+ ", map cap " + .@map_cap + ", live active " + .@live_active
+			+ ", parked " + .@live_parked + ".";
 	}
+	.@summary$ += "\nLive active/parked total: " + .@active_total + " / " + .@parked_total + ".";
 	setd("$LWHSS" + .@seed + "$", .@summary$);
 	return .@count;
 }
@@ -606,14 +648,18 @@ function	script	F_LW_HPC_SchedRun	{
 			.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
 			.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 			.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
+			.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
 			if (getmapusers(.@map$) < .@need)
 				continue;
 			if (.@active_actors + .@actors > .@actor_cap)
 				continue;
 			if (.@map_cap > 0 && .@map_used + .@actors > .@map_cap)
 				continue;
-			if (!getvariableofnpc(.enabled, .@controller$))
-				callfunc "F_LW_HPC_ControllerStart", .@controller$;
+			if (!getvariableofnpc(.enabled, .@controller$)) {
+				set getvariableofnpc(.enabled, .@controller$), 1;
+				donpcevent .@controller$ + "::OnTick";
+			} else if (.@live_active < .@actors)
+				donpcevent .@controller$ + "::OnTick";
 			.@started++;
 			.@active_actors += .@actors;
 			setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", .@map_used + .@actors);
@@ -695,10 +741,20 @@ function	script	F_LW_HPC_DefStop	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
 	.@owner$ = getarg(1);
+	.@policy$ = getd("$LWHD" + .@seed + "_SP$");
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
-		callfunc "F_LW_HPC_ControllerReleaseOwned", .@char_id, .@owner$;
+		if (.@policy$ == "park") {
+			.@current_owner$ = headlesspc_owner(.@char_id);
+			if (.@current_owner$ == .@owner$ && headlesspc_routestatus(.@char_id) != 0)
+				headlesspc_owned_routestop(.@char_id, .@owner$);
+			if (.@current_owner$ == .@owner$)
+				headlesspc_release(.@char_id, .@owner$);
+			if (headlesspc_status(.@char_id) == 2)
+				headlesspc_remove(.@char_id);
+		} else
+			callfunc "F_LW_HPC_ControllerReleaseOwned", .@char_id, .@owner$;
 	}
 	return 1;
 }

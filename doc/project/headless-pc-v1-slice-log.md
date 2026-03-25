@@ -1985,3 +1985,56 @@ This slice does not yet add:
 - dynamic actor weights from live controller state
 - pooled budgeting across more than one controller per map
 - parked/offline pool accounting
+
+## Slice 35: Parked Pool Accounting
+
+### Goal
+
+Make scheduler deactivation actually park recurring bots offline, then expose
+active-versus-parked counts so the system starts behaving like a reusable bot
+pool instead of leaving stopped actors spawned and ownerless.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added shared controller stop policy:
+  - `F_LW_HPC_DefSetStopPolicy`
+- `F_LW_HPC_DefStop(...)` now supports:
+  - `release`
+  - `park`
+- Alberta and Prontera social controllers now use:
+  - `stop policy = park`
+- Added shared live-count helpers:
+  - `F_LW_HPC_DefCountActive`
+  - `F_LW_HPC_DefCountParked`
+- Scheduler status now reports:
+  - per-controller live active count
+  - per-controller parked count
+  - total live active/parked count across the registered scheduler set
+
+### Validation
+
+- `map-server` must reload cleanly.
+- CLI smoke test should confirm:
+  - scheduler `Status` shows live active/parked counts
+  - after scheduler stop, social bots move into parked/offline state rather
+    than lingering spawned and ownerless
+  - when the scheduler restarts, parked bots respawn back into their controller
+    set cleanly
+- Scheduler-selected controllers now explicitly invoke `OnTick` for
+  rehydration instead of relying only on controller-local start timers, which
+  closes the parked-but-not-rehydrated restart gap found during CLI validation.
+
+### Deferrals
+
+This slice does not yet add:
+
+- a dedicated parked/offline SQL ledger beyond current runtime/lifecycle data
+- pool sharing across many more controller families
+- progression-aware parking decisions
