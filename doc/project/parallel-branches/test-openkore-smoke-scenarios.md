@@ -15,6 +15,8 @@ playerbot and scheduler slices.
 ## Preferred Files
 
 - `doc/project/openkore-test-harness.md`
+- `doc/project/openkore-smoke-scenarios.md`
+- `tools/ci/openkore-smoke.sh`
 - optional tooling under `/root/testing/openkore-control-*` or local helper scripts
 - `doc/project/headless-pc-v1-slice-log.md`
 
@@ -44,6 +46,7 @@ Do:
 - turn the current ad hoc OpenKore checks into repeatable smoke scenarios
 - cover scheduler start/stop and pooled-bot repopulation first
 - prefer docs and local helper tooling
+- keep the scenario list and launcher script aligned
 - update repo-local test docs before committing
 
 Avoid:

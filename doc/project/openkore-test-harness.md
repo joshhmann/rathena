@@ -124,5 +124,6 @@ perl /root/testing/openkore/openkore.pl \
 
 - replace the borrowed `laRO` packet profile with a better-matched private-server profile
 - generate or import additional `.fld2` files for the maps we care about testing
-- add one repeatable CLI smoke-test procedure for login and map entry
+- use [openkore-smoke-scenarios.md](/root/dev/rathena/doc/project/openkore-smoke-scenarios.md) as the canonical repeatable scenario list
+- use `tools/ci/openkore-smoke.sh` as the local scenario launcher/checklist helper
 - later, add scripted interaction checks for key Prontera NPCs
