@@ -261,6 +261,8 @@ Implementation note:
 
 - this is a scheduler/controller-policy concern, not a reason to bypass the
   existing `headless_pc` ownership and lifecycle rules
+- the canonical phased execution guide is:
+  - `doc/project/playerbot-execution-plan.md`
 
 - let external systems influence the world without owning core gameplay truth
 

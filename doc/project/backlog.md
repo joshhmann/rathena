@@ -25,6 +25,10 @@ Execution preference:
 - design connected-map traversal for selected world actors rather than only single-map loops
 - define parked/offline lifecycle rules for recurring provisioned bots so party
   and progression systems can rely on continuity
+- drive playerbot work from the phased execution guide:
+  - `doc/project/playerbot-execution-plan.md`
+- keep parallel work inside approved write-scope lanes instead of splitting
+  across shared hotspots like `_common.txt` and `src/map/chrif.cpp`
 
 ## Existing rAthena Custom NPCs Worth Evaluating
 
