@@ -12,6 +12,22 @@ OnInit:
 	.assist_leader_char_id = 0;
 	.assist_bot_char_id = 0;
 	.assist_bot_key$ = "";
+	.assist_enabled = 0;
+	.assist_tick_ms = 800;
+	.assist_follow_dx = 1;
+	.assist_follow_dy = 0;
+	.assist_walk_pending = 0;
+	.assist_handoff_pending = 0;
+	.assist_last_walk_event = 0;
+	.assist_last_walk_result = 0;
+	.assist_last_leader_map$ = "";
+	.assist_last_leader_x = 0;
+	.assist_last_leader_y = 0;
+	.assist_follow_result = 0;
+	.assist_follow_log$ = "";
+	.assist_expect_map$ = "";
+	.assist_expect_x = 0;
+	.assist_expect_y = 0;
 	.assist_status_summary$ = "Ready.";
 	end;
 
@@ -92,9 +108,26 @@ OnVerify:
 OnAssistStart:
 	.assist_bot_key$ = .bot_key$;
 	.assist_leader_char_id = .test_char_id;
-	.last_log$ = "assist-started";
-	callsub S_RunAssistOnce;
-	addtimer 4000, strnpcinfo(3) + "::OnAssistVerify";
+	.last_log$ = "assist-controller-started";
+	donpcevent strnpcinfo(3) + "::OnAssistControllerStart";
+	sleep 2500;
+	donpcevent strnpcinfo(3) + "::OnAstMove";
+	end;
+
+OnAstMove:
+	.@move_map$ = "prontera";
+	.@move_x = 144;
+	.@move_y = 185;
+	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@move_map$, .@move_x, .@move_y, .assist_follow_dx, .assist_follow_dy, .assist_follow_dx, .assist_follow_dy + 1, .assist_follow_dx, .assist_follow_dy - 1, .assist_follow_dx + 1, .assist_follow_dy, 0, 1, 0, -1);
+	.assist_expect_map$ = .@move_map$;
+	.assist_expect_x = callfunc("F_LW_HPC_UnpackX", .@packed);
+	.assist_expect_y = callfunc("F_LW_HPC_UnpackY", .@packed);
+	if (attachrid(.inviter_aid)) {
+		warp .@move_map$, .@move_x, .@move_y;
+		detachrid;
+	}
+	sleep 3500;
+	donpcevent strnpcinfo(3) + "::OnAssistVerify";
 	end;
 
 OnAssistVerify:
@@ -105,12 +138,20 @@ OnAssistVerify:
 	.@bot_map$ = headlesspc_map($@pbbot_char_id);
 	.@bot_x = headlesspc_x($@pbbot_char_id);
 	.@bot_y = headlesspc_y($@pbbot_char_id);
-	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, 1, 0, 1, 1, 0, 1, -1, 0, -1, 1);
-	.@target_x = callfunc("F_LW_HPC_UnpackX", .@packed);
-	.@target_y = callfunc("F_LW_HPC_UnpackY", .@packed);
-	.assist_result = (.@bot_map$ == .@leader_map$ && .@bot_x == .@target_x && .@bot_y == .@target_y);
-	.assist_log$ = "leader=" + .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ") bot=" + .@bot_map$ + " (" + .@bot_x + "," + .@bot_y + ") target=(" + .@target_x + "," + .@target_y + ")";
+	if (.@leader_map$ != "") {
+		.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, .assist_follow_dx, .assist_follow_dy, .assist_follow_dx, .assist_follow_dy + 1, .assist_follow_dx, .assist_follow_dy - 1, .assist_follow_dx + 1, .assist_follow_dy, 0, 1, 0, -1);
+		.@target_map$ = .@leader_map$;
+		.@target_x = callfunc("F_LW_HPC_UnpackX", .@packed);
+		.@target_y = callfunc("F_LW_HPC_UnpackY", .@packed);
+	} else {
+		.@target_map$ = .assist_expect_map$;
+		.@target_x = .assist_expect_x;
+		.@target_y = .assist_expect_y;
+	}
+	.assist_result = (.@target_map$ != "" && .@bot_map$ == .@target_map$ && .@bot_x == .@target_x && .@bot_y == .@target_y);
+	.assist_log$ = "leader=" + (.@leader_map$ == "" ? "<offline>" : .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ")") + " bot=" + .@bot_map$ + " (" + .@bot_x + "," + .@bot_y + ") target=" + .@target_map$ + " (" + .@target_x + "," + .@target_y + ")";
 	debugmes "playerbot_selftest_assist: " + .assist_log$ + " result=" + .assist_result + ".";
+	donpcevent strnpcinfo(3) + "::OnAssistControllerStop";
 	end;
 
 OnAssistManualStart:
@@ -119,26 +160,54 @@ OnAssistManualStart:
 	if (.assist_bot_key$ == "")
 		end;
 	.last_log$ = "assist-manual-start";
-	callsub S_RunAssistOnce;
+	donpcevent strnpcinfo(3) + "::OnAssistControllerStart";
 	end;
 
 OnAssistManualStop:
-	if (.assist_bot_char_id > 0)
-		callfunc "F_LW_HPC_ControllerReleaseOwned", .assist_bot_char_id, .assist_owner$;
-	.assist_status_summary$ = "Stopped.";
+	donpcevent strnpcinfo(3) + "::OnAssistControllerStop";
 	end;
 
-S_RunAssistOnce:
+OnAssistControllerStart:
+	.assist_enabled = 1;
+	.assist_walk_pending = 0;
+	.assist_handoff_pending = 0;
+	.assist_last_walk_event = headlesspc_walkevent(.assist_bot_char_id);
+	.assist_last_walk_result = headlesspc_walkresult(.assist_bot_char_id);
+	.assist_last_leader_map$ = livepc_map(.assist_leader_char_id);
+	.assist_last_leader_x = livepc_x(.assist_leader_char_id);
+	.assist_last_leader_y = livepc_y(.assist_leader_char_id);
+	.assist_status_summary$ = "Assist controller starting.";
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnAssistControllerTick";
+	end;
+
+OnAssistControllerStop:
+	.assist_enabled = 0;
+	.assist_walk_pending = 0;
+	.assist_handoff_pending = 0;
+	stopnpctimer;
+	if (.assist_bot_char_id > 0)
+		callfunc "F_LW_HPC_ControllerReleaseOwned", .assist_bot_char_id, .assist_owner$;
+	callsub S_BuildAssistStatus;
+	.assist_status_summary$ += "\nLast note: controller stopped.";
+	end;
+
+OnAssistControllerTick:
+	if (!.assist_enabled)
+		end;
+
 	callfunc "F_PB_DB_LoadBotSummary", .assist_bot_key$;
 	if (!$@pbbot_found) {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: missing bot profile.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
 	.assist_bot_char_id = $@pbbot_char_id;
 	.@party_id = playerbot_partyid(.assist_bot_char_id);
 	if (!.@party_id) {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: bot not in party.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
 	.@leader_party_char_id = partyleadercharid(.@party_id);
 	if (.@leader_party_char_id > 0)
@@ -148,33 +217,119 @@ S_RunAssistOnce:
 	.@leader_y = livepc_y(.assist_leader_char_id);
 	if (.@leader_map$ == "") {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: leader offline or not local.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
-	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, 1, 0, 1, 1, 0, 1, -1, 0, -1, 1);
+
+	if (.assist_last_leader_map$ != "" && .assist_last_leader_map$ != .@leader_map$) {
+		.assist_handoff_pending = 1;
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: leader map changed to " + .@leader_map$ + "; waiting for stable coords.";
+		.assist_last_leader_map$ = .@leader_map$;
+		callsub S_ScheduleAssistTick;
+		end;
+	}
+
+	if (.assist_handoff_pending) {
+		if (.@leader_x == .assist_last_leader_x && .@leader_y == .assist_last_leader_y) {
+			.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: leader handoff still settling.";
+			callsub S_ScheduleAssistTick;
+			end;
+		}
+		.assist_handoff_pending = 0;
+	}
+
+	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, .assist_follow_dx, .assist_follow_dy, .assist_follow_dx, .assist_follow_dy + 1, .assist_follow_dx, .assist_follow_dy - 1, .assist_follow_dx + 1, .assist_follow_dy, 0, 1, 0, -1);
 	if (!.@packed) {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: no passable assist anchor.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
 	.@target_x = callfunc("F_LW_HPC_UnpackX", .@packed);
 	.@target_y = callfunc("F_LW_HPC_UnpackY", .@packed);
+
 	if (!callfunc("F_LW_HPC_EnsureActive", .assist_bot_char_id, .@leader_map$, .@target_x, .@target_y)) {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: spawn requested or pending.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
+
 	.@owner$ = headlesspc_owner(.assist_bot_char_id);
 	if (.@owner$ != "" && .@owner$ != .assist_owner$) {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: claimed by another controller.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
 	if (.@owner$ == "" && !headlesspc_claim(.assist_bot_char_id, .assist_owner$)) {
 		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: claim failed.";
-		return;
+		callsub S_ScheduleAssistTick;
+		end;
 	}
-	.@ok = headlesspc_owned_setpos(.assist_bot_char_id, .assist_owner$, .@leader_map$, .@target_x, .@target_y);
+
+	.@walk_event = headlesspc_walkevent(.assist_bot_char_id);
+	if (.assist_walk_pending && .@walk_event != .assist_last_walk_event) {
+		.assist_last_walk_event = .@walk_event;
+		.assist_last_walk_result = headlesspc_walkresult(.assist_bot_char_id);
+		.assist_walk_pending = 0;
+	}
+
+	.@bot_map$ = headlesspc_map(.assist_bot_char_id);
+	.@bot_x = headlesspc_x(.assist_bot_char_id);
+	.@bot_y = headlesspc_y(.assist_bot_char_id);
+
+	if (.@bot_map$ != .@leader_map$) {
+		.@ok = headlesspc_owned_setpos(.assist_bot_char_id, .assist_owner$, .@leader_map$, .@target_x, .@target_y);
+		callsub S_BuildAssistStatus;
+		.assist_status_summary$ += "\nTarget: " + .@leader_map$ + " (" + .@target_x + "," + .@target_y + ").";
+		.assist_status_summary$ += "\nLast note: " + (.@ok ? "leader handoff repositioned" : "leader handoff reposition failed") + ".";
+		.assist_last_leader_map$ = .@leader_map$;
+		.assist_last_leader_x = .@leader_x;
+		.assist_last_leader_y = .@leader_y;
+		callsub S_ScheduleAssistTick;
+		end;
+	}
+
+	if (.assist_walk_pending) {
+		callsub S_BuildAssistStatus;
+		.assist_status_summary$ += "\nTarget: " + .@leader_map$ + " (" + .@target_x + "," + .@target_y + ").";
+		.assist_status_summary$ += "\nLast note: walking to leader anchor.";
+		.assist_last_leader_map$ = .@leader_map$;
+		.assist_last_leader_x = .@leader_x;
+		.assist_last_leader_y = .@leader_y;
+		callsub S_ScheduleAssistTick;
+		end;
+	}
+
+	if (.@bot_x == .@target_x && .@bot_y == .@target_y) {
+		callsub S_BuildAssistStatus;
+		.assist_status_summary$ += "\nTarget: " + .@leader_map$ + " (" + .@target_x + "," + .@target_y + ").";
+		.assist_status_summary$ += "\nLast note: holding leader anchor.";
+		.assist_last_leader_map$ = .@leader_map$;
+		.assist_last_leader_x = .@leader_x;
+		.assist_last_leader_y = .@leader_y;
+		callsub S_ScheduleAssistTick;
+		end;
+	}
+
+	.assist_last_walk_event = headlesspc_walkevent(.assist_bot_char_id);
+	.@ok = headlesspc_owned_walkto(.assist_bot_char_id, .assist_owner$, .@target_x, .@target_y);
+	if (.@ok)
+		.assist_walk_pending = 1;
+	else
+		.assist_last_walk_result = headlesspc_walkresult(.assist_bot_char_id);
+
 	callsub S_BuildAssistStatus;
 	.assist_status_summary$ += "\nTarget: " + .@leader_map$ + " (" + .@target_x + "," + .@target_y + ").";
-	.assist_status_summary$ += "\nLast note: " + (.@ok ? "assist repositioned" : "assist reposition failed") + ".";
-	return;
+	.assist_status_summary$ += "\nLast note: " + (.@ok ? "assist walk queued" : "assist walk request failed") + ".";
+	.assist_last_leader_map$ = .@leader_map$;
+	.assist_last_leader_x = .@leader_x;
+	.assist_last_leader_y = .@leader_y;
+	callsub S_ScheduleAssistTick;
+	end;
+
+OnTimer800:
+	stopnpctimer;
+	donpcevent strnpcinfo(3) + "::OnAssistControllerTick";
+	end;
 
 S_BuildAssistStatus:
 	.@leader_map$ = livepc_map(.assist_leader_char_id);
@@ -190,5 +345,15 @@ S_BuildAssistStatus:
 	.assist_status_summary$ += "\nLeader: " + (.@leader_map$ == "" ? "<absent>" : .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ")") + ".";
 	.assist_status_summary$ += "\nBot: " + (.@bot_map$ == "" ? "<absent>" : .@bot_map$ + " (" + .@bot_x + "," + .@bot_y + ")") + ".";
 	.assist_status_summary$ += "\nStatus: " + headlesspc_status(.assist_bot_char_id) + ", owner=" + (headlesspc_owner(.assist_bot_char_id) == "" ? "<none>" : headlesspc_owner(.assist_bot_char_id)) + ".";
+	.assist_status_summary$ += " Enabled: " + (.assist_enabled ? "yes" : "no") + ".";
+	.assist_status_summary$ += " Pending: " + (.assist_walk_pending ? "yes" : "no") + ".";
+	.assist_status_summary$ += " Handoff: " + (.assist_handoff_pending ? "yes" : "no") + ".";
+	.assist_status_summary$ += "\nWalk Event: " + headlesspc_walkevent(.assist_bot_char_id) + ".";
+	.assist_status_summary$ += " Result: " + callfunc("F_LW_HPC_WalkResultName", headlesspc_walkresult(.assist_bot_char_id)) + ".";
+	return;
+
+S_ScheduleAssistTick:
+	stopnpctimer;
+	initnpctimer;
 	return;
 }

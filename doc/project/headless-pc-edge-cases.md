@@ -764,19 +764,21 @@ Current limits:
 
 Current support:
 
-- one narrow assist primitive now exists through the playerbot harness:
-  - resolve party leader
+- a continuous post-join assist controller now exists through the playerbot
+  harness:
+  - resolve party leader continuously
   - choose a passable adjacent anchor
-  - reposition the active headless bot onto that anchor
+  - walk toward that anchor on the same map
+  - reposition across map handoff when needed
 - validation uses:
   - `Playerbot Party Assist`
   - `PlayerbotSelftest`
 
 Current limits:
 
-- this is a one-shot post-join assist, not a continuous follow loop
+- this is still a narrow follow/assist lane, not a full support AI
 - no combat assist semantics exist yet
-- no controller handoff occurs after the reposition step
+- no richer role selection or party-controller reassignment exists yet
 
 ### 33. Playerbot config key length
 

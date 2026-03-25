@@ -348,6 +348,16 @@ function	script	F_PB_CFG_RegisterPool	{
 	return .@count;
 }
 
+function	script	F_PB_CFG_PoolIndex	{
+	.@pool$ = getarg(0);
+	.@count = getd("$PBCFG_POOL_CT");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		if (getd("$PBCFG_POOL$[" + .@i + "]") == .@pool$)
+			return .@i;
+	}
+	return callfunc("F_PB_CFG_RegisterPool", .@pool$);
+}
+
 function	script	F_PB_DB_LoadPool	{
 	.@pool$ = getarg(0);
 	.@esc_pool$ = escape_sql(.@pool$);
@@ -599,29 +609,32 @@ function	script	F_PB_CFG_ApplyControllerDef	{
 
 function	script	F_PB_POOL_Reset	{
 	.@pool$ = getarg(0);
-	setd("$PBPOOL_" + .@pool$ + "_AC", 0);
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	setd(.@prefix$ + "_AC", 0);
 	return 1;
 }
 
 function	script	F_PB_POOL_Add	{
 	.@pool$ = getarg(0);
-	.@i = getd("$PBPOOL_" + .@pool$ + "_AC");
-	setd("$PBPOOL_" + .@pool$ + "_L$[" + .@i + "]", getarg(1));
-	setd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]", getarg(2));
-	setd("$PBPOOL_" + .@pool$ + "_B[" + .@i + "]", getarg(3, 0));
-	setd("$PBPOOL_" + .@pool$ + "_PF$[" + .@i + "]", getarg(4, ""));
-	setd("$PBPOOL_" + .@pool$ + "_RL$[" + .@i + "]", getarg(5, ""));
-	setd("$PBPOOL_" + .@pool$ + "_AC", .@i + 1);
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@i = getd(.@prefix$ + "_AC");
+	setd(.@prefix$ + "_L$[" + .@i + "]", getarg(1));
+	setd(.@prefix$ + "_C[" + .@i + "]", getarg(2));
+	setd(.@prefix$ + "_B[" + .@i + "]", getarg(3, 0));
+	setd(.@prefix$ + "_PF$[" + .@i + "]", getarg(4, ""));
+	setd(.@prefix$ + "_RL$[" + .@i + "]", getarg(5, ""));
+	setd(.@prefix$ + "_AC", .@i + 1);
 	return .@i;
 }
 
 function	script	F_PB_POOL_Profile	{
 	.@pool$ = getarg(0);
 	.@char_id = getarg(1);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		if (getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]") == .@char_id)
-			return getd("$PBPOOL_" + .@pool$ + "_PF$[" + .@i + "]");
+		if (getd(.@prefix$ + "_C[" + .@i + "]") == .@char_id)
+			return getd(.@prefix$ + "_PF$[" + .@i + "]");
 	}
 	return "";
 }
@@ -629,10 +642,11 @@ function	script	F_PB_POOL_Profile	{
 function	script	F_PB_POOL_Role	{
 	.@pool$ = getarg(0);
 	.@char_id = getarg(1);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		if (getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]") == .@char_id)
-			return getd("$PBPOOL_" + .@pool$ + "_RL$[" + .@i + "]");
+		if (getd(.@prefix$ + "_C[" + .@i + "]") == .@char_id)
+			return getd(.@prefix$ + "_RL$[" + .@i + "]");
 	}
 	return "";
 }
@@ -646,13 +660,14 @@ function	script	F_PB_POOL_Claim	{
 	.@owner$ = getarg(1);
 	.@want_profile$ = getarg(2, "");
 	.@want_role$ = getarg(3, "");
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@char_id = getd(.@prefix$ + "_C[" + .@i + "]");
 		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
 		.@status = headlesspc_status(.@char_id);
-		.@profile$ = getd("$PBPOOL_" + .@pool$ + "_PF$[" + .@i + "]");
-		.@role$ = getd("$PBPOOL_" + .@pool$ + "_RL$[" + .@i + "]");
+		.@profile$ = getd(.@prefix$ + "_PF$[" + .@i + "]");
+		.@role$ = getd(.@prefix$ + "_RL$[" + .@i + "]");
 		if (.@current_owner$ != "")
 			continue;
 		if (.@status != 0)
@@ -680,10 +695,11 @@ function	script	F_PB_POOL_Release	{
 
 function	script	F_PB_POOL_Available	{
 	.@pool$ = getarg(0);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	.@available = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@char_id = getd(.@prefix$ + "_C[" + .@i + "]");
 		if (callfunc("F_PB_POOL_Owner", .@char_id) != "")
 			continue;
 		if (headlesspc_status(.@char_id) != 0)
@@ -694,15 +710,18 @@ function	script	F_PB_POOL_Available	{
 }
 
 function	script	F_PB_POOL_Count	{
-	return getd("$PBPOOL_" + getarg(0) + "_AC");
+	.@pool$ = getarg(0);
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	return getd(.@prefix$ + "_AC");
 }
 
 function	script	F_PB_POOL_CountOwnerless	{
 	.@pool$ = getarg(0);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	.@matched = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@char_id = getd(.@prefix$ + "_C[" + .@i + "]");
 		if (callfunc("F_PB_POOL_Owner", .@char_id) == "")
 			.@matched++;
 	}
@@ -712,10 +731,11 @@ function	script	F_PB_POOL_CountOwnerless	{
 function	script	F_PB_POOL_CountClaimedBy	{
 	.@pool$ = getarg(0);
 	.@owner$ = getarg(1);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	.@matched = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@char_id = getd(.@prefix$ + "_C[" + .@i + "]");
 		if (callfunc("F_PB_POOL_Owner", .@char_id) == .@owner$)
 			.@matched++;
 	}
@@ -725,10 +745,11 @@ function	script	F_PB_POOL_CountClaimedBy	{
 function	script	F_PB_POOL_CountClaimedOther	{
 	.@pool$ = getarg(0);
 	.@owner$ = getarg(1);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	.@matched = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@char_id = getd(.@prefix$ + "_C[" + .@i + "]");
 		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
 		if (.@current_owner$ != "" && .@current_owner$ != .@owner$)
 			.@matched++;
@@ -738,10 +759,11 @@ function	script	F_PB_POOL_CountClaimedOther	{
 
 function	script	F_PB_POOL_CountBusyUnowned	{
 	.@pool$ = getarg(0);
-	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@prefix$ = "$PBPL" + callfunc("F_PB_CFG_PoolIndex", .@pool$);
+	.@count = getd(.@prefix$ + "_AC");
 	.@matched = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@char_id = getd(.@prefix$ + "_C[" + .@i + "]");
 		if (callfunc("F_PB_POOL_Owner", .@char_id) != "")
 			continue;
 		if (headlesspc_status(.@char_id) != 0)

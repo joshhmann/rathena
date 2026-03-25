@@ -1,9 +1,9 @@
 prontera,146,179,4	script	PlayerbotPartyAssist	4_F_KAFRA3,{
 	mes "[Playerbot Party Assist]";
-	mes "Drive the first post-join party follow/assist lane.";
+	mes "Drive the continuous post-join party follow/assist lane.";
 	next;
 
-	switch(select("Start quick assist:Stop assist:Status:Close")) {
+	switch(select("Start quick follow-assist:Stop assist:Status:Close")) {
 	case 1:
 		$PBASSIST_bot_key$ = "quick_party_open";
 		$PBASSIST_leader_char_id = getcharid(0);

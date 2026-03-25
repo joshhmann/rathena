@@ -2570,3 +2570,60 @@ This slice does not yet add:
 - NPC shop or barter attachment to merchant bots
 - scheduler-driven merchant open/close automation
 - merchant stock depletion or restock logic
+
+## Slice 45: Continuous Party Follow / Assist V1
+
+### Goal
+
+Upgrade the first post-join party assist proof from a one-shot reposition into a
+continuous claimed controller that keeps the active party bot near the current
+party leader after the join succeeds.
+
+### Files Touched
+
+- `npc/custom/playerbot/playerbot_party_assist.txt`
+- `npc/custom/playerbot/playerbot_selftest.txt`
+- `npc/custom/living_world/_common.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- `Playerbot Party Assist` now describes a continuous follow/assist lane.
+- `PlayerbotSelftest` now runs a timer-driven assist controller instead of a
+  one-shot `setpos(...)` path.
+- The assist controller now:
+  - resolves the current party leader continuously
+  - claims the bot through the existing ownership surface
+  - keeps the bot near a passable anchor beside the leader
+  - uses `headlesspc_owned_walkto(...)` for same-map follow updates
+  - uses `headlesspc_owned_setpos(...)` for cross-map/handoff reposition
+- The hidden selftest now forces a leader move after join and verifies the bot
+  against the expected assist anchor.
+- Pool metadata storage now uses compact per-pool indexed prefixes in script so
+  pooled profile/role metadata no longer depends on long pool-name variable
+  suffixes.
+
+### Validation
+
+- restarted the stack cleanly
+- confirmed the new assist-path errors are gone:
+  - no `npc_event: event not found`
+  - no `buildin_addtimer: fatal error ! player not attached!`
+- OpenKore still logged into Prontera on the updated slice
+- the hidden assist selftest forced the leader move from:
+  - `prontera (139,185)`
+  to:
+  - `prontera (144,185)`
+- map-server assist logs showed the bot tracking onto the assist anchor at:
+  - `prontera (145,185)`
+
+### Deferrals
+
+This slice does not yet add:
+
+- richer assist roles after join
+- combat-aware support behavior
+- party reassignment from the world scheduler
+- cleanup of the remaining long config-key `set_reg` noise in the playerbot
+  config registry
