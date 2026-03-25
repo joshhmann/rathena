@@ -283,25 +283,56 @@ function	script	F_PB_CFG_GetStr	{
 
 function	script	F_PB_CFG_SetPulseProfile	{
 	.@profile$ = getarg(0);
-	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".start", getarg(1);
-	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".end", getarg(2);
-	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".min", getarg(3);
-	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".max", getarg(4);
-	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".talk_weight", getarg(5);
-	return 1;
+	.@count = $PBCFG_PULSE_CT;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		if ($PBCFG_PULSE$[.@i] == .@profile$) {
+			.@slot = .@i;
+			break;
+		}
+	}
+	if (!.@slot && $PBCFG_PULSE$[0] != .@profile$) {
+		.@slot = .@count;
+		$PBCFG_PULSE$[.@slot] = .@profile$;
+		$PBCFG_PULSE_CT = .@count + 1;
+	}
+	$PBCFG_PULSE_S[.@slot] = getarg(1);
+	$PBCFG_PULSE_E[.@slot] = getarg(2);
+	$PBCFG_PULSE_N[.@slot] = getarg(3);
+	$PBCFG_PULSE_X[.@slot] = getarg(4);
+	$PBCFG_PULSE_W[.@slot] = getarg(5);
+	return .@slot;
 }
 
 function	script	F_PB_CFG_ApplyPulseProfile	{
 	.@controller$ = getarg(0);
 	.@actor = getarg(1);
 	.@profile$ = getarg(2);
+	.@slot = -1;
+	for (.@i = 0; .@i < $PBCFG_PULSE_CT; ++.@i) {
+		if ($PBCFG_PULSE$[.@i] == .@profile$) {
+			.@slot = .@i;
+			break;
+		}
+	}
+	.@start = 0;
+	.@end = 0;
+	.@min = 35;
+	.@max = 60;
+	.@weight = 60;
+	if (.@slot >= 0) {
+		.@start = $PBCFG_PULSE_S[.@slot];
+		.@end = $PBCFG_PULSE_E[.@slot];
+		.@min = $PBCFG_PULSE_N[.@slot];
+		.@max = $PBCFG_PULSE_X[.@slot];
+		.@weight = $PBCFG_PULSE_W[.@slot];
+	}
 	callfunc "F_LW_HPC_DefSetPulseWindow", .@controller$, .@actor,
-		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".start", 0),
-		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".end", 0);
+		.@start,
+		.@end;
 	callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, .@actor,
-		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".min", 35),
-		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".max", 60),
-		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".talk_weight", 60);
+		.@min,
+		.@max,
+		.@weight;
 	return 1;
 }
 

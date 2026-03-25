@@ -46,8 +46,8 @@ OnInit:
 	callfunc "F_PB_CFG_SetPulseProfile", "market_anchor_day", 8, 21, 40, 70, 65;
 	callfunc "F_PB_CFG_SetPulseProfile", "market_anchor_trade", 9, 22, 45, 75, 60;
 	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_browse", 8, 20, 30, 55, 55;
-	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_harbor", 9, 22, 35, 60, 50;
-	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_late", 10, 23, 35, 55, 45;
+	callfunc "F_PB_CFG_SetPulseProfile", "mh", 9, 22, 35, 60, 50;
+	callfunc "F_PB_CFG_SetPulseProfile", "ml", 10, 23, 35, 55, 45;
 
 	// SQL-backed pool registry.
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.prontera";
@@ -183,7 +183,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 2, ET_STARE_ABOUT;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 2, ET_HUM;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 3, "Harbor Wanderer", "pool.social.alberta", "alberta", 45, 247, 1, "loiter", "market_loiter_harbor", "social.alberta.harbor", "harbor_wanderer";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 3, "Harbor Wanderer", "pool.social.alberta", "alberta", 45, 247, 1, "loiter", "mh", "social.alberta.harbor", "harbor_wanderer";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 45, 247;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 48, 242;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 52, 245;
@@ -192,7 +192,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 3, ET_THINK;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 3, ET_DELIGHT;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 4, "Market Browser B", "pool.social.alberta", "alberta", 43, 241, 1, "loiter", "market_loiter_late", "social.alberta.browser", "market_browser";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 4, "Market Browser B", "pool.social.alberta", "alberta", 43, 241, 1, "loiter", "ml", "social.alberta.browser", "market_browser";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 43, 241;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 46, 244;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 50, 242;

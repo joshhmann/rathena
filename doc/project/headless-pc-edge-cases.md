@@ -759,3 +759,34 @@ Current limits:
 - controller slot definitions are still script-owned
 - richer demand selection by profile/role is still controller-local, not a
   global scheduler policy
+
+### 32. Post-join party assist
+
+Current support:
+
+- one narrow assist primitive now exists through the playerbot harness:
+  - resolve party leader
+  - choose a passable adjacent anchor
+  - reposition the active headless bot onto that anchor
+- validation uses:
+  - `Playerbot Party Assist`
+  - `PlayerbotSelftest`
+
+Current limits:
+
+- this is a one-shot post-join assist, not a continuous follow loop
+- no combat assist semantics exist yet
+- no controller handoff occurs after the reposition step
+
+### 33. Playerbot config key length
+
+Current support:
+
+- the pulse-profile config layer now uses shortened suffix keys for the playerbot
+  pulse profiles to avoid script variable-name overflow at `OnInit`
+
+Current limits:
+
+- the global config naming pattern is still dense
+- future config growth should keep variable-name limits in mind when adding new
+  dynamic key families

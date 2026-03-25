@@ -8,6 +8,11 @@ OnInit:
 	.ran = 0;
 	.last_result = 0;
 	.last_log$ = "idle";
+	.assist_owner$ = "PlayerbotPartyAssistController";
+	.assist_leader_char_id = 0;
+	.assist_bot_char_id = 0;
+	.assist_bot_key$ = "";
+	.assist_status_summary$ = "Ready.";
 	end;
 
 OnPCLoginEvent:
@@ -79,6 +84,111 @@ OnVerify:
 	.last_result = (.spawn_state_ok && .party_ok);
 	.last_log$ = "spawn=" + .spawn_ok + " active=" + .spawn_state_ok + " invite=" + .invite_ok + " party_ok=" + .party_ok + " bot_party=" + .bot_party_id + " inviter_party=" + .inviter_party_id + " status=" + .bot_status;
 	debugmes "playerbot_selftest: " + .last_log$ + " result=" + .last_result + ".";
+	if (.last_result)
+		addtimer 1500, strnpcinfo(3) + "::OnAssistStart";
 	detachrid;
 	end;
+
+OnAssistStart:
+	.assist_bot_key$ = .bot_key$;
+	.assist_leader_char_id = .test_char_id;
+	.last_log$ = "assist-started";
+	callsub S_RunAssistOnce;
+	addtimer 4000, strnpcinfo(3) + "::OnAssistVerify";
+	end;
+
+OnAssistVerify:
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.@leader_map$ = livepc_map(.test_char_id);
+	.@leader_x = livepc_x(.test_char_id);
+	.@leader_y = livepc_y(.test_char_id);
+	.@bot_map$ = headlesspc_map($@pbbot_char_id);
+	.@bot_x = headlesspc_x($@pbbot_char_id);
+	.@bot_y = headlesspc_y($@pbbot_char_id);
+	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, 1, 0, 1, 1, 0, 1, -1, 0, -1, 1);
+	.@target_x = callfunc("F_LW_HPC_UnpackX", .@packed);
+	.@target_y = callfunc("F_LW_HPC_UnpackY", .@packed);
+	.assist_result = (.@bot_map$ == .@leader_map$ && .@bot_x == .@target_x && .@bot_y == .@target_y);
+	.assist_log$ = "leader=" + .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ") bot=" + .@bot_map$ + " (" + .@bot_x + "," + .@bot_y + ") target=(" + .@target_x + "," + .@target_y + ")";
+	debugmes "playerbot_selftest_assist: " + .assist_log$ + " result=" + .assist_result + ".";
+	end;
+
+OnAssistManualStart:
+	.assist_bot_key$ = $PBASSIST_bot_key$;
+	.assist_leader_char_id = $PBASSIST_leader_char_id;
+	if (.assist_bot_key$ == "")
+		end;
+	.last_log$ = "assist-manual-start";
+	callsub S_RunAssistOnce;
+	end;
+
+OnAssistManualStop:
+	if (.assist_bot_char_id > 0)
+		callfunc "F_LW_HPC_ControllerReleaseOwned", .assist_bot_char_id, .assist_owner$;
+	.assist_status_summary$ = "Stopped.";
+	end;
+
+S_RunAssistOnce:
+	callfunc "F_PB_DB_LoadBotSummary", .assist_bot_key$;
+	if (!$@pbbot_found) {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: missing bot profile.";
+		return;
+	}
+	.assist_bot_char_id = $@pbbot_char_id;
+	.@party_id = playerbot_partyid(.assist_bot_char_id);
+	if (!.@party_id) {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: bot not in party.";
+		return;
+	}
+	.@leader_party_char_id = partyleadercharid(.@party_id);
+	if (.@leader_party_char_id > 0)
+		.assist_leader_char_id = .@leader_party_char_id;
+	.@leader_map$ = livepc_map(.assist_leader_char_id);
+	.@leader_x = livepc_x(.assist_leader_char_id);
+	.@leader_y = livepc_y(.assist_leader_char_id);
+	if (.@leader_map$ == "") {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: leader offline or not local.";
+		return;
+	}
+	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@leader_map$, .@leader_x, .@leader_y, 1, 0, 1, 1, 0, 1, -1, 0, -1, 1);
+	if (!.@packed) {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: no passable assist anchor.";
+		return;
+	}
+	.@target_x = callfunc("F_LW_HPC_UnpackX", .@packed);
+	.@target_y = callfunc("F_LW_HPC_UnpackY", .@packed);
+	if (!callfunc("F_LW_HPC_EnsureActive", .assist_bot_char_id, .@leader_map$, .@target_x, .@target_y)) {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: spawn requested or pending.";
+		return;
+	}
+	.@owner$ = headlesspc_owner(.assist_bot_char_id);
+	if (.@owner$ != "" && .@owner$ != .assist_owner$) {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: claimed by another controller.";
+		return;
+	}
+	if (.@owner$ == "" && !headlesspc_claim(.assist_bot_char_id, .assist_owner$)) {
+		.assist_status_summary$ = "Bot key: " + .assist_bot_key$ + ".\nLast note: claim failed.";
+		return;
+	}
+	.@ok = headlesspc_owned_setpos(.assist_bot_char_id, .assist_owner$, .@leader_map$, .@target_x, .@target_y);
+	callsub S_BuildAssistStatus;
+	.assist_status_summary$ += "\nTarget: " + .@leader_map$ + " (" + .@target_x + "," + .@target_y + ").";
+	.assist_status_summary$ += "\nLast note: " + (.@ok ? "assist repositioned" : "assist reposition failed") + ".";
+	return;
+
+S_BuildAssistStatus:
+	.@leader_map$ = livepc_map(.assist_leader_char_id);
+	.@leader_x = livepc_x(.assist_leader_char_id);
+	.@leader_y = livepc_y(.assist_leader_char_id);
+	.@bot_map$ = headlesspc_map(.assist_bot_char_id);
+	.@bot_x = headlesspc_x(.assist_bot_char_id);
+	.@bot_y = headlesspc_y(.assist_bot_char_id);
+	.assist_status_summary$ = "Bot key: " + (.assist_bot_key$ == "" ? "<none>" : .assist_bot_key$) + ".";
+	.assist_status_summary$ += "\nLeader char_id: " + .assist_leader_char_id + ".";
+	.assist_status_summary$ += "\nBot char_id: " + .assist_bot_char_id + ".";
+	.assist_status_summary$ += "\nParty ID: " + playerbot_partyid(.assist_bot_char_id) + ".";
+	.assist_status_summary$ += "\nLeader: " + (.@leader_map$ == "" ? "<absent>" : .@leader_map$ + " (" + .@leader_x + "," + .@leader_y + ")") + ".";
+	.assist_status_summary$ += "\nBot: " + (.@bot_map$ == "" ? "<absent>" : .@bot_map$ + " (" + .@bot_x + "," + .@bot_y + ")") + ".";
+	.assist_status_summary$ += "\nStatus: " + headlesspc_status(.assist_bot_char_id) + ", owner=" + (headlesspc_owner(.assist_bot_char_id) == "" ? "<none>" : headlesspc_owner(.assist_bot_char_id)) + ".";
+	return;
 }

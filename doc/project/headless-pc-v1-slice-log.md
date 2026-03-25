@@ -2453,3 +2453,59 @@ This slice does not yet add:
 - SQL-backed controller slot definitions
 - scheduler selection by role/profile demand beyond current script-defined slots
 - automatic migration off direct map-side login-table writes for split-DB setups
+
+## Slice 43: Party Assist V1
+
+### Goal
+
+Add the first narrow post-join party assist behavior so an active party-capable
+bot can snap onto a valid adjacent leader anchor after joining, without trying
+to solve full continuous follow/assist AI yet.
+
+### Files Touched
+
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/playerbot_party_assist.txt`
+- `npc/custom/playerbot/playerbot_selftest.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added `partyleadercharid(party_id)` as a script buildin.
+- Added a visible dev harness:
+  - `Playerbot Party Assist`
+- Kept the assist semantics narrow and robust:
+  - resolve the current party leader for the active bot
+  - find a passable adjacent anchor near the leader
+  - claim the bot if needed
+  - reposition with `headlesspc_owned_setpos(...)`
+- Moved the actual one-shot assist logic into the existing hidden
+  `PlayerbotSelftest` harness so validation uses a proven event surface.
+- Shortened the config pulse-profile suffix keys used by the playerbot config
+  layer to avoid script variable-name overflow during `OnInit`.
+
+### Validation
+
+- restarted the stack cleanly
+- verified the startup path no longer blocks on the assist harness
+- OpenKore logged in as `codex` and saw the visible assist NPC in Prontera
+- OpenKore triggered the visible assist harness
+- verified the active party bot runtime row moved from:
+  - `prontera 160,186`
+  to:
+  - `prontera 140,185`
+- hidden selftest log proved the assist anchor path:
+  - `playerbot_selftest_assist: leader=prontera (139,185) bot=prontera (140,185) target=(140,185) result=1.`
+
+### Deferrals
+
+This slice does not yet add:
+
+- continuous follow loops after join
+- assist role behavior in combat
+- party-controller reassignment after join
+- selective party acceptance beyond current decline behavior

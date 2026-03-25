@@ -11803,6 +11803,30 @@ BUILDIN_FUNC(playerbot_partyid)
 }
 
 /*==========================================
+ * Read the leader char_id for one party_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(partyleadercharid)
+{
+	int32 party_id = script_getnum(st, 2);
+	const party_data* party = party_search(party_id);
+
+	if (party == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	for (int32 i = 0; i < MAX_PARTY; ++i) {
+		if (party->party.member[i].leader) {
+			script_pushint(st, party->party.member[i].char_id);
+			return SCRIPT_CMD_SUCCESS;
+		}
+	}
+
+	script_pushint(st, 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Request spawn of one inert headless BL_PC
  * from an existing char_id.
  *------------------------------------------*/
@@ -29185,6 +29209,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_provision,"sss"),
 	BUILDIN_DEF(playerbot_partyinvite,"i"),
 	BUILDIN_DEF(playerbot_partyid,"i"),
+	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(headlesspc_setpos,"isii"),

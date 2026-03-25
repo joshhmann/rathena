@@ -1,0 +1,29 @@
+prontera,146,179,4	script	PlayerbotPartyAssist	4_F_KAFRA3,{
+	mes "[Playerbot Party Assist]";
+	mes "Drive the first post-join party follow/assist lane.";
+	next;
+
+	switch(select("Start quick assist:Stop assist:Status:Close")) {
+	case 1:
+		$PBASSIST_bot_key$ = "quick_party_open";
+		$PBASSIST_leader_char_id = getcharid(0);
+		donpcevent "PlayerbotSelftest::OnAssistManualStart";
+		mes "[Playerbot Party Assist]";
+		mes "Assist controller started.";
+		close;
+
+	case 2:
+		donpcevent "PlayerbotSelftest::OnAssistManualStop";
+		mes "[Playerbot Party Assist]";
+		mes "Assist controller stopped.";
+		close;
+
+	case 3:
+		mes "[Playerbot Party Assist]";
+		mes getvariableofnpc(.assist_status_summary$, "PlayerbotSelftest");
+		close;
+
+	default:
+		close;
+	}
+}
