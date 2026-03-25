@@ -11,6 +11,8 @@ Execution preference:
 - bias toward larger coherent subsystem slices once the foundation is clear
 - use parallel sidecar work where it helps close a slice faster without
   weakening validation
+- for playerbot work, prefer branch-owned parallel lanes plus sub-agents when
+  scopes are disjoint enough to review cleanly
 
 ## Immediate Tasks
 

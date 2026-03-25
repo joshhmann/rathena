@@ -52,6 +52,8 @@ Execution policy:
   discipline
 - when parallel branches are active, keep their repo-local scope briefs updated
   in `doc/project/parallel-branch-workmap.md`
+- for playerbot work, branch-first parallel execution is now the preferred
+  operating mode whenever write scopes are disjoint enough to support it cleanly
 
 Minimum for each slice:
 

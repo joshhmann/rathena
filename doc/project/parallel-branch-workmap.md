@@ -14,6 +14,13 @@ Use it when:
 
 Parallel work is allowed only when write scopes are clearly disjoint.
 
+Default operating mode for playerbot work:
+
+- prefer a named branch for each coherent slice
+- prefer a sub-agent or separate Codex instance for each branch when scopes are disjoint
+- use the main thread as the reviewer/integrator when multiple branches are active
+- avoid stacking unrelated work on one branch when parallel lanes are already available
+
 Unsafe overlap:
 
 - two branches editing `npc/custom/living_world/_common.txt`
@@ -27,6 +34,31 @@ Required for every branch:
 - CLI validation first
 - desktop-client validation when visual or interaction-heavy
 - SQL artifact when DB changes
+- branch brief kept current enough that another Codex instance can start from the repo alone
+
+## Parallel Policy
+
+This is now the preferred policy, not a one-off tactic.
+
+Use branches plus sub-agents by default when:
+
+- there are 2 or more disjoint write scopes available
+- one lane is docs/schema/config and another is runtime/script work
+- one lane is validation/tooling and another is implementation
+
+Keep work in the main thread when:
+
+- the slice owns `_common.txt`
+- the slice owns the same `src/map/*` or `src/char/*` hotspot as another active lane
+- the very next step is blocked on the result
+- the change is too coupled to split cleanly
+
+Main-thread responsibilities when sub-agents are active:
+
+- assign branches and scope
+- review pass/fail on returned work
+- reject scope drift
+- keep merge order coherent
 
 ## Branch Index
 
