@@ -1,0 +1,47 @@
+// Dev-only world scheduler proof for shared headless social controllers.
+
+prontera,148,183,4	script	Headless Scheduler	4_M_MANAGER,{
+	.controller$ = "HeadlessWorldScheduler";
+	mes "[Headless Scheduler]";
+	switch(select("Start scheduler:Stop scheduler:Status:Cancel")) {
+	case 1:
+		set getvariableofnpc(.enabled, .controller$), 1;
+		donpcevent .controller$ + "::OnTick";
+		mes "World scheduler enabled.";
+		close;
+	case 2:
+		set getvariableofnpc(.enabled, .controller$), 0;
+		donpcevent .controller$ + "::OnStop";
+		mes "World scheduler disabled.";
+		close;
+	case 3:
+		callfunc "F_LW_HPC_SchedBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
+		mes getd("$LWHSS" + getnpcid(0, .controller$) + "$");
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessWorldScheduler	FAKE_NPC,{
+OnInit:
+	.enabled = 0;
+	callfunc "F_LW_HPC_SchedReset", strnpcinfo(3);
+	callfunc "F_LW_HPC_SchedSetTickMs", strnpcinfo(3), 5000;
+	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), 1;
+	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessPronteraSocialController", "prontera", 1, 90;
+	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessAlbertaSocialController", "alberta", 1, 80;
+	end;
+
+OnTick:
+	if (!.enabled)
+		end;
+	callfunc "F_LW_HPC_SchedRun", strnpcinfo(3);
+	callfunc "F_LW_HPC_SchedNext", strnpcinfo(3);
+	end;
+
+OnStop:
+	donpcevent "HeadlessPronteraSocialController::OnStop";
+	donpcevent "HeadlessAlbertaSocialController::OnStop";
+	return;
+}

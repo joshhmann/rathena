@@ -1882,3 +1882,56 @@ This slice does not yet add:
 - a parked/offline ledger separate from current runtime presence
 - global scheduler ownership of grace windows
 - cross-controller grace arbitration
+
+## Slice 33: World Scheduler Demo
+
+### Goal
+
+Add a first world-level scheduler that decides which social controllers should
+be active, instead of leaving each controller to run as an isolated demo.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added shared scheduler helpers:
+  - `F_LW_HPC_SchedReset`
+  - `F_LW_HPC_SchedSetTickMs`
+  - `F_LW_HPC_SchedSetCap`
+  - `F_LW_HPC_SchedAdd`
+  - `F_LW_HPC_SchedBuildStatus`
+  - `F_LW_HPC_SchedRun`
+  - `F_LW_HPC_SchedNext`
+- Added visible scheduler NPC:
+  - `Headless Scheduler` at `prontera 148 183`
+- Added hidden `HeadlessWorldScheduler` proof controller:
+  - tracks registered controllers
+  - enforces a global active-controller cap
+  - starts only the highest-priority demanded controllers
+  - stops the rest
+- First registered scheduler targets are:
+  - `HeadlessPronteraSocialController`
+  - `HeadlessAlbertaSocialController`
+
+### Validation
+
+- `map-server` must reload cleanly with the scheduler helper layer and new demo
+  NPC present.
+- CLI smoke test should confirm:
+  - `Headless Scheduler` is reachable
+  - `Status` reports registered controllers and cap/tick policy
+  - `Start scheduler` works
+  - when only Prontera has a player, Prontera is preferred and Alberta is not
+
+### Deferrals
+
+This slice does not yet add:
+
+- per-map actor caps inside the scheduler
+- parked/offline pool accounting
+- demand arbitration across more than a tiny fixed controller set

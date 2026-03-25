@@ -490,6 +490,116 @@ function	script	F_LW_HPC_ControllerScheduleNext	{
 	return .@tick_ms;
 }
 
+function	script	F_LW_HPC_SchedReset	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	setd("$LWHS" + .@seed + "_AC", 0);
+	setd("$LWHS" + .@seed + "_TK", 4000);
+	setd("$LWHS" + .@seed + "_CP", 1);
+	setd("$LWHS" + .@seed + "$", "");
+	return 1;
+}
+
+function	script	F_LW_HPC_SchedSetTickMs	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@ms = getarg(1);
+	if (.@ms < 500)
+		.@ms = 500;
+	setd("$LWHS" + .@seed + "_TK", .@ms);
+	return 1;
+}
+
+function	script	F_LW_HPC_SchedSetCap	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@cap = getarg(1);
+	if (.@cap < 1)
+		.@cap = 1;
+	setd("$LWHS" + .@seed + "_CP", .@cap);
+	return 1;
+}
+
+function	script	F_LW_HPC_SchedAdd	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@i = getd("$LWHS" + .@seed + "_AC");
+	setd("$LWHS" + .@seed + "_CN$[" + .@i + "]", getarg(1));
+	setd("$LWHS" + .@seed + "_GM$[" + .@i + "]", getarg(2));
+	setd("$LWHS" + .@seed + "_GU[" + .@i + "]", getarg(3));
+	setd("$LWHS" + .@seed + "_PR[" + .@i + "]", getarg(4));
+	setd("$LWHS" + .@seed + "_AC", .@i + 1);
+	return .@i;
+}
+
+function	script	F_LW_HPC_SchedBuildStatus	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@enabled = getarg(1);
+	.@count = getd("$LWHS" + .@seed + "_AC");
+	.@cap = getd("$LWHS" + .@seed + "_CP");
+	.@tick_ms = getd("$LWHS" + .@seed + "_TK");
+	.@summary$ = "Enabled: " + (.@enabled ? "yes" : "no") + ".\nCap/tick: " + .@cap + " / " + .@tick_ms + "ms.";
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
+		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
+		.@users = getmapusers(.@map$);
+		.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
+		.@prio = getd("$LWHS" + .@seed + "_PR[" + .@i + "]");
+		.@active = getvariableofnpc(.enabled, .@controller$);
+		.@summary$ += "\n" + .@controller$ + ": " + (.@active ? "active" : "idle")
+			+ ", map " + .@map$ + " users " + .@users + "/" + .@need
+			+ ", priority " + .@prio + ".";
+	}
+	setd("$LWHSS" + .@seed + "$", .@summary$);
+	return .@count;
+}
+
+function	script	F_LW_HPC_SchedRun	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@count = getd("$LWHS" + .@seed + "_AC");
+	.@cap = getd("$LWHS" + .@seed + "_CP");
+	.@started = 0;
+
+	for (.@prio = 100; .@prio >= 0 && .@started < .@cap; --.@prio) {
+		for (.@i = 0; .@i < .@count && .@started < .@cap; ++.@i) {
+			if (getd("$LWHS" + .@seed + "_PR[" + .@i + "]") != .@prio)
+				continue;
+			.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
+			.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
+			.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
+			if (getmapusers(.@map$) < .@need)
+				continue;
+			if (!getvariableofnpc(.enabled, .@controller$))
+				callfunc "F_LW_HPC_ControllerStart", .@controller$;
+			.@started++;
+			setd("$LWHS" + .@seed + "_WN[" + .@i + "]", 1);
+		}
+	}
+
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
+		if (getd("$LWHS" + .@seed + "_WN[" + .@i + "]")) {
+			setd("$LWHS" + .@seed + "_WN[" + .@i + "]", 0);
+			continue;
+		}
+		if (getvariableofnpc(.enabled, .@controller$))
+			donpcevent .@controller$ + "::OnStop";
+	}
+	return .@started;
+}
+
+function	script	F_LW_HPC_SchedNext	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@tick_ms = getd("$LWHS" + .@seed + "_TK");
+	if (.@tick_ms < 500)
+		.@tick_ms = 500;
+	addtimer .@tick_ms, .@scheduler$ + "::OnTick";
+	return .@tick_ms;
+}
+
 function	script	F_LW_HPC_DefPulseActor	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
