@@ -1935,3 +1935,53 @@ This slice does not yet add:
 - per-map actor caps inside the scheduler
 - parked/offline pool accounting
 - demand arbitration across more than a tiny fixed controller set
+
+## Slice 34: Scheduler Actor Budgets
+
+### Goal
+
+Make the world scheduler reason about active actor budgets, not only controller
+count, so population policy starts mapping to "how many bots" instead of just
+"which script is on."
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Extended shared scheduler helpers with actor-budget policy:
+  - `F_LW_HPC_SchedSetActorCap`
+  - `F_LW_HPC_SchedSetMapCap`
+- `F_LW_HPC_SchedAdd(...)` now stores per-controller actor weight.
+- `F_LW_HPC_SchedRun(...)` now enforces:
+  - controller cap
+  - global active-actor cap
+  - per-map active-actor cap
+- `F_LW_HPC_SchedBuildStatus(...)` now reports:
+  - global actor cap
+  - each controller's actor weight
+  - each controller map's cap
+- Updated demo scheduler policy:
+  - controller cap `2`
+  - global actor cap `5`
+  - per-map caps `5`
+  - both current social controllers have actor weight `5`
+
+### Validation
+
+- `map-server` must reload cleanly.
+- CLI smoke test should confirm:
+  - scheduler `Status` shows controller cap, actor cap, and map caps
+  - with both Prontera and Alberta demanded, only the higher-priority controller
+    remains active because of the actor budget
+
+### Deferrals
+
+This slice does not yet add:
+
+- dynamic actor weights from live controller state
+- pooled budgeting across more than one controller per map
+- parked/offline pool accounting

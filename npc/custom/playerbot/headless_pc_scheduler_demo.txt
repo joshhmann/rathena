@@ -28,9 +28,12 @@ OnInit:
 	.enabled = 0;
 	callfunc "F_LW_HPC_SchedReset", strnpcinfo(3);
 	callfunc "F_LW_HPC_SchedSetTickMs", strnpcinfo(3), 5000;
-	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), 1;
-	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessPronteraSocialController", "prontera", 1, 90;
-	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessAlbertaSocialController", "alberta", 1, 80;
+	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), 2;
+	callfunc "F_LW_HPC_SchedSetActorCap", strnpcinfo(3), 5;
+	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "prontera", 5;
+	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "alberta", 5;
+	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessPronteraSocialController", "prontera", 1, 90, 5;
+	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessAlbertaSocialController", "alberta", 1, 80, 5;
 	end;
 
 OnTick:
