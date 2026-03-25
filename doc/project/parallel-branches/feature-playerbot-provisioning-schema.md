@@ -31,3 +31,29 @@ hand-seeded accounts and chars forever.
 - repo contains a concrete first bot-profile schema
 - SQL upgrade is checked in
 - docs explain how provisioning maps to persistent recurring bot identities
+
+## Codex Prompt
+
+Use this branch brief as the source of truth.
+
+Read first:
+
+- `doc/project/parallel-branch-workmap.md`
+- `doc/project/parallel-branches/feature-playerbot-provisioning-schema.md`
+- `doc/project/bot-state-schema.md`
+- `doc/project/pseudo-player-architecture.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Do:
+
+- define the first persistent bot identity schema
+- add checked-in SQL artifacts under `sql-files/`
+- document account/char linkage and provisioning workflow
+- keep runtime adoption minimal unless absolutely required
+- update repo-local slice docs before committing
+
+Avoid:
+
+- `_common.txt` controller work
+- scheduler logic changes
+- party, merchant, or combat runtime work
