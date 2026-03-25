@@ -616,6 +616,10 @@ offline test character.
 - lifecycle complexity stays in source helpers and typed enums
 - `headless_pc` is durable for active runtime presence only
 - do not assume absence implies successful save; use ack helpers
+- recurring presence should be represented by routine groups with explicit hour
+  windows
+- scheduler status should surface whether a controller is currently inside or
+  outside its routine window
 
 ## Scheduler / Pool Observability
 

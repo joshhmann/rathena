@@ -2255,3 +2255,58 @@ This slice still does not add:
 - bot behavior/config tables
 - runtime adoption of the new tables
 - party, merchant, or combat semantics
+
+## Slice 40: Routine Presence Policy
+
+### Goal
+
+Let the world scheduler drive playerbot presence by routine group and hour
+window instead of only by map demand.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `doc/project/pseudo-player-architecture.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added routine metadata helpers:
+  - `F_LW_HPC_DefSetRoutineGroup`
+  - `F_LW_HPC_DefSetRoutineWindow`
+- Controller readiness now respects routine windows in addition to map gate
+  and grace policy.
+- Scheduler status now reports each controller's routine group/window and whether
+  the current hour is inside or outside that window.
+- Prontera and Alberta controllers now read routine presence settings from the
+  central config registry:
+  - `ctrl.prontera.routine_group = day`
+  - `ctrl.prontera.routine_start = 7`
+  - `ctrl.prontera.routine_end = 23`
+  - `ctrl.alberta.routine_group = night`
+  - `ctrl.alberta.routine_start = 0`
+  - `ctrl.alberta.routine_end = 6`
+
+### Validation
+
+- Rebuilt the branch worktree cleanly and restarted the tmux-backed dev stack
+  from `/root/dev/rathena-routine`.
+- OpenKore CLI verified:
+  - `Headless Scheduler -> Status` shows Prontera in routine window at hour 22
+    and Alberta out of routine window.
+  - `Start scheduler` activates the Prontera social controller.
+  - `pl` shows the Prontera pooled actors visible in-world.
+  - the Alberta social controller remains idle because its routine window is
+    closed at hour 22.
+
+### Deferrals
+
+This slice does not yet add:
+
+- SQL-backed routine groups or schedule tables
+- timezone conversion or region-aware per-bot scheduling
+- persistence of routine windows beyond the script/config layer

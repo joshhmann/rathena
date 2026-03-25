@@ -141,6 +141,8 @@ Scheduler direction:
 
 - prefer a shared scheduler that activates controllers by map demand and time
   window rather than leaving every controller permanently hot
+- model recurring presence as routine groups with explicit hour windows so some
+  identities are predictably active while others stay parked/offline
 - use short despawn grace periods when maps empty so actors do not disappear the
   moment the last player leaves
 - keep a recurring pool of named routine actors so some pseudo-players feel

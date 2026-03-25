@@ -33,6 +33,10 @@ OnInit:
 		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.start_max_ms", 1500);
 	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.prontera.grace_ms", 12000);
 	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.prontera.stop_policy", "park");
+	callfunc "F_LW_HPC_DefSetRoutineGroup", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.prontera.routine_group", "day");
+	callfunc "F_LW_HPC_DefSetRoutineWindow", .owner$,
+		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.routine_start", 7),
+		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.routine_end", 23);
 	callfunc "F_PB_CFG_ApplyControllerDef", .owner$, "social.prontera";
 	end;
 

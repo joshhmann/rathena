@@ -600,6 +600,9 @@ function	script	F_LW_HPC_DefReset	{
 	setd("$LWHD" + .@seed + "_GR", 0);
 	setd("$LWHD" + .@seed + "_GD", 0);
 	setd("$LWHD" + .@seed + "_SP$", "release");
+	setd("$LWHD" + .@seed + "_RG$", "");
+	setd("$LWHD" + .@seed + "_RW", -1);
+	setd("$LWHD" + .@seed + "_RE", -1);
 	return 1;
 }
 
@@ -646,6 +649,27 @@ function	script	F_LW_HPC_DefSetStopPolicy	{
 	if (.@policy$ != "park")
 		.@policy$ = "release";
 	setd("$LWHD" + .@seed + "_SP$", .@policy$);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetRoutineGroup	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	setd("$LWHD" + .@seed + "_RG$", getarg(1));
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetRoutineWindow	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@start = getarg(1);
+	.@end = getarg(2);
+	if (.@start < 0)
+		.@start = -1;
+	if (.@end < 0)
+		.@end = -1;
+	setd("$LWHD" + .@seed + "_RW", .@start);
+	setd("$LWHD" + .@seed + "_RE", .@end);
 	return 1;
 }
 
@@ -824,10 +848,18 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	.@grace_ms = getd("$LWHD" + .@seed + "_GR");
 	.@grace_deadline = getd("$LWHD" + .@seed + "_GD");
 	.@stop_policy$ = getd("$LWHD" + .@seed + "_SP$");
+	.@routine_group$ = getd("$LWHD" + .@seed + "_RG$");
+	.@routine_start = getd("$LWHD" + .@seed + "_RW");
+	.@routine_end = getd("$LWHD" + .@seed + "_RE");
+	.@hour = gettime(DT_HOUR);
 	if (.@gate_map$ != "")
 		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms, stop " + .@stop_policy$ + ".";
 	else
 		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms, stop " + .@stop_policy$ + ".";
+	if (.@routine_group$ != "" && .@routine_start >= 0 && .@routine_end >= 0)
+		.@summary$ += "\nRoutine: " + .@routine_group$ + " " + .@routine_start + "-" + .@routine_end + ", hour " + .@hour + " (" + (callfunc("F_LW_IsHourInWindow", .@routine_start, .@routine_end) ? "in" : "out") + " window).";
+	else if (.@routine_group$ != "")
+		.@summary$ += "\nRoutine: " + .@routine_group$ + " (unwindowed), hour " + .@hour + ".";
 	if (.@grace_deadline > gettimetick(2))
 		.@summary$ += " Gate cooldown active.";
 	.@count = getd("$LWHD" + .@seed + "_AC");
@@ -961,11 +993,18 @@ function	script	F_LW_HPC_DefBuildPoolSummary	{
 function	script	F_LW_HPC_ControllerShouldRun	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
+	.@routine_group$ = getd("$LWHD" + .@seed + "_RG$");
+	.@routine_start = getd("$LWHD" + .@seed + "_RW");
+	.@routine_end = getd("$LWHD" + .@seed + "_RE");
 	.@gate_map$ = getd("$LWHD" + .@seed + "_GM$");
 	.@gate_users = getd("$LWHD" + .@seed + "_GU");
 	.@grace_ms = getd("$LWHD" + .@seed + "_GR");
 	.@now = gettimetick(2);
 	.@deadline = getd("$LWHD" + .@seed + "_GD");
+	if (.@routine_group$ != "" && .@routine_start >= 0 && .@routine_end >= 0) {
+		if (!callfunc("F_LW_IsHourInWindow", .@routine_start, .@routine_end))
+			return 0;
+	}
 	if (.@gate_map$ == "")
 		return 1;
 	if (getmapusers(.@gate_map$) >= .@gate_users) {
@@ -1082,6 +1121,9 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@live_parked = callfunc("F_LW_HPC_DefCountParked", .@controller$);
 		.@live_unassigned = callfunc("F_LW_HPC_DefCountUnassigned", .@controller$);
 		.@decision$ = getd("$LWHS" + .@seed + "_LD$[" + .@i + "]");
+		.@routine_group$ = getd("$LWHD" + getnpcid(0, .@controller$) + "_RG$");
+		.@routine_start = getd("$LWHD" + getnpcid(0, .@controller$) + "_RW");
+		.@routine_end = getd("$LWHD" + getnpcid(0, .@controller$) + "_RE");
 		.@active_total += .@live_active;
 		.@parked_total += .@live_parked;
 		.@summary$ += "\n" + .@controller$ + ": " + (.@active ? "active" : "idle")
@@ -1090,6 +1132,10 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 			+ ", map cap " + .@map_cap + ", live active/pending " + .@live_active + "/" + .@live_pending
 			+ ", parked " + .@live_parked + ", unassigned " + .@live_unassigned
 			+ ", decision " + (.@decision$ == "" ? "<none>" : .@decision$) + ".";
+		if (.@routine_group$ != "" && .@routine_start >= 0 && .@routine_end >= 0)
+			.@summary$ += "\n  routine: " + .@routine_group$ + " " + .@routine_start + "-" + .@routine_end
+				+ ", hour " + gettime(DT_HOUR)
+				+ " (" + (callfunc("F_LW_IsHourInWindow", .@routine_start, .@routine_end) ? "in" : "out") + " window).";
 		.@summary$ += callfunc("F_LW_HPC_DefBuildPoolSummary", .@controller$, .@controller$);
 	}
 	.@summary$ += "\nLive active/parked total: " + .@active_total + " / " + .@parked_total + ".";
@@ -1123,6 +1169,10 @@ function	script	F_LW_HPC_SchedRun	{
 			.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 			.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
 			.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
+			if (!callfunc("F_LW_HPC_ControllerShouldRun", .@controller$)) {
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: controller gate");
+				continue;
+			}
 			.@users = getmapusers(.@map$);
 			if (.@users < .@need) {
 				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: users " + .@users + "/" + .@need);
