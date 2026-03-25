@@ -6,7 +6,9 @@ Define the first persistent state model for pseudo-players so future party,
 commerce, and behavior systems attach to stable bot identities rather than
 temporary spawned GIDs.
 
-This is a design schema, not a committed SQL migration yet.
+The first persistent identity slice is now committed in SQL. This document
+tracks the implemented core tables and the deferred extensions that should sit
+on top of them.
 
 Important near-term rule:
 
@@ -15,6 +17,13 @@ Important near-term rule:
 - those rows should be treated as persistent reusable bot identities
 - controller stop or map-idle cleanup should park bots offline, not treat them
   as disposable records
+
+Committed slice:
+
+- `bot_profile`
+- `bot_identity_link`
+- `bot_appearance`
+- `bot_runtime_state`
 
 ## Core Rule
 
@@ -58,7 +67,40 @@ Purpose:
 
 - the canonical identity record
 
-### 2. `bot_appearance`
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact: `sql-files/upgrades/upgrade_20260324_playerbot_schema.sql`
+
+### 2. `bot_identity_link`
+
+One row per bot profile.
+
+Fields:
+
+- `bot_id`
+  - foreign key to `bot_profile`
+- `account_id`
+  - optional real account link
+- `char_id`
+  - optional real character link
+- `link_status`
+  - pending, linked, retired
+- `linked_at`
+
+Purpose:
+
+- maps a persistent bot identity to the reusable account/character rows that
+  currently power the runtime body
+- keeps the provisioning layer explicit instead of hiding the relationship in
+  scripts
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact: `sql-files/upgrades/upgrade_20260324_playerbot_schema.sql`
+
+### 3. `bot_appearance`
 
 One row per bot profile.
 
@@ -82,7 +124,12 @@ Purpose:
 - persistent visual presentation
 - source-backed body spawn reads from this record
 
-### 3. `bot_runtime_state`
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact: `sql-files/upgrades/upgrade_20260324_playerbot_schema.sql`
+
+### 4. `bot_runtime_state`
 
 One row per bot profile.
 
@@ -115,7 +162,12 @@ Note:
 
 - `spawned_gid` is runtime glue, not identity
 
-### 4. `bot_behavior_config`
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact: `sql-files/upgrades/upgrade_20260324_playerbot_schema.sql`
+
+### 5. `bot_behavior_config`
 
 One row per bot profile.
 
@@ -144,7 +196,13 @@ Purpose:
 
 - separates bot identity from reusable controller behavior
 
-### 5. `bot_inventory`
+Status:
+
+- deferred
+- still expected as the next behavior-focused slice after the core identity
+  tables
+
+### 6. `bot_inventory`
 
 Deferred but expected if commerce or party support becomes real.
 
@@ -161,7 +219,11 @@ Purpose:
 - persistent merchant stock
 - future equipment-driven appearance or progression
 
-### 6. `bot_party_state`
+Status:
+
+- deferred
+
+### 7. `bot_party_state`
 
 Deferred until party-capable pseudo-players are implemented.
 
@@ -179,7 +241,11 @@ Purpose:
 
 - stable party semantics independent of one spawned body
 
-### 7. `bot_progression_state`
+Status:
+
+- deferred
+
+### 8. `bot_progression_state`
 
 Deferred but explicitly expected for the fuller playerbot lane.
 
@@ -199,6 +265,10 @@ Purpose:
 - preserve the feeling that recurring bots are living characters, not reset
   props
 - support later progression, party, and role advancement systems
+
+Status:
+
+- deferred
 
 ## Runtime Ownership
 
@@ -232,6 +302,7 @@ Purpose:
 ### Phase 1
 
 - `bot_profile`
+- `bot_identity_link`
 - `bot_appearance`
 - `bot_runtime_state`
 

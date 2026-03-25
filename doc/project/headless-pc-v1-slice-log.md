@@ -2216,3 +2216,42 @@ This slice still does not add:
 - scheduler decisions based on real-time pool supply instead of static actor
   weights
 - progression-aware choice among many eligible parked identities
+
+## Slice 39: Persistent Bot Identity Schema
+
+### Goal
+
+Commit the first SQL-backed persistent bot identity model so future provisioning
+and progression work can build on stable bot records instead of hand-seeded
+accounts alone.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260324_playerbot_schema.sql`
+- `doc/project/bot-state-schema.md`
+- `doc/project/pseudo-player-architecture.md`
+- `doc/project/playerbot-execution-plan.md`
+
+### Runtime Path Changes
+
+- None.
+- This slice is schema and docs only.
+
+### Validation
+
+- SQL upgrade file syntax checked against the local dev database.
+- Verified the committed schema creates the core bot tables:
+  - `bot_profile`
+  - `bot_identity_link`
+  - `bot_appearance`
+  - `bot_runtime_state`
+
+### Deferrals
+
+This slice still does not add:
+
+- bot provisioning workflow
+- bot behavior/config tables
+- runtime adoption of the new tables
+- party, merchant, or combat semantics
