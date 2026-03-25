@@ -22,6 +22,9 @@ OnInit:
 	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.start_max_ms", 1500;
 	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.grace_ms", 12000;
 	callfunc "F_PB_CFG_SetStr", "ctrl.prontera.stop_policy", "park";
+	callfunc "F_PB_CFG_SetStr", "ctrl.prontera.routine_group", "day";
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.routine_start", 7;
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.routine_end", 23;
 
 	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.tick_ms", 2400;
 	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.gate_users", 1;
@@ -29,6 +32,9 @@ OnInit:
 	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.start_max_ms", 1800;
 	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.grace_ms", 15000;
 	callfunc "F_PB_CFG_SetStr", "ctrl.alberta.stop_policy", "park";
+	callfunc "F_PB_CFG_SetStr", "ctrl.alberta.routine_group", "night";
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.routine_start", 0;
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.routine_end", 6;
 
 	// Shared pulse profiles.
 	callfunc "F_PB_CFG_SetPulseProfile", "square_anchor_day", 7, 21, 40, 70, 70;

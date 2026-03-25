@@ -248,6 +248,8 @@ Current preferred policy direction:
 
 - spawn headless actors only when a player is active on the relevant map or
   route
+- make recurring presence explicit with routine groups and hour windows so the
+  scheduler can predictably keep some identities online while parking others
 - do not despawn instantly when the last player leaves; use a short grace
   window/cooldown first so the world does not visibly pop
 - allow some controllers to traverse connected field routes instead of living
