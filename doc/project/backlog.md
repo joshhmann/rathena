@@ -6,6 +6,12 @@ Make the server feel alive using rAthena-first patterns, then selective
 source-backed pseudo-player actors where NPC and mob tricks are not convincing
 enough. Avoid deep source divergence.
 
+Execution preference:
+
+- bias toward larger coherent subsystem slices once the foundation is clear
+- use parallel sidecar work where it helps close a slice faster without
+  weakening validation
+
 ## Immediate Tasks
 
 - freeze `headless_pc_v1` Phase 0 so the first PC-backed bot implementation stays narrow

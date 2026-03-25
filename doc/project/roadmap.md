@@ -33,6 +33,24 @@ Canonical note:
 Every non-trivial subsystem slice should leave behind repo-local implementation
 notes.
 
+Execution policy:
+
+- prefer strong foundation slices over tiny cosmetic micro-slices when the
+  design boundary is already clear
+- it is acceptable to land a larger slice if it closes one coherent subsystem
+  step end-to-end
+- still validate every non-trivial slice before treating it as done
+- use CLI/OpenKore validation first when it is sufficient, then use the desktop
+  client for visual or interaction-heavy confirmation
+- parallel sidecar work is encouraged when it shortens the path to a validated
+  slice, especially for:
+  - docs and slice logging
+  - config/data-layer drafting
+  - regression harness updates
+  - bounded non-overlapping code paths
+- parallel work must not weaken validation, documentation, or SQL-artifact
+  discipline
+
 Minimum for each slice:
 
 - what the slice was trying to prove
