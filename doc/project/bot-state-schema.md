@@ -193,6 +193,8 @@ Current committed fields:
 Purpose:
 
 - separates bot identity from reusable controller behavior
+- allows controllers to request recurring identities by `pool_key`,
+  `profile_key`, and `role` instead of by fixed seeded names
 
 Status:
 

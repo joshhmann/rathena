@@ -723,3 +723,39 @@ Current limits:
   - fresh provision
   - fresh spawn
   - restored active bot
+
+### 30. Provisioning DB coupling
+
+Current support:
+
+- the direct provisioning path has now been checked against the active dev
+  config
+- in this environment:
+  - `login_server_db = rathena`
+  - `char_server_db = rathena`
+  - `map_server_db = rathena`
+- direct map-side inserts into the login/account table are therefore valid for
+  the current stack
+
+Current limits:
+
+- this is a tested environment fact, not a portable architecture guarantee
+- if login/char/map DBs diverge later, provisioning should move behind a
+  char/login-service boundary instead of direct SQL writes
+
+### 31. Role/profile-backed pooled assignment
+
+Current support:
+
+- SQL-backed pools now carry:
+  - `bot_id`
+  - `profile_key`
+  - `role`
+- pooled controller slots can request a desired profile/role pair
+- the allocator only claims identities that match that request
+
+Current limits:
+
+- controller slot definitions are still script-owned
+- richer demand selection by profile/role is still controller-local, not a
+  global scheduler policy

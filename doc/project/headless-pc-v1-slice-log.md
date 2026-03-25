@@ -2390,3 +2390,66 @@ This slice does not yet add:
 - selective party policy beyond decline
 - SQL-backed route/travel/controller definitions
 - merchant or combat use of `bot_behavior_config`
+
+## Slice 42: Role/Profile-Driven Pool Assignment
+
+### Goal
+
+Move pooled controller assignment off anonymous pool membership and onto
+persistent bot metadata so controller slots request the kind of recurring bot
+they want rather than a fixed seeded name.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/playerbot_provisioner.txt`
+- `npc/custom/playerbot/playerbot_party_lab.txt`
+- `sql-files/upgrades/upgrade_20260325_playerbot_role_profiles.sql`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- SQL-backed pools now load:
+  - `bot_id`
+  - `profile_key`
+  - `role`
+  alongside `char_id`
+- pooled controller slots can now declare:
+  - desired `profile_key`
+  - desired `role`
+- pool claim now filters by those desired fields before assigning an identity
+- controller status now surfaces desired pool/profile/role for each pooled slot
+- seeded recurring social bots were backfilled into more specific role/profile
+  groupings:
+  - Prontera:
+    - `social.prontera.regular` / `square_regular`
+    - `social.prontera.wanderer` / `square_wanderer`
+  - Alberta:
+    - `social.alberta.regular` / `dock_regular`
+    - `social.alberta.browser` / `market_browser`
+    - `social.alberta.harbor` / `harbor_wanderer`
+
+### Validation
+
+- applied `upgrade_20260325_playerbot_role_profiles.sql`
+- restarted the stack cleanly
+- verified the seeded recurring bot rows now carry the refined role/profile
+  identities in SQL
+- verified the hidden party selftest still passes after the allocator changes:
+  - `result=1`
+- verified the current provisioning assumption against the active dev config:
+  - `conf/import/inter_conf.txt`
+  - `login_server_db = rathena`
+  - `char_server_db = rathena`
+  - `map_server_db = rathena`
+
+### Deferrals
+
+This slice does not yet add:
+
+- SQL-backed controller slot definitions
+- scheduler selection by role/profile demand beyond current script-defined slots
+- automatic migration off direct map-side login-table writes for split-DB setups

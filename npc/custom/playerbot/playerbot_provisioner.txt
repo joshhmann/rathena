@@ -45,7 +45,7 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 		mes "Name: " + $@pbbot_name$;
 		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
 		mes "Status: " + $@pbbot_status$;
-		mes "Pool / Profile: " + $@pbbot_pool$ + " / " + $@pbbot_profile$;
+		mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
 		mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
 		close;
 	case 8:
@@ -84,7 +84,7 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 	mes "[Playerbot Provisioner]";
 	mes "Provisioned bot " + $@pbbot_name$ + " with bot_id " + $@pbbot_bot_id + ".";
 	mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
-	mes "Pool / Profile: " + $@pbbot_pool$ + " / " + $@pbbot_profile$;
+	mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
 	mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
 	mes "Reloaded pools with " + .@loaded + " eligible identities.";
 	close;

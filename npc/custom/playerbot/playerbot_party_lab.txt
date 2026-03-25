@@ -97,7 +97,7 @@ prontera,146,181,4	script	Playerbot Party Lab	4_F_KAFRA2,{
 		mes "Bot ID: " + $@pbbot_bot_id;
 		mes "Name: " + $@pbbot_name$;
 		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
-		mes "Pool / Profile: " + $@pbbot_pool$ + " / " + $@pbbot_profile$;
+		mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
 		mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
 		close;
 	}

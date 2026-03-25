@@ -120,19 +120,19 @@ OnInit:
 
 	// Social controller rosters.
 	callfunc "F_PB_CFG_DefReset", "social.prontera";
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 0, "Square Regular A", "pool.social.prontera", "prontera", 146, 188, 0, "hold", "square_anchor_day";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 0, "Square Regular A", "pool.social.prontera", "prontera", 146, 188, 0, "hold", "square_anchor_day", "social.prontera.regular", "square_regular";
 	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 0, "The south gate traffic never really stops.";
 	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 0, "Keep moving and mind the square.";
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 0, ET_OK;
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 0, ET_THINK;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 1, "Square Regular B", "pool.social.prontera", "prontera", 151, 186, 0, "hold", "square_anchor_evening";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 1, "Square Regular B", "pool.social.prontera", "prontera", 151, 186, 0, "hold", "square_anchor_evening", "social.prontera.regular", "square_regular";
 	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 1, "Supplies from Alberta came in before noon.";
 	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 1, "Shops are busy again today.";
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 1, ET_DELIGHT;
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 1, ET_HUM;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 2, "Square Wanderer A", "pool.social.prontera", "prontera", 145, 184, 1, "loiter", "square_loiter_busy";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 2, "Square Wanderer A", "pool.social.prontera", "prontera", 145, 184, 1, "loiter", "square_loiter_busy", "social.prontera.wanderer", "square_wanderer";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 145, 184;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 148, 187;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 152, 184;
@@ -142,7 +142,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 2, ET_STARE_ABOUT;
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 2, ET_QUESTION;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 3, "Square Wanderer B", "pool.social.prontera", "prontera", 153, 188, 1, "loiter", "square_loiter_late";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 3, "Square Wanderer B", "pool.social.prontera", "prontera", 153, 188, 1, "loiter", "square_loiter_late", "social.prontera.wanderer", "square_wanderer";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 3, 153, 188;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 3, 150, 190;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 3, 146, 189;
@@ -151,7 +151,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 3, ET_HUM;
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 3, ET_THROB;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 4, "Square Wanderer C", "pool.social.prontera", "prontera", 147, 190, 1, "loiter", "square_loiter_night";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.prontera", 4, "Square Wanderer C", "pool.social.prontera", "prontera", 147, 190, 1, "loiter", "square_loiter_night", "social.prontera.wanderer", "square_wanderer";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 4, 147, 190;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 4, 151, 189;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 4, 154, 186;
@@ -161,19 +161,19 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 4, ET_PROFUSELY_SWEAT;
 
 	callfunc "F_PB_CFG_DefReset", "social.alberta";
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 0, "Dock Regular A", "pool.social.alberta", "alberta", 47, 245, 0, "hold", "market_anchor_day";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 0, "Dock Regular A", "pool.social.alberta", "alberta", 47, 245, 0, "hold", "market_anchor_day", "social.alberta.regular", "dock_regular";
 	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 0, "Fresh crates off the dock.";
 	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 0, "Keep the lane clear for cargo.";
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 0, ET_THINK;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 0, ET_OK;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 1, "Dock Regular B", "pool.social.alberta", "alberta", 50, 244, 0, "hold", "market_anchor_trade";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 1, "Dock Regular B", "pool.social.alberta", "alberta", 50, 244, 0, "hold", "market_anchor_trade", "social.alberta.regular", "dock_regular";
 	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 1, "Dock orders are posted for the afternoon shift.";
 	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 1, "Sea stock is moving fast today.";
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 1, ET_DELIGHT;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 1, ET_THROB;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 2, "Market Browser A", "pool.social.alberta", "alberta", 44, 243, 1, "loiter", "market_loiter_browse";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 2, "Market Browser A", "pool.social.alberta", "alberta", 44, 243, 1, "loiter", "market_loiter_browse", "social.alberta.browser", "market_browser";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 44, 243;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 47, 246;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 51, 244;
@@ -183,7 +183,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 2, ET_STARE_ABOUT;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 2, ET_HUM;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 3, "Harbor Wanderer", "pool.social.alberta", "alberta", 45, 247, 1, "loiter", "market_loiter_harbor";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 3, "Harbor Wanderer", "pool.social.alberta", "alberta", 45, 247, 1, "loiter", "market_loiter_harbor", "social.alberta.harbor", "harbor_wanderer";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 45, 247;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 48, 242;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 52, 245;
@@ -192,7 +192,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 3, ET_THINK;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 3, ET_DELIGHT;
 
-	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 4, "Market Browser B", "pool.social.alberta", "alberta", 43, 241, 1, "loiter", "market_loiter_late";
+	callfunc "F_PB_CFG_DefSetPoolActor", "social.alberta", 4, "Market Browser B", "pool.social.alberta", "alberta", 43, 241, 1, "loiter", "market_loiter_late", "social.alberta.browser", "market_browser";
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 43, 241;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 46, 244;
 	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 50, 242;

@@ -322,16 +322,16 @@ function	script	F_PB_DB_LoadPool	{
 	.@esc_pool$ = escape_sql(.@pool$);
 	callfunc "F_PB_POOL_Reset", .@pool$;
 	.@rows = query_sql(
-		"SELECT p.`name`, l.`char_id` "
+		"SELECT p.`bot_id`, p.`name`, p.`role`, IFNULL(b.`profile_key`, ''), l.`char_id` "
 		+ "FROM `bot_profile` p "
 		+ "JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
 		+ "JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
 		+ "WHERE p.`status` = 'active' AND l.`link_status` = 'linked' "
 		+ "AND b.`pool_key` = '" + .@esc_pool$ + "' "
 		+ "ORDER BY p.`bot_id`",
-		.@name$, .@char_id);
+		.@bot_id, .@name$, .@role$, .@profile_key$, .@char_id);
 	for (.@i = 0; .@i < .@rows; ++.@i)
-		callfunc "F_PB_POOL_Add", .@pool$, .@name$[.@i], .@char_id[.@i];
+		callfunc "F_PB_POOL_Add", .@pool$, .@name$[.@i], .@char_id[.@i], .@bot_id[.@i], .@profile_key$[.@i], .@role$[.@i];
 	return .@rows;
 }
 
@@ -353,17 +353,18 @@ function	script	F_PB_DB_LoadBotSummary	{
 	$@pbbot_status$ = "";
 	$@pbbot_pool$ = "";
 	$@pbbot_profile$ = "";
+	$@pbbot_role$ = "";
 	$@pbbot_interaction$ = "";
 	$@pbbot_party$ = "";
 	.@rows = query_sql(
 		"SELECT p.`bot_id`, p.`name`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0), "
-		+ "p.`status`, IFNULL(b.`pool_key`, ''), IFNULL(b.`profile_key`, ''), "
+		+ "p.`status`, p.`role`, IFNULL(b.`pool_key`, ''), IFNULL(b.`profile_key`, ''), "
 		+ "IFNULL(b.`interaction_policy`, ''), IFNULL(b.`party_policy`, '') "
 		+ "FROM `bot_profile` p "
 		+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
 		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
-		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@pool$, .@profile$, .@interaction$, .@party$);
+		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@role$, .@pool$, .@profile$, .@interaction$, .@party$);
 	if (.@rows > 0) {
 		$@pbbot_found = 1;
 		$@pbbot_bot_id = .@bot_id[0];
@@ -371,6 +372,7 @@ function	script	F_PB_DB_LoadBotSummary	{
 		$@pbbot_account_id = .@account_id[0];
 		$@pbbot_name$ = .@name$[0];
 		$@pbbot_status$ = .@status$[0];
+		$@pbbot_role$ = .@role$[0];
 		$@pbbot_pool$ = .@pool$[0];
 		$@pbbot_profile$ = .@profile$[0];
 		$@pbbot_interaction$ = .@interaction$[0];
@@ -411,6 +413,8 @@ function	script	F_PB_CFG_DefSetPoolActor	{
 	setd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]", getarg(2));
 	setd("$PBCDEF_" + .@key$ + "_C[" + .@i + "]", 0);
 	setd("$PBCDEF_" + .@key$ + "_PK$[" + .@i + "]", getarg(3));
+	setd("$PBCDEF_" + .@key$ + "_PF$[" + .@i + "]", getarg(10, ""));
+	setd("$PBCDEF_" + .@key$ + "_RL$[" + .@i + "]", getarg(11, ""));
 	setd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]", getarg(4));
 	setd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]", getarg(5));
 	setd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]", getarg(6));
@@ -479,7 +483,9 @@ function	script	F_PB_CFG_ApplyControllerDef	{
 				getd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]"),
 				getd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]"),
 				getd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]"),
-				getd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]");
+				getd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_PF$[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_RL$[" + .@i + "]");
 		else
 			callfunc "F_LW_HPC_DefSetActor", .@controller$, .@i,
 				getd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]"),
@@ -525,8 +531,33 @@ function	script	F_PB_POOL_Add	{
 	.@i = getd("$PBPOOL_" + .@pool$ + "_AC");
 	setd("$PBPOOL_" + .@pool$ + "_L$[" + .@i + "]", getarg(1));
 	setd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]", getarg(2));
+	setd("$PBPOOL_" + .@pool$ + "_B[" + .@i + "]", getarg(3, 0));
+	setd("$PBPOOL_" + .@pool$ + "_PF$[" + .@i + "]", getarg(4, ""));
+	setd("$PBPOOL_" + .@pool$ + "_RL$[" + .@i + "]", getarg(5, ""));
 	setd("$PBPOOL_" + .@pool$ + "_AC", .@i + 1);
 	return .@i;
+}
+
+function	script	F_PB_POOL_Profile	{
+	.@pool$ = getarg(0);
+	.@char_id = getarg(1);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		if (getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]") == .@char_id)
+			return getd("$PBPOOL_" + .@pool$ + "_PF$[" + .@i + "]");
+	}
+	return "";
+}
+
+function	script	F_PB_POOL_Role	{
+	.@pool$ = getarg(0);
+	.@char_id = getarg(1);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		if (getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]") == .@char_id)
+			return getd("$PBPOOL_" + .@pool$ + "_RL$[" + .@i + "]");
+	}
+	return "";
 }
 
 function	script	F_PB_POOL_Owner	{
@@ -536,14 +567,22 @@ function	script	F_PB_POOL_Owner	{
 function	script	F_PB_POOL_Claim	{
 	.@pool$ = getarg(0);
 	.@owner$ = getarg(1);
+	.@want_profile$ = getarg(2, "");
+	.@want_role$ = getarg(3, "");
 	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
 		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
 		.@status = headlesspc_status(.@char_id);
+		.@profile$ = getd("$PBPOOL_" + .@pool$ + "_PF$[" + .@i + "]");
+		.@role$ = getd("$PBPOOL_" + .@pool$ + "_RL$[" + .@i + "]");
 		if (.@current_owner$ != "")
 			continue;
 		if (.@status != 0)
+			continue;
+		if (.@want_profile$ != "" && .@profile$ != .@want_profile$)
+			continue;
+		if (.@want_role$ != "" && .@role$ != .@want_role$)
 			continue;
 		setd("$PBPOOL_OWN$" + .@char_id + "$", .@owner$);
 		setd("$PBPOOL_SRC$" + .@char_id + "$", .@pool$);
@@ -754,6 +793,8 @@ function	script	F_LW_HPC_DefSetActor	{
 	setd("$LWHD" + .@seed + "_L$[" + .@i + "]", getarg(2));
 	setd("$LWHD" + .@seed + "_C[" + .@i + "]", getarg(3));
 	setd("$LWHD" + .@seed + "_PK$[" + .@i + "]", "");
+	setd("$LWHD" + .@seed + "_PF$[" + .@i + "]", "");
+	setd("$LWHD" + .@seed + "_RL$[" + .@i + "]", "");
 	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
 	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
@@ -777,6 +818,8 @@ function	script	F_LW_HPC_DefSetPoolActor	{
 	setd("$LWHD" + .@seed + "_L$[" + .@i + "]", getarg(2));
 	setd("$LWHD" + .@seed + "_C[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_PK$[" + .@i + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_PF$[" + .@i + "]", getarg(9, ""));
+	setd("$LWHD" + .@seed + "_RL$[" + .@i + "]", getarg(10, ""));
 	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
 	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
@@ -809,15 +852,19 @@ function	script	F_LW_HPC_DefResolveActor	{
 	.@seed = getnpcid(0, .@controller$);
 	.@i = getarg(2);
 	.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+	.@want_profile$ = getd("$LWHD" + .@seed + "_PF$[" + .@i + "]");
+	.@want_role$ = getd("$LWHD" + .@seed + "_RL$[" + .@i + "]");
 	.@assigned = getd("$LWHD" + .@seed + "_RA[" + .@i + "]");
 	if (.@pool$ == "")
 		return callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
 	if (.@assigned > 0) {
-		if (callfunc("F_PB_POOL_Owner", .@assigned) == .@owner$)
+		if (callfunc("F_PB_POOL_Owner", .@assigned) == .@owner$
+			&& (.@want_profile$ == "" || callfunc("F_PB_POOL_Profile", .@pool$, .@assigned) == .@want_profile$)
+			&& (.@want_role$ == "" || callfunc("F_PB_POOL_Role", .@pool$, .@assigned) == .@want_role$))
 			return .@assigned;
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	}
-	.@assigned = callfunc("F_PB_POOL_Claim", .@pool$, .@owner$);
+	.@assigned = callfunc("F_PB_POOL_Claim", .@pool$, .@owner$, .@want_profile$, .@want_role$);
 	if (.@assigned > 0)
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", .@assigned);
 	return .@assigned;
@@ -947,6 +994,8 @@ function	script	F_LW_HPC_DefBuildStatus	{
 		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
 		.@mode$ = getd("$LWHD" + .@seed + "_T$[" + .@i + "]");
 		.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+		.@want_profile$ = getd("$LWHD" + .@seed + "_PF$[" + .@i + "]");
+		.@want_role$ = getd("$LWHD" + .@seed + "_RL$[" + .@i + "]");
 		.@owner$ = (.@char_id > 0 ? headlesspc_owner(.@char_id) : "");
 		if (.@pool$ != "" && .@char_id > 0 && .@owner$ == "")
 			.@owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
@@ -954,7 +1003,9 @@ function	script	F_LW_HPC_DefBuildStatus	{
 			+ (.@owner$ == "" ? (.@pool$ != "" && .@char_id < 1 ? "<unassigned>" : "<none>") : .@owner$) + " / "
 			+ (.@char_id > 0 ? headlesspc_status(.@char_id) : 0) + " / "
 			+ (.@char_id > 0 ? headlesspc_routestatus(.@char_id) : 0) + " (" + .@mode$
-			+ (.@pool$ != "" ? ", pool " + .@pool$ : "") + ", pulse "
+			+ (.@pool$ != "" ? ", pool " + .@pool$
+				+ (.@want_profile$ != "" ? ", profile " + .@want_profile$ : "")
+				+ (.@want_role$ != "" ? ", role " + .@want_role$ : "") : "") + ", pulse "
 			+ getd("$LWHD" + .@seed + "_NX[" + .@i + "]") + ").";
 	}
 	.@summary$ += callfunc("F_LW_HPC_DefBuildPoolSummary", .@controller$, .@controller$);
