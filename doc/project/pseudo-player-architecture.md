@@ -109,6 +109,16 @@ Initial implementation recommendation:
 - use SQL-backed records for bot identity and role
 - defer full inventory/equipment persistence until commerce is needed
 
+Current status:
+
+- the first persistent identity slice is now committed as:
+  - `bot_profile`
+  - `bot_identity_link`
+  - `bot_appearance`
+  - `bot_runtime_state`
+- this is the foundation for later routine, party, merchant, and progression
+  systems
+
 ### 4. Behavior Layer
 
 Responsibilities:

@@ -28,7 +28,6 @@ Already proven:
 Still missing:
 
 - scheduler budgeting from real pool supply
-- persistent bot identity schema
 - provisioning workflow
 - routine/timezone scheduling
 - party/combat/merchant semantics
@@ -66,6 +65,7 @@ Slices:
 
 1. SQL schema for:
    - `bot_profile`
+   - `bot_identity_link`
    - `bot_appearance`
    - `bot_runtime_state`
    - `bot_behavior_config`
@@ -77,6 +77,15 @@ Definition of done:
 
 - a bot can be provisioned once and later activated without editing NPC scripts
 - SQL artifacts fully define the schema and migration path
+
+Current status:
+
+- first persistent identity slice committed:
+  - `bot_profile`
+  - `bot_identity_link`
+  - `bot_appearance`
+  - `bot_runtime_state`
+- `bot_behavior_config` remains the next schema slice in this phase
 
 ### Phase 3: Routine Scheduler And World Presence
 

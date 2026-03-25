@@ -32,6 +32,15 @@ hand-seeded accounts and chars forever.
 - SQL upgrade is checked in
 - docs explain how provisioning maps to persistent recurring bot identities
 
+## Current Status
+
+- first persistent identity slice committed:
+  - `bot_profile`
+  - `bot_identity_link`
+  - `bot_appearance`
+  - `bot_runtime_state`
+- the next narrow schema slice in this branch is `bot_behavior_config`
+
 ## Codex Prompt
 
 Use this branch brief as the source of truth.
