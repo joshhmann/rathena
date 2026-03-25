@@ -616,3 +616,56 @@ offline test character.
 - lifecycle complexity stays in source helpers and typed enums
 - `headless_pc` is durable for active runtime presence only
 - do not assume absence implies successful save; use ack helpers
+
+## Scheduler / Pool Observability
+
+### 24. Pool pressure vs simple `<unassigned>`
+
+Current support:
+
+- controller status no longer stops at `<unassigned>`
+- pooled controller status now distinguishes:
+  - claimable supply
+  - ownerless but busy identities
+  - identities claimed by the same controller
+  - identities claimed by other controllers
+  - total pool size
+
+Current limits:
+
+- this remains script-level observability, not a persistent audit trail
+- there is still no SQL-backed pool history or operator analytics table
+
+### 25. Detailed status truncation
+
+Current support:
+
+- detailed controller and scheduler status moved into NPC-owned `.status$` vars
+  rather than global mapreg-backed strings
+- this avoids the old persistence-layer truncation that made richer scheduler
+  status unreadable as soon as it grew beyond a short summary
+
+Current limits:
+
+- detailed status is intended for live operator inspection, not long-term
+  persistence
+- if future slices need durable diagnostics, that should be a separate runtime
+  or SQL-backed observability lane
+
+### 26. Scheduler decision reasons
+
+Current support:
+
+- the scheduler now records last-decision reasons such as:
+  - selected start
+  - selected top-up
+  - selected steady
+  - blocked by users
+  - blocked by actor cap
+  - blocked by map cap
+  - stopped because not selected
+
+Current limits:
+
+- the decision ledger is still script-global and transient
+- it is designed for current operator debugging, not historical reporting

@@ -14,7 +14,7 @@ alberta,48,238,4	script	Headless Alberta Social	4_M_MANAGER,{
 		close;
 	case 3:
 		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
-		mes getd("$LWHS" + getnpcid(0, .controller$) + "$");
+		mes getvariableofnpc(.status$, .controller$);
 		close;
 	default:
 		close;

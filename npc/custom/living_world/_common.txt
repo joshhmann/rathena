@@ -492,10 +492,72 @@ function	script	F_PB_POOL_Available	{
 	.@pool$ = getarg(0);
 	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
 	.@available = 0;
-	for (.@i = 0; .@i < .@count; ++.@i)
-		if (callfunc("F_PB_POOL_Owner", getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]")) == "")
-			.@available++;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		if (callfunc("F_PB_POOL_Owner", .@char_id) != "")
+			continue;
+		if (headlesspc_status(.@char_id) != 0)
+			continue;
+		.@available++;
+	}
 	return .@available;
+}
+
+function	script	F_PB_POOL_Count	{
+	return getd("$PBPOOL_" + getarg(0) + "_AC");
+}
+
+function	script	F_PB_POOL_CountOwnerless	{
+	.@pool$ = getarg(0);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@matched = 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		if (callfunc("F_PB_POOL_Owner", .@char_id) == "")
+			.@matched++;
+	}
+	return .@matched;
+}
+
+function	script	F_PB_POOL_CountClaimedBy	{
+	.@pool$ = getarg(0);
+	.@owner$ = getarg(1);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@matched = 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		if (callfunc("F_PB_POOL_Owner", .@char_id) == .@owner$)
+			.@matched++;
+	}
+	return .@matched;
+}
+
+function	script	F_PB_POOL_CountClaimedOther	{
+	.@pool$ = getarg(0);
+	.@owner$ = getarg(1);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@matched = 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
+		if (.@current_owner$ != "" && .@current_owner$ != .@owner$)
+			.@matched++;
+	}
+	return .@matched;
+}
+
+function	script	F_PB_POOL_CountBusyUnowned	{
+	.@pool$ = getarg(0);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@matched = 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		if (callfunc("F_PB_POOL_Owner", .@char_id) != "")
+			continue;
+		if (headlesspc_status(.@char_id) != 0)
+			.@matched++;
+	}
+	return .@matched;
 }
 
 function	script	F_LW_HPC_PackPos	{
@@ -769,6 +831,11 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	if (.@grace_deadline > gettimetick(2))
 		.@summary$ += " Gate cooldown active.";
 	.@count = getd("$LWHD" + .@seed + "_AC");
+	.@summary$ += "\nRoster active/pending/parked/unassigned: "
+		+ callfunc("F_LW_HPC_DefCountActive", .@controller$) + "/"
+		+ callfunc("F_LW_HPC_DefCountPending", .@controller$) + "/"
+		+ callfunc("F_LW_HPC_DefCountParked", .@controller$) + "/"
+		+ callfunc("F_LW_HPC_DefCountUnassigned", .@controller$) + ".";
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@label$ = getd("$LWHD" + .@seed + "_L$[" + .@i + "]");
 		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
@@ -784,7 +851,8 @@ function	script	F_LW_HPC_DefBuildStatus	{
 			+ (.@pool$ != "" ? ", pool " + .@pool$ : "") + ", pulse "
 			+ getd("$LWHD" + .@seed + "_NX[" + .@i + "]") + ").";
 	}
-	setd("$LWHS" + .@seed + "$", .@summary$);
+	.@summary$ += callfunc("F_LW_HPC_DefBuildPoolSummary", .@controller$, .@controller$);
+	set getvariableofnpc(.status$, .@controller$), .@summary$;
 	return .@count;
 }
 
@@ -801,6 +869,19 @@ function	script	F_LW_HPC_DefCountActive	{
 	return .@active;
 }
 
+function	script	F_LW_HPC_DefCountPending	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	.@pending = 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+		if (.@char_id > 0 && headlesspc_status(.@char_id) == 1)
+			.@pending++;
+	}
+	return .@pending;
+}
+
 function	script	F_LW_HPC_DefCountParked	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
@@ -812,6 +893,69 @@ function	script	F_LW_HPC_DefCountParked	{
 			.@parked++;
 	}
 	return .@parked;
+}
+
+function	script	F_LW_HPC_DefCountUnassigned	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	.@unassigned = 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+		if (.@pool$ != "" && .@char_id < 1)
+			.@unassigned++;
+	}
+	return .@unassigned;
+}
+
+function	script	F_LW_HPC_DefBuildPoolSummary	{
+	.@controller$ = getarg(0);
+	.@owner$ = getarg(1, .@controller$);
+	.@seed = getnpcid(0, .@controller$);
+	.@count = getd("$LWHD" + .@seed + "_AC");
+	.@pool_count = 0;
+	.@summary$ = "";
+
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+		if (.@pool$ == "")
+			continue;
+		.@pool_index = -1;
+		for (.@j = 0; .@j < .@pool_count; ++.@j) {
+			if (.@pool_keys$[.@j] == .@pool$) {
+				.@pool_index = .@j;
+				break;
+			}
+		}
+		if (.@pool_index < 0) {
+			.@pool_index = .@pool_count;
+			.@pool_keys$[.@pool_index] = .@pool$;
+			.@pool_slots[.@pool_index] = 0;
+			.@pool_resolved[.@pool_index] = 0;
+			.@pool_count++;
+		}
+		.@pool_slots[.@pool_index]++;
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+		if (.@char_id > 0 && callfunc("F_PB_POOL_Owner", .@char_id) == .@owner$)
+			.@pool_resolved[.@pool_index]++;
+	}
+
+	for (.@i = 0; .@i < .@pool_count; ++.@i) {
+		.@pool$ = .@pool_keys$[.@i];
+		.@summary$ += "\n  pool " + .@pool$
+			+ ": slots " + .@pool_slots[.@i]
+			+ ", resolved " + .@pool_resolved[.@i]
+			+ ", claimable " + callfunc("F_PB_POOL_Available", .@pool$)
+			+ ", ownerless " + callfunc("F_PB_POOL_CountOwnerless", .@pool$)
+			+ ", busy " + callfunc("F_PB_POOL_CountBusyUnowned", .@pool$)
+			+ ", claimed self/other "
+			+ callfunc("F_PB_POOL_CountClaimedBy", .@pool$, .@owner$)
+			+ "/" + callfunc("F_PB_POOL_CountClaimedOther", .@pool$, .@owner$)
+			+ ", total " + callfunc("F_PB_POOL_Count", .@pool$) + ".";
+	}
+
+	return .@summary$;
 }
 
 function	script	F_LW_HPC_ControllerShouldRun	{
@@ -934,17 +1078,22 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 		.@active = getvariableofnpc(.enabled, .@controller$);
 		.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
+		.@live_pending = callfunc("F_LW_HPC_DefCountPending", .@controller$);
 		.@live_parked = callfunc("F_LW_HPC_DefCountParked", .@controller$);
+		.@live_unassigned = callfunc("F_LW_HPC_DefCountUnassigned", .@controller$);
+		.@decision$ = getd("$LWHS" + .@seed + "_LD$[" + .@i + "]");
 		.@active_total += .@live_active;
 		.@parked_total += .@live_parked;
 		.@summary$ += "\n" + .@controller$ + ": " + (.@active ? "active" : "idle")
 			+ ", map " + .@map$ + " users " + .@users + "/" + .@need
 			+ ", priority " + .@prio + ", actors " + .@actors
-			+ ", map cap " + .@map_cap + ", live active " + .@live_active
-			+ ", parked " + .@live_parked + ".";
+			+ ", map cap " + .@map_cap + ", live active/pending " + .@live_active + "/" + .@live_pending
+			+ ", parked " + .@live_parked + ", unassigned " + .@live_unassigned
+			+ ", decision " + (.@decision$ == "" ? "<none>" : .@decision$) + ".";
+		.@summary$ += callfunc("F_LW_HPC_DefBuildPoolSummary", .@controller$, .@controller$);
 	}
 	.@summary$ += "\nLive active/parked total: " + .@active_total + " / " + .@parked_total + ".";
-	setd("$LWHSS" + .@seed + "$", .@summary$);
+	set getvariableofnpc(.status$, .@scheduler$), .@summary$;
 	return .@count;
 }
 
@@ -960,6 +1109,7 @@ function	script	F_LW_HPC_SchedRun	{
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
 		setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", 0);
+		setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "not selected");
 	}
 
 	for (.@prio = 100; .@prio >= 0 && .@started < .@cap; --.@prio) {
@@ -973,17 +1123,28 @@ function	script	F_LW_HPC_SchedRun	{
 			.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 			.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
 			.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
-			if (getmapusers(.@map$) < .@need)
+			.@users = getmapusers(.@map$);
+			if (.@users < .@need) {
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: users " + .@users + "/" + .@need);
 				continue;
-			if (.@active_actors + .@actors > .@actor_cap)
+			}
+			if (.@active_actors + .@actors > .@actor_cap) {
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: actor cap " + .@active_actors + "/" + .@actor_cap);
 				continue;
-			if (.@map_cap > 0 && .@map_used + .@actors > .@map_cap)
+			}
+			if (.@map_cap > 0 && .@map_used + .@actors > .@map_cap) {
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: " + .@map$ + " map cap " + .@map_used + "/" + .@map_cap);
 				continue;
+			}
 			if (!getvariableofnpc(.enabled, .@controller$)) {
 				set getvariableofnpc(.enabled, .@controller$), 1;
 				donpcevent .@controller$ + "::OnTick";
-			} else if (.@live_active < .@actors)
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: start");
+			} else if (.@live_active < .@actors) {
 				donpcevent .@controller$ + "::OnTick";
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: top-up");
+			} else
+				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: steady");
 			.@started++;
 			.@active_actors += .@actors;
 			setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", .@map_used + .@actors);
@@ -997,8 +1158,10 @@ function	script	F_LW_HPC_SchedRun	{
 			setd("$LWHS" + .@seed + "_WN[" + .@i + "]", 0);
 			continue;
 		}
-		if (getvariableofnpc(.enabled, .@controller$))
+		if (getvariableofnpc(.enabled, .@controller$)) {
+			setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "stopped: not selected");
 			donpcevent .@controller$ + "::OnStop";
+		}
 	}
 	return .@started;
 }

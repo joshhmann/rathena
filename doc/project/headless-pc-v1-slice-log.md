@@ -2216,3 +2216,87 @@ This slice still does not add:
 - scheduler decisions based on real-time pool supply instead of static actor
   weights
 - progression-aware choice among many eligible parked identities
+
+## Slice 40: Pool And Scheduler Observability
+
+### Goal
+
+Make scheduler and controller shortage states readable from the script/UI layer
+ so an operator can tell whether a controller is blocked by lack of users,
+ budget, pool pressure, or unresolved pooled assignments.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added read-only pool observability helpers:
+  - `F_PB_POOL_Count`
+  - `F_PB_POOL_CountOwnerless`
+  - `F_PB_POOL_CountClaimedBy`
+  - `F_PB_POOL_CountClaimedOther`
+  - `F_PB_POOL_CountBusyUnowned`
+- Tightened `F_PB_POOL_Available(...)` so the displayed `claimable` count now
+  matches actual pool-claim behavior instead of counting any ownerless entry
+- Added controller roster observability helpers:
+  - `F_LW_HPC_DefCountPending`
+  - `F_LW_HPC_DefCountUnassigned`
+  - `F_LW_HPC_DefBuildPoolSummary`
+- Controller status now includes:
+  - active / pending / parked / unassigned roster counts
+  - per-pool slot summary with:
+    - slots
+    - resolved
+    - claimable
+    - ownerless
+    - busy
+    - claimed self / other
+    - total
+- Scheduler status now includes:
+  - live active / pending counts
+  - parked and unassigned counts
+  - last scheduler decision reason per controller
+- Added scheduler decision-reason strings in `F_LW_HPC_SchedRun(...)`:
+  - selected start / top-up / steady
+  - blocked by users
+  - blocked by actor cap
+  - blocked by map cap
+  - stopped because not selected
+- Moved detailed controller and scheduler status text from global mapreg-backed
+  string vars into NPC-owned `.status$` vars so richer reports are not silently
+  truncated at the persistence layer
+- Added a scheduler drill-down menu for:
+  - `HeadlessPronteraSocialController`
+  - `HeadlessAlbertaSocialController`
+
+### Validation
+
+- `map-server` restarted cleanly after the observability changes.
+- OpenKore confirmed the current Prontera social set still loads and remains
+  visible after restart:
+  - `BotPc06`
+  - `BotPc07`
+  - `BotPc08`
+  - `BotPc09`
+  - `BotPc10`
+- SQL/runtime validation confirmed the active Prontera pooled set still restores
+  cleanly in:
+  - `char.online`
+  - `headless_pc_runtime`
+- The old global status string path was observed truncating at the persistence
+  layer, which is why this slice moved detailed status output into NPC-owned
+  buffers instead of extending the old mapreg-backed strings
+
+### Deferrals
+
+This slice still does not add:
+
+- SQL-backed pool observability or history
+- automatic export of detailed NPC status into a persistent diagnostic table
+- scheduler budgeting by effective supply; that remains a separate slice

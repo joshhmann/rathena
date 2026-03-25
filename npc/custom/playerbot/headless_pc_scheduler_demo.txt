@@ -3,7 +3,7 @@
 prontera,148,183,4	script	Headless Scheduler	4_M_MANAGER,{
 	.controller$ = "HeadlessWorldScheduler";
 	mes "[Headless Scheduler]";
-	switch(select("Start scheduler:Stop scheduler:Status:Cancel")) {
+	switch(select("Start scheduler:Stop scheduler:Status:Controller drill-down:Cancel")) {
 	case 1:
 		set getvariableofnpc(.enabled, .controller$), 1;
 		donpcevent .controller$ + "::OnTick";
@@ -16,7 +16,22 @@ prontera,148,183,4	script	Headless Scheduler	4_M_MANAGER,{
 		close;
 	case 3:
 		callfunc "F_LW_HPC_SchedBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
-		mes getd("$LWHSS" + getnpcid(0, .controller$) + "$");
+		mes getvariableofnpc(.status$, .controller$);
+		close;
+	case 4:
+		switch(select("Prontera social:Alberta social:Cancel")) {
+		case 1:
+			.@target$ = "HeadlessPronteraSocialController";
+			break;
+		case 2:
+			.@target$ = "HeadlessAlbertaSocialController";
+			break;
+		default:
+			close;
+		}
+		callfunc "F_LW_HPC_DefBuildStatus", .@target$, getvariableofnpc(.enabled, .@target$);
+		mes "[" + .@target$ + "]";
+		mes getvariableofnpc(.status$, .@target$);
 		close;
 	default:
 		close;
