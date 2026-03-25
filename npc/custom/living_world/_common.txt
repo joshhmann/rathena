@@ -331,6 +331,27 @@ function	script	F_PB_CFG_DefSetActor	{
 	return 1;
 }
 
+function	script	F_PB_CFG_DefSetPoolActor	{
+	.@key$ = getarg(0);
+	.@i = getarg(1);
+	setd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]", getarg(2));
+	setd("$PBCDEF_" + .@key$ + "_C[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_PK$[" + .@i + "]", getarg(3));
+	setd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]", getarg(4));
+	setd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]", getarg(5));
+	setd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]", getarg(6));
+	setd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]", getarg(7));
+	setd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]", getarg(8));
+	setd("$PBCDEF_" + .@key$ + "_P$[" + .@i + "]", getarg(9, ""));
+	setd("$PBCDEF_" + .@key$ + "_RC[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_ACN[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_TC[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_EC[" + .@i + "]", 0);
+	if (getd("$PBCDEF_" + .@key$ + "_AC") < .@i + 1)
+		setd("$PBCDEF_" + .@key$ + "_AC", .@i + 1);
+	return 1;
+}
+
 function	script	F_PB_CFG_DefAddAnchor	{
 	.@key$ = getarg(0);
 	.@i = getarg(1);
@@ -374,13 +395,25 @@ function	script	F_PB_CFG_ApplyControllerDef	{
 	.@key$ = getarg(1);
 	.@count = getd("$PBCDEF_" + .@key$ + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		callfunc "F_LW_HPC_DefSetActor", .@controller$, .@i,
-			getd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]"),
-			getd("$PBCDEF_" + .@key$ + "_C[" + .@i + "]"),
-			getd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]"),
-			getd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]"),
-			getd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]"),
-			getd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]");
+		.@char_id = getd("$PBCDEF_" + .@key$ + "_C[" + .@i + "]");
+		.@pool$ = getd("$PBCDEF_" + .@key$ + "_PK$[" + .@i + "]");
+		if (.@pool$ != "")
+			callfunc "F_LW_HPC_DefSetPoolActor", .@controller$, .@i,
+				getd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]"),
+				.@pool$,
+				getd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]");
+		else
+			callfunc "F_LW_HPC_DefSetActor", .@controller$, .@i,
+				getd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]"),
+				.@char_id,
+				getd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]"),
+				getd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]");
 		callfunc "F_LW_HPC_DefSetMode", .@controller$, .@i, getd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]");
 		.@profile$ = getd("$PBCDEF_" + .@key$ + "_P$[" + .@i + "]");
 		if (.@profile$ != "")
@@ -405,6 +438,64 @@ function	script	F_PB_CFG_ApplyControllerDef	{
 				getd("$PBCDEF_" + .@key$ + "_EM" + .@i + "[" + .@j + "]");
 	}
 	return .@count;
+}
+
+function	script	F_PB_POOL_Reset	{
+	.@pool$ = getarg(0);
+	setd("$PBPOOL_" + .@pool$ + "_AC", 0);
+	return 1;
+}
+
+function	script	F_PB_POOL_Add	{
+	.@pool$ = getarg(0);
+	.@i = getd("$PBPOOL_" + .@pool$ + "_AC");
+	setd("$PBPOOL_" + .@pool$ + "_L$[" + .@i + "]", getarg(1));
+	setd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]", getarg(2));
+	setd("$PBPOOL_" + .@pool$ + "_AC", .@i + 1);
+	return .@i;
+}
+
+function	script	F_PB_POOL_Owner	{
+	return getd("$PBPOOL_OWN$" + getarg(0) + "$");
+}
+
+function	script	F_PB_POOL_Claim	{
+	.@pool$ = getarg(0);
+	.@owner$ = getarg(1);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]");
+		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
+		.@status = headlesspc_status(.@char_id);
+		if (.@current_owner$ != "")
+			continue;
+		if (.@status != 0)
+			continue;
+		setd("$PBPOOL_OWN$" + .@char_id + "$", .@owner$);
+		setd("$PBPOOL_SRC$" + .@char_id + "$", .@pool$);
+		return .@char_id;
+	}
+	return 0;
+}
+
+function	script	F_PB_POOL_Release	{
+	.@char_id = getarg(0);
+	.@owner$ = getarg(1);
+	if (callfunc("F_PB_POOL_Owner", .@char_id) != .@owner$)
+		return 0;
+	setd("$PBPOOL_OWN$" + .@char_id + "$", "");
+	setd("$PBPOOL_SRC$" + .@char_id + "$", "");
+	return 1;
+}
+
+function	script	F_PB_POOL_Available	{
+	.@pool$ = getarg(0);
+	.@count = getd("$PBPOOL_" + .@pool$ + "_AC");
+	.@available = 0;
+	for (.@i = 0; .@i < .@count; ++.@i)
+		if (callfunc("F_PB_POOL_Owner", getd("$PBPOOL_" + .@pool$ + "_C[" + .@i + "]")) == "")
+			.@available++;
+	return .@available;
 }
 
 function	script	F_LW_HPC_PackPos	{
@@ -502,6 +593,8 @@ function	script	F_LW_HPC_DefSetActor	{
 	.@i = getarg(1);
 	setd("$LWHD" + .@seed + "_L$[" + .@i + "]", getarg(2));
 	setd("$LWHD" + .@seed + "_C[" + .@i + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_PK$[" + .@i + "]", "");
+	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
 	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
 	setd("$LWHD" + .@seed + "_Y[" + .@i + "]", getarg(6));
@@ -514,6 +607,73 @@ function	script	F_LW_HPC_DefSetActor	{
 	setd("$LWHD" + .@seed + "_LE[" + .@i + "]", 0);
 	if (getd("$LWHD" + .@seed + "_AC") < .@i + 1)
 		setd("$LWHD" + .@seed + "_AC", .@i + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefSetPoolActor	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_L$[" + .@i + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_C[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_PK$[" + .@i + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
+	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
+	setd("$LWHD" + .@seed + "_Y[" + .@i + "]", getarg(6));
+	setd("$LWHD" + .@seed + "_O[" + .@i + "]", getarg(7));
+	setd("$LWHD" + .@seed + "_T$[" + .@i + "]", getarg(8));
+	setd("$LWHD" + .@seed + "_RC[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_ACN[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LI[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LE[" + .@i + "]", 0);
+	if (getd("$LWHD" + .@seed + "_AC") < .@i + 1)
+		setd("$LWHD" + .@seed + "_AC", .@i + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefActorCharId	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@assigned = getd("$LWHD" + .@seed + "_RA[" + .@i + "]");
+	if (.@assigned > 0)
+		return .@assigned;
+	return getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+}
+
+function	script	F_LW_HPC_DefResolveActor	{
+	.@controller$ = getarg(0);
+	.@owner$ = getarg(1);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(2);
+	.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+	.@assigned = getd("$LWHD" + .@seed + "_RA[" + .@i + "]");
+	if (.@pool$ == "")
+		return callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+	if (.@assigned > 0) {
+		if (callfunc("F_PB_POOL_Owner", .@assigned) == .@owner$)
+			return .@assigned;
+		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
+	}
+	.@assigned = callfunc("F_PB_POOL_Claim", .@pool$, .@owner$);
+	if (.@assigned > 0)
+		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", .@assigned);
+	return .@assigned;
+}
+
+function	script	F_LW_HPC_DefReleaseActor	{
+	.@controller$ = getarg(0);
+	.@owner$ = getarg(1);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(2);
+	.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+	.@assigned = getd("$LWHD" + .@seed + "_RA[" + .@i + "]");
+	if (.@pool$ == "" || .@assigned < 1)
+		return 0;
+	callfunc "F_PB_POOL_Release", .@assigned, .@owner$;
+	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	return 1;
 }
 
@@ -611,13 +771,17 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
 		.@label$ = getd("$LWHD" + .@seed + "_L$[" + .@i + "]");
-		.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
 		.@mode$ = getd("$LWHD" + .@seed + "_T$[" + .@i + "]");
-		.@owner$ = headlesspc_owner(.@char_id);
+		.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+		.@owner$ = (.@char_id > 0 ? headlesspc_owner(.@char_id) : "");
+		if (.@pool$ != "" && .@char_id > 0 && .@owner$ == "")
+			.@owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
 		.@summary$ += "\n" + .@label$ + " owner/status/route: "
-			+ (.@owner$ == "" ? "<none>" : .@owner$) + " / "
-			+ headlesspc_status(.@char_id) + " / "
-			+ headlesspc_routestatus(.@char_id) + " (" + .@mode$ + ", pulse "
+			+ (.@owner$ == "" ? (.@pool$ != "" && .@char_id < 1 ? "<unassigned>" : "<none>") : .@owner$) + " / "
+			+ (.@char_id > 0 ? headlesspc_status(.@char_id) : 0) + " / "
+			+ (.@char_id > 0 ? headlesspc_routestatus(.@char_id) : 0) + " (" + .@mode$
+			+ (.@pool$ != "" ? ", pool " + .@pool$ : "") + ", pulse "
 			+ getd("$LWHD" + .@seed + "_NX[" + .@i + "]") + ").";
 	}
 	setd("$LWHS" + .@seed + "$", .@summary$);
@@ -629,9 +793,11 @@ function	script	F_LW_HPC_DefCountActive	{
 	.@seed = getnpcid(0, .@controller$);
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	.@active = 0;
-	for (.@i = 0; .@i < .@count; ++.@i)
-		if (headlesspc_status(getd("$LWHD" + .@seed + "_C[" + .@i + "]")) == 2)
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+		if (.@char_id > 0 && headlesspc_status(.@char_id) == 2)
 			.@active++;
+	}
 	return .@active;
 }
 
@@ -640,9 +806,11 @@ function	script	F_LW_HPC_DefCountParked	{
 	.@seed = getnpcid(0, .@controller$);
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	.@parked = 0;
-	for (.@i = 0; .@i < .@count; ++.@i)
-		if (headlesspc_status(getd("$LWHD" + .@seed + "_C[" + .@i + "]")) == 0)
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+		if (.@char_id > 0 && headlesspc_status(.@char_id) == 0)
 			.@parked++;
+	}
 	return .@parked;
 }
 
@@ -849,7 +1017,7 @@ function	script	F_LW_HPC_DefPulseActor	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
 	.@i = getarg(1);
-	.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
+	.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
 	.@mode$ = getd("$LWHD" + .@seed + "_T$[" + .@i + "]");
 	.@talk_count = getd("$LWHD" + .@seed + "_TC[" + .@i + "]");
 	.@emote_count = getd("$LWHD" + .@seed + "_EC[" + .@i + "]");
@@ -862,6 +1030,8 @@ function	script	F_LW_HPC_DefPulseActor	{
 	.@talk_weight = getd("$LWHD" + .@seed + "_PT[" + .@i + "]");
 
 	if (.@mode$ != "hold" && .@mode$ != "loiter")
+		return 0;
+	if (.@char_id < 1)
 		return 0;
 	if (headlesspc_status(.@char_id) != 2)
 		return 0;
@@ -900,17 +1070,20 @@ function	script	F_LW_HPC_DefStop	{
 	.@policy$ = getd("$LWHD" + .@seed + "_SP$");
 	.@count = getd("$LWHD" + .@seed + "_AC");
 	for (.@i = 0; .@i < .@count; ++.@i) {
-		.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
-		if (.@policy$ == "park") {
-			.@current_owner$ = headlesspc_owner(.@char_id);
-			if (.@current_owner$ == .@owner$ && headlesspc_routestatus(.@char_id) != 0)
-				headlesspc_owned_routestop(.@char_id, .@owner$);
-			if (.@current_owner$ == .@owner$)
-				headlesspc_release(.@char_id, .@owner$);
-			if (headlesspc_status(.@char_id) == 2)
-				headlesspc_remove(.@char_id);
-		} else
-			callfunc "F_LW_HPC_ControllerReleaseOwned", .@char_id, .@owner$;
+		.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+		if (.@char_id > 0) {
+			if (.@policy$ == "park") {
+				.@current_owner$ = headlesspc_owner(.@char_id);
+				if (.@current_owner$ == .@owner$ && headlesspc_routestatus(.@char_id) != 0)
+					headlesspc_owned_routestop(.@char_id, .@owner$);
+				if (.@current_owner$ == .@owner$)
+					headlesspc_release(.@char_id, .@owner$);
+				if (headlesspc_status(.@char_id) == 2)
+					headlesspc_remove(.@char_id);
+			} else
+				callfunc "F_LW_HPC_ControllerReleaseOwned", .@char_id, .@owner$;
+		}
+		callfunc "F_LW_HPC_DefReleaseActor", .@controller$, .@owner$, .@i;
 	}
 	return 1;
 }
@@ -920,7 +1093,6 @@ function	script	F_LW_HPC_DefTickActor	{
 	.@seed = getnpcid(0, .@controller$);
 	.@owner$ = getarg(1);
 	.@i = getarg(2);
-	.@char_id = getd("$LWHD" + .@seed + "_C[" + .@i + "]");
 	.@map$ = getd("$LWHD" + .@seed + "_M$[" + .@i + "]");
 	.@x = getd("$LWHD" + .@seed + "_X[" + .@i + "]");
 	.@y = getd("$LWHD" + .@seed + "_Y[" + .@i + "]");
@@ -931,6 +1103,9 @@ function	script	F_LW_HPC_DefTickActor	{
 	.@loiter_index = getd("$LWHD" + .@seed + "_LI[" + .@i + "]");
 	.@loiter_pending = getd("$LWHD" + .@seed + "_LP[" + .@i + "]");
 	.@last_walk_event = getd("$LWHD" + .@seed + "_LE[" + .@i + "]");
+	.@char_id = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@i);
+	if (.@char_id < 1)
+		return 0;
 
 	if (!callfunc("F_LW_HPC_EnsureActive", .@char_id, .@map$, .@x, .@y))
 		return 0;

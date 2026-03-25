@@ -242,6 +242,30 @@ Current limit:
 - there is not yet a scheduler or routine ledger deciding which recurring actors
   should be active at a given time
 
+### 16. Pooled parked-bot assignment collisions
+
+Symptoms:
+
+- a pooled controller could previously show active slots with misleading owner
+  state
+- one occupied or reserved pool identity could be silently reused across
+  multiple controller slots because every slot shared the same controller owner
+  label
+
+Current handling:
+
+- pooled slots now resolve through a slot-level assigned actor id
+- pool status display falls back to the pool reservation ledger when runtime
+  owner labels are not yet populated
+- pool claim is occupancy-aware and only claims currently absent/offline
+  identities
+- one already-owned pooled identity is no longer reused for multiple slots
+
+Current limits:
+
+- pool ownership is still script-only and resets from config on restart
+- scheduler weighting still uses configured actor demand, not live pool supply
+
 ### 11. Late observer after restore
 
 Symptom:

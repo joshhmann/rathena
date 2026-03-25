@@ -2152,3 +2152,67 @@ This slice does not yet add:
 - SQL-backed roster definitions
 - role-based dynamic roster selection from a larger parked pool
 - controller-local overrides layered on top of a shared base roster
+
+## Slice 38: Script-Only Parked Pool Assignment Layer
+
+### Goal
+
+Let controllers fill social slots from named parked bot pools instead of
+hard-binding one fixed `char_id` per controller slot, while keeping the first
+pool-allocation layer script-only.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added pool-definition helpers:
+  - `F_PB_POOL_Reset`
+  - `F_PB_POOL_Add`
+  - `F_PB_POOL_Owner`
+  - `F_PB_POOL_Claim`
+  - `F_PB_POOL_Release`
+  - `F_PB_POOL_Available`
+- Added config helper:
+  - `F_PB_CFG_DefSetPoolActor`
+- Added controller helpers:
+  - `F_LW_HPC_DefSetPoolActor`
+  - `F_LW_HPC_DefActorCharId`
+  - `F_LW_HPC_DefResolveActor`
+  - `F_LW_HPC_DefReleaseActor`
+- Prontera and Alberta social definitions now use named pools:
+  - `pool.social.prontera`
+  - `pool.social.alberta`
+- Controller status, active/parked counting, pulse dispatch, stop, and per-actor
+  tick logic now resolve pooled actors through the slot-assignment helper
+  instead of assuming every slot has a fixed `char_id`
+- Pool allocation is now occupancy-aware:
+  - it only claims currently absent/offline identities
+  - it no longer reuses one already-owned pooled identity across multiple slots
+  - pooled controller status falls back to the pool reservation ledger when the
+    runtime owner label has not been set yet
+
+### Validation
+
+- `map-server` reloaded cleanly after the pool-manager changes.
+- CLI smoke test with OpenKore confirmed:
+  - pooled slots show `<unassigned>` when the controller is stopped
+  - starting a pooled social controller assigns and activates available bots
+  - pooled status now reports the controller owner correctly
+  - if one pool identity is occupied by a normal live player, the controller no
+    longer double-assigns or silently reuses that identity across all slots
+  - controller status shows only the actually available subset as active, with
+    the remainder left unassigned
+
+### Deferrals
+
+This slice still does not add:
+
+- SQL-backed pool ownership or role selection
+- scheduler decisions based on real-time pool supply instead of static actor
+  weights
+- progression-aware choice among many eligible parked identities
