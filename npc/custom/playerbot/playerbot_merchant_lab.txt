@@ -1,0 +1,111 @@
+alberta,50,238,4	script	Playerbot Merchant Lab	4_F_KAFRA5,{
+	mes "[Playerbot Merchant Lab]";
+	mes "Inspect and toggle persistent merchant bot state.";
+	next;
+
+	switch(select("Quick Provision Alberta Merchant:Inspect Merchant Bot:Enable Merchant:Disable Merchant:Set Merchant Open:Close Merchant:Reload SQL Pools:Close")) {
+	case 1:
+		.@bot_id = playerbot_provision("quick_merc_alb", "PBQMerchantA", "merchant.alberta.stall");
+		if (!.@bot_id) {
+			mes "[Playerbot Merchant Lab]";
+			mes "Provisioning failed or the bot already exists.";
+			close;
+		}
+		callfunc "F_PB_DB_LoadBotSummary", "quick_merc_alb";
+		callfunc "F_PB_DB_LoadAllPools";
+		mes "[Playerbot Merchant Lab]";
+		mes "Provisioned merchant bot " + $@pbbot_name$ + ".";
+		close;
+
+	case 2:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		callsub S_ShowMerchant, .@bot_key$;
+		close;
+
+	case 3:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		callfunc "F_PB_DB_SetMerchantState", .@bot_key$, 1, "scheduled";
+		callsub S_ShowMerchant, .@bot_key$;
+		close;
+
+	case 4:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		callfunc "F_PB_DB_SetMerchantState", .@bot_key$, 0, "closed";
+		callsub S_ShowMerchant, .@bot_key$;
+		close;
+
+	case 5:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		callfunc "F_PB_DB_SetMerchantState", .@bot_key$, 1, "open";
+		callsub S_ShowMerchant, .@bot_key$;
+		close;
+
+	case 6:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		callfunc "F_PB_DB_SetMerchantState", .@bot_key$, 1, "closed";
+		callsub S_ShowMerchant, .@bot_key$;
+		close;
+
+	case 7:
+		.@loaded = callfunc("F_PB_DB_LoadAllPools");
+		mes "[Playerbot Merchant Lab]";
+		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
+		close;
+
+	default:
+		close;
+	}
+
+S_ShowMerchant:
+	.@bot_key$ = getarg(0);
+	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+		mes "[Playerbot Merchant Lab]";
+		mes "No bot profile found for that key.";
+		return;
+	}
+	mes "[Playerbot Merchant Lab]";
+	mes "Bot: " + $@pbbot_name$ + " (" + $@pbbot_bot_id + ")";
+	mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
+	mes "Merchant enabled / policy: " + ($@pbbot_merchant_enabled ? "yes" : "no") + " / " + ($@pbbot_merchant_policy$ == "" ? "<none>" : $@pbbot_merchant_policy$);
+	mes "Shop / Market: " + ($@pbbot_shop_name$ == "" ? "<none>" : $@pbbot_shop_name$) + " / " + ($@pbbot_market_map$ == "" ? "<none>" : $@pbbot_market_map$ + " (" + $@pbbot_market_x + "," + $@pbbot_market_y + ")");
+	mes "Hours / Open: " + $@pbbot_merchant_start + "-" + $@pbbot_merchant_end + " / " + ($@pbbot_open_state$ == "" ? "<none>" : $@pbbot_open_state$);
+	mes "Stock / Price / Stall: " + ($@pbbot_stock_profile$ == "" ? "<none>" : $@pbbot_stock_profile$) + " / " + ($@pbbot_price_profile$ == "" ? "<none>" : $@pbbot_price_profile$) + " / " + ($@pbbot_stall_style$ == "" ? "<none>" : $@pbbot_stall_style$);
+	return;
+}
+
+-	script	PlayerbotMerchantSelftest	FAKE_NPC,{
+OnInit:
+	.bot_key$ = "quick_merc_alb";
+	.display_name$ = "PBQMerchantA";
+	end;
+
+OnInterIfInitOnce:
+	.@bot_id = playerbot_profile(.bot_key$);
+	if (!.@bot_id)
+		.@bot_id = playerbot_provision(.bot_key$, .display_name$, "merchant.alberta.stall");
+	if (!.@bot_id) {
+		debugmes "playerbot_merchant_selftest: provision failed.";
+		end;
+	}
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.@found = $@pbbot_found;
+	.@base_ok = (.@found && $@pbbot_merchant_policy$ == "stall_day" && $@pbbot_market_map$ == "alberta");
+	callfunc "F_PB_DB_SetMerchantState", .bot_key$, 1, "open";
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.@open_ok = ($@pbbot_merchant_enabled && $@pbbot_open_state$ == "open");
+	callfunc "F_PB_DB_SetMerchantState", .bot_key$, 0, "closed";
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.@close_ok = (!$@pbbot_merchant_enabled && $@pbbot_open_state$ == "closed");
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " open_ok=" + .@open_ok + " close_ok=" + .@close_ok + " result=" + (.@base_ok && .@open_ok && .@close_ok) + ".";
+	end;
+}

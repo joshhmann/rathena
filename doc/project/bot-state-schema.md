@@ -215,7 +215,44 @@ Near-term extension fields still expected later:
 These remain deferred until the scheduler, merchant, and travel-controller
 lanes need them in SQL rather than script config.
 
-### 6. `bot_inventory`
+### 6. `bot_merchant_state`
+
+One row per bot profile.
+
+Committed fields:
+
+- `bot_id`
+  - foreign key
+- `merchant_policy`
+  - stall_day, harbor_evening, popup_weekend, disabled
+- `shop_name`
+- `market_map`
+- `market_x`
+- `market_y`
+- `opening_start_hour`
+- `opening_end_hour`
+- `stock_profile`
+- `price_profile`
+- `stall_style`
+  - anchored, roaming, popup
+- `open_state`
+  - closed, scheduled, open
+- `enabled`
+
+Purpose:
+
+- separates merchant-capable recurring bot state from generic behavior config
+- gives merchant-capable bots a persistent market identity even while parked
+- supports later shop-facing controller work without forcing vending semantics
+  into the scheduler or party layers
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260325_playerbot_merchant_state.sql`
+
+### 7. `bot_inventory`
 
 Deferred but expected if commerce or party support becomes real.
 
@@ -236,7 +273,7 @@ Status:
 
 - deferred
 
-### 7. `bot_party_state`
+### 8. `bot_party_state`
 
 Deferred until party-capable pseudo-players are implemented.
 

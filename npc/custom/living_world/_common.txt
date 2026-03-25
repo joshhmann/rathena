@@ -387,15 +387,35 @@ function	script	F_PB_DB_LoadBotSummary	{
 	$@pbbot_role$ = "";
 	$@pbbot_interaction$ = "";
 	$@pbbot_party$ = "";
+	$@pbbot_merchant_policy$ = "";
+	$@pbbot_shop_name$ = "";
+	$@pbbot_market_map$ = "";
+	$@pbbot_market_x = 0;
+	$@pbbot_market_y = 0;
+	$@pbbot_merchant_start = 0;
+	$@pbbot_merchant_end = 0;
+	$@pbbot_stock_profile$ = "";
+	$@pbbot_price_profile$ = "";
+	$@pbbot_stall_style$ = "";
+	$@pbbot_open_state$ = "";
+	$@pbbot_merchant_enabled = 0;
 	.@rows = query_sql(
 		"SELECT p.`bot_id`, p.`name`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0), "
 		+ "p.`status`, p.`role`, IFNULL(b.`pool_key`, ''), IFNULL(b.`profile_key`, ''), "
-		+ "IFNULL(b.`interaction_policy`, ''), IFNULL(b.`party_policy`, '') "
+		+ "IFNULL(b.`interaction_policy`, ''), IFNULL(b.`party_policy`, ''), "
+		+ "IFNULL(m.`merchant_policy`, ''), IFNULL(m.`shop_name`, ''), IFNULL(m.`market_map`, ''), "
+		+ "IFNULL(m.`market_x`, 0), IFNULL(m.`market_y`, 0), "
+		+ "IFNULL(m.`opening_start_hour`, 0), IFNULL(m.`opening_end_hour`, 0), "
+		+ "IFNULL(m.`stock_profile`, ''), IFNULL(m.`price_profile`, ''), "
+		+ "IFNULL(m.`stall_style`, ''), IFNULL(m.`open_state`, ''), IFNULL(m.`enabled`, 0) "
 		+ "FROM `bot_profile` p "
 		+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `bot_merchant_state` m ON m.`bot_id` = p.`bot_id` "
 		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
-		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@role$, .@pool$, .@profile$, .@interaction$, .@party$);
+		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@role$, .@pool$, .@profile$, .@interaction$, .@party$,
+		.@merchant_policy$, .@shop_name$, .@market_map$, .@market_x, .@market_y, .@merchant_start, .@merchant_end,
+		.@stock_profile$, .@price_profile$, .@stall_style$, .@open_state$, .@merchant_enabled);
 	if (.@rows > 0) {
 		$@pbbot_found = 1;
 		$@pbbot_bot_id = .@bot_id[0];
@@ -408,7 +428,33 @@ function	script	F_PB_DB_LoadBotSummary	{
 		$@pbbot_profile$ = .@profile$[0];
 		$@pbbot_interaction$ = .@interaction$[0];
 		$@pbbot_party$ = .@party$[0];
+		$@pbbot_merchant_policy$ = .@merchant_policy$[0];
+		$@pbbot_shop_name$ = .@shop_name$[0];
+		$@pbbot_market_map$ = .@market_map$[0];
+		$@pbbot_market_x = .@market_x[0];
+		$@pbbot_market_y = .@market_y[0];
+		$@pbbot_merchant_start = .@merchant_start[0];
+		$@pbbot_merchant_end = .@merchant_end[0];
+		$@pbbot_stock_profile$ = .@stock_profile$[0];
+		$@pbbot_price_profile$ = .@price_profile$[0];
+		$@pbbot_stall_style$ = .@stall_style$[0];
+		$@pbbot_open_state$ = .@open_state$[0];
+		$@pbbot_merchant_enabled = .@merchant_enabled[0];
 	}
+	return .@rows;
+}
+
+function	script	F_PB_DB_SetMerchantState	{
+	.@bot_key$ = escape_sql(getarg(0));
+	.@enabled = getarg(1, 0);
+	.@open_state$ = escape_sql(getarg(2, "scheduled"));
+	.@shop_name$ = escape_sql(getarg(3, ""));
+	.@rows = query_sql(
+		"UPDATE `bot_merchant_state` m "
+		+ "JOIN `bot_profile` p ON p.`bot_id` = m.`bot_id` "
+		+ "SET m.`enabled` = '" + .@enabled + "', m.`open_state` = '" + .@open_state$ + "'"
+		+ (.@shop_name$ == "" ? "" : ", m.`shop_name` = '" + .@shop_name$ + "'")
+		+ " WHERE p.`bot_key` = '" + .@bot_key$ + "'");
 	return .@rows;
 }
 

@@ -1289,3 +1289,28 @@ CREATE TABLE IF NOT EXISTS `bot_behavior_config` (
   KEY `profile_key` (`profile_key`),
   KEY `routine_group` (`routine_group`)
 ) ENGINE=InnoDB;
+
+--
+-- Table structure for table `bot_merchant_state`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_merchant_state` (
+  `bot_id` int(10) unsigned NOT NULL,
+  `merchant_policy` varchar(64) NOT NULL default '',
+  `shop_name` varchar(64) NOT NULL default '',
+  `market_map` varchar(32) NOT NULL default '',
+  `market_x` smallint(5) unsigned NOT NULL default '0',
+  `market_y` smallint(5) unsigned NOT NULL default '0',
+  `opening_start_hour` tinyint(3) unsigned NOT NULL default '0',
+  `opening_end_hour` tinyint(3) unsigned NOT NULL default '0',
+  `stock_profile` varchar(64) NOT NULL default '',
+  `price_profile` varchar(64) NOT NULL default '',
+  `stall_style` enum('anchored','roaming','popup') NOT NULL default 'anchored',
+  `open_state` enum('closed','scheduled','open') NOT NULL default 'scheduled',
+  `enabled` tinyint(1) unsigned NOT NULL default '0',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`bot_id`),
+  KEY `market_map` (`market_map`),
+  KEY `open_state` (`open_state`),
+  KEY `enabled` (`enabled`)
+) ENGINE=InnoDB;

@@ -53,6 +53,7 @@ OnInit:
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.alberta";
 	callfunc "F_PB_CFG_RegisterPool", "pool.party.prontera";
+	callfunc "F_PB_CFG_RegisterPool", "pool.merchant.alberta";
 
 	// Provisioning templates.
 	callfunc "F_PB_CFG_SetStr", "tp.spd.pf", "social.prontera";
@@ -117,6 +118,38 @@ OnInit:
 	callfunc "F_PB_CFG_SetInt", "tp.ppo.hs", 0;
 	callfunc "F_PB_CFG_SetInt", "tp.ppo.hc", 0;
 	callfunc "F_PB_CFG_SetInt", "tp.ppo.cc", 0;
+
+	callfunc "F_PB_CFG_SetStr", "tp.mas.pf", "merchant.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.pk", "pool.merchant.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.rl", "stall_merchant";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.hm", "alberta";
+	callfunc "F_PB_CFG_SetInt", "tp.mas.hx", 52;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.hy", 242;
+	callfunc "F_PB_CFG_SetStr", "tp.mas.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "tp.mas.rs", 8;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.re", 22;
+	callfunc "F_PB_CFG_SetStr", "tp.mas.pp", "market_anchor_trade";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.ip", "merchant_candidate";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.py", "never";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.ps", "schedule_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.tz", "day";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.pt", "merchant.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.sx", "F";
+	callfunc "F_PB_CFG_SetInt", "tp.mas.jb", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.cc", 0;
+	callfunc "F_PB_CFG_SetStr", "tp.mas.mp", "stall_day";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.sn", "Harbor Curios";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.mm", "alberta";
+	callfunc "F_PB_CFG_SetInt", "tp.mas.mx", 52;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.my", 242;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.ms", 8;
+	callfunc "F_PB_CFG_SetInt", "tp.mas.me", 22;
+	callfunc "F_PB_CFG_SetStr", "tp.mas.sp", "alberta_curios";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.pr", "default";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.ss", "anchored";
+	callfunc "F_PB_CFG_SetStr", "tp.mas.mo", "scheduled";
 
 	// Social controller rosters.
 	callfunc "F_PB_CFG_DefReset", "social.prontera";

@@ -790,3 +790,26 @@ Current limits:
 - the global config naming pattern is still dense
 - future config growth should keep variable-name limits in mind when adding new
   dynamic key families
+
+### 34. Merchant-capable recurring bots
+
+Current support:
+
+- merchant-capable bots now have a persistent merchant row:
+  - `bot_merchant_state`
+- merchant templates can provision:
+  - policy
+  - shop name
+  - market anchor
+  - opening window
+  - stock/price profile labels
+  - stall style
+  - open/closed state
+- a dev harness exists:
+  - `Playerbot Merchant Lab`
+
+Current limits:
+
+- this is merchant state only, not live vending behavior
+- no stock depletion or restock logic exists yet
+- no scheduler-driven opening/closing automation exists yet

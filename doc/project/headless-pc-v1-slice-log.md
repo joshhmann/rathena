@@ -2509,3 +2509,64 @@ This slice does not yet add:
 - assist role behavior in combat
 - party-controller reassignment after join
 - selective party acceptance beyond current decline behavior
+
+## Slice 44: Merchant State V1
+
+### Goal
+
+Add the first persistent merchant-capable bot state so merchant bots can be
+provisioned, inspected, and toggled as recurring identities without pretending
+to implement full vending semantics yet.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260325_playerbot_merchant_state.sql`
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/playerbot_provisioner.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added persistent SQL table:
+  - `bot_merchant_state`
+- Extended template-driven provisioning with:
+  - `merchant.alberta.stall`
+- Provisioning now writes merchant metadata alongside:
+  - profile
+  - identity link
+  - appearance
+  - runtime state
+  - behavior config
+- Added SQL-backed merchant summary fields to `F_PB_DB_LoadBotSummary`
+- Added SQL-backed merchant toggle helper:
+  - `F_PB_DB_SetMerchantState`
+- Added a visible dev harness:
+  - `Playerbot Merchant Lab`
+
+### Validation
+
+- applied `upgrade_20260325_playerbot_merchant_state.sql`
+- restarted the stack cleanly
+- provisioned `quick_merc_alb` from `merchant.alberta.stall`
+- verified the persistent merchant row in SQL and through the merchant lab
+- verified merchant enable/open-state toggles write back through the SQL helper
+- verified hidden selftest result:
+  - `playerbot_merchant_selftest ... result=1`
+- confirmed existing playerbot scripts still load and the party/assist slice did
+  not regress
+
+### Deferrals
+
+This slice does not yet add:
+
+- real vending session behavior
+- NPC shop or barter attachment to merchant bots
+- scheduler-driven merchant open/close automation
+- merchant stock depletion or restock logic

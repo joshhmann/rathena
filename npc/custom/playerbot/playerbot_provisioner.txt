@@ -3,7 +3,7 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 	mes "Provision persistent playerbot identities and refresh SQL-backed pools.";
 	next;
 
-	switch(select("Quick Provision Prontera Social:Quick Provision Alberta Social:Quick Provision Party Bot:Provision Prontera Social Day:Provision Alberta Social Night:Provision Prontera Party Open:Inspect Bot Summary:Reload SQL Pools:Close")) {
+	switch(select("Quick Provision Prontera Social:Quick Provision Alberta Social:Quick Provision Party Bot:Quick Provision Alberta Merchant:Provision Prontera Social Day:Provision Alberta Social Night:Provision Prontera Party Open:Provision Alberta Merchant Stall:Inspect Bot Summary:Reload SQL Pools:Close")) {
 	case 1:
 		.@template$ = "social.prontera.day";
 		.@bot_key$ = "quick_social_prontera";
@@ -23,15 +23,24 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 		.@quick = 1;
 		break;
 	case 4:
-		.@template$ = "social.prontera.day";
+		.@template$ = "merchant.alberta.stall";
+		.@bot_key$ = "quick_merc_alb";
+		.@display_name$ = "PBQMerchantA";
+		.@quick = 1;
 		break;
 	case 5:
-		.@template$ = "social.alberta.night";
+		.@template$ = "social.prontera.day";
 		break;
 	case 6:
-		.@template$ = "party.prontera.open";
+		.@template$ = "social.alberta.night";
 		break;
 	case 7:
+		.@template$ = "party.prontera.open";
+		break;
+	case 8:
+		.@template$ = "merchant.alberta.stall";
+		break;
+	case 9:
 		input .@bot_key$;
 		if (.@bot_key$ == "")
 			close;
@@ -47,8 +56,11 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 		mes "Status: " + $@pbbot_status$;
 		mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
 		mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
+		mes "Merchant: " + ($@pbbot_merchant_enabled ? "enabled" : "disabled") + " / " + ($@pbbot_merchant_policy$ == "" ? "<none>" : $@pbbot_merchant_policy$);
+		mes "Shop / Market: " + ($@pbbot_shop_name$ == "" ? "<none>" : $@pbbot_shop_name$) + " / " + ($@pbbot_market_map$ == "" ? "<none>" : $@pbbot_market_map$ + " (" + $@pbbot_market_x + "," + $@pbbot_market_y + ")");
+		mes "Hours / Open: " + $@pbbot_merchant_start + "-" + $@pbbot_merchant_end + " / " + ($@pbbot_open_state$ == "" ? "<none>" : $@pbbot_open_state$);
 		close;
-	case 8:
+	case 10:
 		.@loaded = callfunc("F_PB_DB_LoadAllPools");
 		mes "[Playerbot Provisioner]";
 		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
@@ -86,6 +98,8 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 	mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
 	mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
 	mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
+	mes "Merchant: " + ($@pbbot_merchant_enabled ? "enabled" : "disabled") + " / " + ($@pbbot_merchant_policy$ == "" ? "<none>" : $@pbbot_merchant_policy$);
+	mes "Shop / Market: " + ($@pbbot_shop_name$ == "" ? "<none>" : $@pbbot_shop_name$) + " / " + ($@pbbot_market_map$ == "" ? "<none>" : $@pbbot_market_map$ + " (" + $@pbbot_market_x + "," + $@pbbot_market_y + ")");
 	mes "Reloaded pools with " + .@loaded + " eligible identities.";
 	close;
 }
