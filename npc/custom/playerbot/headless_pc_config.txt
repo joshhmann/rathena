@@ -42,5 +42,88 @@ OnInit:
 	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_browse", 8, 20, 30, 55, 55;
 	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_harbor", 9, 22, 35, 60, 50;
 	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_late", 10, 23, 35, 55, 45;
+
+	// Social controller rosters.
+	callfunc "F_PB_CFG_DefReset", "social.prontera";
+	callfunc "F_PB_CFG_DefSetActor", "social.prontera", 0, "BotPc06", 150015, "prontera", 146, 188, 0, "hold", "square_anchor_day";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 0, "The south gate traffic never really stops.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 0, "Keep moving and mind the square.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 0, ET_OK;
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 0, ET_THINK;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.prontera", 1, "BotPc07", 150016, "prontera", 151, 186, 0, "hold", "square_anchor_evening";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 1, "Supplies from Alberta came in before noon.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 1, "Shops are busy again today.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 1, ET_DELIGHT;
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 1, ET_HUM;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.prontera", 2, "BotPc08", 150017, "prontera", 145, 184, 1, "loiter", "square_loiter_busy";
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 145, 184;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 148, 187;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 152, 184;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 2, 149, 182;
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 2, "I was told the Kafra queue clears by dusk.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 2, "Prontera feels fuller every week.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 2, ET_STARE_ABOUT;
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 2, ET_QUESTION;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.prontera", 3, "BotPc09", 150018, "prontera", 153, 188, 1, "loiter", "square_loiter_late";
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 3, 153, 188;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 3, 150, 190;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 3, 146, 189;
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 3, "I only meant to pass through the square.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 3, "Someone said the west gate road is crowded.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 3, ET_HUM;
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 3, ET_THROB;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.prontera", 4, "BotPc10", 150019, "prontera", 147, 190, 1, "loiter", "square_loiter_night";
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 4, 147, 190;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 4, 151, 189;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.prontera", 4, 154, 186;
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 4, "I should decide whether I'm staying the night.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.prontera", 4, "The square's louder than I expected.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 4, ET_THINK;
+	callfunc "F_PB_CFG_DefAddEmote", "social.prontera", 4, ET_PROFUSELY_SWEAT;
+
+	callfunc "F_PB_CFG_DefReset", "social.alberta";
+	callfunc "F_PB_CFG_DefSetActor", "social.alberta", 0, "BotPc01", 150010, "alberta", 47, 245, 0, "hold", "market_anchor_day";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 0, "Fresh crates off the dock.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 0, "Keep the lane clear for cargo.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 0, ET_THINK;
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 0, ET_OK;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.alberta", 1, "BotPc02", 150011, "alberta", 50, 244, 0, "hold", "market_anchor_trade";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 1, "Dock orders are posted for the afternoon shift.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 1, "Sea stock is moving fast today.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 1, ET_DELIGHT;
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 1, ET_THROB;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.alberta", 2, "BotPc03", 150012, "alberta", 44, 243, 1, "loiter", "market_loiter_browse";
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 44, 243;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 47, 246;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 51, 244;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 2, 49, 241;
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 2, "Plenty of sellers out today.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 2, "I heard another shipment came in.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 2, ET_STARE_ABOUT;
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 2, ET_HUM;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.alberta", 3, "BotPc04", 150013, "alberta", 45, 247, 1, "loiter", "market_loiter_harbor";
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 45, 247;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 48, 242;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 3, 52, 245;
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 3, "No wonder Alberta stays busy.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 3, "The harbor never really rests.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 3, ET_THINK;
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 3, ET_DELIGHT;
+
+	callfunc "F_PB_CFG_DefSetActor", "social.alberta", 4, "BotPc05", 150014, "alberta", 43, 241, 1, "loiter", "market_loiter_late";
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 43, 241;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 46, 244;
+	callfunc "F_PB_CFG_DefAddAnchor", "social.alberta", 4, 50, 242;
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 4, "I'm looking for a fair price on fish.";
+	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 4, "Someone said the curio stall moved again.";
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 4, ET_QUESTION;
+	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 4, ET_PROFUSELY_SWEAT;
 	end;
 }

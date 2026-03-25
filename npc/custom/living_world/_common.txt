@@ -305,6 +305,108 @@ function	script	F_PB_CFG_ApplyPulseProfile	{
 	return 1;
 }
 
+function	script	F_PB_CFG_DefReset	{
+	.@key$ = getarg(0);
+	setd("$PBCDEF_" + .@key$ + "_AC", 0);
+	return 1;
+}
+
+function	script	F_PB_CFG_DefSetActor	{
+	.@key$ = getarg(0);
+	.@i = getarg(1);
+	setd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]", getarg(2));
+	setd("$PBCDEF_" + .@key$ + "_C[" + .@i + "]", getarg(3));
+	setd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]", getarg(4));
+	setd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]", getarg(5));
+	setd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]", getarg(6));
+	setd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]", getarg(7));
+	setd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]", getarg(8));
+	setd("$PBCDEF_" + .@key$ + "_P$[" + .@i + "]", getarg(9, ""));
+	setd("$PBCDEF_" + .@key$ + "_RC[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_ACN[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_TC[" + .@i + "]", 0);
+	setd("$PBCDEF_" + .@key$ + "_EC[" + .@i + "]", 0);
+	if (getd("$PBCDEF_" + .@key$ + "_AC") < .@i + 1)
+		setd("$PBCDEF_" + .@key$ + "_AC", .@i + 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_DefAddAnchor	{
+	.@key$ = getarg(0);
+	.@i = getarg(1);
+	.@j = getd("$PBCDEF_" + .@key$ + "_ACN[" + .@i + "]");
+	setd("$PBCDEF_" + .@key$ + "_AX" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$PBCDEF_" + .@key$ + "_AY" + .@i + "[" + .@j + "]", getarg(3));
+	setd("$PBCDEF_" + .@key$ + "_ACN[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_DefAddRoutePoint	{
+	.@key$ = getarg(0);
+	.@i = getarg(1);
+	.@j = getd("$PBCDEF_" + .@key$ + "_RC[" + .@i + "]");
+	setd("$PBCDEF_" + .@key$ + "_RX" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$PBCDEF_" + .@key$ + "_RY" + .@i + "[" + .@j + "]", getarg(3));
+	setd("$PBCDEF_" + .@key$ + "_RC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_DefAddTalk	{
+	.@key$ = getarg(0);
+	.@i = getarg(1);
+	.@j = getd("$PBCDEF_" + .@key$ + "_TC[" + .@i + "]");
+	setd("$PBCDEF_" + .@key$ + "_TM$" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$PBCDEF_" + .@key$ + "_TC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_DefAddEmote	{
+	.@key$ = getarg(0);
+	.@i = getarg(1);
+	.@j = getd("$PBCDEF_" + .@key$ + "_EC[" + .@i + "]");
+	setd("$PBCDEF_" + .@key$ + "_EM" + .@i + "[" + .@j + "]", getarg(2));
+	setd("$PBCDEF_" + .@key$ + "_EC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_ApplyControllerDef	{
+	.@controller$ = getarg(0);
+	.@key$ = getarg(1);
+	.@count = getd("$PBCDEF_" + .@key$ + "_AC");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		callfunc "F_LW_HPC_DefSetActor", .@controller$, .@i,
+			getd("$PBCDEF_" + .@key$ + "_L$[" + .@i + "]"),
+			getd("$PBCDEF_" + .@key$ + "_C[" + .@i + "]"),
+			getd("$PBCDEF_" + .@key$ + "_M$[" + .@i + "]"),
+			getd("$PBCDEF_" + .@key$ + "_X[" + .@i + "]"),
+			getd("$PBCDEF_" + .@key$ + "_Y[" + .@i + "]"),
+			getd("$PBCDEF_" + .@key$ + "_O[" + .@i + "]");
+		callfunc "F_LW_HPC_DefSetMode", .@controller$, .@i, getd("$PBCDEF_" + .@key$ + "_T$[" + .@i + "]");
+		.@profile$ = getd("$PBCDEF_" + .@key$ + "_P$[" + .@i + "]");
+		if (.@profile$ != "")
+			callfunc "F_PB_CFG_ApplyPulseProfile", .@controller$, .@i, .@profile$;
+		.@anchors = getd("$PBCDEF_" + .@key$ + "_ACN[" + .@i + "]");
+		for (.@j = 0; .@j < .@anchors; ++.@j)
+			callfunc "F_LW_HPC_DefAddAnchor", .@controller$, .@i,
+				getd("$PBCDEF_" + .@key$ + "_AX" + .@i + "[" + .@j + "]"),
+				getd("$PBCDEF_" + .@key$ + "_AY" + .@i + "[" + .@j + "]");
+		.@routes = getd("$PBCDEF_" + .@key$ + "_RC[" + .@i + "]");
+		for (.@j = 0; .@j < .@routes; ++.@j)
+			callfunc "F_LW_HPC_DefAddRoutePoint", .@controller$, .@i,
+				getd("$PBCDEF_" + .@key$ + "_RX" + .@i + "[" + .@j + "]"),
+				getd("$PBCDEF_" + .@key$ + "_RY" + .@i + "[" + .@j + "]");
+		.@talks = getd("$PBCDEF_" + .@key$ + "_TC[" + .@i + "]");
+		for (.@j = 0; .@j < .@talks; ++.@j)
+			callfunc "F_LW_HPC_DefAddTalk", .@controller$, .@i,
+				getd("$PBCDEF_" + .@key$ + "_TM$" + .@i + "[" + .@j + "]");
+		.@emotes = getd("$PBCDEF_" + .@key$ + "_EC[" + .@i + "]");
+		for (.@j = 0; .@j < .@emotes; ++.@j)
+			callfunc "F_LW_HPC_DefAddEmote", .@controller$, .@i,
+				getd("$PBCDEF_" + .@key$ + "_EM" + .@i + "[" + .@j + "]");
+	}
+	return .@count;
+}
+
 function	script	F_LW_HPC_PackPos	{
 	return getarg(0) * 10000 + getarg(1);
 }

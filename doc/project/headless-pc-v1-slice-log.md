@@ -2102,3 +2102,53 @@ This slice does not yet add:
 - SQL-backed scheduler/controller config
 - operator-facing hot reload of config values
 - data-driven route membership or actor provisioning
+
+## Slice 37: Data-Driven Social Controller Definitions
+
+### Goal
+
+Move social-controller roster membership, anchors, talk/emote pools, and pulse
+profile bindings into the central playerbot config layer so controller scripts
+focus on runtime policy instead of hand-authoring fixed actor blocks.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added controller-definition config helpers:
+  - `F_PB_CFG_DefReset`
+  - `F_PB_CFG_DefSetActor`
+  - `F_PB_CFG_DefAddAnchor`
+  - `F_PB_CFG_DefAddRoutePoint`
+  - `F_PB_CFG_DefAddTalk`
+  - `F_PB_CFG_DefAddEmote`
+  - `F_PB_CFG_ApplyControllerDef`
+- Central config now defines:
+  - `social.prontera`
+  - `social.alberta`
+- Alberta and Prontera social controllers now:
+  - set runtime policy locally
+  - load roster/member/anchor/pulse data from config through
+    `F_PB_CFG_ApplyControllerDef(...)`
+
+### Validation
+
+- `map-server` must reload cleanly after the config-definition refactor.
+- CLI smoke test should confirm:
+  - scheduler status still shows the same actor-weighted population behavior
+  - social controller status still shows the same actors and runtime policy
+  - stop/park/start behavior is unchanged after the refactor
+
+### Deferrals
+
+This slice does not yet add:
+
+- SQL-backed roster definitions
+- role-based dynamic roster selection from a larger parked pool
+- controller-local overrides layered on top of a shared base roster

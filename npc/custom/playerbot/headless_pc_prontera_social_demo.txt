@@ -33,56 +33,7 @@ OnInit:
 		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.start_max_ms", 1500);
 	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.prontera.grace_ms", 12000);
 	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.prontera.stop_policy", "park");
-
-	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "BotPc06", 150015, "prontera", 146, 188, 0;
-	callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "The south gate traffic never really stops.";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep moving and mind the square.";
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
-	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 0, "square_anchor_day";
-
-	callfunc "F_LW_HPC_DefSetActor", .owner$, 1, "BotPc07", 150016, "prontera", 151, 186, 0;
-	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "hold";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Supplies from Alberta came in before noon.";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Shops are busy again today.";
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_DELIGHT;
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_HUM;
-	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 1, "square_anchor_evening";
-
-	callfunc "F_LW_HPC_DefSetActor", .owner$, 2, "BotPc08", 150017, "prontera", 145, 184, 1;
-	callfunc "F_LW_HPC_DefSetMode", .owner$, 2, "loiter";
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 148, 187;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 152, 184;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 149, 182;
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "I was told the Kafra queue clears by dusk.";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "Prontera feels fuller every week.";
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_STARE_ABOUT;
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_QUESTION;
-	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 2, "square_loiter_busy";
-
-	callfunc "F_LW_HPC_DefSetActor", .owner$, 3, "BotPc09", 150018, "prontera", 153, 188, 1;
-	callfunc "F_LW_HPC_DefSetMode", .owner$, 3, "loiter";
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 188;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 150, 190;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 146, 189;
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "I only meant to pass through the square.";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "Someone said the west gate road is crowded.";
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_HUM;
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_THROB;
-	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 3, "square_loiter_late";
-
-	callfunc "F_LW_HPC_DefSetActor", .owner$, 4, "BotPc10", 150019, "prontera", 147, 190, 1;
-	callfunc "F_LW_HPC_DefSetMode", .owner$, 4, "loiter";
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 190;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 151, 189;
-	callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 154, 186;
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "I should decide whether I'm staying the night.";
-	callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "The square's louder than I expected.";
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_THINK;
-	callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_PROFUSELY_SWEAT;
-	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 4, "square_loiter_night";
+	callfunc "F_PB_CFG_ApplyControllerDef", .owner$, "social.prontera";
 	end;
 
 OnTick:
