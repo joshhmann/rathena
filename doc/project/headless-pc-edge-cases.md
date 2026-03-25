@@ -617,56 +617,55 @@ offline test character.
 - `headless_pc` is durable for active runtime presence only
 - do not assume absence implies successful save; use ack helpers
 
-## Scheduler / Pool Notes
+## Scheduler / Pool Observability
 
-### 24. Effective supply vs configured weight
-
-Current support:
-
-- world-scheduler budgeting now distinguishes:
-  - configured controller actor weight
-  - effective fieldable supply from fixed and pooled identities
-- pooled supply only counts identities that are:
-  - not reserved by another controller
-  - currently absent/offline
-- already-assigned pooled identities still count toward effective supply when
-  they are still owned by the same controller and are absent, pending, or active
-
-Current limits:
-
-- effective supply is still script-computed from the current pool/controller
-  ledger
-- there is no SQL-backed pool accounting or historical fairness yet
-
-### 25. Stale pool reservation state on restart
+### 24. Pool pressure vs simple `<unassigned>`
 
 Current support:
 
-- pool definitions now clear stale script-global owner/source reservation keys
-  when `F_PB_POOL_Add(...)` rebuilds a parked pool on init
-- this prevents a fresh restart from incorrectly treating parked pool members as
-  still reserved
-- duplicate `char_id` re-adds now collapse back onto the existing pool slot
-  instead of silently counting the same identity twice
+- controller status no longer stops at `<unassigned>`
+- pooled controller status now distinguishes:
+  - claimable supply
+  - ownerless but busy identities
+  - identities claimed by the same controller
+  - identities claimed by other controllers
+  - total pool size
 
 Current limits:
 
-- pool reservations are still script-global and ephemeral
-- if later slices need durable pool ownership or audit history, that will need
-  a real SQL-backed pool/runtime table rather than the current script ledger
+- this remains script-level observability, not a persistent audit trail
+- there is still no SQL-backed pool history or operator analytics table
 
-### 26. Pending actors and scheduler visibility
+### 25. Detailed status truncation
 
 Current support:
 
-- scheduler budgeting still treats pending actors as consuming effective supply
-  and actor/map budget
-- scheduler status now surfaces pending actor count alongside active count so a
-  controller can no longer look empty while its budget is tied up by spawn work
+- detailed controller and scheduler status moved into NPC-owned `.status$` vars
+  rather than global mapreg-backed strings
+- this avoids the old persistence-layer truncation that made richer scheduler
+  status unreadable as soon as it grew beyond a short summary
 
 Current limits:
 
-- pending actors are still lumped into the same effective-supply budget as fully
-  active actors
-- if future slices need more aggressive fairness, pending-state weighting can be
-  split further from active-state weighting
+- detailed status is intended for live operator inspection, not long-term
+  persistence
+- if future slices need durable diagnostics, that should be a separate runtime
+  or SQL-backed observability lane
+
+### 26. Scheduler decision reasons
+
+Current support:
+
+- the scheduler now records last-decision reasons such as:
+  - selected start
+  - selected top-up
+  - selected steady
+  - blocked by users
+  - blocked by actor cap
+  - blocked by map cap
+  - stopped because not selected
+
+Current limits:
+
+- the decision ledger is still script-global and transient
+- it is designed for current operator debugging, not historical reporting

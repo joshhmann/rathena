@@ -14,7 +14,7 @@ prontera,148,185,4	script	Headless Prontera Social	4_F_KAFRA1,{
 		close;
 	case 3:
 		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
-		mes getd("$LWHS" + getnpcid(0, .controller$) + "$");
+		mes getvariableofnpc(.status$, .controller$);
 		close;
 	default:
 		close;
