@@ -50,6 +50,8 @@ Execution policy:
   - bounded non-overlapping code paths
 - parallel work must not weaken validation, documentation, or SQL-artifact
   discipline
+- when parallel branches are active, keep their repo-local scope briefs updated
+  in `doc/project/parallel-branch-workmap.md`
 
 Minimum for each slice:
 
