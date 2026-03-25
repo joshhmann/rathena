@@ -305,6 +305,80 @@ function	script	F_PB_CFG_ApplyPulseProfile	{
 	return 1;
 }
 
+function	script	F_PB_CFG_RegisterPool	{
+	.@pool$ = getarg(0);
+	.@count = getd("$PBCFG_POOL_CT");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		if (getd("$PBCFG_POOL$[" + .@i + "]") == .@pool$)
+			return .@i;
+	}
+	setd("$PBCFG_POOL$[" + .@count + "]", .@pool$);
+	setd("$PBCFG_POOL_CT", .@count + 1);
+	return .@count;
+}
+
+function	script	F_PB_DB_LoadPool	{
+	.@pool$ = getarg(0);
+	.@esc_pool$ = escape_sql(.@pool$);
+	callfunc "F_PB_POOL_Reset", .@pool$;
+	.@rows = query_sql(
+		"SELECT p.`name`, l.`char_id` "
+		+ "FROM `bot_profile` p "
+		+ "JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
+		+ "JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
+		+ "WHERE p.`status` = 'active' AND l.`link_status` = 'linked' "
+		+ "AND b.`pool_key` = '" + .@esc_pool$ + "' "
+		+ "ORDER BY p.`bot_id`",
+		.@name$, .@char_id);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		callfunc "F_PB_POOL_Add", .@pool$, .@name$[.@i], .@char_id[.@i];
+	return .@rows;
+}
+
+function	script	F_PB_DB_LoadAllPools	{
+	.@count = getd("$PBCFG_POOL_CT");
+	.@loaded = 0;
+	for (.@i = 0; .@i < .@count; ++.@i)
+		.@loaded += callfunc("F_PB_DB_LoadPool", getd("$PBCFG_POOL$[" + .@i + "]"));
+	return .@loaded;
+}
+
+function	script	F_PB_DB_LoadBotSummary	{
+	.@bot_key$ = escape_sql(getarg(0));
+	$@pbbot_found = 0;
+	$@pbbot_bot_id = 0;
+	$@pbbot_char_id = 0;
+	$@pbbot_account_id = 0;
+	$@pbbot_name$ = "";
+	$@pbbot_status$ = "";
+	$@pbbot_pool$ = "";
+	$@pbbot_profile$ = "";
+	$@pbbot_interaction$ = "";
+	$@pbbot_party$ = "";
+	.@rows = query_sql(
+		"SELECT p.`bot_id`, p.`name`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0), "
+		+ "p.`status`, IFNULL(b.`pool_key`, ''), IFNULL(b.`profile_key`, ''), "
+		+ "IFNULL(b.`interaction_policy`, ''), IFNULL(b.`party_policy`, '') "
+		+ "FROM `bot_profile` p "
+		+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
+		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@pool$, .@profile$, .@interaction$, .@party$);
+	if (.@rows > 0) {
+		$@pbbot_found = 1;
+		$@pbbot_bot_id = .@bot_id[0];
+		$@pbbot_char_id = .@char_id[0];
+		$@pbbot_account_id = .@account_id[0];
+		$@pbbot_name$ = .@name$[0];
+		$@pbbot_status$ = .@status$[0];
+		$@pbbot_pool$ = .@pool$[0];
+		$@pbbot_profile$ = .@profile$[0];
+		$@pbbot_interaction$ = .@interaction$[0];
+		$@pbbot_party$ = .@party$[0];
+	}
+	return .@rows;
+}
+
 function	script	F_PB_CFG_DefReset	{
 	.@key$ = getarg(0);
 	setd("$PBCDEF_" + .@key$ + "_AC", 0);

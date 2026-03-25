@@ -1,0 +1,84 @@
+-	script	PlayerbotSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_char_id = 150001;
+	.test_account_id = 2000004;
+	.bot_key$ = "quick_party_open";
+	.display_name$ = "PBQParty01";
+	.ran = 0;
+	.last_result = 0;
+	.last_log$ = "idle";
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled)
+		end;
+	if (.ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	.ran = 1;
+	.last_result = 0;
+	.last_log$ = "login-triggered";
+	.inviter_aid = getcharid(3);
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.bot_id) {
+		.last_log$ = "provision-failed";
+		debugmes "playerbot_selftest: provision failed.";
+		end;
+	}
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	callfunc "F_PB_DB_LoadAllPools";
+	.spawn_ok = headlesspc_spawn($@pbbot_char_id, "prontera", 160, 186);
+	if (!getcharid(1))
+		.party_created = party_create("PBST" + getcharid(0));
+	.last_log$ = "spawn-queued";
+	.wait_count = 0;
+	addtimer 1000, strnpcinfo(3) + "::OnWaitSpawn";
+	end;
+
+OnWaitSpawn:
+	if (!attachrid(.inviter_aid)) {
+		.last_log$ = "attach-failed-wait";
+		debugmes "playerbot_selftest: failed to attach inviter while waiting for spawn.";
+		end;
+	}
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	if (headlesspc_spawnack($@pbbot_char_id) < 1 || headlesspc_status($@pbbot_char_id) != 2) {
+		.wait_count++;
+		if (.wait_count >= 8) {
+			.last_log$ = "spawn-timeout";
+			debugmes "playerbot_selftest: timed out waiting for spawn-ready.";
+			detachrid;
+			end;
+		}
+		addtimer 1000, strnpcinfo(3) + "::OnWaitSpawn";
+		detachrid;
+		end;
+	}
+	.invite_ok = playerbot_partyinvite($@pbbot_char_id);
+	.last_log$ = "invite-issued";
+	addtimer 1500, strnpcinfo(3) + "::OnVerify";
+	detachrid;
+	end;
+
+OnVerify:
+	if (!attachrid(.inviter_aid)) {
+		.last_log$ = "attach-failed-verify";
+		debugmes "playerbot_selftest: failed to attach inviter for verify.";
+		end;
+	}
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.bot_party_id = playerbot_partyid($@pbbot_char_id);
+	.inviter_party_id = getcharid(1);
+	.bot_status = headlesspc_status($@pbbot_char_id);
+	.spawn_state_ok = (.spawn_ok || .bot_status == 2);
+	.party_ok = (.bot_party_id && .bot_party_id == .inviter_party_id);
+	.last_result = (.spawn_state_ok && .party_ok);
+	.last_log$ = "spawn=" + .spawn_ok + " active=" + .spawn_state_ok + " invite=" + .invite_ok + " party_ok=" + .party_ok + " bot_party=" + .bot_party_id + " inviter_party=" + .inviter_party_id + " status=" + .bot_status;
+	debugmes "playerbot_selftest: " + .last_log$ + " result=" + .last_result + ".";
+	detachrid;
+	end;
+}

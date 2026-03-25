@@ -2310,3 +2310,83 @@ This slice does not yet add:
 - SQL-backed routine groups or schedule tables
 - timezone conversion or region-aware per-bot scheduling
 - persistence of routine windows beyond the script/config layer
+
+## Slice 41: Provisioning, SQL Pools, And Party V1
+
+### Goal
+
+Move the playerbot lane past seeded demo identities by adding:
+
+- a real dev-facing provisioning workflow
+- SQL-backed pool loading
+- the first narrow party-capable runtime response for active headless bots
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260325_playerbot_provisioning.sql`
+- `src/map/script.cpp`
+- `src/map/party.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/playerbot_provisioner.txt`
+- `npc/custom/playerbot/playerbot_party_lab.txt`
+- `npc/custom/playerbot/playerbot_selftest.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- committed `bot_behavior_config` as the next persistent bot-state table
+- added source buildins:
+  - `playerbot_profile(bot_key$)`
+  - `playerbot_provision(bot_key$, display_name$, template_key$)`
+  - `playerbot_partyinvite(char_id)`
+  - `playerbot_partyid(char_id)`
+- provisioning now creates:
+  - account row
+  - character row
+  - `bot_profile`
+  - `bot_identity_link`
+  - `bot_appearance`
+  - `bot_runtime_state`
+  - `bot_behavior_config`
+- SQL-backed pool helpers now load eligible identities by `pool_key` instead of
+  fixed `F_PB_POOL_Add(...)` rosters
+- the first party-capable runtime path now intercepts invites for active local
+  `headless_pc` actors and resolves accept/decline from
+  `interaction_policy` + `party_policy`
+- added dev harnesses:
+  - `Playerbot Provisioner`
+  - `Playerbot Party Lab`
+  - hidden `PlayerbotSelftest`
+
+### Validation
+
+- applied `upgrade_20260325_playerbot_provisioning.sql` to the dev DB
+- rebuilt `map-server`
+- restarted the stack cleanly with `bash /root/setup_dev.sh restart`
+- OpenKore confirmed the new harness NPCs load in Prontera:
+  - `Playerbot Provisioner`
+  - `Playerbot Party Lab`
+- `PlayerbotSelftest` proved the full narrow path for `quick_party_open`:
+  - provisioning created `bot_id 11`, `account_id 2000020`, `char_id 150020`
+  - the provisioned bot linked into `pool.party.prontera`
+  - the headless actor was active locally
+  - the runtime party path placed `PBQParty01` into `codex`'s party
+- final selftest log:
+  - `spawn=0 active=1 invite=0 party_ok=1 bot_party=1 inviter_party=1 status=2 result=1`
+  - this is acceptable because restart durability can restore the already-active
+    bot before the next selftest cycle
+
+### Deferrals
+
+This slice does not yet add:
+
+- operator-safe account password rotation or non-deterministic credentials
+- party follow/assist semantics after join
+- selective party policy beyond decline
+- SQL-backed route/travel/controller definitions
+- merchant or combat use of `bot_behavior_config`

@@ -673,3 +673,53 @@ Current limits:
 
 - the decision ledger is still script-global and transient
 - it is designed for current operator debugging, not historical reporting
+
+### 27. Provisioning and login-db coupling
+
+Current support:
+
+- the first provisioning workflow inserts login/account and character records
+  directly from the map-server side
+- this is acceptable in the current dev stack because the login and map/char
+  tables live in the same MariaDB database
+
+Current limits:
+
+- this is not yet a cross-database-safe provisioning lane
+- if login/char DB separation becomes stricter later, provisioning should move
+  behind an inter-server service boundary instead of direct SQL writes
+
+### 28. Party-capable headless invite path
+
+Current support:
+
+- active local headless bots can now accept or decline party invites without a
+  client dialog
+- v1 policy is driven by:
+  - `interaction_policy`
+  - `party_policy`
+- validated `open` flow joins the bot to the inviter's party through the normal
+  runtime path
+
+Current limits:
+
+- only active local headless bots are handled
+- `selective` is still treated as decline
+- there is no post-join follow/assist/controller reassignment yet
+
+### 29. Selftest timing vs durability
+
+Current support:
+
+- the hidden `PlayerbotSelftest` harness waits for spawn-ready before inviting
+- the harness also treats an already-restored active bot as a valid spawn state
+
+Current limits:
+
+- restart durability means the selftest can hit an already-active bot and skip
+  a fresh spawn
+- this is acceptable for current validation, but future operator tooling should
+  distinguish:
+  - fresh provision
+  - fresh spawn
+  - restored active bot

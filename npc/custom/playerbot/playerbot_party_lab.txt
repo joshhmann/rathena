@@ -1,0 +1,106 @@
+prontera,146,181,4	script	Playerbot Party Lab	4_F_KAFRA2,{
+	mes "[Playerbot Party Lab]";
+	mes "Drive the narrow v1 party path for a provisioned playerbot.";
+	next;
+
+	switch(select("Quick party self-test:Provision open party bot:Spawn bot by key:Invite bot by key:Remove bot by key:Inspect bot by key:Close")) {
+	case 1:
+		.@bot_key$ = "quick_party_open";
+		.@display_name$ = "PBQParty01";
+		.@bot_id = playerbot_profile(.@bot_key$);
+		if (!.@bot_id)
+			.@bot_id = playerbot_provision(.@bot_key$, .@display_name$, "party.prontera.open");
+		if (!.@bot_id) {
+			mes "[Playerbot Party Lab]";
+			mes "Quick provisioning failed.";
+			close;
+		}
+		callfunc "F_PB_DB_LoadBotSummary", .@bot_key$;
+		callfunc "F_PB_DB_LoadAllPools";
+		.@spawn = headlesspc_spawn($@pbbot_char_id, "prontera", 160, 186);
+		if (!getcharid(1))
+			.@created = party_create("PBLab" + getcharid(0));
+		.@invite = playerbot_partyinvite($@pbbot_char_id);
+		.@party_id = playerbot_partyid($@pbbot_char_id);
+		mes "[Playerbot Party Lab]";
+		mes "Bot ID: " + $@pbbot_bot_id;
+		mes "Name: " + $@pbbot_name$;
+		mes "Spawn / Invite / Party: " + .@spawn + " / " + .@invite + " / " + .@party_id;
+		mes "Headless status: " + headlesspc_status($@pbbot_char_id);
+		close;
+
+	case 2:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		input .@display_name$;
+		if (.@display_name$ == "")
+			close;
+		.@bot_id = playerbot_provision(.@bot_key$, .@display_name$, "party.prontera.open");
+		if (!.@bot_id) {
+			mes "[Playerbot Party Lab]";
+			mes "Provisioning failed.";
+			close;
+		}
+		callfunc "F_PB_DB_LoadBotSummary", .@bot_key$;
+		callfunc "F_PB_DB_LoadAllPools";
+		mes "[Playerbot Party Lab]";
+		mes "Provisioned " + $@pbbot_name$ + " with char_id " + $@pbbot_char_id + ".";
+		close;
+
+	case 3:
+		input .@bot_key$;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Party Lab]";
+			mes "Unknown bot key.";
+			close;
+		}
+		.@ok = headlesspc_spawn($@pbbot_char_id, "prontera", 160, 186);
+		mes "[Playerbot Party Lab]";
+		mes .@ok ? "Spawn request queued." : "Spawn request failed.";
+		close;
+
+	case 4:
+		input .@bot_key$;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Party Lab]";
+			mes "Unknown bot key.";
+			close;
+		}
+		if (!getcharid(1))
+			.@created = party_create("PBLab" + getcharid(0));
+		.@ok = playerbot_partyinvite($@pbbot_char_id);
+		mes "[Playerbot Party Lab]";
+		mes .@ok ? "Invite processed through the runtime party path." : "Invite failed.";
+		close;
+
+	case 5:
+		input .@bot_key$;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Party Lab]";
+			mes "Unknown bot key.";
+			close;
+		}
+		.@ok = headlesspc_remove($@pbbot_char_id);
+		mes "[Playerbot Party Lab]";
+		mes .@ok ? "Remove queued." : "Remove failed.";
+		close;
+
+	case 6:
+		input .@bot_key$;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Party Lab]";
+			mes "Unknown bot key.";
+			close;
+		}
+		mes "[Playerbot Party Lab]";
+		mes "Bot ID: " + $@pbbot_bot_id;
+		mes "Name: " + $@pbbot_name$;
+		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
+		mes "Pool / Profile: " + $@pbbot_pool$ + " / " + $@pbbot_profile$;
+		mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
+		close;
+	}
+
+	close;
+}

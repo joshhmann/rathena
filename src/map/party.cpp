@@ -36,6 +36,47 @@ static unsigned long party_booking_nextid = 1;
 TIMER_FUNC(party_send_xy_timer);
 int32 party_create_byscript;
 
+static bool party_playerbot_invite_response(map_session_data* tsd, bool* accept) {
+	char* data = nullptr;
+	char interaction_policy[32] = "";
+	char party_policy[32] = "";
+
+	if (accept != nullptr)
+		*accept = false;
+	if (tsd == nullptr || !tsd->state.headless_bot)
+		return false;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT b.`interaction_policy`, b.`party_policy` "
+		"FROM `bot_identity_link` l "
+		"JOIN `bot_profile` p ON p.`bot_id` = l.`bot_id` "
+		"JOIN `bot_behavior_config` b ON b.`bot_id` = l.`bot_id` "
+		"WHERE l.`char_id` = '%u' AND l.`link_status` = 'linked' "
+		"AND p.`status` = 'active' LIMIT 1",
+		tsd->status.char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		return true;
+	}
+
+	if (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		Sql_GetData(mmysql_handle, 0, &data, nullptr);
+		if (data != nullptr)
+			safestrncpy(interaction_policy, data, sizeof(interaction_policy));
+		Sql_GetData(mmysql_handle, 1, &data, nullptr);
+		if (data != nullptr)
+			safestrncpy(party_policy, data, sizeof(party_policy));
+	}
+	Sql_FreeResult(mmysql_handle);
+
+	if (strcmp(interaction_policy, "party_candidate") != 0)
+		return true;
+	if (tsd->status.party_id != 0 || tsd->party_joining)
+		return true;
+	if (strcmp(party_policy, "open") == 0 && accept != nullptr)
+		*accept = true;
+	return true;
+}
+
 /*==========================================
  * Fills the given party_member structure according to the sd provided.
  * Used when creating/adding people to a party. [Skotlex]
@@ -449,6 +490,16 @@ bool party_invite( map_session_data& sd, map_session_data *tsd ){
 	if( !battle_config.invite_request_check && ( tsd->guild_invite > 0 || tsd->state.trading || tsd->adopt_invite ) ){
 		clif_party_invite_reply( sd, tsd->status.name, PARTY_REPLY_JOIN_OTHER_PARTY );
 		return false;
+	}
+
+	if( tsd->state.headless_bot ){
+		bool accept = false;
+
+		if( party_playerbot_invite_response( tsd, &accept ) ){
+			tsd->party_invite = sd.status.party_id;
+			tsd->party_invite_account = sd.status.account_id;
+			return party_reply_invite( *tsd, sd.status.party_id, accept ? 1 : 0 );
+		}
 	}
 
 	// You can't invite someone who has already disconnected.

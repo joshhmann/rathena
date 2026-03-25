@@ -1266,3 +1266,26 @@ CREATE TABLE IF NOT EXISTS `bot_runtime_state` (
   KEY `current_map` (`current_map`),
   KEY `park_state` (`park_state`)
 ) ENGINE=InnoDB;
+
+--
+-- Table structure for table `bot_behavior_config`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_behavior_config` (
+  `bot_id` int(10) unsigned NOT NULL,
+  `profile_key` varchar(64) NOT NULL default '',
+  `pool_key` varchar(64) NOT NULL default '',
+  `controller_tag` varchar(64) NOT NULL default '',
+  `interaction_policy` enum('ambient_only','clickable','party_candidate','merchant_candidate') NOT NULL default 'ambient_only',
+  `party_policy` enum('never','selective','open') NOT NULL default 'never',
+  `presence_policy` enum('always_on','demand_gated','schedule_gated','hybrid') NOT NULL default 'demand_gated',
+  `routine_group` varchar(64) NOT NULL default '',
+  `routine_start_hour` tinyint(3) unsigned NOT NULL default '0',
+  `routine_end_hour` tinyint(3) unsigned NOT NULL default '0',
+  `pulse_profile` varchar(64) NOT NULL default '',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`bot_id`),
+  KEY `pool_key` (`pool_key`),
+  KEY `profile_key` (`profile_key`),
+  KEY `routine_group` (`routine_group`)
+) ENGINE=InnoDB;

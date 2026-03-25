@@ -1,0 +1,91 @@
+prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
+	mes "[Playerbot Provisioner]";
+	mes "Provision persistent playerbot identities and refresh SQL-backed pools.";
+	next;
+
+	switch(select("Quick Provision Prontera Social:Quick Provision Alberta Social:Quick Provision Party Bot:Provision Prontera Social Day:Provision Alberta Social Night:Provision Prontera Party Open:Inspect Bot Summary:Reload SQL Pools:Close")) {
+	case 1:
+		.@template$ = "social.prontera.day";
+		.@bot_key$ = "quick_social_prontera";
+		.@display_name$ = "PBQSocialP";
+		.@quick = 1;
+		break;
+	case 2:
+		.@template$ = "social.alberta.night";
+		.@bot_key$ = "quick_social_alberta";
+		.@display_name$ = "PBQSocialA";
+		.@quick = 1;
+		break;
+	case 3:
+		.@template$ = "party.prontera.open";
+		.@bot_key$ = "quick_party_open";
+		.@display_name$ = "PBQParty01";
+		.@quick = 1;
+		break;
+	case 4:
+		.@template$ = "social.prontera.day";
+		break;
+	case 5:
+		.@template$ = "social.alberta.night";
+		break;
+	case 6:
+		.@template$ = "party.prontera.open";
+		break;
+	case 7:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Provisioner]";
+			mes "No bot profile found for that key.";
+			close;
+		}
+		mes "[Playerbot Provisioner]";
+		mes "Bot ID: " + $@pbbot_bot_id;
+		mes "Name: " + $@pbbot_name$;
+		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
+		mes "Status: " + $@pbbot_status$;
+		mes "Pool / Profile: " + $@pbbot_pool$ + " / " + $@pbbot_profile$;
+		mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
+		close;
+	case 8:
+		.@loaded = callfunc("F_PB_DB_LoadAllPools");
+		mes "[Playerbot Provisioner]";
+		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
+		close;
+	default:
+		close;
+	}
+
+	if (!.@quick) {
+		mes "[Playerbot Provisioner]";
+		mes "Enter a stable bot key.";
+		next;
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		mes "[Playerbot Provisioner]";
+		mes "Enter the display name / character name.";
+		next;
+		input .@display_name$;
+		if (.@display_name$ == "")
+			close;
+	}
+
+	.@bot_id = playerbot_provision(.@bot_key$, .@display_name$, .@template$);
+	if (!.@bot_id) {
+		mes "[Playerbot Provisioner]";
+		mes "Provisioning failed. Check uniqueness and template data.";
+		close;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .@bot_key$;
+	.@loaded = callfunc("F_PB_DB_LoadAllPools");
+	mes "[Playerbot Provisioner]";
+	mes "Provisioned bot " + $@pbbot_name$ + " with bot_id " + $@pbbot_bot_id + ".";
+	mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
+	mes "Pool / Profile: " + $@pbbot_pool$ + " / " + $@pbbot_profile$;
+	mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
+	mes "Reloaded pools with " + .@loaded + " eligible identities.";
+	close;
+}

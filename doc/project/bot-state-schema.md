@@ -171,26 +171,24 @@ Status:
 
 One row per bot profile.
 
-Fields:
+Current committed fields:
 
 - `bot_id`
   - foreign key
-- `schedule_key`
-- `route_set_key`
-- `daily_routine_key`
-- `ambient_talk_pool_key`
+- `profile_key`
+- `pool_key`
+- `controller_tag`
 - `interaction_policy`
-  - ambient_only, clickable, merchant, party_candidate
+  - ambient_only, clickable, party_candidate, merchant_candidate
 - `party_policy`
   - never, selective, open
-- `merchant_policy`
-  - none, fixed_shop, timed_shop, roaming_vendor
-- `field_policy`
-  - none, patrol, traveler, escort
 - `presence_policy`
   - always_on, demand_gated, schedule_gated, hybrid
-- `despawn_grace_ms`
-  - cooldown before parking when demand disappears
+- `routine_group`
+- `routine_start_hour`
+- `routine_end_hour`
+- `pulse_profile`
+- `updated_at`
 
 Purpose:
 
@@ -198,9 +196,22 @@ Purpose:
 
 Status:
 
-- deferred
-- still expected as the next behavior-focused slice after the core identity
-  tables
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260325_playerbot_provisioning.sql`
+
+Near-term extension fields still expected later:
+
+- `schedule_key`
+- `route_set_key`
+- `daily_routine_key`
+- `ambient_talk_pool_key`
+- `merchant_policy`
+- `field_policy`
+- `despawn_grace_ms`
+
+These remain deferred until the scheduler, merchant, and travel-controller
+lanes need them in SQL rather than script config.
 
 ### 6. `bot_inventory`
 

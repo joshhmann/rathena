@@ -10,6 +10,7 @@
 #include "script.hpp"
 
 #include <cerrno>
+#include <cctype>
 #include <cmath>
 #include <csetjmp>
 #include <cstdlib> // atoi, strtol, strtoll, exit
@@ -77,6 +78,233 @@ struct eri *stack_ers;
 static map_session_data* dummy_sd;
 
 static bool script_rid2sd_( struct script_state *st, map_session_data** sd, const char *func );
+
+static bool playerbot_cfg_is_set(const std::string& key) {
+	return mapreg_readreg(reference_uid(add_str(("$PBCFG_SET_" + key).c_str()), 0)) != 0;
+}
+
+static int64 playerbot_cfg_get_int(const std::string& key, int64 default_value) {
+	if (!playerbot_cfg_is_set(key))
+		return default_value;
+	return mapreg_readreg(reference_uid(add_str(("$PBCFG_" + key).c_str()), 0));
+}
+
+static std::string playerbot_cfg_get_str(const std::string& key, const char* default_value = "") {
+	if (!playerbot_cfg_is_set(key))
+		return default_value;
+	char* value = mapreg_readregstr(reference_uid(add_str(("$PBCFG_" + key + "$").c_str()), 0));
+	return value != nullptr ? value : default_value;
+}
+
+static std::string playerbot_make_login_name(const char* bot_key) {
+	std::string out = "pb_";
+
+	for (const unsigned char* p = reinterpret_cast<const unsigned char*>(bot_key); *p != '\0'; ++p) {
+		unsigned char c = *p;
+		if (std::isalnum(c))
+			out.push_back(static_cast<char>(std::tolower(c)));
+		else if (c == '_' || c == '-')
+			out.push_back('_');
+	}
+
+	return out;
+}
+
+static std::string playerbot_template_alias(const char* template_key) {
+	if (template_key == nullptr)
+		return "";
+	if (strcmp(template_key, "social.prontera.day") == 0)
+		return "spd";
+	if (strcmp(template_key, "social.alberta.night") == 0)
+		return "san";
+	if (strcmp(template_key, "party.prontera.open") == 0)
+		return "ppo";
+	return template_key;
+}
+
+static bool playerbot_profile_lookup_by_key(const char* bot_key, uint32* bot_id) {
+	char esc_key[129];
+
+	if (bot_key == nullptr || bot_key[0] == '\0')
+		return false;
+
+	Sql_EscapeStringLen(mmysql_handle, esc_key, bot_key, strnlen(bot_key, 64));
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT `bot_id` FROM `bot_profile` WHERE `bot_key` = '%s' LIMIT 1",
+		esc_key)) {
+		Sql_ShowDebug(mmysql_handle);
+		return false;
+	}
+
+	if (Sql_NextRow(mmysql_handle) != SQL_SUCCESS) {
+		Sql_FreeResult(mmysql_handle);
+		return false;
+	}
+
+	char* data = nullptr;
+	Sql_GetData(mmysql_handle, 0, &data, nullptr);
+	if (bot_id != nullptr)
+		*bot_id = data != nullptr ? static_cast<uint32>(strtoul(data, nullptr, 10)) : 0;
+	Sql_FreeResult(mmysql_handle);
+	return true;
+}
+
+static void playerbot_cleanup_provisioned(uint32 account_id, uint32 char_id, uint32 bot_id) {
+	if (bot_id != 0) {
+		Sql_Query(mmysql_handle, "DELETE FROM `bot_behavior_config` WHERE `bot_id` = '%u'", bot_id);
+		Sql_Query(mmysql_handle, "DELETE FROM `bot_runtime_state` WHERE `bot_id` = '%u'", bot_id);
+		Sql_Query(mmysql_handle, "DELETE FROM `bot_appearance` WHERE `bot_id` = '%u'", bot_id);
+		Sql_Query(mmysql_handle, "DELETE FROM `bot_identity_link` WHERE `bot_id` = '%u'", bot_id);
+		Sql_Query(mmysql_handle, "DELETE FROM `bot_profile` WHERE `bot_id` = '%u'", bot_id);
+	}
+
+	if (char_id != 0)
+		Sql_Query(mmysql_handle, "DELETE FROM `char` WHERE `char_id` = '%u' LIMIT 1", char_id);
+	if (account_id != 0)
+		Sql_Query(mmysql_handle, "DELETE FROM `login` WHERE `account_id` = '%u' LIMIT 1", account_id);
+}
+
+static uint32 playerbot_provision_identity(const char* bot_key, const char* display_name, const char* template_key) {
+	const std::string login_name = playerbot_make_login_name(bot_key);
+	const std::string password = login_name;
+	const std::string template_alias = playerbot_template_alias(template_key);
+	const std::string key_prefix = std::string("tp.") + template_alias + ".";
+	const std::string role = playerbot_cfg_get_str(key_prefix + "rl");
+	const std::string home_map = playerbot_cfg_get_str(key_prefix + "hm");
+	const std::string pool_key = playerbot_cfg_get_str(key_prefix + "pk");
+	const std::string profile_key = playerbot_cfg_get_str(key_prefix + "pf");
+	const std::string routine_group = playerbot_cfg_get_str(key_prefix + "rg");
+	const std::string pulse_profile = playerbot_cfg_get_str(key_prefix + "pp");
+	const std::string interaction_policy = playerbot_cfg_get_str(key_prefix + "ip", "ambient_only");
+	const std::string party_policy = playerbot_cfg_get_str(key_prefix + "py", "never");
+	const std::string presence_policy = playerbot_cfg_get_str(key_prefix + "ps", "demand_gated");
+	const std::string controller_tag = playerbot_cfg_get_str(key_prefix + "ct");
+	const std::string timezone_policy = playerbot_cfg_get_str(key_prefix + "tz", routine_group.c_str());
+	const std::string personality_tag = playerbot_cfg_get_str(key_prefix + "pt", profile_key.c_str());
+	const std::string sex_string = playerbot_cfg_get_str(key_prefix + "sx", "M");
+	const int16 map_id = map_mapname2mapid(home_map.c_str());
+	const uint16 home_x = static_cast<uint16>(playerbot_cfg_get_int(key_prefix + "hx", 0));
+	const uint16 home_y = static_cast<uint16>(playerbot_cfg_get_int(key_prefix + "hy", 0));
+	const uint8 routine_start = static_cast<uint8>(cap_value(playerbot_cfg_get_int(key_prefix + "rs", 0), 0, 23));
+	const uint8 routine_end = static_cast<uint8>(cap_value(playerbot_cfg_get_int(key_prefix + "re", 0), 0, 23));
+	const uint16 job_id = static_cast<uint16>(playerbot_cfg_get_int(key_prefix + "jb", JOB_NOVICE));
+	const uint8 hair_style = static_cast<uint8>(cap_value(playerbot_cfg_get_int(key_prefix + "hs", 0), MIN_HAIR_STYLE, MAX_HAIR_STYLE));
+	const uint16 hair_color = static_cast<uint16>(cap_value(playerbot_cfg_get_int(key_prefix + "hc", 0), MIN_HAIR_COLOR, MAX_HAIR_COLOR));
+	const uint16 cloth_color = static_cast<uint16>(cap_value(playerbot_cfg_get_int(key_prefix + "cc", 0), MIN_CLOTH_COLOR, MAX_CLOTH_COLOR));
+	char esc_bot_key[129], esc_display[NAME_LENGTH * 2 + 1], esc_login[48], esc_pass[48], esc_email[96];
+	char esc_role[65], esc_home_map[MAP_NAME_LENGTH_EXT * 2 + 1], esc_pool_key[129], esc_profile_key[129];
+	char esc_routine_group[129], esc_pulse_profile[129], esc_interaction[65], esc_party_policy[65];
+	char esc_presence_policy[65], esc_controller_tag[129], esc_timezone_policy[129], esc_personality[129];
+	uint32 existing_bot_id = 0, account_id = 0, char_id = 0, bot_id = 0;
+	char sex = 'M';
+
+	if (bot_key == nullptr || bot_key[0] == '\0' || display_name == nullptr || display_name[0] == '\0' || template_key == nullptr || template_key[0] == '\0')
+		return 0;
+	if (strnlen(bot_key, 65) >= 65 || strnlen(display_name, NAME_LENGTH) >= NAME_LENGTH)
+		return 0;
+	if (login_name.size() < 4 || login_name.size() > 23 || password.size() > 32)
+		return 0;
+	if (template_alias.empty() || role.empty() || home_map.empty() || pool_key.empty() || profile_key.empty() || map_id < 0 || home_x == 0 || home_y == 0)
+		return 0;
+	if (playerbot_profile_lookup_by_key(bot_key, &existing_bot_id))
+		return 0;
+
+	if (sex_string == "F" || sex_string == "f")
+		sex = 'F';
+
+	Sql_EscapeStringLen(mmysql_handle, esc_bot_key, bot_key, strnlen(bot_key, 64));
+	Sql_EscapeStringLen(mmysql_handle, esc_display, display_name, strnlen(display_name, NAME_LENGTH - 1));
+	Sql_EscapeStringLen(mmysql_handle, esc_login, login_name.c_str(), login_name.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_pass, password.c_str(), password.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_email, (login_name + "@bot.local").c_str(), login_name.size() + 10);
+	Sql_EscapeStringLen(mmysql_handle, esc_role, role.c_str(), role.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_home_map, home_map.c_str(), home_map.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_pool_key, pool_key.c_str(), pool_key.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_profile_key, profile_key.c_str(), profile_key.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_routine_group, routine_group.c_str(), routine_group.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_pulse_profile, pulse_profile.c_str(), pulse_profile.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_interaction, interaction_policy.c_str(), interaction_policy.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_party_policy, party_policy.c_str(), party_policy.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_presence_policy, presence_policy.c_str(), presence_policy.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_controller_tag, controller_tag.c_str(), controller_tag.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_timezone_policy, timezone_policy.c_str(), timezone_policy.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_personality, personality_tag.c_str(), personality_tag.size());
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle, "SELECT 1 FROM `login` WHERE `userid` = '%s' LIMIT 1", esc_login)) {
+		Sql_ShowDebug(mmysql_handle);
+		return 0;
+	}
+	if (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		Sql_FreeResult(mmysql_handle);
+		return 0;
+	}
+	Sql_FreeResult(mmysql_handle);
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle, "SELECT 1 FROM `char` WHERE `name` = '%s' LIMIT 1", esc_display)) {
+		Sql_ShowDebug(mmysql_handle);
+		return 0;
+	}
+	if (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		Sql_FreeResult(mmysql_handle);
+		return 0;
+	}
+	Sql_FreeResult(mmysql_handle);
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `login` (`userid`, `user_pass`, `sex`, `email`, `group_id`, `state`, `character_slots`, `pincode`, `pincode_change`, `vip_time`, `old_group`) "
+		"VALUES ('%s', '%s', '%c', '%s', '0', '0', '9', '', '0', '0', '0')",
+		esc_login, esc_pass, sex, esc_email)) {
+		Sql_ShowDebug(mmysql_handle);
+		return 0;
+	}
+	account_id = static_cast<uint32>(Sql_LastInsertId(mmysql_handle));
+
+	if (account_id == 0 || SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `char` (`account_id`, `char_num`, `name`, `class`, `base_level`, `job_level`, `zeny`, `status_point`, `str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`, `max_sp`, `sp`, `hair`, `hair_color`, `clothes_color`, `body`, `last_map`, `last_x`, `last_y`, `save_map`, `save_x`, `save_y`, `sex`) "
+		"VALUES ('%u', '0', '%s', '%u', '1', '1', '0', '0', '1', '1', '1', '1', '1', '1', '40', '40', '11', '11', '%u', '%u', '%u', '%u', '%s', '%u', '%u', '%s', '%u', '%u', '%c')",
+		account_id, esc_display, job_id, hair_style, hair_color, cloth_color, job_id, esc_home_map, home_x, home_y, esc_home_map, home_x, home_y, sex)) {
+		Sql_ShowDebug(mmysql_handle);
+		playerbot_cleanup_provisioned(account_id, 0, 0);
+		return 0;
+	}
+	char_id = static_cast<uint32>(Sql_LastInsertId(mmysql_handle));
+
+	if (char_id == 0 || SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_profile` (`bot_key`, `name`, `status`, `role`, `home_map`, `routine_pool`, `timezone_policy`, `personality_tag`) "
+		"VALUES ('%s', '%s', 'active', '%s', '%s', '%s', '%s', '%s')",
+		esc_bot_key, esc_display, esc_role, esc_home_map, esc_pool_key, esc_timezone_policy, esc_personality)) {
+		Sql_ShowDebug(mmysql_handle);
+		playerbot_cleanup_provisioned(account_id, char_id, 0);
+		return 0;
+	}
+	bot_id = static_cast<uint32>(Sql_LastInsertId(mmysql_handle));
+
+	if (bot_id == 0
+		|| SQL_ERROR == Sql_Query(mmysql_handle,
+			"INSERT INTO `bot_identity_link` (`bot_id`, `account_id`, `char_id`, `link_status`, `linked_at`) "
+			"VALUES ('%u', '%u', '%u', 'linked', NOW())",
+			bot_id, account_id, char_id)
+		|| SQL_ERROR == Sql_Query(mmysql_handle,
+			"INSERT INTO `bot_appearance` (`bot_id`, `job_id`, `sex`, `hair_style`, `hair_color`, `cloth_color`, `weapon_view`, `shield_view`, `head_top`, `head_mid`, `head_bottom`, `robe`) "
+			"VALUES ('%u', '%u', '%c', '%u', '%u', '%u', '0', '0', '0', '0', '0', '0')",
+			bot_id, job_id, sex, hair_style, hair_color, cloth_color)
+		|| SQL_ERROR == Sql_Query(mmysql_handle,
+			"INSERT INTO `bot_runtime_state` (`bot_id`, `current_map`, `current_x`, `current_y`, `current_state`, `park_state`, `spawned_gid`, `despawn_grace_until`, `last_spawned_at`, `last_despawned_at`, `last_parked_at`, `last_route_key`, `last_seen_tick`) "
+			"VALUES ('%u', '%s', '%u', '%u', 'offline', 'parked', NULL, NULL, NULL, NULL, NOW(), '', '0')",
+			bot_id, esc_home_map, home_x, home_y)
+		|| SQL_ERROR == Sql_Query(mmysql_handle,
+			"INSERT INTO `bot_behavior_config` (`bot_id`, `profile_key`, `pool_key`, `controller_tag`, `interaction_policy`, `party_policy`, `presence_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`, `pulse_profile`) "
+			"VALUES ('%u', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%u', '%u', '%s')",
+			bot_id, esc_profile_key, esc_pool_key, esc_controller_tag, esc_interaction, esc_party_policy, esc_presence_policy, esc_routine_group, routine_start, routine_end, esc_pulse_profile)) {
+		Sql_ShowDebug(mmysql_handle);
+		playerbot_cleanup_provisioned(account_id, char_id, bot_id);
+		return 0;
+	}
+
+	ShowInfo("playerbot: provisioned bot '%s' (%u) linked to account %u / char %u with template '%s'.\n",
+		bot_key, bot_id, account_id, char_id, template_key);
+	return bot_id;
+}
 
 /**
  * Get `sd` from a account id in `loc` param instead of attached rid
@@ -11518,6 +11746,59 @@ BUILDIN_FUNC(fakeplayer)
 	mob_spawn(md);
 	script_pushint(st, md->id);
 
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Query one playerbot profile by stable bot_key.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_profile)
+{
+	uint32 bot_id = 0;
+
+	if (playerbot_profile_lookup_by_key(script_getstr(st, 2), &bot_id))
+		script_pushint(st, bot_id);
+	else
+		script_pushint(st, 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Provision one persistent playerbot identity from a template.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_provision)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* display_name = script_getstr(st, 3);
+	const char* template_key = script_getstr(st, 4);
+	uint32 bot_id = playerbot_provision_identity(bot_key, display_name, template_key);
+
+	script_pushint(st, bot_id);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Invite one local playerbot/headless target into the attached player's party.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_partyinvite)
+{
+	map_session_data* sd = nullptr;
+	TBL_PC* tsd = map_charid2sd(script_getnum(st, 2));
+
+	if (!script_rid2sd(sd))
+		return SCRIPT_CMD_FAILURE;
+
+	script_pushint(st, (tsd != nullptr && party_invite(*sd, tsd)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Read the local party_id for one active playerbot/headless target.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_partyid)
+{
+	TBL_PC* tsd = map_charid2sd(script_getnum(st, 2));
+	script_pushint(st, tsd != nullptr ? tsd->status.party_id : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -28900,6 +29181,10 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(setunittitle,"is"),
 	BUILDIN_DEF(getunittitle,"i"),
 	BUILDIN_DEF(fakeplayer,"siisiiiiiiiiiii"),
+	BUILDIN_DEF(playerbot_profile,"s"),
+	BUILDIN_DEF(playerbot_provision,"sss"),
+	BUILDIN_DEF(playerbot_partyinvite,"i"),
+	BUILDIN_DEF(playerbot_partyid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(headlesspc_setpos,"isii"),

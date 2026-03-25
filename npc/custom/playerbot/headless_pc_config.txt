@@ -49,20 +49,74 @@ OnInit:
 	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_harbor", 9, 22, 35, 60, 50;
 	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_late", 10, 23, 35, 55, 45;
 
-	// Reusable parked bot pools.
-	callfunc "F_PB_POOL_Reset", "pool.social.prontera";
-	callfunc "F_PB_POOL_Add", "pool.social.prontera", "BotPc06", 150015;
-	callfunc "F_PB_POOL_Add", "pool.social.prontera", "BotPc07", 150016;
-	callfunc "F_PB_POOL_Add", "pool.social.prontera", "BotPc08", 150017;
-	callfunc "F_PB_POOL_Add", "pool.social.prontera", "BotPc09", 150018;
-	callfunc "F_PB_POOL_Add", "pool.social.prontera", "BotPc10", 150019;
+	// SQL-backed pool registry.
+	callfunc "F_PB_CFG_RegisterPool", "pool.social.prontera";
+	callfunc "F_PB_CFG_RegisterPool", "pool.social.alberta";
+	callfunc "F_PB_CFG_RegisterPool", "pool.party.prontera";
 
-	callfunc "F_PB_POOL_Reset", "pool.social.alberta";
-	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc01", 150010;
-	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc02", 150011;
-	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc03", 150012;
-	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc04", 150013;
-	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc05", 150014;
+	// Provisioning templates.
+	callfunc "F_PB_CFG_SetStr", "tp.spd.pf", "social.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.pk", "pool.social.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.rl", "social_regular";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.hm", "prontera";
+	callfunc "F_PB_CFG_SetInt", "tp.spd.hx", 148;
+	callfunc "F_PB_CFG_SetInt", "tp.spd.hy", 185;
+	callfunc "F_PB_CFG_SetStr", "tp.spd.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "tp.spd.rs", 7;
+	callfunc "F_PB_CFG_SetInt", "tp.spd.re", 23;
+	callfunc "F_PB_CFG_SetStr", "tp.spd.pp", "square_anchor_day";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.ip", "ambient_only";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.py", "never";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.ps", "demand_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.tz", "day";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.pt", "social.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.spd.sx", "M";
+	callfunc "F_PB_CFG_SetInt", "tp.spd.jb", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.spd.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.spd.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.spd.cc", 0;
+
+	callfunc "F_PB_CFG_SetStr", "tp.san.pf", "social.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.san.pk", "pool.social.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.san.rl", "social_regular";
+	callfunc "F_PB_CFG_SetStr", "tp.san.hm", "alberta";
+	callfunc "F_PB_CFG_SetInt", "tp.san.hx", 48;
+	callfunc "F_PB_CFG_SetInt", "tp.san.hy", 238;
+	callfunc "F_PB_CFG_SetStr", "tp.san.rg", "night";
+	callfunc "F_PB_CFG_SetInt", "tp.san.rs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.san.re", 6;
+	callfunc "F_PB_CFG_SetStr", "tp.san.pp", "market_anchor_day";
+	callfunc "F_PB_CFG_SetStr", "tp.san.ip", "ambient_only";
+	callfunc "F_PB_CFG_SetStr", "tp.san.py", "never";
+	callfunc "F_PB_CFG_SetStr", "tp.san.ps", "demand_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.san.tz", "night";
+	callfunc "F_PB_CFG_SetStr", "tp.san.pt", "social.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.san.sx", "M";
+	callfunc "F_PB_CFG_SetInt", "tp.san.jb", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.san.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.san.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.san.cc", 0;
+
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.pf", "party.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.pk", "pool.party.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.rl", "party_candidate";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.hm", "prontera";
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.hx", 160;
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.hy", 186;
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.rs", 7;
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.re", 23;
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.pp", "square_anchor_day";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.ip", "party_candidate";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.py", "open";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.ps", "demand_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.tz", "day";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.pt", "party.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.ppo.sx", "M";
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.jb", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.ppo.cc", 0;
 
 	// Social controller rosters.
 	callfunc "F_PB_CFG_DefReset", "social.prontera";
@@ -146,5 +200,7 @@ OnInit:
 	callfunc "F_PB_CFG_DefAddTalk", "social.alberta", 4, "Someone said the curio stall moved again.";
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 4, ET_QUESTION;
 	callfunc "F_PB_CFG_DefAddEmote", "social.alberta", 4, ET_PROFUSELY_SWEAT;
+
+	callfunc "F_PB_DB_LoadAllPools";
 	end;
 }
