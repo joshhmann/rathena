@@ -251,6 +251,60 @@ function	script	F_LW_HPC_WalkResultName	{
 	}
 }
 
+function	script	F_PB_CFG_SetInt	{
+	.@key$ = getarg(0);
+	setd("$PBCFG_" + .@key$, getarg(1));
+	setd("$PBCFG_SET_" + .@key$, 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_GetInt	{
+	.@key$ = getarg(0);
+	.@default = getarg(1, 0);
+	if (!getd("$PBCFG_SET_" + .@key$))
+		return .@default;
+	return getd("$PBCFG_" + .@key$);
+}
+
+function	script	F_PB_CFG_SetStr	{
+	.@key$ = getarg(0);
+	setd("$PBCFG_" + .@key$ + "$", getarg(1));
+	setd("$PBCFG_SET_" + .@key$, 1);
+	return 1;
+}
+
+function	script	F_PB_CFG_GetStr	{
+	.@key$ = getarg(0);
+	.@default$ = getarg(1, "");
+	if (!getd("$PBCFG_SET_" + .@key$))
+		return .@default$;
+	return getd("$PBCFG_" + .@key$ + "$");
+}
+
+function	script	F_PB_CFG_SetPulseProfile	{
+	.@profile$ = getarg(0);
+	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".start", getarg(1);
+	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".end", getarg(2);
+	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".min", getarg(3);
+	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".max", getarg(4);
+	callfunc "F_PB_CFG_SetInt", "pulse." + .@profile$ + ".talk_weight", getarg(5);
+	return 1;
+}
+
+function	script	F_PB_CFG_ApplyPulseProfile	{
+	.@controller$ = getarg(0);
+	.@actor = getarg(1);
+	.@profile$ = getarg(2);
+	callfunc "F_LW_HPC_DefSetPulseWindow", .@controller$, .@actor,
+		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".start", 0),
+		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".end", 0);
+	callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, .@actor,
+		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".min", 35),
+		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".max", 60),
+		callfunc("F_PB_CFG_GetInt", "pulse." + .@profile$ + ".talk_weight", 60);
+	return 1;
+}
+
 function	script	F_LW_HPC_PackPos	{
 	return getarg(0) * 10000 + getarg(1);
 }

@@ -26,11 +26,13 @@ OnInit:
 	.owner$ = strnpcinfo(3);
 	.enabled = 0;
 	callfunc "F_LW_HPC_DefReset", .owner$;
-	callfunc "F_LW_HPC_DefSetTickMs", .owner$, 2400;
-	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "alberta", 1;
-	callfunc "F_LW_HPC_DefSetStartStagger", .owner$, 500, 1800;
-	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, 15000;
-	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, "park";
+	callfunc "F_LW_HPC_DefSetTickMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.alberta.tick_ms", 2400);
+	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "alberta", callfunc("F_PB_CFG_GetInt", "ctrl.alberta.gate_users", 1);
+	callfunc "F_LW_HPC_DefSetStartStagger", .owner$,
+		callfunc("F_PB_CFG_GetInt", "ctrl.alberta.start_min_ms", 500),
+		callfunc("F_PB_CFG_GetInt", "ctrl.alberta.start_max_ms", 1800);
+	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.alberta.grace_ms", 15000);
+	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.alberta.stop_policy", "park");
 
 	// Anchored market regulars near the existing Alberta merchant pocket.
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 0, "BotPc01", 150010, "alberta", 47, 245, 0;
@@ -39,6 +41,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep the lane clear for cargo.";
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
+	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 0, "market_anchor_day";
 
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 1, "BotPc02", 150011, "alberta", 50, 244, 0;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "hold";
@@ -46,6 +49,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Sea stock is moving fast today.";
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_DELIGHT;
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THROB;
+	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 1, "market_anchor_trade";
 
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 2, "BotPc03", 150012, "alberta", 44, 243, 1;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 2, "loiter";
@@ -57,6 +61,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "I heard another shipment came in.";
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_STARE_ABOUT;
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_HUM;
+	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 2, "market_loiter_browse";
 
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 3, "BotPc04", 150013, "alberta", 45, 247, 1;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 3, "loiter";
@@ -67,6 +72,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "The harbor never really rests.";
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_THINK;
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_DELIGHT;
+	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 3, "market_loiter_harbor";
 
 	callfunc "F_LW_HPC_DefSetActor", .owner$, 4, "BotPc05", 150014, "alberta", 43, 241, 1;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 4, "loiter";
@@ -77,6 +83,7 @@ OnInit:
 	callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "Someone said the curio stall moved again.";
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_QUESTION;
 	callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_PROFUSELY_SWEAT;
+	callfunc "F_PB_CFG_ApplyPulseProfile", .owner$, 4, "market_loiter_late";
 	end;
 
 OnTick:

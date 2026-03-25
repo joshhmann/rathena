@@ -1,0 +1,46 @@
+// Central playerbot/headless_pc config registry for scheduler and social demos.
+
+-	script	HeadlessPcConfig	FAKE_NPC,{
+OnInit:
+	// World scheduler defaults.
+	callfunc "F_PB_CFG_SetInt", "sched.world.tick_ms", 5000;
+	callfunc "F_PB_CFG_SetInt", "sched.world.controller_cap", 2;
+	callfunc "F_PB_CFG_SetInt", "sched.world.actor_cap", 5;
+	callfunc "F_PB_CFG_SetInt", "sched.world.map.prontera.actor_cap", 5;
+	callfunc "F_PB_CFG_SetInt", "sched.world.map.alberta.actor_cap", 5;
+	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.prontera.gate_users", 1;
+	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.prontera.priority", 90;
+	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.prontera.actor_weight", 5;
+	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.alberta.gate_users", 1;
+	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.alberta.priority", 80;
+	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.alberta.actor_weight", 5;
+
+	// Controller runtime defaults.
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.tick_ms", 2200;
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.gate_users", 1;
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.start_min_ms", 400;
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.start_max_ms", 1500;
+	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.grace_ms", 12000;
+	callfunc "F_PB_CFG_SetStr", "ctrl.prontera.stop_policy", "park";
+
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.tick_ms", 2400;
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.gate_users", 1;
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.start_min_ms", 500;
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.start_max_ms", 1800;
+	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.grace_ms", 15000;
+	callfunc "F_PB_CFG_SetStr", "ctrl.alberta.stop_policy", "park";
+
+	// Shared pulse profiles.
+	callfunc "F_PB_CFG_SetPulseProfile", "square_anchor_day", 7, 21, 40, 70, 70;
+	callfunc "F_PB_CFG_SetPulseProfile", "square_anchor_evening", 9, 22, 45, 80, 60;
+	callfunc "F_PB_CFG_SetPulseProfile", "square_loiter_busy", 8, 20, 30, 55, 55;
+	callfunc "F_PB_CFG_SetPulseProfile", "square_loiter_late", 10, 23, 35, 60, 50;
+	callfunc "F_PB_CFG_SetPulseProfile", "square_loiter_night", 11, 23, 30, 50, 45;
+
+	callfunc "F_PB_CFG_SetPulseProfile", "market_anchor_day", 8, 21, 40, 70, 65;
+	callfunc "F_PB_CFG_SetPulseProfile", "market_anchor_trade", 9, 22, 45, 75, 60;
+	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_browse", 8, 20, 30, 55, 55;
+	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_harbor", 9, 22, 35, 60, 50;
+	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_late", 10, 23, 35, 55, 45;
+	end;
+}

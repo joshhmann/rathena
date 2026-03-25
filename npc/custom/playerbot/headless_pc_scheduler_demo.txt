@@ -27,13 +27,19 @@ prontera,148,183,4	script	Headless Scheduler	4_M_MANAGER,{
 OnInit:
 	.enabled = 0;
 	callfunc "F_LW_HPC_SchedReset", strnpcinfo(3);
-	callfunc "F_LW_HPC_SchedSetTickMs", strnpcinfo(3), 5000;
-	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), 2;
-	callfunc "F_LW_HPC_SchedSetActorCap", strnpcinfo(3), 5;
-	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "prontera", 5;
-	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "alberta", 5;
-	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessPronteraSocialController", "prontera", 1, 90, 5;
-	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessAlbertaSocialController", "alberta", 1, 80, 5;
+	callfunc "F_LW_HPC_SchedSetTickMs", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sched.world.tick_ms", 5000);
+	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sched.world.controller_cap", 2);
+	callfunc "F_LW_HPC_SchedSetActorCap", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sched.world.actor_cap", 5);
+	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "prontera", callfunc("F_PB_CFG_GetInt", "sched.world.map.prontera.actor_cap", 5);
+	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "alberta", callfunc("F_PB_CFG_GetInt", "sched.world.map.alberta.actor_cap", 5);
+	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessPronteraSocialController", "prontera",
+		callfunc("F_PB_CFG_GetInt", "sched.world.ctrl.prontera.gate_users", 1),
+		callfunc("F_PB_CFG_GetInt", "sched.world.ctrl.prontera.priority", 90),
+		callfunc("F_PB_CFG_GetInt", "sched.world.ctrl.prontera.actor_weight", 5);
+	callfunc "F_LW_HPC_SchedAdd", strnpcinfo(3), "HeadlessAlbertaSocialController", "alberta",
+		callfunc("F_PB_CFG_GetInt", "sched.world.ctrl.alberta.gate_users", 1),
+		callfunc("F_PB_CFG_GetInt", "sched.world.ctrl.alberta.priority", 80),
+		callfunc("F_PB_CFG_GetInt", "sched.world.ctrl.alberta.actor_weight", 5);
 	end;
 
 OnTick:

@@ -2038,3 +2038,67 @@ This slice does not yet add:
 - a dedicated parked/offline SQL ledger beyond current runtime/lifecycle data
 - pool sharing across many more controller families
 - progression-aware parking decisions
+
+## Slice 36: Script Config Layer For Scheduler And Social Controllers
+
+### Goal
+
+Move scheduler and social-controller policy values out of hardcoded demo bodies
+ and into a central script config registry so population caps, gate thresholds,
+ grace windows, and pulse schedules can be tuned without rewriting each
+ controller.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Runtime / Script Path Changes
+
+- Added shared config helpers:
+  - `F_PB_CFG_SetInt`
+  - `F_PB_CFG_GetInt`
+  - `F_PB_CFG_SetStr`
+  - `F_PB_CFG_GetStr`
+  - `F_PB_CFG_SetPulseProfile`
+  - `F_PB_CFG_ApplyPulseProfile`
+- Added central config registry:
+  - `npc/custom/playerbot/headless_pc_config.txt`
+- Scheduler demo now reads:
+  - tick cadence
+  - controller cap
+  - actor cap
+  - per-map caps
+  - controller gate/priority/actor-weight values
+  from the config registry instead of hardcoded literals
+- Alberta and Prontera social demos now read:
+  - controller tick
+  - gate threshold
+  - stagger window
+  - grace window
+  - stop policy
+  - named pulse profiles
+  from the same config registry
+
+### Validation
+
+- `map-server` must reload cleanly with the new config script loaded.
+- CLI smoke test should confirm:
+  - scheduler status still reports the configured cap values
+  - Prontera and Alberta controller status still reports the configured
+    gate/tick/grace/stop policy values
+  - parking and rehydration behavior still works through the scheduler
+    after the refactor
+
+### Deferrals
+
+This slice does not yet add:
+
+- SQL-backed scheduler/controller config
+- operator-facing hot reload of config values
+- data-driven route membership or actor provisioning
