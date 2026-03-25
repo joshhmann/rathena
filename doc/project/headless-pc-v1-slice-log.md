@@ -2216,3 +2216,70 @@ This slice still does not add:
 - scheduler decisions based on real-time pool supply instead of static actor
   weights
 - progression-aware choice among many eligible parked identities
+
+## Slice 39: Supply-Aware Scheduler Budgeting
+
+### Goal
+
+Make the world scheduler budget against real assignable pooled supply instead of
+static configured actor weight, so a controller can still run when only a
+subset of its parked pool is currently fieldable.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Tightened `F_PB_POOL_Available(...)` so it only counts pooled identities that
+  are both:
+  - unowned in the pool ledger
+  - currently absent/offline from the runtime
+- `F_PB_POOL_Add(...)` now clears stale pool owner/source ledger keys when the
+  pool definition is rebuilt on script init, so restarts do not leave a pool
+  looking exhausted just because old script-global reservation state survived
+  - duplicate `char_id` re-adds are now collapsed to the existing pool slot
+    instead of inflating available supply
+- Added `F_LW_HPC_DefEffectiveActors(controller$, owner$)` as the scheduler's
+  read-only supply preflight helper:
+  - fixed slots count when their actor is absent, pending, or active
+  - already-assigned pooled slots count only when the assignment still belongs
+    to the same controller owner
+  - unresolved pooled slots are budgeted by pool demand vs currently available
+    supply
+- Scheduler status now reports:
+  - configured actor weight
+  - effective actor supply
+  - live active vs pending actors
+- `F_LW_HPC_SchedRun(...)` now uses effective supply for:
+  - controller eligibility
+  - global actor-cap accounting
+  - per-map actor-cap accounting
+  - top-up decisions for partially live controllers
+
+### Validation
+
+- `map-server` restarted cleanly after the scheduler/pool changes.
+- CLI smoke test with OpenKore confirmed:
+  - `Headless Scheduler -> Start scheduler` still succeeds after restart
+  - Prontera social repopulates its full pooled set again instead of behaving as
+    though the pool were exhausted
+  - the live observer saw all five Prontera social bots come online:
+    - `BotPc06`
+    - `BotPc07`
+    - `BotPc08`
+    - `BotPc09`
+    - `BotPc10`
+- The root-cause restart issue was the stale script-global pool reservation
+  ledger; clearing it in `F_PB_POOL_Add(...)` restores correct effective-supply
+  accounting on a fresh load
+
+### Deferrals
+
+This slice still does not add:
+
+- SQL-backed pool ownership or role selection
+- fairness/cooldown policy based on effective supply over time
+- controller selection based on role demand instead of fixed controller entries
