@@ -616,3 +616,57 @@ offline test character.
 - lifecycle complexity stays in source helpers and typed enums
 - `headless_pc` is durable for active runtime presence only
 - do not assume absence implies successful save; use ack helpers
+
+## Scheduler / Pool Notes
+
+### 24. Effective supply vs configured weight
+
+Current support:
+
+- world-scheduler budgeting now distinguishes:
+  - configured controller actor weight
+  - effective fieldable supply from fixed and pooled identities
+- pooled supply only counts identities that are:
+  - not reserved by another controller
+  - currently absent/offline
+- already-assigned pooled identities still count toward effective supply when
+  they are still owned by the same controller and are absent, pending, or active
+
+Current limits:
+
+- effective supply is still script-computed from the current pool/controller
+  ledger
+- there is no SQL-backed pool accounting or historical fairness yet
+
+### 25. Stale pool reservation state on restart
+
+Current support:
+
+- pool definitions now clear stale script-global owner/source reservation keys
+  when `F_PB_POOL_Add(...)` rebuilds a parked pool on init
+- this prevents a fresh restart from incorrectly treating parked pool members as
+  still reserved
+- duplicate `char_id` re-adds now collapse back onto the existing pool slot
+  instead of silently counting the same identity twice
+
+Current limits:
+
+- pool reservations are still script-global and ephemeral
+- if later slices need durable pool ownership or audit history, that will need
+  a real SQL-backed pool/runtime table rather than the current script ledger
+
+### 26. Pending actors and scheduler visibility
+
+Current support:
+
+- scheduler budgeting still treats pending actors as consuming effective supply
+  and actor/map budget
+- scheduler status now surfaces pending actor count alongside active count so a
+  controller can no longer look empty while its budget is tied up by spawn work
+
+Current limits:
+
+- pending actors are still lumped into the same effective-supply budget as fully
+  active actors
+- if future slices need more aggressive fairness, pending-state weighting can be
+  split further from active-state weighting
