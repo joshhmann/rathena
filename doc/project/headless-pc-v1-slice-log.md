@@ -3417,3 +3417,55 @@ This slice does not yet add:
 - trade-volume, zeny, or shop-sales demand feedback
 - per-bot or per-guild demand overrides beyond the current controller-level
   signal rows
+
+## Slice 59: Playerbot Guild Invite Foundation
+
+### Goal
+
+Let active headless playerbots participate in the normal guild invite path with a
+very narrow accept/decline policy, without pretending broader guild behavior is
+done.
+
+### Files Touched
+
+- `src/map/guild.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added a narrow guild invite policy helper in `guild.cpp` for active
+  headless/playerbot targets.
+- Guild invites now special-case `state.headless_bot` before the normal
+  disconnected-client rejection path, mirroring the earlier party-v1 pattern.
+- The guild invite policy currently reads from:
+  - `bot_guild_state.enabled`
+  - `bot_guild_state.invite_policy`
+- Added script buildins:
+  - `playerbot_guildinvite(char_id)`
+  - `playerbot_guildid(char_id)`
+- Extended `Playerbot Guild Lab` with:
+  - spawn by key
+  - runtime guild invite by key
+  - current guild_id inspection
+
+### Validation
+
+- rebuilt `map-server`
+- restarted the full stack cleanly after the rebuild
+- verified the guild lab is visible in Prontera after the clean restart
+- verified the new guild buildins no longer cause parser errors after the
+  post-build restart
+- confirmed the current dev DB has no live guild rows to run a full invite/join
+  acceptance path against, so this slice is validated as runtime plumbing plus
+  in-game harness availability
+
+### Deferrals
+
+This slice does not yet add:
+
+- guild creation or guild seeding helpers for selftests
+- full live guild invite acceptance proof in the current empty-guild dev DB
+- guild follow/assist, guild chat, or guild event semantics

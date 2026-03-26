@@ -1093,6 +1093,29 @@ Current limits:
 - operator editing is still SQL-driven; there is not yet a richer admin UI for
   controller signal policy
 
+### 48. Guild-capable bots without live invite handling
+
+Current support:
+
+- active headless/playerbot targets can now pass through the normal guild invite
+  runtime with a narrow headless-bot policy hook
+- the first guild invite policy reads from:
+  - `bot_guild_state.enabled`
+  - `bot_guild_state.invite_policy`
+- script surfaces now expose:
+  - `playerbot_guildinvite(char_id)`
+  - `playerbot_guildid(char_id)`
+- `Playerbot Guild Lab` now has spawn/invite/inspect controls for guild-capable
+  bots
+
+Current limits:
+
+- the current dev DB still has no live guild rows, so the full accept/join lane
+  is not yet proven end-to-end
+- guild policy currently stops at invite accept/decline; it does not yet add
+  guild routines, chat, storage, or event behavior
+- guild creation/seeding for automated selftests is still missing
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

@@ -57,6 +57,47 @@ struct guild_expcache {
 };
 static struct eri *expcache_ers; //For handling of guild exp payment.
 
+static bool guild_playerbot_invite_response(map_session_data* tsd, bool* accept) {
+	char* data = nullptr;
+	char invite_policy[32] = "";
+	uint8 enabled = 0;
+
+	if (accept != nullptr)
+		*accept = false;
+	if (tsd == nullptr || !tsd->state.headless_bot)
+		return false;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT g.`invite_policy`, g.`enabled` "
+		"FROM `bot_identity_link` l "
+		"JOIN `bot_profile` p ON p.`bot_id` = l.`bot_id` "
+		"JOIN `bot_guild_state` g ON g.`bot_id` = l.`bot_id` "
+		"WHERE l.`char_id` = '%u' AND l.`link_status` = 'linked' "
+		"AND p.`status` = 'active' LIMIT 1",
+		tsd->status.char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		return true;
+	}
+
+	if (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		Sql_GetData(mmysql_handle, 0, &data, nullptr);
+		if (data != nullptr)
+			safestrncpy(invite_policy, data, sizeof(invite_policy));
+		Sql_GetData(mmysql_handle, 1, &data, nullptr);
+		if (data != nullptr)
+			enabled = static_cast<uint8>(atoi(data));
+	}
+	Sql_FreeResult(mmysql_handle);
+
+	if (!enabled)
+		return true;
+	if (tsd->status.guild_id != 0)
+		return true;
+	if (strcmp(invite_policy, "open") == 0 && accept != nullptr)
+		*accept = true;
+	return true;
+}
+
 struct s_guild_skill_requirement{
 	uint16 id;
 	uint16 lv;
@@ -966,6 +1007,16 @@ bool guild_invite( map_session_data& sd, map_session_data* tsd ){
 	if( !battle_config.invite_request_check && ( tsd->party_invite > 0 || tsd->state.trading || tsd->adopt_invite ) ){
 		clif_guild_inviteack( sd, 0 );
 		return false;
+	}
+
+	if( tsd->state.headless_bot ){
+		bool accept = false;
+
+		if( guild_playerbot_invite_response( tsd, &accept ) ){
+			tsd->guild_invite = sd.status.guild_id;
+			tsd->guild_invite_account = sd.status.account_id;
+			return guild_reply_invite( *tsd, sd.status.guild_id, accept ? 1 : 0 );
+		}
 	}
 
 	// You can't invite someone who has already disconnected.

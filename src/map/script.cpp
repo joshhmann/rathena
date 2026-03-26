@@ -11956,6 +11956,31 @@ BUILDIN_FUNC(playerbot_partyid)
 }
 
 /*==========================================
+ * Invite one local playerbot/headless target into the attached player's guild.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_guildinvite)
+{
+	map_session_data* sd = nullptr;
+	TBL_PC* tsd = map_charid2sd(script_getnum(st, 2));
+
+	if (!script_rid2sd(sd))
+		return SCRIPT_CMD_FAILURE;
+
+	script_pushint(st, (tsd != nullptr && guild_invite(*sd, tsd)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Read the local guild_id for one active playerbot/headless target.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_guildid)
+{
+	TBL_PC* tsd = map_charid2sd(script_getnum(st, 2));
+	script_pushint(st, tsd != nullptr ? tsd->status.guild_id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Read the leader char_id for one party_id.
  *------------------------------------------*/
 BUILDIN_FUNC(partyleadercharid)
@@ -29364,6 +29389,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_provision,"sss"),
 	BUILDIN_DEF(playerbot_partyinvite,"i"),
 	BUILDIN_DEF(playerbot_partyid,"i"),
+	BUILDIN_DEF(playerbot_guildinvite,"i"),
+	BUILDIN_DEF(playerbot_guildid,"i"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),

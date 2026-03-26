@@ -3,7 +3,7 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 	mes "Drive the first guild-capable playerbot identity path.";
 	next;
 
-	switch(select("Quick guild self-provision:Provision guild bot:Inspect bot by key:Reload SQL Pools:Close")) {
+	switch(select("Quick guild self-provision:Provision guild bot:Spawn bot by key:Invite bot by key:Inspect bot by key:Reload SQL Pools:Close")) {
 	case 1:
 		.@bot_key$ = "quick_guild_member";
 		.@display_name$ = "PBQGuild01";
@@ -56,6 +56,33 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 			mes "Unknown bot key.";
 			close;
 		}
+		.@ok = headlesspc_spawn($@pbbot_char_id, "prontera", 156, 181);
+		mes "[Playerbot Guild Lab]";
+		mes .@ok ? "Spawn request queued." : "Spawn request failed.";
+		close;
+
+	case 4:
+		input .@bot_key$;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Guild Lab]";
+			mes "Unknown bot key.";
+			close;
+		}
+		.@ok = playerbot_guildinvite($@pbbot_char_id);
+		.@guild_id = playerbot_guildid($@pbbot_char_id);
+		mes "[Playerbot Guild Lab]";
+		mes .@ok ? "Invite processed through the runtime guild path." : "Invite failed.";
+		mes "Current guild_id: " + .@guild_id;
+		mes "Note: the attached player must already be in a guild and have invite permission.";
+		close;
+
+	case 5:
+		input .@bot_key$;
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+			mes "[Playerbot Guild Lab]";
+			mes "Unknown bot key.";
+			close;
+		}
 		mes "[Playerbot Guild Lab]";
 		mes "Bot ID: " + $@pbbot_bot_id;
 		mes "Name: " + $@pbbot_name$;
@@ -65,9 +92,10 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Guild: " + ($@pbbot_guild_enabled ? "enabled" : "disabled") + " / " + ($@pbbot_guild_policy$ == "" ? "<none>" : $@pbbot_guild_policy$);
 		mes "Guild Name / Position: " + ($@pbbot_guild_name$ == "" ? "<none>" : $@pbbot_guild_name$) + " / " + ($@pbbot_guild_position$ == "" ? "<none>" : $@pbbot_guild_position$);
 		mes "Guild Invite / State: " + ($@pbbot_guild_invite$ == "" ? "<none>" : $@pbbot_guild_invite$) + " / " + ($@pbbot_guild_state$ == "" ? "<none>" : $@pbbot_guild_state$);
+		mes "Current guild_id: " + playerbot_guildid($@pbbot_char_id);
 		close;
 
-	case 4:
+	case 6:
 		.@loaded = callfunc("F_PB_DB_LoadAllPools");
 		mes "[Playerbot Guild Lab]";
 		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
