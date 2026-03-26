@@ -1,9 +1,9 @@
-alberta,50,238,4	script	Playerbot Merchant Lab	4_F_KAFRA5,{
+alberta,148,135,4	script	Playerbot Merchant Lab	4_F_KAFRA5,{
 	mes "[Playerbot Merchant Lab]";
 	mes "Inspect and toggle persistent merchant bot state.";
 	next;
 
-	switch(select("Quick Provision Alberta Merchant:Inspect Merchant Bot:Enable Merchant:Disable Merchant:Set Merchant Open:Close Merchant:Reload SQL Pools:Close")) {
+	switch(select("Quick Provision Alberta Merchant:Inspect Merchant Bot:Enable Merchant:Disable Merchant:Set Merchant Open:Close Merchant:Start merchant controller:Stop merchant controller:Reload SQL Pools:Close")) {
 	case 1:
 		.@bot_id = playerbot_provision("quick_merc_alb", "PBQMerchantA", "merchant.alberta.stall");
 		if (!.@bot_id) {
@@ -57,6 +57,19 @@ alberta,50,238,4	script	Playerbot Merchant Lab	4_F_KAFRA5,{
 		close;
 
 	case 7:
+		callfunc "F_PB_DB_LoadAllPools";
+		callfunc "F_LW_HPC_ControllerStart", "HeadlessAlbertaMerchantController";
+		mes "[Playerbot Merchant Lab]";
+		mes "Merchant controller enabled.";
+		close;
+
+	case 8:
+		donpcevent "HeadlessAlbertaMerchantController::OnStop";
+		mes "[Playerbot Merchant Lab]";
+		mes "Merchant controller disabled.";
+		close;
+
+	case 9:
 		.@loaded = callfunc("F_PB_DB_LoadAllPools");
 		mes "[Playerbot Merchant Lab]";
 		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
@@ -85,27 +98,78 @@ S_ShowMerchant:
 
 -	script	PlayerbotMerchantSelftest	FAKE_NPC,{
 OnInit:
+	.enabled = 1;
+	.autorun = 1;
 	.bot_key$ = "quick_merc_alb";
 	.display_name$ = "PBQMerchantA";
+	.test_char_id = 150001;
+	.ran = 0;
 	end;
 
-OnInterIfInitOnce:
+OnPCLoginEvent:
+	if (!.enabled)
+		end;
+	if (!.autorun)
+		end;
+	if (.ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	.ran = 1;
 	.@bot_id = playerbot_profile(.bot_key$);
 	if (!.@bot_id)
 		.@bot_id = playerbot_provision(.bot_key$, .display_name$, "merchant.alberta.stall");
 	if (!.@bot_id) {
-		debugmes "playerbot_merchant_selftest: provision failed.";
+		debugmes "playerbot_merchant_selftest: provision failed at login.";
 		end;
 	}
 	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
 	.@found = $@pbbot_found;
 	.@base_ok = (.@found && $@pbbot_merchant_policy$ == "stall_day" && $@pbbot_market_map$ == "alberta");
-	callfunc "F_PB_DB_SetMerchantState", .bot_key$, 1, "open";
-	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
-	.@open_ok = ($@pbbot_merchant_enabled && $@pbbot_open_state$ == "open");
-	callfunc "F_PB_DB_SetMerchantState", .bot_key$, 0, "closed";
-	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
-	.@close_ok = (!$@pbbot_merchant_enabled && $@pbbot_open_state$ == "closed");
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " open_ok=" + .@open_ok + " close_ok=" + .@close_ok + " result=" + (.@base_ok && .@open_ok && .@close_ok) + ".";
+	.@spawn_ok = 0;
+	.@bootstrap_ok = 0;
+	if (.@found && $@pbbot_char_id > 0) {
+		if (headlesspc_status($@pbbot_char_id) == 2)
+			headlesspc_remove($@pbbot_char_id);
+		sleep 600;
+		headlesspc_spawn($@pbbot_char_id, $@pbbot_market_map$, $@pbbot_market_x, $@pbbot_market_y);
+		for (.@i = 0; .@i < 12; ++.@i) {
+			sleep 500;
+			if (headlesspc_status($@pbbot_char_id) == 2) {
+				.@spawn_ok = 1;
+				break;
+			}
+		}
+		if (.@spawn_ok) {
+			.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .bot_key$);
+			if (attachrid($@pbbot_account_id)) {
+				.@class = readparam(Class);
+				.@push = getskilllv("MC_PUSHCART");
+				.@vend = getskilllv("MC_VENDING");
+				detachrid;
+			}
+			.@bootstrap_ok = (.@seeded > 0
+				&& .@class == Job_Merchant
+				&& .@push >= 10
+				&& .@vend >= 10
+				&& checkcart($@pbbot_char_id)
+				&& cartcountitem(909, $@pbbot_account_id) >= 60
+				&& cartcountitem(910, $@pbbot_account_id) >= 30
+				&& cartcountitem(911, $@pbbot_account_id) >= 20
+				&& cartcountitem(912, $@pbbot_account_id) >= 10);
+		}
+	}
+	.@park_ok = 0;
+	if (.@found && $@pbbot_char_id > 0) {
+		headlesspc_remove($@pbbot_char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 400;
+			if (headlesspc_status($@pbbot_char_id) == 0) {
+				.@park_ok = 1;
+				break;
+			}
+		}
+	}
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " park_ok=" + .@park_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@park_ok) + ".";
 	end;
 }

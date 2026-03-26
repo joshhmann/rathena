@@ -1,6 +1,7 @@
 -	script	PlayerbotSelftest	FAKE_NPC,{
 OnInit:
 	.enabled = 1;
+	.autorun = 0;
 	.test_char_id = 150001;
 	.test_account_id = 2000004;
 	.bot_key$ = "quick_party_open";
@@ -33,6 +34,8 @@ OnInit:
 
 OnPCLoginEvent:
 	if (!.enabled)
+		end;
+	if (!.autorun)
 		end;
 	if (.ran)
 		end;

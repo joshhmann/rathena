@@ -818,3 +818,47 @@ Current limits:
 - this is merchant state only, not live vending behavior
 - no stock depletion or restock logic exists yet
 - no scheduler-driven opening/closing automation exists yet
+
+### 35. SQL-backed controller registry
+
+Current support:
+
+- active playerbot controller policy and slot definitions now have persistent
+  SQL homes:
+  - `bot_controller_policy`
+  - `bot_controller_slot`
+- the currently active controller set is seeded through SQL:
+  - `social.prontera`
+  - `social.alberta`
+  - `merchant.alberta`
+- reusable talk/emote/anchor content remains script-defined, but controller slot
+  rows now reference those content keys instead of embedding full controller
+  definitions in `headless_pc_config.txt`
+
+Current limits:
+
+- only the active social and Alberta merchant demo controllers are migrated
+- route-set use is still deferred
+- a fresh bootstrap or upgrade now seeds the controller rows, but broader
+  controller authoring is still a checked-in SQL workflow, not an operator UI
+
+### 36. Fresh-restart ambient stability
+
+Current support:
+
+- the SQL-backed playerbot controller slice now uses guarded timer-driven
+  scheduler/controller ticks, so start and top-up no longer create duplicate
+  long-lived `OnTick` loops
+- the merchant selftest is opt-in again and no longer mutates state on ordinary
+  test-account login
+- fresh `map-server` restarts now stay online in the local tmux workflow
+- ambient fakeplayer refresh now repositions existing actors through
+  passable-cell normalization plus direct warp instead of forced walk reuse
+
+Current limits:
+
+- a few ambient definitions still resolve to no valid nearby passable cell, so
+  refresh can emit isolated `unit_warp` warnings for those actors until the
+  source coordinates are cleaned up
+- OpenKore merchant-controller smoke is still pending even though restart and
+  startup validation are now green

@@ -1,0 +1,125 @@
+// Dev-only Alberta merchant controller using SQL-backed controller slots.
+
+alberta,148,137,4	script	Headless Alberta Merchants	4_F_KAFRA6,{
+	.controller$ = "HeadlessAlbertaMerchantController";
+	mes "[Headless Alberta Merchants]";
+	switch(select("Start harbor stall:Stop harbor stall:Status:Cancel")) {
+	case 1:
+		donpcevent .controller$ + "::OnPrime";
+		callfunc "F_PB_DB_LoadAllPools";
+		callfunc "F_LW_HPC_ControllerStart", .controller$;
+		mes "Alberta merchant controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Alberta merchant controller disabled.";
+		close;
+	case 3:
+		donpcevent .controller$ + "::OnPrime";
+		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
+		mes getvariableofnpc(.status$, .controller$);
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessAlbertaMerchantController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.policy_key$ = "merchant.alberta";
+	.enabled = 0;
+	.running = 0;
+	.tick_pending = 0;
+	.loaded = 0;
+	end;
+
+OnPrime:
+	callsub S_Prime;
+	end;
+
+OnTick:
+	if (.running)
+		end;
+	.tick_pending = 0;
+	.running = 1;
+	callsub S_Prime;
+	if (!.enabled)
+		goto L_Done;
+
+	if (!callfunc("F_LW_HPC_ControllerShouldRun", .owner$)) {
+		donpcevent strnpcinfo(3) + "::OnStop";
+		goto L_Done;
+	}
+
+	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
+		callsub S_TickMerchant, .@i;
+
+	callfunc "F_LW_HPC_ControllerScheduleNext", strnpcinfo(3);
+L_Done:
+	.running = 0;
+	end;
+
+OnStop:
+	.enabled = 0;
+	.tick_pending = 0;
+	if (playerattached() > 0)
+		deltimer strnpcinfo(3) + "::OnTick";
+	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
+		callsub S_CloseMerchant, .@i;
+	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
+	end;
+
+S_TickMerchant:
+	.@i = getarg(0);
+	.@seed = getnpcid(0, .owner$);
+	.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+	.@char_id = callfunc("F_LW_HPC_DefResolveActor", .owner$, .owner$, .@i);
+	if (.@char_id < 1)
+		return;
+	.@bot_key$ = callfunc("F_PB_POOL_BotKey", .@pool$, .@char_id);
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
+		callsub S_CloseMerchant, .@i;
+		return;
+	}
+	.@should_open = ($@pbbot_merchant_enabled && callfunc("F_LW_IsHourInWindow", $@pbbot_merchant_start, $@pbbot_merchant_end));
+	if (!.@should_open) {
+		callsub S_CloseMerchant, .@i;
+		return;
+	}
+	callfunc "F_LW_HPC_DefTickActor", .owner$, .owner$, .@i;
+	.@char_id = callfunc("F_LW_HPC_DefActorCharId", .owner$, .@i);
+	if (.@char_id > 0 && headlesspc_status(.@char_id) == 2) {
+		if ($@pbbot_open_state$ != "open")
+			callfunc "F_PB_MerchantBootstrapByBotKey", .@bot_key$;
+		callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id, 1, "open";
+		callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id, "merchanting", "active", "merchant.alberta";
+	}
+	return;
+
+S_CloseMerchant:
+	.@i = getarg(0);
+	.@seed = getnpcid(0, .owner$);
+	.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
+	.@char_id = callfunc("F_LW_HPC_DefActorCharId", .owner$, .@i);
+	if (.@char_id < 1)
+		return;
+	.@bot_key$ = callfunc("F_PB_POOL_BotKey", .@pool$, .@char_id);
+	.@open_state$ = "scheduled";
+	if (.@bot_key$ != "" && callfunc("F_PB_DB_LoadBotSummary", .@bot_key$) && !$@pbbot_merchant_enabled)
+		.@open_state$ = "closed";
+	callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id, 0, .@open_state$;
+	callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id, "offline", "parked", "";
+	if (headlesspc_status(.@char_id) == 2)
+		headlesspc_remove(.@char_id);
+	callfunc "F_LW_HPC_DefReleaseActor", .owner$, .owner$, .@i;
+	return;
+
+S_Prime:
+	if (.loaded)
+		return;
+	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
+	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
+	.loaded = 1;
+	return;
+}

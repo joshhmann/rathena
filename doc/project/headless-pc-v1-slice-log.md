@@ -2672,3 +2672,98 @@ This slice does not yet add:
 
 - broader config normalization outside the scheduler/controller key families
 - migration of all controller definitions into SQL-backed config
+
+## Slice 47: SQL-Backed Controller Registry And Merchant Demo
+
+### Goal
+
+Move the active playerbot controller layer off script-owned controller
+definitions and onto checked-in SQL-backed policy and slot rows, while adding
+the first scheduler-visible merchant controller demo.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260325_playerbot_controller_registry.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/headless_pc_controller_content.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_selftest.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added persistent controller registry tables:
+  - `bot_controller_policy`
+  - `bot_controller_slot`
+- Seeded the active controller set through SQL:
+  - `social.prontera`
+  - `social.alberta`
+  - `merchant.alberta`
+- Moved scheduler membership, controller policy, and pooled slot definitions for
+  those controllers out of `headless_pc_config.txt` and into SQL-backed rows.
+- Split reusable talk/emote/anchor content into
+  `headless_pc_controller_content.txt`, still keyed from script but referenced
+  by SQL slot rows.
+- Added SQL-backed script helpers for:
+  - controller policy load
+  - controller slot load
+  - scheduler controller list load
+  - merchant/runtime state updates by `char_id`
+- Extended pooled runtime metadata to retain `bot_key` so controller-owned
+  actors can update persistent merchant/runtime rows after assignment.
+- Added the first SQL-registered merchant controller:
+  - `HeadlessAlbertaMerchantController`
+- Updated the merchant lab and merchant selftest to drive that controller
+  instead of toggling merchant state only.
+- Gated the merchant selftest behind explicit `.enabled` / `.autorun` flags so
+  the test account no longer gets hijacked on normal login.
+- Reworked the SQL-backed scheduler/controller tick path into guarded,
+  single-shot timer scheduling so scheduler start/top-up cannot spawn duplicate
+  long-lived `OnTick` runners.
+- Hardened ambient fakeplayer refresh in the shared living-world helper:
+  - existing ambient actors now relocate through passable-cell normalization and
+    direct warp instead of stacking forced `unitwalk` requests during refresh
+
+### Validation
+
+- regenerated `npc/scripts_custom.conf`
+- applied `upgrade_20260325_playerbot_controller_registry.sql` to the local
+  `rathena` database
+- verified seeded controller rows:
+  - `merchant.alberta`
+  - `social.alberta`
+  - `social.prontera`
+- verified seeded slot counts:
+  - `merchant.alberta = 1`
+  - `social.alberta = 5`
+  - `social.prontera = 5`
+- direct `./map-server` startup now loads the new playerbot controller files,
+  reaches online state, restores persisted headless actors, and remains up
+- canonical restart with `bash /root/setup_dev.sh restart` now keeps all three
+  services online:
+  - `6900` login-server
+  - `6121` char-server
+  - `5121` map-server
+- the fresh-restart crash was traced through the ambient fakeplayer refresh
+  path:
+  - first to repeated forced `unitwalk` reuse warnings
+  - then, after isolating that path, to `delete_timer` mismatch around ambient
+    movement interruption
+- ambient refresh is now stable under restart with the current helper hardening
+- full OpenKore merchant-controller smoke is still pending in this slice
+
+### Deferrals
+
+This slice does not yet add:
+
+- live vending sessions or NPC shop attachment for merchant bots
+- merchant stock depletion or restock policy
+- full OpenKore end-to-end verification of the merchant controller path

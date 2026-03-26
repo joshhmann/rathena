@@ -5,6 +5,8 @@ prontera,148,185,4	script	Headless Prontera Social	4_F_KAFRA1,{
 	mes "[Headless Prontera Social]";
 	switch(select("Start commons traffic:Stop commons traffic:Status:Cancel")) {
 	case 1:
+		donpcevent .controller$ + "::OnPrime";
+		callfunc "F_PB_DB_LoadAllPools";
 		callfunc "F_LW_HPC_ControllerStart", .controller$;
 		mes "Prontera social controller enabled.";
 		close;
@@ -13,6 +15,7 @@ prontera,148,185,4	script	Headless Prontera Social	4_F_KAFRA1,{
 		mes "Prontera social controller disabled.";
 		close;
 	case 3:
+		donpcevent .controller$ + "::OnPrime";
 		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
 		mes getvariableofnpc(.status$, .controller$);
 		close;
@@ -24,40 +27,52 @@ prontera,148,185,4	script	Headless Prontera Social	4_F_KAFRA1,{
 -	script	HeadlessPronteraSocialController	FAKE_NPC,{
 OnInit:
 	.owner$ = strnpcinfo(3);
+	.policy_key$ = "social.prontera";
 	.enabled = 0;
-	callfunc "F_LW_HPC_DefReset", .owner$;
-	callfunc "F_LW_HPC_DefSetTickMs", .owner$, callfunc("F_PB_CFG_GetInt", "cp.tm", 2200);
-	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "prontera", callfunc("F_PB_CFG_GetInt", "cp.gu", 1);
-	callfunc "F_LW_HPC_DefSetStartStagger", .owner$,
-		callfunc("F_PB_CFG_GetInt", "cp.sm", 400),
-		callfunc("F_PB_CFG_GetInt", "cp.sx", 1500);
-	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "cp.gm", 12000);
-	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "cp.sp", "park");
-	callfunc "F_LW_HPC_DefSetRoutineGroup", .owner$, callfunc("F_PB_CFG_GetStr", "cp.rg", "day");
-	callfunc "F_LW_HPC_DefSetRoutineWindow", .owner$,
-		callfunc("F_PB_CFG_GetInt", "cp.rs", 7),
-		callfunc("F_PB_CFG_GetInt", "cp.re", 23);
-	callfunc "F_PB_CFG_ApplyControllerDef", .owner$, "social.prontera";
+	.running = 0;
+	.tick_pending = 0;
+	.loaded = 0;
+	end;
+
+OnPrime:
+	callsub S_Prime;
 	end;
 
 OnTick:
-	if (!.enabled)
+	if (.running)
 		end;
+	.tick_pending = 0;
+	.running = 1;
+	callsub S_Prime;
+	if (!.enabled)
+		goto L_Done;
 
 	if (!callfunc("F_LW_HPC_ControllerShouldRun", .owner$)) {
 		callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
 		callfunc "F_LW_HPC_ControllerScheduleNext", strnpcinfo(3);
-		end;
+		goto L_Done;
 	}
 
 	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
 		callfunc "F_LW_HPC_DefTickActor", .owner$, .owner$, .@i;
 
 	callfunc "F_LW_HPC_ControllerScheduleNext", strnpcinfo(3);
+L_Done:
+	.running = 0;
 	end;
 
 OnStop:
 	.enabled = 0;
+	.tick_pending = 0;
+	deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
+	return;
+
+S_Prime:
+	if (.loaded)
+		return;
+	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
+	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
+	.loaded = 1;
 	return;
 }
