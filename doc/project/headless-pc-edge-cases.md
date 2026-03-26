@@ -947,6 +947,28 @@ Current limits:
 - only the first Alberta merchant proof is wired; more merchant controllers
   still need migration onto the same runtime pattern
 
+### 42. Scheduler stop/start thrash
+
+Current support:
+
+- the world scheduler now has SQL-backed stickiness and cooldown policy through:
+  - `bot_controller_policy.min_active_ms`
+  - `bot_controller_policy.restart_cooldown_ms`
+- active controllers can remain selected while still inside their minimum
+  runtime window
+- recently stopped controllers can be blocked from immediate restart until
+  their cooldown expires
+- scheduler status now surfaces the policy plus live uptime / time-since-stop
+  information
+
+Current limits:
+
+- the sticky/cooldown timers are in-memory runtime policy, not persisted
+  scheduler history
+- scheduler selection is still priority-first, not a richer weighted rotation
+- controller cooldowns do not yet account for external operator intent beyond
+  the current enabled/disabled policy rows
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

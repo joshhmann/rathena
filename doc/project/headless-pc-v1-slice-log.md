@@ -3067,3 +3067,58 @@ This slice does not yet add:
 - merchant stock authoring UI
 - price-profile logic beyond per-item SQL sell prices
 - multi-stall merchant controller support beyond the first Alberta proof
+
+## Slice 53: Scheduler Sticky Runtime And Cooldown Policy
+
+### Goal
+
+Harden the world scheduler so controllers do not thrash when demand changes:
+
+- keep newly-started controllers alive for a minimum runtime
+- prevent immediate restart after a stop
+- keep this policy SQL-backed and visible in scheduler status
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_scheduler_automation.sql`
+- `npc/custom/living_world/_common.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed scheduler automation fields to `bot_controller_policy`:
+  - `min_active_ms`
+  - `restart_cooldown_ms`
+- Extended scheduler controller loading so those fields are materialized into
+  the active scheduler state
+- Added sticky controller retention for active controllers that are still inside
+  their minimum runtime window
+- Added restart cooldown blocking for inactive controllers that were stopped too
+  recently
+- Extended scheduler status to show:
+  - sticky/cooldown policy
+  - active uptime for running controllers
+  - time-since-stop for idle controllers
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_scheduler_automation.sql`
+- verified the SQL policy values:
+  - `merchant.alberta -> 90000 / 30000`
+  - `patrol.prontera -> 30000 / 15000`
+  - `social.alberta -> 60000 / 20000`
+  - `social.prontera -> 45000 / 15000`
+- restarted the stack cleanly
+- verified no new parser/runtime errors were introduced by the scheduler
+  changes
+- OpenKore baseline still logs in and reaches Alberta after the slice
+
+### Deferrals
+
+This slice does not yet add:
+
+- scheduler history persistence across restart
+- weighted rotation between equally eligible controllers
+- richer demand models beyond current map-user gating and routine windows
