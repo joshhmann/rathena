@@ -883,6 +883,26 @@ Current limits:
 - content sets like talks/emotes/anchors remain script-backed even though
   controller policy and slot membership are SQL-backed
 
+### 39. SQL-backed controller content sets
+
+Current support:
+
+- active controller anchor sets, talk lines, and emotes now live in SQL:
+  - `bot_controller_anchor_point`
+  - `bot_controller_talk_line`
+  - `bot_controller_emote_value`
+- active controller load now resolves content sets from SQL instead of the old
+  `headless_pc_controller_content.txt` script registry
+- the Alberta/Prontera social controllers and Alberta merchant controller all
+  survive startup with the script content file removed from the load path
+
+Current limits:
+
+- route-set data is still not migrated into SQL
+- content authoring is still a checked-in SQL workflow, not an operator tool
+- only the active controller set is migrated; older demo content paths remain
+  historical script debt until explicitly moved
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

@@ -519,6 +519,51 @@ function	script	F_PB_CFG_ApplyEmoteSet	{
 	return 0;
 }
 
+function	script	F_PB_DB_ApplyAnchorSet	{
+	.@controller$ = getarg(0);
+	.@actor = getarg(1);
+	.@set$ = escape_sql(getarg(2));
+	.@rows = query_sql(
+		"SELECT `anchor_x`, `anchor_y` "
+		+ "FROM `bot_controller_anchor_point` "
+		+ "WHERE `set_key` = '" + .@set$ + "' "
+		+ "ORDER BY `point_index`",
+		.@x, .@y);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		callfunc "F_LW_HPC_DefAddAnchor", .@controller$, .@actor, .@x[.@i], .@y[.@i];
+	return .@rows;
+}
+
+function	script	F_PB_DB_ApplyTalkSet	{
+	.@controller$ = getarg(0);
+	.@actor = getarg(1);
+	.@set$ = escape_sql(getarg(2));
+	.@rows = query_sql(
+		"SELECT `line_text` "
+		+ "FROM `bot_controller_talk_line` "
+		+ "WHERE `set_key` = '" + .@set$ + "' "
+		+ "ORDER BY `line_index`",
+		.@line$);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		callfunc "F_LW_HPC_DefAddTalk", .@controller$, .@actor, .@line$[.@i];
+	return .@rows;
+}
+
+function	script	F_PB_DB_ApplyEmoteSet	{
+	.@controller$ = getarg(0);
+	.@actor = getarg(1);
+	.@set$ = escape_sql(getarg(2));
+	.@rows = query_sql(
+		"SELECT `emotion` "
+		+ "FROM `bot_controller_emote_value` "
+		+ "WHERE `set_key` = '" + .@set$ + "' "
+		+ "ORDER BY `emote_index`",
+		.@emotion);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		callfunc "F_LW_HPC_DefAddEmote", .@controller$, .@actor, .@emotion[.@i];
+	return .@rows;
+}
+
 function	script	F_PB_CFG_RegisterPool	{
 	.@pool$ = getarg(0);
 	.@count = getd("$PBCFG_POOL_CT");
@@ -779,11 +824,11 @@ function	script	F_PB_DB_LoadControllerDef	{
 		if (.@pulse$[.@i] != "")
 			callfunc "F_PB_CFG_ApplyPulseProfile", .@controller$, .@slot[.@i], .@pulse$[.@i];
 		if (.@anchor$[.@i] != "")
-			callfunc "F_PB_CFG_ApplyAnchorSet", .@controller$, .@slot[.@i], .@anchor$[.@i];
+			callfunc "F_PB_DB_ApplyAnchorSet", .@controller$, .@slot[.@i], .@anchor$[.@i];
 		if (.@talk$[.@i] != "")
-			callfunc "F_PB_CFG_ApplyTalkSet", .@controller$, .@slot[.@i], .@talk$[.@i];
+			callfunc "F_PB_DB_ApplyTalkSet", .@controller$, .@slot[.@i], .@talk$[.@i];
 		if (.@emote$[.@i] != "")
-			callfunc "F_PB_CFG_ApplyEmoteSet", .@controller$, .@slot[.@i], .@emote$[.@i];
+			callfunc "F_PB_DB_ApplyEmoteSet", .@controller$, .@slot[.@i], .@emote$[.@i];
 	}
 	return .@rows;
 }

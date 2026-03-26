@@ -2883,3 +2883,60 @@ This slice does not yet add:
 - a fully generic SQL-backed operator UI beyond the scheduler/merchant labs
 - scheduler-side create/delete authoring for controller rows
 - migration of all controller content blobs out of script-backed content files
+
+## Slice 50: SQL-Backed Controller Content Sets
+
+### Goal
+
+Move the remaining active controller content blobs out of
+`headless_pc_controller_content.txt` and into checked-in SQL data so active
+playerbot controllers no longer depend on a script-owned talk/anchor/emote
+registry.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_controller_content.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed controller content tables:
+  - `bot_controller_anchor_point`
+  - `bot_controller_talk_line`
+  - `bot_controller_emote_value`
+- Seeded the current Prontera social, Alberta social, and Alberta merchant
+  content sets into SQL.
+- Added SQL-backed content loaders:
+  - `F_PB_DB_ApplyAnchorSet`
+  - `F_PB_DB_ApplyTalkSet`
+  - `F_PB_DB_ApplyEmoteSet`
+- Updated `F_PB_DB_LoadControllerDef` to source anchor/talk/emote sets from SQL
+  instead of the script-backed content registry.
+- Removed the now-obsolete `headless_pc_controller_content.txt` load from
+  `npc/scripts_custom.conf`.
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_controller_content.sql` to the local
+  `rathena` database
+- restarted the stack cleanly
+- verified startup stayed clean after removing the old content script include
+- verified content rows now exist in SQL:
+  - `bot_controller_anchor_point = 20`
+  - `bot_controller_talk_line = 22`
+  - `bot_controller_emote_value = 22`
+- OpenKore still logs in and sees the Alberta playerbot harness after the
+  migration
+
+### Deferrals
+
+This slice does not yet add:
+
+- SQL-backed route sets
+- runtime/operator authoring for content sets
+- migration of every historical/demo controller content blob beyond the active
+  Prontera/Alberta/merchant set
