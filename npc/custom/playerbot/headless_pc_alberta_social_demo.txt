@@ -40,7 +40,8 @@ OnPrime:
 
 OnReload:
 	.tick_pending = 0;
-	deltimer strnpcinfo(3) + "::OnTick";
+	if (playerattached() > 0)
+		deltimer strnpcinfo(3) + "::OnTick";
 	.loaded = 0;
 	callsub S_Prime;
 	if (.enabled)
@@ -73,7 +74,8 @@ L_Done:
 OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
-	deltimer strnpcinfo(3) + "::OnTick";
+	if (playerattached() > 0)
+		deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
 	return;
 

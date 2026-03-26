@@ -800,6 +800,71 @@ function	script	F_PB_DB_LoadSchedulerControllers	{
 	return .@rows;
 }
 
+function	script	F_PB_DB_LoadControllerRegistry	{
+	.@rows = query_sql(
+		"SELECT `controller_key`, `controller_npc`, `controller_label`, `controller_type`, `map_name`, `priority`, `actor_weight`, `scheduler_enabled`, `controller_enabled` "
+		+ "FROM `bot_controller_policy` ORDER BY `priority` DESC, `controller_key`",
+		.@key$, .@npc$, .@label$, .@type$, .@map$, .@prio, .@actors, .@sched, .@enabled);
+	deletearray $@pbctl_key$[0], getarraysize($@pbctl_key$);
+	deletearray $@pbctl_npc$[0], getarraysize($@pbctl_npc$);
+	deletearray $@pbctl_label$[0], getarraysize($@pbctl_label$);
+	deletearray $@pbctl_type$[0], getarraysize($@pbctl_type$);
+	deletearray $@pbctl_map$[0], getarraysize($@pbctl_map$);
+	deletearray $@pbctl_prio[0], getarraysize($@pbctl_prio);
+	deletearray $@pbctl_actors[0], getarraysize($@pbctl_actors);
+	deletearray $@pbctl_sched[0], getarraysize($@pbctl_sched);
+	deletearray $@pbctl_enabled[0], getarraysize($@pbctl_enabled);
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		$@pbctl_key$[.@i] = .@key$[.@i];
+		$@pbctl_npc$[.@i] = .@npc$[.@i];
+		$@pbctl_label$[.@i] = .@label$[.@i];
+		$@pbctl_type$[.@i] = .@type$[.@i];
+		$@pbctl_map$[.@i] = .@map$[.@i];
+		$@pbctl_prio[.@i] = .@prio[.@i];
+		$@pbctl_actors[.@i] = .@actors[.@i];
+		$@pbctl_sched[.@i] = .@sched[.@i];
+		$@pbctl_enabled[.@i] = .@enabled[.@i];
+	}
+	$@pbctl_count = .@rows;
+	return .@rows;
+}
+
+function	script	F_PB_DB_ControllerMenu$	{
+	.@rows = callfunc("F_PB_DB_LoadControllerRegistry");
+	.@menu$ = "";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		if (.@menu$ != "")
+			.@menu$ += ":";
+		.@menu$ += $@pbctl_label$[.@i] + " [" + ($@pbctl_enabled[.@i] ? "on" : "off") + "]";
+	}
+	if (.@menu$ == "")
+		.@menu$ = "No controllers";
+	return .@menu$ + ":Cancel";
+}
+
+function	script	F_PB_DB_SetControllerEnabled	{
+	.@key$ = escape_sql(getarg(0));
+	.@enabled = getarg(1, 1);
+	return query_sql(
+		"UPDATE `bot_controller_policy` SET `controller_enabled` = '" + .@enabled + "' "
+		+ "WHERE `controller_key` = '" + .@key$ + "'");
+}
+
+function	script	F_PB_DB_BuildControllerSummary$	{
+	.@index = getarg(0);
+	if (.@index < 0 || .@index >= $@pbctl_count)
+		return "No controller selected.";
+	.@npc$ = $@pbctl_npc$[.@index];
+	callfunc "F_LW_HPC_DefBuildStatus", .@npc$, getvariableofnpc(.enabled, .@npc$);
+	.@summary$ = "[" + $@pbctl_label$[.@index] + "]\n";
+	.@summary$ += "Key / NPC: " + $@pbctl_key$[.@index] + " / " + .@npc$ + "\n";
+	.@summary$ += "Type / Map: " + $@pbctl_type$[.@index] + " / " + $@pbctl_map$[.@index] + "\n";
+	.@summary$ += "Priority / Weight: " + $@pbctl_prio[.@index] + " / " + $@pbctl_actors[.@index] + "\n";
+	.@summary$ += "Scheduler / Enabled: " + ($@pbctl_sched[.@index] ? "yes" : "no") + " / " + ($@pbctl_enabled[.@index] ? "yes" : "no") + "\n";
+	.@summary$ += getvariableofnpc(.status$, .@npc$);
+	return .@summary$;
+}
+
 function	script	F_PB_DB_ReloadControllers	{
 	.@rows = query_sql(
 		"SELECT `controller_npc` "

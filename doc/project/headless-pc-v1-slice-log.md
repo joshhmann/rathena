@@ -2832,3 +2832,54 @@ This slice does not yet add:
 - real vending sessions or NPC shop attachment
 - merchant stock depletion or restock policy
 - a full scripted selftest that explicitly drives the visible reload menu path
+
+## Slice 49: SQL-Driven Scheduler Control Surface
+
+### Goal
+
+Move more scheduler/operator behavior onto the SQL-backed controller registry so
+the control plane is not hardcoded to a fixed controller list in script.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed controller registry loaders and summaries:
+  - `F_PB_DB_LoadControllerRegistry`
+  - `F_PB_DB_ControllerMenu$`
+  - `F_PB_DB_SetControllerEnabled`
+  - `F_PB_DB_BuildControllerSummary$`
+- Updated the visible scheduler NPC to:
+  - build its controller drill-down menu from SQL
+  - toggle `controller_enabled` through the registry
+  - reload the playerbot control plane after controller changes
+- Added a hidden scheduler selftest that:
+  - loads the controller registry
+  - disables `merchant.alberta`
+  - reloads the control plane
+  - verifies the disabled state
+  - re-enables `merchant.alberta`
+  - reloads again
+  - verifies the enabled state was restored
+  - remains disabled by default after validation so startup stays clean
+
+### Validation
+
+- restarted the stack cleanly
+- verified the map-server still reaches online state with the dynamic scheduler
+  surface
+- verified control-plane reload remains available and the scheduler still reads
+  controller membership from SQL
+
+### Deferrals
+
+This slice does not yet add:
+
+- a fully generic SQL-backed operator UI beyond the scheduler/merchant labs
+- scheduler-side create/delete authoring for controller rows
+- migration of all controller content blobs out of script-backed content files

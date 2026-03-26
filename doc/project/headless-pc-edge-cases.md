@@ -865,6 +865,24 @@ Current limits:
 - merchant reload/menu behavior still deserves one explicit end-to-end operator
   smoke pass beyond the startup/runtime checks
 
+### 38. SQL-driven scheduler operator surface
+
+Current support:
+
+- scheduler drill-down now builds from `bot_controller_policy` instead of a
+  hardcoded controller menu
+- controller enable/disable can now be toggled through the SQL-backed registry
+  and followed immediately by a control-plane reload
+- a hidden scheduler selftest exists for registry-driven disable/re-enable of
+  `merchant.alberta`, but it is disabled by default so startup stays clean
+
+Current limits:
+
+- the operator surface is still a dev harness, not a generalized admin console
+- controller row authoring still happens through checked-in SQL, not runtime UI
+- content sets like talks/emotes/anchors remain script-backed even though
+  controller policy and slot membership are SQL-backed
+
 ### 36. Fresh-restart ambient stability
 
 Current support:
