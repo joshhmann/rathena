@@ -1963,6 +1963,7 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@now = gettimetick(2);
 		.@last_start = getd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$");
 		.@last_stop = getd("$LWHS" + .@seed + "_LT$" + .@controller$ + "$");
+		.@last_sel = getd("$LWHS" + .@seed + "_LR$" + .@controller$ + "$");
 		.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
 		.@live_pending = callfunc("F_LW_HPC_DefCountPending", .@controller$);
 		.@live_parked = callfunc("F_LW_HPC_DefCountParked", .@controller$);
@@ -1980,6 +1981,8 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 			+ ", parked " + .@live_parked + ", unassigned " + .@live_unassigned
 			+ ", decision " + (.@decision$ == "" ? "<none>" : .@decision$) + ".";
 		.@summary$ += "\n  sticky/cooldown: " + .@min_active + "ms / " + .@restart_cd + "ms";
+		if (.@last_sel > 0)
+			.@summary$ += ", last picked " + ((.@now - .@last_sel) * 1000) + "ms ago";
 		if (.@last_start > 0 && .@active)
 			.@summary$ += ", up " + ((.@now - .@last_start) * 1000) + "ms";
 		if (.@last_stop > 0 && !.@active)
@@ -2044,41 +2047,60 @@ function	script	F_LW_HPC_SchedRun	{
 	}
 
 	for (.@prio = 100; .@prio >= 0 && .@started < .@cap; --.@prio) {
-		for (.@i = 0; .@i < .@count && .@started < .@cap; ++.@i) {
-			if (getd("$LWHS" + .@seed + "_PR[" + .@i + "]") != .@prio)
-				continue;
-			if (getd("$LWHS" + .@seed + "_WN[" + .@i + "]"))
-				continue;
+		while (.@started < .@cap) {
+			.@pick = -1;
+			.@pick_sel = 2147483647;
+			for (.@i = 0; .@i < .@count; ++.@i) {
+				if (getd("$LWHS" + .@seed + "_PR[" + .@i + "]") != .@prio)
+					continue;
+				if (getd("$LWHS" + .@seed + "_WN[" + .@i + "]"))
+					continue;
+				.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
+				.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
+				.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
+				.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
+				.@restart_cd = getd("$LWHS" + .@seed + "_RC[" + .@i + "]");
+				.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
+				.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
+				.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
+				.@last_stop = getd("$LWHS" + .@seed + "_LT$" + .@controller$ + "$");
+				.@last_sel = getd("$LWHS" + .@seed + "_LR$" + .@controller$ + "$");
+				if (!callfunc("F_LW_HPC_ControllerShouldRun", .@controller$)) {
+					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: controller gate");
+					continue;
+				}
+				.@users = getmapusers(.@map$);
+				if (.@users < .@need) {
+					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: users " + .@users + "/" + .@need);
+					continue;
+				}
+				if (.@active_actors + .@actors > .@actor_cap) {
+					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: actor cap " + .@active_actors + "/" + .@actor_cap);
+					continue;
+				}
+				if (.@map_cap > 0 && .@map_used + .@actors > .@map_cap) {
+					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: " + .@map$ + " map cap " + .@map_used + "/" + .@map_cap);
+					continue;
+				}
+				if (!getvariableofnpc(.enabled, .@controller$) && .@restart_cd > 0 && .@last_stop > 0 && ((.@now - .@last_stop) * 1000) < .@restart_cd) {
+					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: cooldown " + ((.@now - .@last_stop) * 1000) + "/" + .@restart_cd);
+					continue;
+				}
+				if (.@last_sel < 1)
+					.@last_sel = 0;
+				if (.@pick < 0 || .@last_sel < .@pick_sel) {
+					.@pick = .@i;
+					.@pick_sel = .@last_sel;
+				}
+			}
+			if (.@pick < 0)
+				break;
+			.@i = .@pick;
 			.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 			.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
-			.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
 			.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
-			.@restart_cd = getd("$LWHS" + .@seed + "_RC[" + .@i + "]");
-			.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 			.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
 			.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
-			.@last_stop = getd("$LWHS" + .@seed + "_LT$" + .@controller$ + "$");
-			if (!callfunc("F_LW_HPC_ControllerShouldRun", .@controller$)) {
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: controller gate");
-				continue;
-			}
-			.@users = getmapusers(.@map$);
-			if (.@users < .@need) {
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: users " + .@users + "/" + .@need);
-				continue;
-			}
-			if (.@active_actors + .@actors > .@actor_cap) {
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: actor cap " + .@active_actors + "/" + .@actor_cap);
-				continue;
-			}
-			if (.@map_cap > 0 && .@map_used + .@actors > .@map_cap) {
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: " + .@map$ + " map cap " + .@map_used + "/" + .@map_cap);
-				continue;
-			}
-			if (!getvariableofnpc(.enabled, .@controller$) && .@restart_cd > 0 && .@last_stop > 0 && ((.@now - .@last_stop) * 1000) < .@restart_cd) {
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: cooldown " + ((.@now - .@last_stop) * 1000) + "/" + .@restart_cd);
-				continue;
-			}
 			if (!getvariableofnpc(.enabled, .@controller$)) {
 				callfunc "F_LW_HPC_ControllerStart", .@controller$;
 				setd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$", .@now);
@@ -2095,6 +2117,7 @@ function	script	F_LW_HPC_SchedRun	{
 					setd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$", .@now);
 				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: steady");
 			}
+			setd("$LWHS" + .@seed + "_LR$" + .@controller$ + "$", .@now);
 			.@started++;
 			.@active_actors += .@actors;
 			setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", .@map_used + .@actors);

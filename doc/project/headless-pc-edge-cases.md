@@ -969,6 +969,24 @@ Current limits:
 - controller cooldowns do not yet account for external operator intent beyond
   the current enabled/disabled policy rows
 
+### 43. Equal-priority scheduler fairness
+
+Current support:
+
+- for equal-priority controllers that are otherwise eligible, the scheduler now
+  prefers the least-recently-selected controller instead of always taking the
+  first one in registry order
+- scheduler status surfaces how long ago a controller was last picked
+- sticky minimum-runtime and restart-cooldown policy still win before fairness
+  is considered
+
+Current limits:
+
+- fairness history is still in-memory only
+- selection is least-recently-picked, not weighted or randomized
+- fairness currently operates at controller granularity, not per-slot or
+  per-bot identity granularity
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

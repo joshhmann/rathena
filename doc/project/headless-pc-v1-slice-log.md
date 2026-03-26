@@ -3122,3 +3122,40 @@ This slice does not yet add:
 - scheduler history persistence across restart
 - weighted rotation between equally eligible controllers
 - richer demand models beyond current map-user gating and routine windows
+
+## Slice 54: Scheduler Fairness Rotation
+
+### Goal
+
+Stop the scheduler from favoring the same equal-priority controller forever by
+adding a simple fairness policy for otherwise equally eligible choices.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added least-recently-selected tie-breaking inside the scheduler for
+  equal-priority controller choices
+- the scheduler now tracks per-controller last-picked time in memory
+- scheduler status now reports:
+  - last-picked age
+- sticky minimum-runtime retention and restart cooldown still apply first; the
+  new fairness lane only affects the remaining equal-priority candidates
+
+### Validation
+
+- restarted the stack cleanly
+- verified no new scheduler parser/runtime errors were introduced
+- OpenKore baseline still logs in and reaches Alberta after the fairness change
+
+### Deferrals
+
+This slice does not yet add:
+
+- weighted randomized selection
+- fairness history persistence across restart
+- fairness at the individual bot-slot level inside a controller
