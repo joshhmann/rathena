@@ -921,6 +921,32 @@ Current limits:
   scheduler set
 - older demo-only patrol controllers still exist as historical script examples
 
+### 41. Merchant runtime shop proxy
+
+Current support:
+
+- merchant-capable recurring bots can now expose a real NPC shop surface while
+  active
+- the Alberta merchant lane now uses SQL-backed stock rows through:
+  - `bot_merchant_stock_item`
+- the controller can materialize stock into a live shop NPC and show/hide a
+  clickable proxy with the merchant's configured shop name
+- the merchant selftest now validates:
+  - spawn
+  - merchant bootstrap
+  - shop materialization
+  - park
+  - control-plane reload
+
+Current limits:
+
+- this is still the approved "merchant actor plus NPC shop interface" pattern,
+  not true vending-player emulation
+- stock authoring is SQL-backed but still checked in, not operator-authored
+- price behavior is still simple per-item pricing, not a richer market model
+- only the first Alberta merchant proof is wired; more merchant controllers
+  still need migration onto the same runtime pattern
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

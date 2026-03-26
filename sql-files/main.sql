@@ -1422,6 +1422,20 @@ CREATE TABLE IF NOT EXISTS `bot_merchant_state` (
   KEY `enabled` (`enabled`)
 ) ENGINE=InnoDB;
 
+--
+-- Table structure for table `bot_merchant_stock_item`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_merchant_stock_item` (
+  `stock_profile` varchar(64) NOT NULL default '',
+  `item_index` smallint(5) unsigned NOT NULL default '0',
+  `item_id` int(10) unsigned NOT NULL default '0',
+  `stock_amount` int(10) unsigned NOT NULL default '0',
+  `sell_price` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY (`stock_profile`,`item_index`),
+  KEY `item_id` (`item_id`)
+) ENGINE=InnoDB;
+
 INSERT INTO `bot_controller_policy`
   (`controller_key`, `controller_npc`, `controller_label`, `controller_type`, `map_name`, `scheduler_enabled`, `controller_enabled`, `gate_users`, `priority`, `actor_weight`, `tick_ms`, `start_min_ms`, `start_max_ms`, `grace_ms`, `stop_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`)
 VALUES
@@ -1576,3 +1590,14 @@ VALUES
   ('patrol.prontera.loop', 1, 163, 186),
   ('patrol.prontera.loop', 2, 163, 189),
   ('patrol.prontera.loop', 3, 160, 189);
+
+DELETE FROM `bot_merchant_stock_item`
+WHERE `stock_profile` IN ('alberta_curios');
+
+INSERT INTO `bot_merchant_stock_item`
+  (`stock_profile`, `item_index`, `item_id`, `stock_amount`, `sell_price`)
+VALUES
+  ('alberta_curios', 0, 909, 60, 0),
+  ('alberta_curios', 1, 910, 30, 0),
+  ('alberta_curios', 2, 911, 20, 0),
+  ('alberta_curios', 3, 912, 10, 0);

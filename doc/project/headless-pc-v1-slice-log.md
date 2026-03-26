@@ -2998,3 +2998,72 @@ This slice does not yet add:
 - migration of older demo-only script patrol routes outside the new control
   plane proof
 - scheduler activation of the patrol controller by default
+
+## Slice 52: Merchant Runtime Shop Proxy
+
+### Goal
+
+Move the merchant lane past metadata/bootstrap only by giving the Alberta
+merchant bot a real shop-facing runtime surface:
+
+- SQL-backed merchant stock
+- a live NPC shop proxy
+- controller-driven open/close behavior
+
+This stays within the approved project pattern of visible merchant actors plus
+NPC shop interfaces, not fake vending-player emulation.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_merchant_runtime.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed merchant stock table:
+  - `bot_merchant_stock_item`
+- Added shared merchant stock/shop helpers:
+  - `F_PB_DB_LoadMerchantStockProfile`
+  - `F_PB_DB_ApplyMerchantShop`
+  - `F_PB_DB_ShowMerchantProxy`
+  - `F_PB_DB_HideMerchantProxy`
+- Extended the Alberta merchant controller so open merchants now:
+  - bootstrap merchant/cart state
+  - populate a real shop NPC from SQL stock rows
+  - expose a visible clickable proxy at the live stall position
+- Added the first live player-facing merchant proxy/shop pair:
+  - `Harbor Curios Counter#pb`
+  - `pb_merchant_alberta_shop`
+- Extended the merchant selftest so it now validates shop materialization in
+  addition to spawn/bootstrap/park/reload
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_merchant_runtime.sql`
+- restarted the stack cleanly
+- verified the merchant stock rows exist in SQL:
+  - `bot_merchant_stock_item` contains `alberta_curios`
+- OpenKore still logs in and reaches Alberta after the slice
+- merchant selftest now reports a full runtime pass:
+  - `base_ok=1`
+  - `spawn_ok=1`
+  - `bootstrap_ok=1`
+  - `shop_ok=1`
+  - `park_ok=1`
+  - `reload_ok=1`
+  - `result=1`
+
+### Deferrals
+
+This slice does not yet add:
+
+- true vending-player runtime
+- merchant stock authoring UI
+- price-profile logic beyond per-item SQL sell prices
+- multi-stall merchant controller support beyond the first Alberta proof

@@ -804,6 +804,74 @@ function	script	F_PB_MerchantBootstrapByBotKey	{
 	return callfunc("F_PB_CFG_LoadStockProfileToCart", $@pbbot_stock_profile$, $@pbbot_account_id);
 }
 
+function	script	F_PB_DB_LoadMerchantStockProfile	{
+	.@profile$ = escape_sql(getarg(0));
+	deletearray $@pbm_item_id[0], getarraysize($@pbm_item_id);
+	deletearray $@pbm_stock[0], getarraysize($@pbm_stock);
+	deletearray $@pbm_price[0], getarraysize($@pbm_price);
+	$@pbm_count = query_sql(
+		"SELECT `item_id`, `stock_amount`, `sell_price` "
+		+ "FROM `bot_merchant_stock_item` "
+		+ "WHERE `stock_profile` = '" + .@profile$ + "' "
+		+ "ORDER BY `item_index`",
+		$@pbm_item_id, $@pbm_stock, $@pbm_price);
+	return $@pbm_count;
+}
+
+function	script	F_PB_DB_ApplyMerchantShop	{
+	.@stock_profile$ = getarg(0);
+	.@shop_npc$ = getarg(1);
+	.@count = callfunc("F_PB_DB_LoadMerchantStockProfile", .@stock_profile$);
+	if (.@count < 1)
+		return 0;
+	if (.@count == 1)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1));
+	if (.@count == 2)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1));
+	if (.@count == 3)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1));
+	if (.@count == 4)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1));
+	if (.@count == 5)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1), $@pbm_item_id[4], ($@pbm_price[4] > 0 ? $@pbm_price[4] : -1));
+	if (.@count == 6)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1), $@pbm_item_id[4], ($@pbm_price[4] > 0 ? $@pbm_price[4] : -1), $@pbm_item_id[5], ($@pbm_price[5] > 0 ? $@pbm_price[5] : -1));
+	if (.@count == 7)
+		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1), $@pbm_item_id[4], ($@pbm_price[4] > 0 ? $@pbm_price[4] : -1), $@pbm_item_id[5], ($@pbm_price[5] > 0 ? $@pbm_price[5] : -1), $@pbm_item_id[6], ($@pbm_price[6] > 0 ? $@pbm_price[6] : -1));
+	return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1), $@pbm_item_id[4], ($@pbm_price[4] > 0 ? $@pbm_price[4] : -1), $@pbm_item_id[5], ($@pbm_price[5] > 0 ? $@pbm_price[5] : -1), $@pbm_item_id[6], ($@pbm_price[6] > 0 ? $@pbm_price[6] : -1), $@pbm_item_id[7], ($@pbm_price[7] > 0 ? $@pbm_price[7] : -1));
+}
+
+function	script	F_PB_DB_ShowMerchantProxy	{
+	.@bot_key$ = getarg(0);
+	.@proxy_npc$ = getarg(1);
+	.@shop_npc$ = getarg(2);
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return 0;
+	.@applied = callfunc("F_PB_DB_ApplyMerchantShop", $@pbbot_stock_profile$, .@shop_npc$);
+	if (.@applied < 1)
+		return 0;
+	.@map$ = $@pbbot_market_map$;
+	.@x = $@pbbot_market_x;
+	.@y = $@pbbot_market_y;
+	if ($@pbbot_char_id > 0 && headlesspc_status($@pbbot_char_id) == 2) {
+		.@live_map$ = headlesspc_map($@pbbot_char_id);
+		if (.@live_map$ != "") {
+			.@map$ = .@live_map$;
+			.@x = headlesspc_x($@pbbot_char_id);
+			.@y = headlesspc_y($@pbbot_char_id);
+		}
+	}
+	setnpcdisplay .@proxy_npc$, ($@pbbot_shop_name$ == "" ? $@pbbot_name$ : $@pbbot_shop_name$);
+	movenpc .@proxy_npc$, .@x, .@y;
+	hideoffnpc .@proxy_npc$;
+	return .@applied;
+}
+
+function	script	F_PB_DB_HideMerchantProxy	{
+	hideonnpc getarg(0);
+	return 1;
+}
+
 function	script	F_PB_DB_ApplyControllerPolicy	{
 	.@controller$ = getarg(0);
 	.@key$ = escape_sql(getarg(1));

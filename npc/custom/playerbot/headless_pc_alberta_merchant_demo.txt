@@ -28,10 +28,15 @@ alberta,148,137,4	script	Headless Alberta Merchants	4_F_KAFRA6,{
 OnInit:
 	.owner$ = strnpcinfo(3);
 	.policy_key$ = "merchant.alberta";
+	.proxy_npc$ = "Harbor Curios Counter#pb";
+	.shop_npc$ = "pb_merchant_alberta_shop";
+	.active_bot_key$ = "";
+	.active_char_id = 0;
 	.enabled = 0;
 	.running = 0;
 	.tick_pending = 0;
 	.loaded = 0;
+	hideonnpc .proxy_npc$;
 	end;
 
 OnPrime:
@@ -75,6 +80,9 @@ OnStop:
 	.tick_pending = 0;
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
+	.active_bot_key$ = "";
+	.active_char_id = 0;
+	callfunc "F_PB_DB_HideMerchantProxy", .proxy_npc$;
 	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
 		callsub S_CloseMerchant, .@i;
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
@@ -104,6 +112,9 @@ S_TickMerchant:
 			callfunc "F_PB_MerchantBootstrapByBotKey", .@bot_key$;
 		callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id, 1, "open";
 		callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id, "merchanting", "active", "merchant.alberta";
+		.active_bot_key$ = .@bot_key$;
+		.active_char_id = .@char_id;
+		callfunc "F_PB_DB_ShowMerchantProxy", .@bot_key$, .proxy_npc$, .shop_npc$;
 	}
 	return;
 
@@ -118,6 +129,11 @@ S_CloseMerchant:
 	.@open_state$ = "scheduled";
 	if (.@bot_key$ != "" && callfunc("F_PB_DB_LoadBotSummary", .@bot_key$) && !$@pbbot_merchant_enabled)
 		.@open_state$ = "closed";
+	if (.active_char_id == .@char_id) {
+		.active_bot_key$ = "";
+		.active_char_id = 0;
+		callfunc "F_PB_DB_HideMerchantProxy", .proxy_npc$;
+	}
 	callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id, 0, .@open_state$;
 	callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id, "offline", "parked", "";
 	if (headlesspc_status(.@char_id) == 2)
@@ -133,3 +149,26 @@ S_Prime:
 	.loaded = 1;
 	return;
 }
+
+alberta,52,242,4	script	Harbor Curios Counter#pb	4_F_01,{
+	.@controller$ = "HeadlessAlbertaMerchantController";
+	.@bot_key$ = getvariableofnpc(.active_bot_key$, .@controller$);
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$) || !$@pbbot_merchant_enabled || $@pbbot_open_state$ != "open") {
+		mes "[Harbor Curios]";
+		mes "The stall is closed right now.";
+		close;
+	}
+	mes "[" + ($@pbbot_shop_name$ == "" ? "Harbor Curios" : $@pbbot_shop_name$) + "]";
+	mes "Browse the harbor stock while it's out.";
+	next;
+	switch(select("Browse wares:Leave")) {
+	case 1:
+		close2;
+		callshop "pb_merchant_alberta_shop", 1;
+		end;
+	default:
+		close;
+	}
+}
+
+-	shop	pb_merchant_alberta_shop	-1,909:-1

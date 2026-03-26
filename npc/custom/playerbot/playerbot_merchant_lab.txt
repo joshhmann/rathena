@@ -129,6 +129,7 @@ OnPCLoginEvent:
 	.@base_ok = (.@found && $@pbbot_merchant_policy$ == "stall_day" && $@pbbot_market_map$ == "alberta");
 	.@spawn_ok = 0;
 	.@bootstrap_ok = 0;
+	.@shop_ok = 0;
 	if (.@found && $@pbbot_char_id > 0) {
 		if (headlesspc_status($@pbbot_char_id) == 2)
 			headlesspc_remove($@pbbot_char_id);
@@ -158,6 +159,11 @@ OnPCLoginEvent:
 				&& cartcountitem(910, $@pbbot_account_id) >= 30
 				&& cartcountitem(911, $@pbbot_account_id) >= 20
 				&& cartcountitem(912, $@pbbot_account_id) >= 10);
+			if (.@bootstrap_ok) {
+				callfunc "F_PB_DB_SetMerchantState", .bot_key$, 1, "open";
+				.@shop_ok = (callfunc("F_PB_DB_ShowMerchantProxy", .bot_key$, "Harbor Curios Counter#pb", "pb_merchant_alberta_shop") > 0);
+				callfunc "F_PB_DB_HideMerchantProxy", "Harbor Curios Counter#pb";
+			}
 		}
 	}
 	.@park_ok = 0;
@@ -176,7 +182,7 @@ OnPCLoginEvent:
 		&& getvariableofnpc(.loaded, "HeadlessPronteraSocialController")
 		&& getvariableofnpc(.loaded, "HeadlessAlbertaSocialController")
 		&& getvariableofnpc(.loaded, "HeadlessAlbertaMerchantController"));
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@park_ok && .@reload_ok) + ".";
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@park_ok && .@reload_ok) + ".";
 	end;
 }
 

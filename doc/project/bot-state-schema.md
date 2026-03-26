@@ -252,7 +252,34 @@ Status:
 - migration artifact:
   `sql-files/upgrades/upgrade_20260325_playerbot_merchant_state.sql`
 
-### 7. `bot_inventory`
+### 7. `bot_merchant_stock_item`
+
+One or more rows per merchant stock profile.
+
+Committed fields:
+
+- `stock_profile`
+- `item_index`
+- `item_id`
+- `stock_amount`
+- `sell_price`
+
+Purpose:
+
+- moves merchant stock definition out of script config and into SQL-backed
+  recurring data
+- supports the approved merchant-runtime pattern of visible merchant actors
+  plus real NPC shop interfaces
+- gives merchant-capable recurring bots a stable stock identity without
+  pretending they are true vending-player sessions
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_merchant_runtime.sql`
+
+### 8. `bot_inventory`
 
 Deferred but expected if commerce or party support becomes real.
 
