@@ -800,6 +800,67 @@ function	script	F_PB_DB_LoadSchedulerControllers	{
 	return .@rows;
 }
 
+function	script	F_PB_DB_ReloadControllers	{
+	.@rows = query_sql(
+		"SELECT `controller_npc` "
+		+ "FROM `bot_controller_policy` WHERE `controller_enabled` = 1 "
+		+ "ORDER BY `priority` DESC, `controller_key`",
+		.@npc$);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		donpcevent .@npc$[.@i] + "::OnReload";
+	return .@rows;
+}
+
+function	script	F_PB_DB_ReconcileMerchantRuntime	{
+	.@rows = query_sql(
+		"SELECT p.`bot_key`, l.`char_id` "
+		+ "FROM `bot_profile` p "
+		+ "JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
+		+ "JOIN `bot_merchant_state` m ON m.`bot_id` = p.`bot_id` "
+		+ "WHERE p.`status` = 'active' AND l.`link_status` = 'linked' "
+		+ "ORDER BY p.`bot_id`",
+		.@bot_key$, .@char_id);
+	.@touched = 0;
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$[.@i]))
+			continue;
+		.@should_open = ($@pbbot_merchant_enabled
+			&& $@pbbot_open_state$ != "closed"
+			&& callfunc("F_LW_IsHourInWindow", $@pbbot_merchant_start, $@pbbot_merchant_end));
+		if (.@should_open) {
+			if (headlesspc_status(.@char_id[.@i]) == 2) {
+				callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id[.@i], 1, "open";
+				callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id[.@i], "merchanting", "active", "merchant.alberta";
+				.@touched++;
+			}
+			continue;
+		}
+		if ($@pbbot_merchant_enabled)
+			callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id[.@i], 1, "scheduled";
+		else
+			callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id[.@i], 0, "closed";
+		if (headlesspc_status(.@char_id[.@i]) == 2)
+			headlesspc_remove(.@char_id[.@i]);
+		callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id[.@i], "offline", "parked", "";
+		.@touched++;
+	}
+	$@pbctl_merchants = .@touched;
+	return .@touched;
+}
+
+function	script	F_PB_DB_ReloadControlPlane	{
+	.@scheduler$ = getarg(0, "");
+	.@pools = callfunc("F_PB_DB_LoadAllPools");
+	.@controllers = callfunc("F_PB_DB_ReloadControllers");
+	.@merchants = callfunc("F_PB_DB_ReconcileMerchantRuntime");
+	if (.@scheduler$ != "")
+		donpcevent .@scheduler$ + "::OnReload";
+	$@pbctl_pools = .@pools;
+	$@pbctl_ctrls = .@controllers;
+	$@pbctl_merchants = .@merchants;
+	return .@pools;
+}
+
 function	script	F_PB_CFG_DefReset	{
 	.@key$ = getarg(0);
 	setd("$PBCDEF_" + .@key$ + "_AC", 0);

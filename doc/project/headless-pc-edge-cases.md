@@ -842,6 +842,29 @@ Current limits:
 - a fresh bootstrap or upgrade now seeds the controller rows, but broader
   controller authoring is still a checked-in SQL workflow, not an operator UI
 
+### 37. Merchant runtime normalization and reload
+
+Current support:
+
+- the merchant bootstrap lane now depends on source-backed script buildins for
+  cart seeding:
+  - `cartgetitem`
+  - `clearcart`
+- SQL-backed playerbot controllers can now be re-primed through a shared
+  control-plane reload path
+- the world scheduler can rebuild its active controller list after reload
+- merchant runtime state is reconciled on startup so disabled or off-hours
+  merchants are parked instead of surviving restart as stale active actors
+
+Current limits:
+
+- control-plane reload is currently exposed through dev/operator surfaces, not a
+  user-facing workflow
+- merchant normalization currently reasons from merchant policy and hour window,
+  not live vending session state
+- merchant reload/menu behavior still deserves one explicit end-to-end operator
+  smoke pass beyond the startup/runtime checks
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

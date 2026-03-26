@@ -2767,3 +2767,68 @@ This slice does not yet add:
 - live vending sessions or NPC shop attachment for merchant bots
 - merchant stock depletion or restock policy
 - full OpenKore end-to-end verification of the merchant controller path
+
+## Slice 48: Merchant Control-Plane Hardening
+
+### Goal
+
+Harden the merchant runtime lane so it no longer depends on untracked script
+helpers or restart-only state refresh, and make SQL-backed controller/pool
+changes reloadable without rebuilding the whole playerbot layer.
+
+### Files Touched
+
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added source-backed script buildins required by the merchant bootstrap lane:
+  - `cartgetitem`
+  - `clearcart`
+- Added SQL-backed control-plane reload helpers in the shared living-world
+  helper layer:
+  - `F_PB_DB_ReloadControllers`
+  - `F_PB_DB_ReconcileMerchantRuntime`
+  - `F_PB_DB_ReloadControlPlane`
+- Added `OnReload` support to the active DB-backed controllers so policy, slot,
+  and pool changes can be re-primed cleanly without a full restart.
+- Added scheduler reload support so the world scheduler can rebuild its
+  controller list from SQL after a control-plane refresh.
+- Updated the visible scheduler and merchant lab NPCs with a control-plane reload
+  operator path.
+- Added merchant runtime normalization on startup:
+  - merchants that are disabled or outside their open window are now parked back
+    down instead of lingering active through generic `headless_pc` restore
+
+### Validation
+
+- rebuilt `map-server` successfully after reintroducing the merchant cart
+  buildins
+- restarted the stack cleanly with `bash /root/setup_dev.sh restart`
+- verified there are no fresh startup errors for:
+  - unknown script commands
+  - missing `cartgetitem` / `clearcart`
+  - `buildin_addtimer: fatal error ! player not attached!`
+- OpenKore still logs in cleanly and reaches Alberta on the updated runtime
+- confirmed startup merchant normalization runs:
+  - `playerbot_merchant_reconcile: touched=12`
+- confirmed the previously stale merchant bot runtime row now settles back to:
+  - `current_state = offline`
+  - `park_state = parked`
+  when the merchant is closed
+
+### Deferrals
+
+This slice does not yet add:
+
+- real vending sessions or NPC shop attachment
+- merchant stock depletion or restock policy
+- a full scripted selftest that explicitly drives the visible reload menu path

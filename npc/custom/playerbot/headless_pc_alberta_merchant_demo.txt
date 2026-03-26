@@ -38,6 +38,15 @@ OnPrime:
 	callsub S_Prime;
 	end;
 
+OnReload:
+	.tick_pending = 0;
+	deltimer strnpcinfo(3) + "::OnTick";
+	.loaded = 0;
+	callsub S_Prime;
+	if (.enabled)
+		callfunc "F_LW_HPC_ControllerQueueTick", strnpcinfo(3), 0;
+	end;
+
 OnTick:
 	if (.running)
 		end;

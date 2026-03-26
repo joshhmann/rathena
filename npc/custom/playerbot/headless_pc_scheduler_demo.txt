@@ -3,7 +3,7 @@
 prontera,148,183,4	script	Headless Scheduler	4_M_MANAGER,{
 	.controller$ = "HeadlessWorldScheduler";
 	mes "[Headless Scheduler]";
-	switch(select("Start scheduler:Stop scheduler:Status:Controller drill-down:Cancel")) {
+	switch(select("Start scheduler:Stop scheduler:Status:Controller drill-down:Reload control plane:Cancel")) {
 	case 1:
 		callfunc "F_PB_DB_LoadAllPools";
 		callfunc "F_LW_HPC_SchedStart", .controller$;
@@ -36,6 +36,11 @@ prontera,148,183,4	script	Headless Scheduler	4_M_MANAGER,{
 		mes "[" + .@target$ + "]";
 		mes getvariableofnpc(.status$, .@target$);
 		close;
+	case 5:
+		callfunc "F_PB_DB_ReloadControlPlane", .controller$;
+		mes "Reloaded playerbot control plane.";
+		mes "Pools: " + $@pbctl_pools + " loaded. Controllers: " + $@pbctl_ctrls + " re-primed.";
+		close;
 	default:
 		close;
 	}
@@ -46,13 +51,15 @@ OnInit:
 	.enabled = 0;
 	.running = 0;
 	.tick_pending = 0;
-	callfunc "F_LW_HPC_SchedReset", strnpcinfo(3);
-	callfunc "F_LW_HPC_SchedSetTickMs", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sw.tm", 5000);
-	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sw.cc", 2);
-	callfunc "F_LW_HPC_SchedSetActorCap", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sw.ac", 5);
-	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "prontera", callfunc("F_PB_CFG_GetInt", "sw.mp.ac", 5);
-	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "alberta", callfunc("F_PB_CFG_GetInt", "sw.ma.ac", 5);
-	callfunc "F_PB_DB_LoadSchedulerControllers", strnpcinfo(3);
+	callsub S_Prime;
+	end;
+
+OnReload:
+	.tick_pending = 0;
+	deltimer strnpcinfo(3) + "::OnTick";
+	callsub S_Prime;
+	if (.enabled)
+		callfunc "F_LW_HPC_SchedQueueTick", strnpcinfo(3), 0;
 	end;
 
 OnTick:
@@ -75,5 +82,15 @@ OnStop:
 	donpcevent "HeadlessPronteraSocialController::OnStop";
 	donpcevent "HeadlessAlbertaSocialController::OnStop";
 	donpcevent "HeadlessAlbertaMerchantController::OnStop";
+	return;
+
+S_Prime:
+	callfunc "F_LW_HPC_SchedReset", strnpcinfo(3);
+	callfunc "F_LW_HPC_SchedSetTickMs", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sw.tm", 5000);
+	callfunc "F_LW_HPC_SchedSetCap", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sw.cc", 2);
+	callfunc "F_LW_HPC_SchedSetActorCap", strnpcinfo(3), callfunc("F_PB_CFG_GetInt", "sw.ac", 5);
+	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "prontera", callfunc("F_PB_CFG_GetInt", "sw.mp.ac", 5);
+	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "alberta", callfunc("F_PB_CFG_GetInt", "sw.ma.ac", 5);
+	callfunc "F_PB_DB_LoadSchedulerControllers", strnpcinfo(3);
 	return;
 }

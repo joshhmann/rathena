@@ -3,7 +3,7 @@ alberta,148,135,4	script	Playerbot Merchant Lab	4_F_KAFRA5,{
 	mes "Inspect and toggle persistent merchant bot state.";
 	next;
 
-	switch(select("Quick Provision Alberta Merchant:Inspect Merchant Bot:Enable Merchant:Disable Merchant:Set Merchant Open:Close Merchant:Start merchant controller:Stop merchant controller:Reload SQL Pools:Close")) {
+	switch(select("Quick Provision Alberta Merchant:Inspect Merchant Bot:Enable Merchant:Disable Merchant:Set Merchant Open:Close Merchant:Start merchant controller:Stop merchant controller:Reload control plane:Close")) {
 	case 1:
 		.@bot_id = playerbot_provision("quick_merc_alb", "PBQMerchantA", "merchant.alberta.stall");
 		if (!.@bot_id) {
@@ -70,9 +70,10 @@ alberta,148,135,4	script	Playerbot Merchant Lab	4_F_KAFRA5,{
 		close;
 
 	case 9:
-		.@loaded = callfunc("F_PB_DB_LoadAllPools");
+		callfunc "F_PB_DB_ReloadControlPlane", "HeadlessWorldScheduler";
 		mes "[Playerbot Merchant Lab]";
-		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
+		mes "Reloaded playerbot control plane.";
+		mes "Pools: " + $@pbctl_pools + ". Controllers: " + $@pbctl_ctrls + ". Merchant reconciles: " + $@pbctl_merchants + ".";
 		close;
 
 	default:
@@ -170,6 +171,19 @@ OnPCLoginEvent:
 			}
 		}
 	}
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " park_ok=" + .@park_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@park_ok) + ".";
+	callfunc "F_PB_DB_ReloadControlPlane", "HeadlessWorldScheduler";
+	.@reload_ok = ($@pbctl_pools > 0 && $@pbctl_ctrls >= 3
+		&& getvariableofnpc(.loaded, "HeadlessPronteraSocialController")
+		&& getvariableofnpc(.loaded, "HeadlessAlbertaSocialController")
+		&& getvariableofnpc(.loaded, "HeadlessAlbertaMerchantController"));
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@park_ok && .@reload_ok) + ".";
+	end;
+}
+
+-	script	PlayerbotMerchantRuntimeNormalize	FAKE_NPC,{
+OnInterIfInitOnce:
+	sleep 2500;
+	.@count = callfunc("F_PB_DB_ReconcileMerchantRuntime");
+	debugmes "playerbot_merchant_reconcile: touched=" + .@count + ".";
 	end;
 }

@@ -8190,6 +8190,94 @@ BUILDIN_FUNC(getitem2)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+/*==========================================
+ * cartgetitem <item id>,<amount>{,<account ID>};
+ * cartgetitem "<item name>",<amount>{,<account ID>};
+ *------------------------------------------*/
+BUILDIN_FUNC(cartgetitem)
+{
+	int32 get_count, i;
+	t_itemid nameid;
+	uint16 amount;
+	map_session_data* sd;
+	std::shared_ptr<item_data> id;
+
+	if( script_isstring(st, 2) ) {
+		const char *name = script_getstr(st, 2);
+
+		id = item_db.searchname( name );
+
+		if( id == nullptr ){
+			ShowError("buildin_cartgetitem: Nonexistant item %s requested.\n", name);
+			return SCRIPT_CMD_FAILURE;
+		}
+		nameid = id->nameid;
+	} else {
+		nameid = script_getnum(st, 2);
+
+		id = item_db.find( nameid );
+
+		if( id == nullptr ){
+			ShowError("buildin_cartgetitem: Nonexistant item %u requested.\n", nameid);
+			return SCRIPT_CMD_FAILURE;
+		}
+	}
+
+	if( (amount = script_getnum(st,3)) <= 0 )
+		return SCRIPT_CMD_SUCCESS;
+
+	script_mapid2sd(4,sd);
+	if( sd == nullptr )
+		return SCRIPT_CMD_SUCCESS;
+	if( !pc_iscarton(sd) ) {
+		ShowError("buildin_cartgetitem: player doesn't have cart (CID=%d).\n", sd->status.char_id);
+		return SCRIPT_CMD_FAILURE;
+	}
+
+	item it = {};
+	it.nameid = nameid;
+	it.identify = 1;
+	it.bound = BOUND_NONE;
+
+	if( !itemdb_isstackable2( id.get() ) )
+		get_count = 1;
+	else
+		get_count = amount;
+
+	for (i = 0; i < amount; i += get_count)
+	{
+		e_additem_result flag = pc_cart_additem( sd, &it, get_count, LOG_TYPE_SCRIPT );
+
+		if( flag != ADDITEM_SUCCESS ){
+			ShowError( "buildin_cartgetitem: Failed to add the item to player's cart.\n" );
+			return SCRIPT_CMD_FAILURE;
+		}
+	}
+
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * clearcart({<char_id>});
+ *------------------------------------------*/
+BUILDIN_FUNC(clearcart)
+{
+	TBL_PC *sd;
+
+	if (!script_charid2sd(2,sd))
+		return SCRIPT_CMD_FAILURE;
+
+	if (!pc_iscarton(sd))
+		return SCRIPT_CMD_SUCCESS;
+
+	for (int32 i = 0; i < MAX_CART; i++) {
+		if (sd->cart.u.items_cart[i].nameid > 0)
+			pc_cart_delitem(sd, i, sd->cart.u.items_cart[i].amount, 0, LOG_TYPE_SCRIPT);
+	}
+
+	return SCRIPT_CMD_SUCCESS;
+}
+
 /** Gives rental item to player
  * rentitem <item id>,<seconds>{,<account_id>}
  * rentitem "<item name>",<seconds>{,<account_id>}
@@ -28881,6 +28969,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(getitem,"vi?"),
 	BUILDIN_DEF(rentitem,"vi?"),
 	BUILDIN_DEF(rentitem2,"viiiiiiii?"),
+	BUILDIN_DEF(cartgetitem,"vi?"),
 	BUILDIN_DEF(getitem2,"viiiiiiii?"),
 	BUILDIN_DEF(getnameditem,"vv"),
 	BUILDIN_DEF2(grouprandomitem,"groupranditem","i?"),
@@ -28915,6 +29004,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF2(cartcountitem,"cartcountitem2","viiiiiii?"),
 	BUILDIN_DEF(checkweight,"vi*"),
 	BUILDIN_DEF(checkweight2,"rr"),
+	BUILDIN_DEF(clearcart,"?"),
 	BUILDIN_DEF(readparam,"i?"),
 	BUILDIN_DEF(getcharid,"i?"),
 	BUILDIN_DEF(getnpcid,"i?"),
