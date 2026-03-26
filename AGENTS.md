@@ -28,6 +28,24 @@ Current workflow priorities:
 - prove behavior at the right boundary
 - prefer larger coherent slices when the boundary is clear
 - document every non-trivial slice
+- work autonomously through a milestone unless blocked by missing information or a real architectural fork
+- save/push clean milestones frequently so a new convo starts from a real integrated baseline
+
+Current integrated baseline at time of this guide:
+- persistent `headless_pc` lifecycle, restore, reconcile, and visibility are already in
+- scheduler, parked pools, provisioning, role/profile pool assignment, party assist, and merchant state foundations are already in
+- SQL-backed controller registry and merchant control-plane hardening are already in
+
+## Fresh Convo Startup
+When starting a new conversation on this repo:
+
+1. read the repo-local docs listed above
+2. check `git status` and `git log --oneline -n 5`
+3. assume `master` is the latest integrated baseline unless the user explicitly assigns a feature branch
+4. inspect the latest slice in `doc/project/headless-pc-v1-slice-log.md`
+5. continue from the most recent accepted foundation milestone, not from stale plans or generic contributor assumptions
+
+Do not restart architecture from scratch when the repo already contains the answer.
 
 ## Slice Policy
 Every non-trivial slice must leave behind:
@@ -43,6 +61,7 @@ Required slice steps:
 3. validate it
 4. update slice docs
 5. commit focused changes
+6. push the branch or `master` when the slice is accepted
 
 Do not present placeholder state flips, partial behavior, or unproven demos as complete features.
 
@@ -87,6 +106,11 @@ Avoid parallel overlap on:
 - the same SQL schema/upgrade files
 
 If a branch brief exists, stay inside its owned or preferred files.
+
+Main-thread role in parallel work:
+- review and integrate
+- keep shared hotspots coherent
+- reject parallel drift instead of silently merging it
 
 ## Coding And Content Rules
 Follow `.editorconfig`.
