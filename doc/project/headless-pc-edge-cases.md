@@ -987,6 +987,36 @@ Current limits:
 - fairness currently operates at controller granularity, not per-slot or
   per-bot identity granularity
 
+### 44. Restart-blind scheduler fairness and simple gate thresholds
+
+Current support:
+
+- scheduler history is now persisted in SQL through:
+  - `bot_controller_runtime`
+- controller policy now exposes:
+  - `fair_weight`
+  - `demand_users_step`
+  - `demand_priority_step`
+  - `demand_priority_cap`
+- on scheduler prime, persisted last-start / last-stop / last-picked state is
+  loaded back into the runtime scheduler view
+- equal-effective-priority choices now use weighted rotation instead of fixed
+  registry order
+- controllers can gain a bounded demand bonus from surplus map users beyond
+  their gate threshold
+- scheduler status now surfaces:
+  - base + demand = effective priority
+  - fairness weight
+  - demand scaling policy
+  - persisted last-picked timing when available
+
+Current limits:
+
+- demand is still based only on map-user pressure plus routine windows
+- persisted runtime history is scheduler-level, not per-bot or per-slot
+- operator controls are still centered on the scheduler demo/status surface, not
+  a richer dedicated admin UI
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

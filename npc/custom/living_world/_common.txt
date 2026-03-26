@@ -601,6 +601,18 @@ function	script	F_PB_CFG_PoolIndex	{
 	return callfunc("F_PB_CFG_RegisterPool", .@pool$);
 }
 
+function	script	F_PB_CFG_SchedulerKeyIndex	{
+	.@key$ = getarg(0);
+	.@count = getd("$PBCFG_SCH_CT");
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		if (getd("$PBCFG_SCH$[" + .@i + "]") == .@key$)
+			return .@i;
+	}
+	setd("$PBCFG_SCH$[" + .@count + "]", .@key$);
+	setd("$PBCFG_SCH_CT", .@count + 1);
+	return .@count;
+}
+
 function	script	F_PB_CFG_StockProfileIndex	{
 	.@profile$ = getarg(0);
 	.@count = getd("$PBCFG_STOCK_CT");
@@ -921,13 +933,49 @@ function	script	F_PB_DB_LoadControllerDef	{
 function	script	F_PB_DB_LoadSchedulerControllers	{
 	.@scheduler$ = getarg(0);
 	.@rows = query_sql(
-		"SELECT `controller_npc`, `map_name`, `gate_users`, `priority`, `actor_weight`, `min_active_ms`, `restart_cooldown_ms` "
+		"SELECT `controller_key`, `controller_npc`, `map_name`, `gate_users`, `priority`, `actor_weight`, `min_active_ms`, `restart_cooldown_ms`, `fair_weight`, `demand_users_step`, `demand_priority_step`, `demand_priority_cap` "
 		+ "FROM `bot_controller_policy` WHERE `scheduler_enabled` = 1 AND `controller_enabled` = 1 "
 		+ "ORDER BY `priority` DESC, `controller_key`",
-		.@npc$, .@map$, .@gate, .@prio, .@actors, .@min_active, .@restart_cd);
+		.@key$, .@npc$, .@map$, .@gate, .@prio, .@actors, .@min_active, .@restart_cd, .@fair_weight, .@demand_step, .@demand_prio, .@demand_cap);
 	for (.@i = 0; .@i < .@rows; ++.@i)
-		callfunc "F_LW_HPC_SchedAdd", .@scheduler$, .@npc$[.@i], .@map$[.@i], .@gate[.@i], .@prio[.@i], .@actors[.@i], .@min_active[.@i], .@restart_cd[.@i];
+		callfunc "F_LW_HPC_SchedAdd", .@scheduler$, .@key$[.@i], .@npc$[.@i], .@map$[.@i], .@gate[.@i], .@prio[.@i], .@actors[.@i], .@min_active[.@i], .@restart_cd[.@i], .@fair_weight[.@i], .@demand_step[.@i], .@demand_prio[.@i], .@demand_cap[.@i];
 	return .@rows;
+}
+
+function	script	F_PB_DB_LoadSchedulerRuntime	{
+	.@scheduler$ = getarg(0);
+	.@seed = getnpcid(0, .@scheduler$);
+	.@rows = query_sql(
+		"SELECT `controller_key`, `last_started_at`, `last_stopped_at`, `last_selected_at`, `last_decision`, `last_tick_at` "
+		+ "FROM `bot_controller_runtime`",
+		.@key$, .@started, .@stopped, .@selected, .@decision$, .@tick);
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@slot = callfunc("F_PB_CFG_SchedulerKeyIndex", .@key$[.@i]);
+		setd("$LWHS" + .@seed + "_RS[" + .@slot + "]", .@started[.@i]);
+		setd("$LWHS" + .@seed + "_RT[" + .@slot + "]", .@stopped[.@i]);
+		setd("$LWHS" + .@seed + "_RR[" + .@slot + "]", .@selected[.@i]);
+		setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", .@decision$[.@i]);
+		setd("$LWHS" + .@seed + "_RK[" + .@slot + "]", .@tick[.@i]);
+	}
+	return .@rows;
+}
+
+function	script	F_PB_DB_RecordSchedulerRuntime	{
+	.@key$ = escape_sql(getarg(0));
+	.@started = getarg(1, 0);
+	.@stopped = getarg(2, 0);
+	.@selected = getarg(3, 0);
+	.@decision$ = escape_sql(getarg(4, ""));
+	.@tick = getarg(5, 0);
+	return query_sql(
+		"INSERT INTO `bot_controller_runtime` (`controller_key`, `last_started_at`, `last_stopped_at`, `last_selected_at`, `last_decision`, `last_tick_at`) "
+		+ "VALUES ('" + .@key$ + "', '" + .@started + "', '" + .@stopped + "', '" + .@selected + "', '" + .@decision$ + "', '" + .@tick + "') "
+		+ "ON DUPLICATE KEY UPDATE "
+		+ "`last_started_at` = '" + .@started + "', "
+		+ "`last_stopped_at` = '" + .@stopped + "', "
+		+ "`last_selected_at` = '" + .@selected + "', "
+		+ "`last_decision` = '" + .@decision$ + "', "
+		+ "`last_tick_at` = '" + .@tick + "'");
 }
 
 function	script	F_PB_DB_LoadControllerRegistry	{
@@ -1927,13 +1975,20 @@ function	script	F_LW_HPC_SchedAdd	{
 	.@scheduler$ = getarg(0);
 	.@seed = getnpcid(0, .@scheduler$);
 	.@i = getd("$LWHS" + .@seed + "_AC");
-	setd("$LWHS" + .@seed + "_CN$[" + .@i + "]", getarg(1));
-	setd("$LWHS" + .@seed + "_GM$[" + .@i + "]", getarg(2));
-	setd("$LWHS" + .@seed + "_GU[" + .@i + "]", getarg(3));
-	setd("$LWHS" + .@seed + "_PR[" + .@i + "]", getarg(4));
-	setd("$LWHS" + .@seed + "_AW[" + .@i + "]", getarg(5));
-	setd("$LWHS" + .@seed + "_MA[" + .@i + "]", getarg(6, 0));
-	setd("$LWHS" + .@seed + "_RC[" + .@i + "]", getarg(7, 0));
+	.@key$ = getarg(1);
+	setd("$LWHS" + .@seed + "_CK$[" + .@i + "]", .@key$);
+	setd("$LWHS" + .@seed + "_KI[" + .@i + "]", callfunc("F_PB_CFG_SchedulerKeyIndex", .@key$));
+	setd("$LWHS" + .@seed + "_CN$[" + .@i + "]", getarg(2));
+	setd("$LWHS" + .@seed + "_GM$[" + .@i + "]", getarg(3));
+	setd("$LWHS" + .@seed + "_GU[" + .@i + "]", getarg(4));
+	setd("$LWHS" + .@seed + "_PR[" + .@i + "]", getarg(5));
+	setd("$LWHS" + .@seed + "_AW[" + .@i + "]", getarg(6));
+	setd("$LWHS" + .@seed + "_MA[" + .@i + "]", getarg(7, 0));
+	setd("$LWHS" + .@seed + "_RC[" + .@i + "]", getarg(8, 0));
+	setd("$LWHS" + .@seed + "_FW[" + .@i + "]", getarg(9, 1));
+	setd("$LWHS" + .@seed + "_DU[" + .@i + "]", getarg(10, 1));
+	setd("$LWHS" + .@seed + "_DP[" + .@i + "]", getarg(11, 0));
+	setd("$LWHS" + .@seed + "_DC[" + .@i + "]", getarg(12, 0));
 	setd("$LWHS" + .@seed + "_AC", .@i + 1);
 	return .@i;
 }
@@ -1950,6 +2005,8 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 	.@active_total = 0;
 	.@parked_total = 0;
 	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@key$ = getd("$LWHS" + .@seed + "_CK$[" + .@i + "]");
+		.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
 		.@users = getmapusers(.@map$);
@@ -1958,17 +2015,30 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
 		.@min_active = getd("$LWHS" + .@seed + "_MA[" + .@i + "]");
 		.@restart_cd = getd("$LWHS" + .@seed + "_RC[" + .@i + "]");
+		.@fair_weight = getd("$LWHS" + .@seed + "_FW[" + .@i + "]");
+		.@demand_step = getd("$LWHS" + .@seed + "_DU[" + .@i + "]");
+		.@demand_prio = getd("$LWHS" + .@seed + "_DP[" + .@i + "]");
+		.@demand_cap = getd("$LWHS" + .@seed + "_DC[" + .@i + "]");
 		.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 		.@active = getvariableofnpc(.enabled, .@controller$);
 		.@now = gettimetick(2);
-		.@last_start = getd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$");
-		.@last_stop = getd("$LWHS" + .@seed + "_LT$" + .@controller$ + "$");
-		.@last_sel = getd("$LWHS" + .@seed + "_LR$" + .@controller$ + "$");
+		.@last_start = getd("$LWHS" + .@seed + "_RS[" + .@slot + "]");
+		.@last_stop = getd("$LWHS" + .@seed + "_RT[" + .@slot + "]");
+		.@last_sel = getd("$LWHS" + .@seed + "_RR[" + .@slot + "]");
 		.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
 		.@live_pending = callfunc("F_LW_HPC_DefCountPending", .@controller$);
 		.@live_parked = callfunc("F_LW_HPC_DefCountParked", .@controller$);
 		.@live_unassigned = callfunc("F_LW_HPC_DefCountUnassigned", .@controller$);
-		.@decision$ = getd("$LWHS" + .@seed + "_LD$[" + .@i + "]");
+		.@decision$ = getd("$LWHS" + .@seed + "_RD$[" + .@slot + "]");
+		.@bonus = 0;
+		if (.@users > .@need && .@demand_prio > 0) {
+			if (.@demand_step < 1)
+				.@demand_step = 1;
+			.@bonus = ((.@users - .@need) / .@demand_step) * .@demand_prio;
+			if (.@bonus > .@demand_cap)
+				.@bonus = .@demand_cap;
+		}
+		.@effective_prio = .@prio + .@bonus;
 		.@routine_group$ = getd("$LWHD" + getnpcid(0, .@controller$) + "_RG$");
 		.@routine_start = getd("$LWHD" + getnpcid(0, .@controller$) + "_RW");
 		.@routine_end = getd("$LWHD" + getnpcid(0, .@controller$) + "_RE");
@@ -1976,11 +2046,12 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@parked_total += .@live_parked;
 		.@summary$ += "\n" + .@controller$ + ": " + (.@active ? "active" : "idle")
 			+ ", map " + .@map$ + " users " + .@users + "/" + .@need
-			+ ", priority " + .@prio + ", actors " + .@actors
+			+ ", priority " + .@prio + "+" + .@bonus + "=" + .@effective_prio + ", fair " + .@fair_weight + ", actors " + .@actors
 			+ ", map cap " + .@map_cap + ", live active/pending " + .@live_active + "/" + .@live_pending
 			+ ", parked " + .@live_parked + ", unassigned " + .@live_unassigned
 			+ ", decision " + (.@decision$ == "" ? "<none>" : .@decision$) + ".";
 		.@summary$ += "\n  sticky/cooldown: " + .@min_active + "ms / " + .@restart_cd + "ms";
+		.@summary$ += ", demand step/bonus cap: " + .@demand_step + " / " + .@demand_prio + " / " + .@demand_cap;
 		if (.@last_sel > 0)
 			.@summary$ += ", last picked " + ((.@now - .@last_sel) * 1000) + "ms ago";
 		if (.@last_start > 0 && .@active)
@@ -2009,13 +2080,17 @@ function	script	F_LW_HPC_SchedRun	{
 	.@now = gettimetick(2);
 
 	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@key$ = getd("$LWHS" + .@seed + "_CK$[" + .@i + "]");
+		.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
 		setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", 0);
-		setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "not selected");
 		setd("$LWHS" + .@seed + "_WN[" + .@i + "]", 0);
+		setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "not selected");
 	}
 
 	for (.@i = 0; .@i < .@count && .@started < .@cap; ++.@i) {
+		.@key$ = getd("$LWHS" + .@seed + "_CK$[" + .@i + "]");
+		.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
 		.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
@@ -2024,7 +2099,7 @@ function	script	F_LW_HPC_SchedRun	{
 		.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 		.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
 		.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
-		.@last_start = getd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$");
+		.@last_start = getd("$LWHS" + .@seed + "_RS[" + .@slot + "]");
 		if (!getvariableofnpc(.enabled, .@controller$))
 			continue;
 		if (!callfunc("F_LW_HPC_ControllerShouldRun", .@controller$))
@@ -2039,63 +2114,95 @@ function	script	F_LW_HPC_SchedRun	{
 		.@active_ms = (.@now - .@last_start) * 1000;
 		if (.@active_ms >= .@min_active)
 			continue;
-		setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "sticky: min active " + .@active_ms + "/" + .@min_active);
+		setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "sticky: min active " + .@active_ms + "/" + .@min_active);
 		setd("$LWHS" + .@seed + "_WN[" + .@i + "]", 1);
+		callfunc "F_PB_DB_RecordSchedulerRuntime", .@key$, .@last_start, getd("$LWHS" + .@seed + "_RT[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RR[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RD$[" + .@slot + "]"), .@now;
 		.@started++;
 		.@active_actors += .@actors;
 		setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", .@map_used + .@actors);
 	}
 
-	for (.@prio = 100; .@prio >= 0 && .@started < .@cap; --.@prio) {
+	for (.@prio = 200; .@prio >= 0 && .@started < .@cap; --.@prio) {
 		while (.@started < .@cap) {
-			.@pick = -1;
-			.@pick_sel = 2147483647;
+			.@eligible = 0;
+			.@weight_total = 0;
 			for (.@i = 0; .@i < .@count; ++.@i) {
-				if (getd("$LWHS" + .@seed + "_PR[" + .@i + "]") != .@prio)
-					continue;
-				if (getd("$LWHS" + .@seed + "_WN[" + .@i + "]"))
-					continue;
+				.@key$ = getd("$LWHS" + .@seed + "_CK$[" + .@i + "]");
+				.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 				.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 				.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
 				.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
+				.@base_prio = getd("$LWHS" + .@seed + "_PR[" + .@i + "]");
 				.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
 				.@restart_cd = getd("$LWHS" + .@seed + "_RC[" + .@i + "]");
+				.@fair_weight = getd("$LWHS" + .@seed + "_FW[" + .@i + "]");
+				.@demand_step = getd("$LWHS" + .@seed + "_DU[" + .@i + "]");
+				.@demand_prio = getd("$LWHS" + .@seed + "_DP[" + .@i + "]");
+				.@demand_cap = getd("$LWHS" + .@seed + "_DC[" + .@i + "]");
 				.@map_cap = getd("$LWHS" + .@seed + "_MC$" + .@map$ + "$");
 				.@map_used = getd("$LWHS" + .@seed + "_MU$" + .@map$ + "$");
 				.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
-				.@last_stop = getd("$LWHS" + .@seed + "_LT$" + .@controller$ + "$");
-				.@last_sel = getd("$LWHS" + .@seed + "_LR$" + .@controller$ + "$");
+				.@last_stop = getd("$LWHS" + .@seed + "_RT[" + .@slot + "]");
+				.@last_sel = getd("$LWHS" + .@seed + "_RR[" + .@slot + "]");
+				if (getd("$LWHS" + .@seed + "_WN[" + .@i + "]"))
+					continue;
 				if (!callfunc("F_LW_HPC_ControllerShouldRun", .@controller$)) {
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: controller gate");
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "blocked: controller gate");
 					continue;
 				}
 				.@users = getmapusers(.@map$);
+				.@bonus = 0;
+				if (.@users > .@need && .@demand_prio > 0) {
+					if (.@demand_step < 1)
+						.@demand_step = 1;
+					.@bonus = ((.@users - .@need) / .@demand_step) * .@demand_prio;
+					if (.@bonus > .@demand_cap)
+						.@bonus = .@demand_cap;
+				}
+				.@effective_prio = .@base_prio + .@bonus;
+				if (.@effective_prio != .@prio)
+					continue;
 				if (.@users < .@need) {
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: users " + .@users + "/" + .@need);
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "blocked: users " + .@users + "/" + .@need);
 					continue;
 				}
 				if (.@active_actors + .@actors > .@actor_cap) {
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: actor cap " + .@active_actors + "/" + .@actor_cap);
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "blocked: actor cap " + .@active_actors + "/" + .@actor_cap);
 					continue;
 				}
 				if (.@map_cap > 0 && .@map_used + .@actors > .@map_cap) {
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: " + .@map$ + " map cap " + .@map_used + "/" + .@map_cap);
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "blocked: " + .@map$ + " map cap " + .@map_used + "/" + .@map_cap);
 					continue;
 				}
 				if (!getvariableofnpc(.enabled, .@controller$) && .@restart_cd > 0 && .@last_stop > 0 && ((.@now - .@last_stop) * 1000) < .@restart_cd) {
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "blocked: cooldown " + ((.@now - .@last_stop) * 1000) + "/" + .@restart_cd);
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "blocked: cooldown " + ((.@now - .@last_stop) * 1000) + "/" + .@restart_cd);
 					continue;
 				}
-				if (.@last_sel < 1)
-					.@last_sel = 0;
-				if (.@pick < 0 || .@last_sel < .@pick_sel) {
-					.@pick = .@i;
-					.@pick_sel = .@last_sel;
+				if (.@fair_weight < 1)
+					.@fair_weight = 1;
+				.@wait_bias = 1;
+				if (.@last_sel > 0)
+					.@wait_bias += (.@now - .@last_sel);
+				.@pick_weight = .@fair_weight * .@wait_bias;
+				.@cand_index[.@eligible] = .@i;
+				.@cand_weight[.@eligible] = .@pick_weight;
+				.@weight_total += .@pick_weight;
+				.@eligible++;
+			}
+			if (.@eligible < 1)
+				break;
+			.@roll = rand(.@weight_total);
+			.@pick = 0;
+			for (.@j = 0; .@j < .@eligible; ++.@j) {
+				.@roll -= .@cand_weight[.@j];
+				if (.@roll < 0) {
+					.@pick = .@j;
+					break;
 				}
 			}
-			if (.@pick < 0)
-				break;
-			.@i = .@pick;
+			.@i = .@cand_index[.@pick];
+			.@key$ = getd("$LWHS" + .@seed + "_CK$[" + .@i + "]");
+			.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 			.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 			.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
 			.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
@@ -2103,21 +2210,22 @@ function	script	F_LW_HPC_SchedRun	{
 			.@live_active = callfunc("F_LW_HPC_DefCountActive", .@controller$);
 			if (!getvariableofnpc(.enabled, .@controller$)) {
 				callfunc "F_LW_HPC_ControllerStart", .@controller$;
-				setd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$", .@now);
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: start");
+				setd("$LWHS" + .@seed + "_RS[" + .@slot + "]", .@now);
+				setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "selected: start");
 			} else if (.@live_active < .@actors) {
-				if (getd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$") < 1)
-					setd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$", .@now);
+				if (getd("$LWHS" + .@seed + "_RS[" + .@slot + "]") < 1)
+					setd("$LWHS" + .@seed + "_RS[" + .@slot + "]", .@now);
 				if (callfunc("F_LW_HPC_ControllerQueueTick", .@controller$, 0))
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: top-up");
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "selected: top-up");
 				else
-					setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: top-up pending");
+					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "selected: top-up pending");
 			} else {
-				if (getd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$") < 1)
-					setd("$LWHS" + .@seed + "_LS$" + .@controller$ + "$", .@now);
-				setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "selected: steady");
+				if (getd("$LWHS" + .@seed + "_RS[" + .@slot + "]") < 1)
+					setd("$LWHS" + .@seed + "_RS[" + .@slot + "]", .@now);
+				setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "selected: steady");
 			}
-			setd("$LWHS" + .@seed + "_LR$" + .@controller$ + "$", .@now);
+			setd("$LWHS" + .@seed + "_RR[" + .@slot + "]", .@now);
+			callfunc "F_PB_DB_RecordSchedulerRuntime", .@key$, getd("$LWHS" + .@seed + "_RS[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RT[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RR[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RD$[" + .@slot + "]"), .@now;
 			.@started++;
 			.@active_actors += .@actors;
 			setd("$LWHS" + .@seed + "_MU$" + .@map$ + "$", .@map_used + .@actors);
@@ -2126,15 +2234,20 @@ function	script	F_LW_HPC_SchedRun	{
 	}
 
 	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@key$ = getd("$LWHS" + .@seed + "_CK$[" + .@i + "]");
+		.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 		if (getd("$LWHS" + .@seed + "_WN[" + .@i + "]")) {
 			setd("$LWHS" + .@seed + "_WN[" + .@i + "]", 0);
 			continue;
 		}
 		if (getvariableofnpc(.enabled, .@controller$)) {
-			setd("$LWHS" + .@seed + "_LD$[" + .@i + "]", "stopped: not selected");
-			setd("$LWHS" + .@seed + "_LT$" + .@controller$ + "$", .@now);
+			setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "stopped: not selected");
+			setd("$LWHS" + .@seed + "_RT[" + .@slot + "]", .@now);
+			callfunc "F_PB_DB_RecordSchedulerRuntime", .@key$, getd("$LWHS" + .@seed + "_RS[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RT[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RR[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RD$[" + .@slot + "]"), .@now;
 			donpcevent .@controller$ + "::OnStop";
+		} else {
+			callfunc "F_PB_DB_RecordSchedulerRuntime", .@key$, getd("$LWHS" + .@seed + "_RS[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RT[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RR[" + .@slot + "]"), getd("$LWHS" + .@seed + "_RD$[" + .@slot + "]"), .@now;
 		}
 	}
 	return .@started;

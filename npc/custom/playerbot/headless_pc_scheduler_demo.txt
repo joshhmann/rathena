@@ -89,6 +89,7 @@ S_Prime:
 	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "prontera", callfunc("F_PB_CFG_GetInt", "sw.mp.ac", 5);
 	callfunc "F_LW_HPC_SchedSetMapCap", strnpcinfo(3), "alberta", callfunc("F_PB_CFG_GetInt", "sw.ma.ac", 5);
 	callfunc "F_PB_DB_LoadSchedulerControllers", strnpcinfo(3);
+	callfunc "F_PB_DB_LoadSchedulerRuntime", strnpcinfo(3);
 	return;
 }
 

@@ -3159,3 +3159,74 @@ This slice does not yet add:
 - weighted randomized selection
 - fairness history persistence across restart
 - fairness at the individual bot-slot level inside a controller
+
+## Slice 55: Scheduler Runtime Persistence And Demand Weighting
+
+### Goal
+
+Finish the remaining scheduler-foundation gap by:
+
+- persisting scheduler selection history across restart
+- replacing strict equal-priority LRU with weighted rotation
+- adding demand-based effective priority on top of gate users
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_scheduler_runtime.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed scheduler policy fields to `bot_controller_policy`:
+  - `fair_weight`
+  - `demand_users_step`
+  - `demand_priority_step`
+  - `demand_priority_cap`
+- Added persistent scheduler history table:
+  - `bot_controller_runtime`
+- Scheduler controller loading now materializes:
+  - controller key
+  - fairness weight
+  - demand-scaling policy
+- Scheduler prime now loads persisted runtime history from SQL
+- Scheduler selection now computes an effective priority as:
+  - `base priority + demand bonus`
+- Demand bonus now scales from surplus users beyond the gate threshold, bounded
+  by the controller's configured cap
+- Equal-effective-priority selection now uses weighted rotation instead of
+  deterministic registry order
+- Scheduler status now surfaces:
+  - base priority
+  - demand bonus
+  - effective priority
+  - fairness weight
+  - demand step / priority bonus / cap
+  - persisted last-picked / last-start / last-stop timing when present
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_scheduler_runtime.sql`
+- verified the new SQL scheduler policy values:
+  - `merchant.alberta -> fair 2, demand 4 / 1 / 3`
+  - `patrol.prontera -> fair 1, demand 3 / 1 / 4`
+  - `social.alberta -> fair 3, demand 2 / 2 / 8`
+  - `social.prontera -> fair 3, demand 2 / 2 / 8`
+- restarted the stack cleanly after compacting persisted runtime keys
+- confirmed the earlier variable-length startup errors are gone
+- verified no fresh parser/runtime errors were introduced by the scheduler
+  changes
+- OpenKore baseline still logs in successfully after the slice
+- confirmed `bot_controller_runtime` exists and loads cleanly at startup
+
+### Deferrals
+
+This slice does not yet add:
+
+- richer demand signals beyond map users and routine windows
+- persisted fairness at per-bot or per-slot granularity
+- operator-facing scheduler history inspection beyond current status output and
+  SQL
