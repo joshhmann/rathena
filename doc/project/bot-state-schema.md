@@ -279,7 +279,58 @@ Status:
 - migration artifact:
   `sql-files/upgrades/upgrade_20260326_playerbot_merchant_runtime.sql`
 
-### 8. `bot_inventory`
+### 8. `bot_controller_demand_map`
+
+One or more weighted demand-map rows per controller policy.
+
+Committed fields:
+
+- `controller_key`
+- `map_name`
+- `user_weight`
+- `point_index`
+
+Purpose:
+
+- lets scheduler and controller run-gating react to weighted demand from more
+  than one map
+- keeps spillover demand logic out of hardcoded script conditionals
+- supports town-plus-field or town-plus-neighbor demand models without
+  rewriting controller scripts
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_demand_profiles.sql`
+
+### 9. `bot_pulse_profile`
+
+One row per reusable ambient/social pulse profile.
+
+Committed fields:
+
+- `profile_key`
+- `start_hour`
+- `end_hour`
+- `min_delay_s`
+- `max_delay_s`
+- `talk_weight`
+
+Purpose:
+
+- moves social pulse timing and talk-vs-emote weighting out of script config
+- gives controller slots stable SQL-backed pulse keys
+- keeps recurring social behavior data-owned instead of hand-coded in controller
+  files
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_demand_profiles.sql`
+
+### 10. `bot_inventory`
 
 Deferred but expected if commerce or party support becomes real.
 
@@ -300,7 +351,7 @@ Status:
 
 - deferred
 
-### 8. `bot_party_state`
+### 11. `bot_party_state`
 
 Deferred until party-capable pseudo-players are implemented.
 
@@ -322,7 +373,7 @@ Status:
 
 - deferred
 
-### 8. `bot_progression_state`
+### 12. `bot_progression_state`
 
 Deferred but explicitly expected for the fuller playerbot lane.
 
