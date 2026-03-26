@@ -3,38 +3,38 @@
 -	script	HeadlessPcConfig	FAKE_NPC,{
 OnInit:
 	// World scheduler defaults.
-	callfunc "F_PB_CFG_SetInt", "sched.world.tick_ms", 5000;
-	callfunc "F_PB_CFG_SetInt", "sched.world.controller_cap", 2;
-	callfunc "F_PB_CFG_SetInt", "sched.world.actor_cap", 5;
-	callfunc "F_PB_CFG_SetInt", "sched.world.map.prontera.actor_cap", 5;
-	callfunc "F_PB_CFG_SetInt", "sched.world.map.alberta.actor_cap", 5;
-	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.prontera.gate_users", 1;
-	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.prontera.priority", 90;
-	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.prontera.actor_weight", 5;
-	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.alberta.gate_users", 1;
-	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.alberta.priority", 80;
-	callfunc "F_PB_CFG_SetInt", "sched.world.ctrl.alberta.actor_weight", 5;
+	callfunc "F_PB_CFG_SetInt", "sw.tm", 5000;
+	callfunc "F_PB_CFG_SetInt", "sw.cc", 2;
+	callfunc "F_PB_CFG_SetInt", "sw.ac", 5;
+	callfunc "F_PB_CFG_SetInt", "sw.mp.ac", 5;
+	callfunc "F_PB_CFG_SetInt", "sw.ma.ac", 5;
+	callfunc "F_PB_CFG_SetInt", "sw.cp.gu", 1;
+	callfunc "F_PB_CFG_SetInt", "sw.cp.pr", 90;
+	callfunc "F_PB_CFG_SetInt", "sw.cp.aw", 5;
+	callfunc "F_PB_CFG_SetInt", "sw.ca.gu", 1;
+	callfunc "F_PB_CFG_SetInt", "sw.ca.pr", 80;
+	callfunc "F_PB_CFG_SetInt", "sw.ca.aw", 5;
 
 	// Controller runtime defaults.
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.tick_ms", 2200;
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.gate_users", 1;
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.start_min_ms", 400;
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.start_max_ms", 1500;
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.grace_ms", 12000;
-	callfunc "F_PB_CFG_SetStr", "ctrl.prontera.stop_policy", "park";
-	callfunc "F_PB_CFG_SetStr", "ctrl.prontera.routine_group", "day";
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.routine_start", 7;
-	callfunc "F_PB_CFG_SetInt", "ctrl.prontera.routine_end", 23;
+	callfunc "F_PB_CFG_SetInt", "cp.tm", 2200;
+	callfunc "F_PB_CFG_SetInt", "cp.gu", 1;
+	callfunc "F_PB_CFG_SetInt", "cp.sm", 400;
+	callfunc "F_PB_CFG_SetInt", "cp.sx", 1500;
+	callfunc "F_PB_CFG_SetInt", "cp.gm", 12000;
+	callfunc "F_PB_CFG_SetStr", "cp.sp", "park";
+	callfunc "F_PB_CFG_SetStr", "cp.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "cp.rs", 7;
+	callfunc "F_PB_CFG_SetInt", "cp.re", 23;
 
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.tick_ms", 2400;
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.gate_users", 1;
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.start_min_ms", 500;
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.start_max_ms", 1800;
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.grace_ms", 15000;
-	callfunc "F_PB_CFG_SetStr", "ctrl.alberta.stop_policy", "park";
-	callfunc "F_PB_CFG_SetStr", "ctrl.alberta.routine_group", "night";
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.routine_start", 0;
-	callfunc "F_PB_CFG_SetInt", "ctrl.alberta.routine_end", 6;
+	callfunc "F_PB_CFG_SetInt", "ca.tm", 2400;
+	callfunc "F_PB_CFG_SetInt", "ca.gu", 1;
+	callfunc "F_PB_CFG_SetInt", "ca.sm", 500;
+	callfunc "F_PB_CFG_SetInt", "ca.sx", 1800;
+	callfunc "F_PB_CFG_SetInt", "ca.gm", 15000;
+	callfunc "F_PB_CFG_SetStr", "ca.sp", "park";
+	callfunc "F_PB_CFG_SetStr", "ca.rg", "night";
+	callfunc "F_PB_CFG_SetInt", "ca.rs", 0;
+	callfunc "F_PB_CFG_SetInt", "ca.re", 6;
 
 	// Shared pulse profiles.
 	callfunc "F_PB_CFG_SetPulseProfile", "square_anchor_day", 7, 21, 40, 70, 70;

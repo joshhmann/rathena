@@ -2627,3 +2627,48 @@ This slice does not yet add:
 - party reassignment from the world scheduler
 - cleanup of the remaining long config-key `set_reg` noise in the playerbot
   config registry
+
+## Slice 46: Playerbot Config Key Cleanup
+
+### Goal
+
+Remove the remaining playerbot config-registry startup noise caused by long
+script global variable names, while keeping the readable config structure in the
+project files.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Shortened the live scheduler/controller config keys used by the script-side
+  playerbot config registry:
+  - world scheduler keys now use compact `sw.*` forms
+  - Prontera controller keys now use compact `cp.*` forms
+  - Alberta controller keys now use compact `ca.*` forms
+- Updated the active controller and scheduler scripts to read the new compact
+  keys.
+- Kept provisioning template keys under `tp.*` unchanged so the source-backed
+  provisioning path in `script.cpp` does not need a schema or runtime refactor.
+
+### Validation
+
+- restarted the stack cleanly
+- confirmed the playerbot config startup noise is gone:
+  - no `set_reg: Variable name length is too long` from `$PBCFG_*`
+- confirmed the merchant selftest still runs at startup:
+  - `playerbot_merchant_selftest ... result=1`
+
+### Deferrals
+
+This slice does not yet add:
+
+- broader config normalization outside the scheduler/controller key families
+- migration of all controller definitions into SQL-backed config

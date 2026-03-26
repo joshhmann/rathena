@@ -26,17 +26,17 @@ OnInit:
 	.owner$ = strnpcinfo(3);
 	.enabled = 0;
 	callfunc "F_LW_HPC_DefReset", .owner$;
-	callfunc "F_LW_HPC_DefSetTickMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.prontera.tick_ms", 2200);
-	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "prontera", callfunc("F_PB_CFG_GetInt", "ctrl.prontera.gate_users", 1);
+	callfunc "F_LW_HPC_DefSetTickMs", .owner$, callfunc("F_PB_CFG_GetInt", "cp.tm", 2200);
+	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "prontera", callfunc("F_PB_CFG_GetInt", "cp.gu", 1);
 	callfunc "F_LW_HPC_DefSetStartStagger", .owner$,
-		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.start_min_ms", 400),
-		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.start_max_ms", 1500);
-	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.prontera.grace_ms", 12000);
-	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.prontera.stop_policy", "park");
-	callfunc "F_LW_HPC_DefSetRoutineGroup", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.prontera.routine_group", "day");
+		callfunc("F_PB_CFG_GetInt", "cp.sm", 400),
+		callfunc("F_PB_CFG_GetInt", "cp.sx", 1500);
+	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "cp.gm", 12000);
+	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "cp.sp", "park");
+	callfunc "F_LW_HPC_DefSetRoutineGroup", .owner$, callfunc("F_PB_CFG_GetStr", "cp.rg", "day");
 	callfunc "F_LW_HPC_DefSetRoutineWindow", .owner$,
-		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.routine_start", 7),
-		callfunc("F_PB_CFG_GetInt", "ctrl.prontera.routine_end", 23);
+		callfunc("F_PB_CFG_GetInt", "cp.rs", 7),
+		callfunc("F_PB_CFG_GetInt", "cp.re", 23);
 	callfunc "F_PB_CFG_ApplyControllerDef", .owner$, "social.prontera";
 	end;
 

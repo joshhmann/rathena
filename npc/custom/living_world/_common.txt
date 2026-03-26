@@ -252,14 +252,14 @@ function	script	F_LW_HPC_WalkResultName	{
 }
 
 function	script	F_PB_CFG_SetInt	{
-	.@key$ = getarg(0);
+	.@key$ = callfunc("F_PB_CFG_Key", getarg(0));
 	setd("$PBCFG_" + .@key$, getarg(1));
 	setd("$PBCFG_SET_" + .@key$, 1);
 	return 1;
 }
 
 function	script	F_PB_CFG_GetInt	{
-	.@key$ = getarg(0);
+	.@key$ = callfunc("F_PB_CFG_Key", getarg(0));
 	.@default = getarg(1, 0);
 	if (!getd("$PBCFG_SET_" + .@key$))
 		return .@default;
@@ -267,18 +267,46 @@ function	script	F_PB_CFG_GetInt	{
 }
 
 function	script	F_PB_CFG_SetStr	{
-	.@key$ = getarg(0);
+	.@key$ = callfunc("F_PB_CFG_Key", getarg(0));
 	setd("$PBCFG_" + .@key$ + "$", getarg(1));
 	setd("$PBCFG_SET_" + .@key$, 1);
 	return 1;
 }
 
 function	script	F_PB_CFG_GetStr	{
-	.@key$ = getarg(0);
+	.@key$ = callfunc("F_PB_CFG_Key", getarg(0));
 	.@default$ = getarg(1, "");
 	if (!getd("$PBCFG_SET_" + .@key$))
 		return .@default$;
 	return getd("$PBCFG_" + .@key$ + "$");
+}
+
+function	script	F_PB_CFG_Key	{
+	.@key$ = getarg(0);
+	if (compare(.@key$, "tp.") == 0)
+		return .@key$;
+
+	.@key$ = replacestr(.@key$, "sched.world.", "sw.");
+	.@key$ = replacestr(.@key$, "sched.", "s.");
+	.@key$ = replacestr(.@key$, "ctrl.", "c.");
+	.@key$ = replacestr(.@key$, "controller_cap", "cc");
+	.@key$ = replacestr(.@key$, "actor_cap", "ac");
+	.@key$ = replacestr(.@key$, "gate_users", "gu");
+	.@key$ = replacestr(.@key$, "actor_weight", "aw");
+	.@key$ = replacestr(.@key$, "tick_ms", "tm");
+	.@key$ = replacestr(.@key$, "start_min_ms", "sm");
+	.@key$ = replacestr(.@key$, "start_max_ms", "sx");
+	.@key$ = replacestr(.@key$, "grace_ms", "gm");
+	.@key$ = replacestr(.@key$, "stop_policy", "sp");
+	.@key$ = replacestr(.@key$, "routine_group", "rg");
+	.@key$ = replacestr(.@key$, "routine_start", "rs");
+	.@key$ = replacestr(.@key$, "routine_end", "re");
+	.@key$ = replacestr(.@key$, "priority", "pr");
+	.@key$ = replacestr(.@key$, "prontera", "p");
+	.@key$ = replacestr(.@key$, "alberta", "a");
+	.@key$ = replacestr(.@key$, ".ctrl.", ".c.");
+	.@key$ = replacestr(.@key$, ".map.", ".m.");
+	return .@key$;
 }
 
 function	script	F_PB_CFG_SetPulseProfile	{

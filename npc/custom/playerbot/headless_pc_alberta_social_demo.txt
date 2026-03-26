@@ -26,17 +26,17 @@ OnInit:
 	.owner$ = strnpcinfo(3);
 	.enabled = 0;
 	callfunc "F_LW_HPC_DefReset", .owner$;
-	callfunc "F_LW_HPC_DefSetTickMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.alberta.tick_ms", 2400);
-	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "alberta", callfunc("F_PB_CFG_GetInt", "ctrl.alberta.gate_users", 1);
+	callfunc "F_LW_HPC_DefSetTickMs", .owner$, callfunc("F_PB_CFG_GetInt", "ca.tm", 2400);
+	callfunc "F_LW_HPC_DefSetMapGate", .owner$, "alberta", callfunc("F_PB_CFG_GetInt", "ca.gu", 1);
 	callfunc "F_LW_HPC_DefSetStartStagger", .owner$,
-		callfunc("F_PB_CFG_GetInt", "ctrl.alberta.start_min_ms", 500),
-		callfunc("F_PB_CFG_GetInt", "ctrl.alberta.start_max_ms", 1800);
-	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "ctrl.alberta.grace_ms", 15000);
-	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.alberta.stop_policy", "park");
-	callfunc "F_LW_HPC_DefSetRoutineGroup", .owner$, callfunc("F_PB_CFG_GetStr", "ctrl.alberta.routine_group", "night");
+		callfunc("F_PB_CFG_GetInt", "ca.sm", 500),
+		callfunc("F_PB_CFG_GetInt", "ca.sx", 1800);
+	callfunc "F_LW_HPC_DefSetGraceMs", .owner$, callfunc("F_PB_CFG_GetInt", "ca.gm", 15000);
+	callfunc "F_LW_HPC_DefSetStopPolicy", .owner$, callfunc("F_PB_CFG_GetStr", "ca.sp", "park");
+	callfunc "F_LW_HPC_DefSetRoutineGroup", .owner$, callfunc("F_PB_CFG_GetStr", "ca.rg", "night");
 	callfunc "F_LW_HPC_DefSetRoutineWindow", .owner$,
-		callfunc("F_PB_CFG_GetInt", "ctrl.alberta.routine_start", 0),
-		callfunc("F_PB_CFG_GetInt", "ctrl.alberta.routine_end", 6);
+		callfunc("F_PB_CFG_GetInt", "ca.rs", 0),
+		callfunc("F_PB_CFG_GetInt", "ca.re", 6);
 	callfunc "F_PB_CFG_ApplyControllerDef", .owner$, "social.alberta";
 	end;
 

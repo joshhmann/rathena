@@ -784,14 +784,17 @@ Current limits:
 
 Current support:
 
-- the pulse-profile config layer now uses shortened suffix keys for the playerbot
-  pulse profiles to avoid script variable-name overflow at `OnInit`
+- the playerbot config registry now uses compact live keys for the active
+  scheduler/controller surfaces
+- the pulse-profile config layer already used shortened suffix keys for the
+  playerbot pulse profiles
 
 Current limits:
 
-- the global config naming pattern is still dense
-- future config growth should keep variable-name limits in mind when adding new
-  dynamic key families
+- provisioning template keys under `tp.*` are still separate from the compact
+  scheduler/controller key family
+- future config growth should still keep variable-name limits in mind when
+  adding new dynamic key families
 
 ### 34. Merchant-capable recurring bots
 
