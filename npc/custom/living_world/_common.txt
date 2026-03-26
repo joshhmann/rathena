@@ -406,6 +406,18 @@ function	script	F_PB_DB_ControllerDemandUsers	{
 			.@w = 1;
 		.@sum += getmapusers(.@map$[.@i]) * .@w;
 	}
+	.@signal_rows = query_sql(
+		"SELECT `signal_type`, `signal_key`, `signal_weight` "
+		+ "FROM `bot_controller_demand_signal` "
+		+ "WHERE `controller_key` = '" + .@key$ + "' "
+		+ "ORDER BY `point_index`",
+		.@signal_type$, .@signal_key$, .@signal_weight);
+	for (.@i = 0; .@i < .@signal_rows; ++.@i) {
+		.@w = .@signal_weight[.@i];
+		if (.@w < 1)
+			.@w = 1;
+		.@sum += callfunc("F_PB_DB_ControllerDemandSignalUnits", .@signal_type$[.@i], .@signal_key$[.@i]) * .@w;
+	}
 	return .@sum;
 }
 
@@ -429,7 +441,76 @@ function	script	F_PB_DB_ControllerDemandSummary$	{
 			.@summary$ += ", ";
 		.@summary$ += .@map$[.@i] + " x" + (.@weight[.@i] < 1 ? 1 : .@weight[.@i]) + "=" + getmapusers(.@map$[.@i]);
 	}
+	.@signal_rows = query_sql(
+		"SELECT `signal_type`, `signal_key`, `signal_weight` "
+		+ "FROM `bot_controller_demand_signal` "
+		+ "WHERE `controller_key` = '" + .@key$ + "' "
+		+ "ORDER BY `point_index`",
+		.@signal_type$, .@signal_key$, .@signal_weight);
+	for (.@i = 0; .@i < .@signal_rows; ++.@i) {
+		if (.@summary$ != "")
+			.@summary$ += ", ";
+		.@w = .@signal_weight[.@i];
+		if (.@w < 1)
+			.@w = 1;
+		.@summary$ += .@signal_type$[.@i] + ":" + .@signal_key$[.@i]
+			+ " x" + .@w + "=" + callfunc("F_PB_DB_ControllerDemandSignalUnits", .@signal_type$[.@i], .@signal_key$[.@i]);
+	}
 	return .@summary$;
+}
+
+function	script	F_PB_DB_ControllerDemandSignalUnits	{
+	.@type$ = escape_sql(getarg(0));
+	.@key$ = escape_sql(getarg(1));
+	.@units = 0;
+
+	if (.@type$ == "merchant_open_map") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_merchant_state` "
+			+ "WHERE `enabled` = 1 "
+			+ "AND `market_map` = '" + .@key$ + "' "
+			+ "AND `open_state` IN ('scheduled', 'open')",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "merchant_live_map") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_runtime_state` r "
+			+ "JOIN `bot_merchant_state` m ON m.`bot_id` = r.`bot_id` "
+			+ "WHERE m.`enabled` = 1 "
+			+ "AND r.`current_map` = '" + .@key$ + "' "
+			+ "AND r.`park_state` = 'active' "
+			+ "AND r.`current_state` = 'merchanting'",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_enabled_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_guild_state` "
+			+ "WHERE `enabled` = 1 "
+			+ "AND `guild_name` = '" + .@key$ + "'",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_candidate_map") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_guild_state` g "
+			+ "JOIN `bot_profile` p ON p.`bot_id` = g.`bot_id` "
+			+ "WHERE g.`enabled` = 1 "
+			+ "AND g.`guild_member_state` IN ('candidate', 'member', 'officer', 'leader') "
+			+ "AND p.`home_map` = '" + .@key$ + "'",
+			.@units);
+		return .@units[0];
+	}
+
+	return 0;
 }
 
 function	script	F_PB_CFG_AnchorSetIndex	{

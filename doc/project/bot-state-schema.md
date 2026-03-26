@@ -407,7 +407,35 @@ Status:
 
 - deferred
 
-### 12. `bot_progression_state`
+### 13. `bot_controller_demand_signal`
+
+One or more weighted participation-signal rows per controller policy.
+
+Committed fields:
+
+- `controller_key`
+- `point_index`
+- `signal_type`
+  - merchant_open_map, merchant_live_map, guild_enabled_name,
+    guild_candidate_map
+- `signal_key`
+- `signal_weight`
+
+Purpose:
+
+- extends scheduler demand beyond pure map-user counts
+- lets controller demand react to persistent merchant and guild participation
+  pressure using the same SQL-backed policy lane as demand maps
+- keeps economy/guild participation heuristics data-owned instead of scattered
+  through controller scripts
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_demand_signals.sql`
+
+### 14. `bot_progression_state`
 
 Deferred but explicitly expected for the fuller playerbot lane.
 

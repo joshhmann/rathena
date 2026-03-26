@@ -3356,3 +3356,64 @@ This slice does not yet add:
 - guild membership synchronization with the base `guild` and `guild_member`
   tables
 - guild-aware scheduler demand or event participation
+
+## Slice 58: Guild And Economy-Aware Demand Signals
+
+### Goal
+
+Extend the scheduler demand model beyond raw map users so later guild and
+economy participation can influence controller selection without hardcoded
+script logic.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_demand_signals.sql`
+- `npc/custom/living_world/_common.txt`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed participation signals through:
+  - `bot_controller_demand_signal`
+- Added signal-aware demand evaluation in:
+  - `F_PB_DB_ControllerDemandUsers(...)`
+  - `F_PB_DB_ControllerDemandSummary$(...)`
+- Added the first supported signal families:
+  - `merchant_open_map`
+  - `merchant_live_map`
+  - `guild_enabled_name`
+  - `guild_candidate_map`
+- Scheduler/controller demand now combines:
+  - weighted map users from `bot_controller_demand_map`
+  - weighted participation signals from `bot_controller_demand_signal`
+- Seeded the current controller set with first-pass signal policies:
+  - Alberta merchant demand favors open/live merchant presence
+  - Prontera social/patrol can later favor guild-capable presence on the map
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_demand_signals.sql`
+- verified signal rows exist for:
+  - `merchant.alberta`
+  - `social.alberta`
+  - `social.prontera`
+  - `patrol.prontera`
+- restarted the full stack cleanly
+- confirmed no new parser/runtime errors were introduced by the signal-aware
+  scheduler changes
+- verified the current live dev signal counts:
+  - Alberta scheduled/open merchants = `1`
+  - Alberta live merchanting actors = `0`
+  - Prontera enabled guild-capable candidates = `0`
+
+### Deferrals
+
+This slice does not yet add:
+
+- real guild invite/join participation as a live scheduler signal
+- trade-volume, zeny, or shop-sales demand feedback
+- per-bot or per-guild demand overrides beyond the current controller-level
+  signal rows

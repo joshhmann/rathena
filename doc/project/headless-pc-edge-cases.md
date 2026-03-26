@@ -1067,6 +1067,32 @@ Current limits:
 - scheduler demand still does not account for guild activity, guild events, or
   guild roster pressure
 
+### 47. Map-user-only demand without participation signals
+
+Current support:
+
+- controller demand now has a second SQL-backed input lane through:
+  - `bot_controller_demand_signal`
+- supported signal families are:
+  - `merchant_open_map`
+  - `merchant_live_map`
+  - `guild_enabled_name`
+  - `guild_candidate_map`
+- scheduler and controller run-gating now combine:
+  - weighted map-user demand
+  - weighted participation-signal units
+- demand summaries now expose both map demand and signal demand in the same
+  controller status path
+
+Current limits:
+
+- signal units are still coarse counts, not richer economic metrics like sales,
+  purchases, or zeny flow
+- guild signals still read bot metadata, not real live guild membership or guild
+  event load
+- operator editing is still SQL-driven; there is not yet a richer admin UI for
+  controller signal policy
+
 ### 36. Fresh-restart ambient stability
 
 Current support:
