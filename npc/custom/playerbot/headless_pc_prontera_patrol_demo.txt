@@ -1,0 +1,89 @@
+// Dev-only Prontera patrol controller using SQL-backed controller slots and route sets.
+
+prontera,148,181,4	script	Headless Prontera Patrol	4_M_MANAGER,{
+	.controller$ = "HeadlessPronteraPatrolController";
+	mes "[Headless Prontera Patrol]";
+	switch(select("Start square patrol:Stop square patrol:Status:Cancel")) {
+	case 1:
+		donpcevent .controller$ + "::OnPrime";
+		callfunc "F_PB_DB_LoadAllPools";
+		callfunc "F_LW_HPC_ControllerStart", .controller$;
+		mes "Prontera patrol controller enabled.";
+		close;
+	case 2:
+		donpcevent .controller$ + "::OnStop";
+		mes "Prontera patrol controller disabled.";
+		close;
+	case 3:
+		donpcevent .controller$ + "::OnPrime";
+		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
+		mes getvariableofnpc(.status$, .controller$);
+		close;
+	default:
+		close;
+	}
+}
+
+-	script	HeadlessPronteraPatrolController	FAKE_NPC,{
+OnInit:
+	.owner$ = strnpcinfo(3);
+	.policy_key$ = "patrol.prontera";
+	.enabled = 0;
+	.running = 0;
+	.tick_pending = 0;
+	.loaded = 0;
+	end;
+
+OnPrime:
+	callsub S_Prime;
+	end;
+
+OnReload:
+	.tick_pending = 0;
+	if (playerattached() > 0)
+		deltimer strnpcinfo(3) + "::OnTick";
+	.loaded = 0;
+	callsub S_Prime;
+	if (.enabled)
+		callfunc "F_LW_HPC_ControllerQueueTick", strnpcinfo(3), 0;
+	end;
+
+OnTick:
+	if (.running)
+		end;
+	.tick_pending = 0;
+	.running = 1;
+	callsub S_Prime;
+	if (!.enabled)
+		goto L_Done;
+
+	if (!callfunc("F_LW_HPC_ControllerShouldRun", .owner$)) {
+		callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
+		callfunc "F_LW_HPC_ControllerScheduleNext", strnpcinfo(3);
+		goto L_Done;
+	}
+
+	for (.@i = 0; .@i < callfunc("F_LW_HPC_DefActorCount", .owner$); ++.@i)
+		callfunc "F_LW_HPC_DefTickActor", .owner$, .owner$, .@i;
+
+	callfunc "F_LW_HPC_ControllerScheduleNext", strnpcinfo(3);
+L_Done:
+	.running = 0;
+	end;
+
+OnStop:
+	.enabled = 0;
+	.tick_pending = 0;
+	if (playerattached() > 0)
+		deltimer strnpcinfo(3) + "::OnTick";
+	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
+	return;
+
+S_Prime:
+	if (.loaded)
+		return;
+	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
+	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
+	.loaded = 1;
+	return;
+}

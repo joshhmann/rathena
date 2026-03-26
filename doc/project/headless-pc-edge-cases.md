@@ -903,6 +903,24 @@ Current limits:
 - only the active controller set is migrated; older demo content paths remain
   historical script debt until explicitly moved
 
+### 40. SQL-backed route sets
+
+Current support:
+
+- active controller definitions can now point at SQL-backed route sets through:
+  - `bot_controller_route_point`
+- controller load now materializes route points from SQL
+- `patrol.prontera` exists as the first DB-backed patrol proof using:
+  - `HeadlessPronteraPatrolController`
+  - `patrol.prontera.loop`
+
+Current limits:
+
+- route authoring is still a checked-in SQL workflow
+- the patrol proof is a dev/operator controller, not part of the default world
+  scheduler set
+- older demo-only patrol controllers still exist as historical script examples
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

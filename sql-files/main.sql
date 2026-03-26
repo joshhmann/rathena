@@ -1386,6 +1386,18 @@ CREATE TABLE IF NOT EXISTS `bot_controller_emote_value` (
 ) ENGINE=InnoDB;
 
 --
+-- Table structure for table `bot_controller_route_point`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_controller_route_point` (
+  `set_key` varchar(64) NOT NULL default '',
+  `point_index` smallint(5) unsigned NOT NULL default '0',
+  `route_x` smallint(5) unsigned NOT NULL default '0',
+  `route_y` smallint(5) unsigned NOT NULL default '0',
+  PRIMARY KEY (`set_key`,`point_index`)
+) ENGINE=InnoDB;
+
+--
 -- Table structure for table `bot_merchant_state`
 --
 
@@ -1414,6 +1426,7 @@ INSERT INTO `bot_controller_policy`
   (`controller_key`, `controller_npc`, `controller_label`, `controller_type`, `map_name`, `scheduler_enabled`, `controller_enabled`, `gate_users`, `priority`, `actor_weight`, `tick_ms`, `start_min_ms`, `start_max_ms`, `grace_ms`, `stop_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`)
 VALUES
   ('social.prontera', 'HeadlessPronteraSocialController', 'Prontera social', 'social', 'prontera', 1, 1, 1, 90, 5, 2200, 400, 1500, 12000, 'park', 'day', 7, 23),
+  ('patrol.prontera', 'HeadlessPronteraPatrolController', 'Prontera patrol', 'social', 'prontera', 0, 1, 1, 70, 1, 2400, 300, 900, 10000, 'park', 'day', 8, 22),
   ('social.alberta', 'HeadlessAlbertaSocialController', 'Alberta social', 'social', 'alberta', 1, 1, 1, 80, 5, 2400, 500, 1800, 15000, 'park', 'night', 0, 6),
   ('merchant.alberta', 'HeadlessAlbertaMerchantController', 'Alberta merchants', 'merchant', 'alberta', 1, 1, 1, 85, 1, 2600, 600, 1600, 18000, 'park', 'day', 8, 22)
 ON DUPLICATE KEY UPDATE
@@ -1435,7 +1448,7 @@ ON DUPLICATE KEY UPDATE
   `routine_end_hour` = VALUES(`routine_end_hour`);
 
 DELETE FROM `bot_controller_slot`
-WHERE `controller_key` IN ('social.prontera', 'social.alberta', 'merchant.alberta');
+WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta');
 
 INSERT INTO `bot_controller_slot`
   (`controller_key`, `slot_index`, `slot_label`, `pool_key`, `profile_key`, `role_key`, `map_name`, `spawn_x`, `spawn_y`, `loop_route`, `mode`, `pulse_profile`, `anchor_set_key`, `route_set_key`, `talk_set_key`, `emote_set_key`, `enabled`)
@@ -1445,6 +1458,7 @@ VALUES
   ('social.prontera', 2, 'Square Wanderer A', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 145, 184, 1, 'loiter', 'square_loiter_busy', 'social.prontera.wanderer.a', '', 'social.prontera.wanderer.a', 'social.prontera.wanderer.a', 1),
   ('social.prontera', 3, 'Square Wanderer B', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 153, 188, 1, 'loiter', 'square_loiter_late', 'social.prontera.wanderer.b', '', 'social.prontera.wanderer.b', 'social.prontera.wanderer.b', 1),
   ('social.prontera', 4, 'Square Wanderer C', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 147, 190, 1, 'loiter', 'square_loiter_night', 'social.prontera.wanderer.c', '', 'social.prontera.wanderer.c', 'social.prontera.wanderer.c', 1),
+  ('patrol.prontera', 0, 'Square Patrol', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 160, 186, 1, 'patrol', 'square_loiter_busy', '', 'patrol.prontera.loop', '', '', 1),
   ('social.alberta', 0, 'Dock Regular A', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 47, 245, 0, 'hold', 'market_anchor_day', '', '', 'social.alberta.regular.a', 'social.alberta.regular.a', 1),
   ('social.alberta', 1, 'Dock Regular B', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 50, 244, 0, 'hold', 'market_anchor_trade', '', '', 'social.alberta.regular.b', 'social.alberta.regular.b', 1),
   ('social.alberta', 2, 'Market Browser A', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 44, 243, 1, 'loiter', 'market_loiter_browse', 'social.alberta.browser.a', '', 'social.alberta.browser.a', 'social.alberta.browser.a', 1),
@@ -1551,3 +1565,14 @@ VALUES
   ('social.alberta.browser.b', 1, 18),
   ('merchant.alberta.stall.a', 0, 9),
   ('merchant.alberta.stall.a', 1, 7);
+
+DELETE FROM `bot_controller_route_point`
+WHERE `set_key` IN ('patrol.prontera.loop');
+
+INSERT INTO `bot_controller_route_point`
+  (`set_key`, `point_index`, `route_x`, `route_y`)
+VALUES
+  ('patrol.prontera.loop', 0, 160, 186),
+  ('patrol.prontera.loop', 1, 163, 186),
+  ('patrol.prontera.loop', 2, 163, 189),
+  ('patrol.prontera.loop', 3, 160, 189);

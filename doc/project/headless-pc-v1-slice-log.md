@@ -2940,3 +2940,61 @@ This slice does not yet add:
 - runtime/operator authoring for content sets
 - migration of every historical/demo controller content blob beyond the active
   Prontera/Alberta/merchant set
+
+## Slice 51: SQL-Backed Route Sets And Patrol Proof
+
+### Goal
+
+Finish the current control-plane migration lane by moving route sets into SQL
+and proving them through a DB-backed patrol controller instead of only
+script-owned route definitions.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_route_sets.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_scheduler_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_patrol_demo.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed route table:
+  - `bot_controller_route_point`
+- Added SQL-backed route loader:
+  - `F_PB_DB_ApplyRouteSet`
+- Extended `F_PB_DB_LoadControllerDef` to load `route_set_key` and materialize
+  route points from SQL
+- Added a new DB-backed patrol controller policy and slot:
+  - `patrol.prontera`
+  - controller NPC: `HeadlessPronteraPatrolController`
+  - route set: `patrol.prontera.loop`
+- Added visible dev harness:
+  - `Headless Prontera Patrol`
+- Updated scheduler stop behavior to stop all enabled controllers through the SQL
+  registry instead of a hardcoded script list
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_route_sets.sql`
+- restarted the stack cleanly
+- verified the new route set exists in SQL:
+  - `patrol.prontera.loop = 4` points
+- verified the new controller policy/slot rows exist:
+  - `patrol.prontera`
+  - `HeadlessPronteraPatrolController`
+- verified no new parse/runtime errors were introduced by the route-set load
+  path
+- OpenKore login baseline still works after the migration
+
+### Deferrals
+
+This slice does not yet add:
+
+- SQL-backed route authoring UI
+- migration of older demo-only script patrol routes outside the new control
+  plane proof
+- scheduler activation of the patrol controller by default

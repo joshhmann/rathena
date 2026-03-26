@@ -78,9 +78,7 @@ OnStop:
 	.tick_pending = 0;
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
-	donpcevent "HeadlessPronteraSocialController::OnStop";
-	donpcevent "HeadlessAlbertaSocialController::OnStop";
-	donpcevent "HeadlessAlbertaMerchantController::OnStop";
+	callfunc "F_PB_DB_StopControllers";
 	return;
 
 S_Prime:

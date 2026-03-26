@@ -564,6 +564,21 @@ function	script	F_PB_DB_ApplyEmoteSet	{
 	return .@rows;
 }
 
+function	script	F_PB_DB_ApplyRouteSet	{
+	.@controller$ = getarg(0);
+	.@actor = getarg(1);
+	.@set$ = escape_sql(getarg(2));
+	.@rows = query_sql(
+		"SELECT `route_x`, `route_y` "
+		+ "FROM `bot_controller_route_point` "
+		+ "WHERE `set_key` = '" + .@set$ + "' "
+		+ "ORDER BY `point_index`",
+		.@x, .@y);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		callfunc "F_LW_HPC_DefAddRoutePoint", .@controller$, .@actor, .@x[.@i], .@y[.@i];
+	return .@rows;
+}
+
 function	script	F_PB_CFG_RegisterPool	{
 	.@pool$ = getarg(0);
 	.@count = getd("$PBCFG_POOL_CT");
@@ -813,11 +828,11 @@ function	script	F_PB_DB_LoadControllerDef	{
 	.@controller$ = getarg(0);
 	.@key$ = escape_sql(getarg(1));
 	.@rows = query_sql(
-		"SELECT `slot_index`, `slot_label`, `pool_key`, `profile_key`, `role_key`, `map_name`, `spawn_x`, `spawn_y`, `loop_route`, `mode`, `pulse_profile`, `anchor_set_key`, `talk_set_key`, `emote_set_key` "
+		"SELECT `slot_index`, `slot_label`, `pool_key`, `profile_key`, `role_key`, `map_name`, `spawn_x`, `spawn_y`, `loop_route`, `mode`, `pulse_profile`, `anchor_set_key`, `route_set_key`, `talk_set_key`, `emote_set_key` "
 		+ "FROM `bot_controller_slot` "
 		+ "WHERE `controller_key` = '" + .@key$ + "' AND `enabled` = 1 "
 		+ "ORDER BY `slot_index`",
-		.@slot, .@label$, .@pool$, .@profile$, .@role$, .@map$, .@x, .@y, .@loop, .@mode$, .@pulse$, .@anchor$, .@talk$, .@emote$);
+		.@slot, .@label$, .@pool$, .@profile$, .@role$, .@map$, .@x, .@y, .@loop, .@mode$, .@pulse$, .@anchor$, .@route_set$, .@talk$, .@emote$);
 	for (.@i = 0; .@i < .@rows; ++.@i) {
 		callfunc "F_LW_HPC_DefSetPoolActor", .@controller$, .@slot[.@i],
 			.@label$[.@i], .@pool$[.@i], .@map$[.@i], .@x[.@i], .@y[.@i], .@loop[.@i], .@mode$[.@i], .@profile$[.@i], .@role$[.@i];
@@ -825,6 +840,8 @@ function	script	F_PB_DB_LoadControllerDef	{
 			callfunc "F_PB_CFG_ApplyPulseProfile", .@controller$, .@slot[.@i], .@pulse$[.@i];
 		if (.@anchor$[.@i] != "")
 			callfunc "F_PB_DB_ApplyAnchorSet", .@controller$, .@slot[.@i], .@anchor$[.@i];
+		if (.@route_set$[.@i] != "")
+			callfunc "F_PB_DB_ApplyRouteSet", .@controller$, .@slot[.@i], .@route_set$[.@i];
 		if (.@talk$[.@i] != "")
 			callfunc "F_PB_DB_ApplyTalkSet", .@controller$, .@slot[.@i], .@talk$[.@i];
 		if (.@emote$[.@i] != "")
@@ -918,6 +935,17 @@ function	script	F_PB_DB_ReloadControllers	{
 		.@npc$);
 	for (.@i = 0; .@i < .@rows; ++.@i)
 		donpcevent .@npc$[.@i] + "::OnReload";
+	return .@rows;
+}
+
+function	script	F_PB_DB_StopControllers	{
+	.@rows = query_sql(
+		"SELECT `controller_npc` "
+		+ "FROM `bot_controller_policy` WHERE `controller_enabled` = 1 "
+		+ "ORDER BY `priority` DESC, `controller_key`",
+		.@npc$);
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		donpcevent .@npc$[.@i] + "::OnStop";
 	return .@rows;
 }
 
