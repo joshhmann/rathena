@@ -1017,6 +1017,30 @@ Current limits:
 - operator controls are still centered on the scheduler demo/status surface, not
   a richer dedicated admin UI
 
+### 45. Single-map gating and script-only pulse defaults
+
+Current support:
+
+- controller demand sources are now SQL-backed through:
+  - `bot_controller_demand_map`
+- controllers can evaluate weighted demand from more than one map
+- scheduler selection and controller run-gating now use the same SQL-backed
+  weighted demand model
+- active pulse profiles are now SQL-backed through:
+  - `bot_pulse_profile`
+- controller slot definitions still point at pulse-profile keys, but the live
+  timing/chatter defaults are no longer owned only by script config
+- controller and scheduler status now surface the weighted demand composition
+
+Current limits:
+
+- demand still measures map-user pressure only; it does not yet include guild,
+  party, trade, or economic activity signals
+- demand-map sets are checked-in SQL seed data, not yet a richer operator
+  editing surface
+- pulse profiles are global keyed profiles, not yet per-bot or per-role
+  overrides
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

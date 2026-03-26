@@ -358,50 +358,25 @@ function	script	F_PB_CFG_Key	{
 	return .@key$;
 }
 
-function	script	F_PB_CFG_SetPulseProfile	{
-	.@profile$ = getarg(0);
-	.@count = $PBCFG_PULSE_CT;
-	for (.@i = 0; .@i < .@count; ++.@i) {
-		if ($PBCFG_PULSE$[.@i] == .@profile$) {
-			.@slot = .@i;
-			break;
-		}
-	}
-	if (!.@slot && $PBCFG_PULSE$[0] != .@profile$) {
-		.@slot = .@count;
-		$PBCFG_PULSE$[.@slot] = .@profile$;
-		$PBCFG_PULSE_CT = .@count + 1;
-	}
-	$PBCFG_PULSE_S[.@slot] = getarg(1);
-	$PBCFG_PULSE_E[.@slot] = getarg(2);
-	$PBCFG_PULSE_N[.@slot] = getarg(3);
-	$PBCFG_PULSE_X[.@slot] = getarg(4);
-	$PBCFG_PULSE_W[.@slot] = getarg(5);
-	return .@slot;
-}
-
 function	script	F_PB_CFG_ApplyPulseProfile	{
 	.@controller$ = getarg(0);
 	.@actor = getarg(1);
-	.@profile$ = getarg(2);
-	.@slot = -1;
-	for (.@i = 0; .@i < $PBCFG_PULSE_CT; ++.@i) {
-		if ($PBCFG_PULSE$[.@i] == .@profile$) {
-			.@slot = .@i;
-			break;
-		}
-	}
+	.@profile$ = escape_sql(getarg(2));
 	.@start = 0;
 	.@end = 0;
 	.@min = 35;
 	.@max = 60;
 	.@weight = 60;
-	if (.@slot >= 0) {
-		.@start = $PBCFG_PULSE_S[.@slot];
-		.@end = $PBCFG_PULSE_E[.@slot];
-		.@min = $PBCFG_PULSE_N[.@slot];
-		.@max = $PBCFG_PULSE_X[.@slot];
-		.@weight = $PBCFG_PULSE_W[.@slot];
+	.@rows = query_sql(
+		"SELECT `start_hour`, `end_hour`, `min_delay_s`, `max_delay_s`, `talk_weight` "
+		+ "FROM `bot_pulse_profile` WHERE `profile_key` = '" + .@profile$ + "' LIMIT 1",
+		.@sql_start, .@sql_end, .@sql_min, .@sql_max, .@sql_weight);
+	if (.@rows > 0) {
+		.@start = .@sql_start[0];
+		.@end = .@sql_end[0];
+		.@min = .@sql_min[0];
+		.@max = .@sql_max[0];
+		.@weight = .@sql_weight[0];
 	}
 	callfunc "F_LW_HPC_DefSetPulseWindow", .@controller$, .@actor,
 		.@start,
@@ -411,6 +386,50 @@ function	script	F_PB_CFG_ApplyPulseProfile	{
 		.@max,
 		.@weight;
 	return 1;
+}
+
+function	script	F_PB_DB_ControllerDemandUsers	{
+	.@key$ = escape_sql(getarg(0));
+	.@fallback_map$ = getarg(1, "");
+	.@rows = query_sql(
+		"SELECT `map_name`, `user_weight` "
+		+ "FROM `bot_controller_demand_map` "
+		+ "WHERE `controller_key` = '" + .@key$ + "' "
+		+ "ORDER BY `point_index`, `map_name`",
+		.@map$, .@weight);
+	.@sum = 0;
+	if (.@rows < 1 && .@fallback_map$ != "")
+		return getmapusers(.@fallback_map$);
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@w = .@weight[.@i];
+		if (.@w < 1)
+			.@w = 1;
+		.@sum += getmapusers(.@map$[.@i]) * .@w;
+	}
+	return .@sum;
+}
+
+function	script	F_PB_DB_ControllerDemandSummary$	{
+	.@key$ = escape_sql(getarg(0));
+	.@fallback_map$ = getarg(1, "");
+	.@rows = query_sql(
+		"SELECT `map_name`, `user_weight` "
+		+ "FROM `bot_controller_demand_map` "
+		+ "WHERE `controller_key` = '" + .@key$ + "' "
+		+ "ORDER BY `point_index`, `map_name`",
+		.@map$, .@weight);
+	if (.@rows < 1) {
+		if (.@fallback_map$ == "")
+			return "<none>";
+		return .@fallback_map$ + " x1=" + getmapusers(.@fallback_map$);
+	}
+	.@summary$ = "";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		if (.@summary$ != "")
+			.@summary$ += ", ";
+		.@summary$ += .@map$[.@i] + " x" + (.@weight[.@i] < 1 ? 1 : .@weight[.@i]) + "=" + getmapusers(.@map$[.@i]);
+	}
+	return .@summary$;
 }
 
 function	script	F_PB_CFG_AnchorSetIndex	{
@@ -886,10 +905,11 @@ function	script	F_PB_DB_HideMerchantProxy	{
 
 function	script	F_PB_DB_ApplyControllerPolicy	{
 	.@controller$ = getarg(0);
-	.@key$ = escape_sql(getarg(1));
+	.@key$ = getarg(1);
+	.@esc_key$ = escape_sql(.@key$);
 	.@rows = query_sql(
 		"SELECT `map_name`, `gate_users`, `tick_ms`, `start_min_ms`, `start_max_ms`, `grace_ms`, `stop_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour` "
-		+ "FROM `bot_controller_policy` WHERE `controller_key` = '" + .@key$ + "' AND `controller_enabled` = 1 LIMIT 1",
+		+ "FROM `bot_controller_policy` WHERE `controller_key` = '" + .@esc_key$ + "' AND `controller_enabled` = 1 LIMIT 1",
 		.@map$, .@gate, .@tick, .@start_min, .@start_max, .@grace, .@stop$, .@routine$, .@rs, .@re);
 	if (.@rows < 1)
 		return 0;
@@ -901,6 +921,7 @@ function	script	F_PB_DB_ApplyControllerPolicy	{
 	callfunc "F_LW_HPC_DefSetStopPolicy", .@controller$, .@stop$[0];
 	callfunc "F_LW_HPC_DefSetRoutineGroup", .@controller$, .@routine$[0];
 	callfunc "F_LW_HPC_DefSetRoutineWindow", .@controller$, .@rs[0], .@re[0];
+	setd("$LWHD" + getnpcid(0, .@controller$) + "_KY$", .@key$);
 	return 1;
 }
 
@@ -1731,11 +1752,16 @@ function	script	F_LW_HPC_DefBuildStatus	{
 	.@routine_group$ = getd("$LWHD" + .@seed + "_RG$");
 	.@routine_start = getd("$LWHD" + .@seed + "_RW");
 	.@routine_end = getd("$LWHD" + .@seed + "_RE");
+	.@policy_key$ = getd("$LWHD" + .@seed + "_KY$");
+	.@demand_summary$ = callfunc("F_PB_DB_ControllerDemandSummary$", .@policy_key$, .@gate_map$);
+	.@demand_users = callfunc("F_PB_DB_ControllerDemandUsers", .@policy_key$, .@gate_map$);
 	.@hour = gettime(DT_HOUR);
 	if (.@gate_map$ != "")
 		.@summary$ += "\nPolicy: gate " + .@gate_map$ + " >= " + .@gate_users + " user(s), tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms, stop " + .@stop_policy$ + ".";
 	else
 		.@summary$ += "\nPolicy: ungated, tick " + .@tick_ms + "ms, grace " + .@grace_ms + "ms, stop " + .@stop_policy$ + ".";
+	if (.@policy_key$ != "")
+		.@summary$ += "\nDemand: " + .@demand_users + " weighted users from " + .@demand_summary$ + ".";
 	if (.@routine_group$ != "" && .@routine_start >= 0 && .@routine_end >= 0)
 		.@summary$ += "\nRoutine: " + .@routine_group$ + " " + .@routine_start + "-" + .@routine_end + ", hour " + .@hour + " (" + (callfunc("F_LW_IsHourInWindow", .@routine_start, .@routine_end) ? "in" : "out") + " window).";
 	else if (.@routine_group$ != "")
@@ -1877,6 +1903,7 @@ function	script	F_LW_HPC_DefBuildPoolSummary	{
 function	script	F_LW_HPC_ControllerShouldRun	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
+	.@policy_key$ = getd("$LWHD" + .@seed + "_KY$");
 	.@routine_group$ = getd("$LWHD" + .@seed + "_RG$");
 	.@routine_start = getd("$LWHD" + .@seed + "_RW");
 	.@routine_end = getd("$LWHD" + .@seed + "_RE");
@@ -1891,7 +1918,8 @@ function	script	F_LW_HPC_ControllerShouldRun	{
 	}
 	if (.@gate_map$ == "")
 		return 1;
-	if (getmapusers(.@gate_map$) >= .@gate_users) {
+	.@demand_users = callfunc("F_PB_DB_ControllerDemandUsers", .@policy_key$, .@gate_map$);
+	if (.@demand_users >= .@gate_users) {
 		if (.@deadline)
 			setd("$LWHD" + .@seed + "_GD", 0);
 		return 1;
@@ -2009,7 +2037,8 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@slot = getd("$LWHS" + .@seed + "_KI[" + .@i + "]");
 		.@controller$ = getd("$LWHS" + .@seed + "_CN$[" + .@i + "]");
 		.@map$ = getd("$LWHS" + .@seed + "_GM$[" + .@i + "]");
-		.@users = getmapusers(.@map$);
+		.@users = callfunc("F_PB_DB_ControllerDemandUsers", .@key$, .@map$);
+		.@demand_summary$ = callfunc("F_PB_DB_ControllerDemandSummary$", .@key$, .@map$);
 		.@need = getd("$LWHS" + .@seed + "_GU[" + .@i + "]");
 		.@prio = getd("$LWHS" + .@seed + "_PR[" + .@i + "]");
 		.@actors = getd("$LWHS" + .@seed + "_AW[" + .@i + "]");
@@ -2052,6 +2081,7 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 			+ ", decision " + (.@decision$ == "" ? "<none>" : .@decision$) + ".";
 		.@summary$ += "\n  sticky/cooldown: " + .@min_active + "ms / " + .@restart_cd + "ms";
 		.@summary$ += ", demand step/bonus cap: " + .@demand_step + " / " + .@demand_prio + " / " + .@demand_cap;
+		.@summary$ += ", demand maps " + .@demand_summary$;
 		if (.@last_sel > 0)
 			.@summary$ += ", last picked " + ((.@now - .@last_sel) * 1000) + "ms ago";
 		if (.@last_start > 0 && .@active)
@@ -2104,7 +2134,7 @@ function	script	F_LW_HPC_SchedRun	{
 			continue;
 		if (!callfunc("F_LW_HPC_ControllerShouldRun", .@controller$))
 			continue;
-		.@users = getmapusers(.@map$);
+		.@users = callfunc("F_PB_DB_ControllerDemandUsers", .@key$, .@map$);
 		if (.@users < .@need)
 			continue;
 		if (.@live_active < 1)
@@ -2150,7 +2180,7 @@ function	script	F_LW_HPC_SchedRun	{
 					setd("$LWHS" + .@seed + "_RD$[" + .@slot + "]", "blocked: controller gate");
 					continue;
 				}
-				.@users = getmapusers(.@map$);
+				.@users = callfunc("F_PB_DB_ControllerDemandUsers", .@key$, .@map$);
 				.@bonus = 0;
 				if (.@users > .@need && .@demand_prio > 0) {
 					if (.@demand_step < 1)

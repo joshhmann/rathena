@@ -3230,3 +3230,62 @@ This slice does not yet add:
 - persisted fairness at per-bot or per-slot granularity
 - operator-facing scheduler history inspection beyond current status output and
   SQL
+
+## Slice 56: SQL-Backed Demand Profiles And Pulse Profiles
+
+### Goal
+
+Reduce remaining script hardcoding in the controller layer and make scheduler
+selection react to richer demand than a single gated map count.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_demand_profiles.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added SQL-backed multi-map demand sources through:
+  - `bot_controller_demand_map`
+- Added SQL-backed pulse profiles through:
+  - `bot_pulse_profile`
+- Moved the live pulse profile definitions out of `headless_pc_config.txt` and
+  into checked-in SQL seed data
+- Controller pulse application now reads from SQL instead of the old script-only
+  profile registry
+- Controller policy application now stores the controller policy key on the live
+  controller runtime state
+- `F_LW_HPC_ControllerShouldRun(...)` now evaluates weighted demand users from
+  SQL-backed demand-map sets instead of only checking the primary gate map
+- Scheduler status now surfaces:
+  - weighted demand users
+  - demand-map composition
+- Scheduler selection now computes demand pressure from SQL-backed demand maps,
+  not only the controller's primary map
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_demand_profiles.sql`
+- verified demand-map rows exist for:
+  - `social.prontera`
+  - `patrol.prontera`
+  - `social.alberta`
+  - `merchant.alberta`
+- verified pulse-profile rows exist for the active social/merchant controller
+  profiles
+- restarted the full stack cleanly
+- confirmed no new parser/runtime errors were introduced by the demand/pulse
+  migration
+- OpenKore baseline still logs in and reaches Prontera after the slice
+
+### Deferrals
+
+This slice does not yet add:
+
+- guild/economy-aware demand signals
+- operator-authored demand-map editing surfaces
+- richer market demand feedback from real shop activity

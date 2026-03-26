@@ -36,19 +36,6 @@ OnInit:
 	callfunc "F_PB_CFG_SetInt", "ca.rs", 0;
 	callfunc "F_PB_CFG_SetInt", "ca.re", 6;
 
-	// Shared pulse profiles.
-	callfunc "F_PB_CFG_SetPulseProfile", "square_anchor_day", 7, 21, 40, 70, 70;
-	callfunc "F_PB_CFG_SetPulseProfile", "square_anchor_evening", 9, 22, 45, 80, 60;
-	callfunc "F_PB_CFG_SetPulseProfile", "square_loiter_busy", 8, 20, 30, 55, 55;
-	callfunc "F_PB_CFG_SetPulseProfile", "square_loiter_late", 10, 23, 35, 60, 50;
-	callfunc "F_PB_CFG_SetPulseProfile", "square_loiter_night", 11, 23, 30, 50, 45;
-
-	callfunc "F_PB_CFG_SetPulseProfile", "market_anchor_day", 8, 21, 40, 70, 65;
-	callfunc "F_PB_CFG_SetPulseProfile", "market_anchor_trade", 9, 22, 45, 75, 60;
-	callfunc "F_PB_CFG_SetPulseProfile", "market_loiter_browse", 8, 20, 30, 55, 55;
-	callfunc "F_PB_CFG_SetPulseProfile", "mh", 9, 22, 35, 60, 50;
-	callfunc "F_PB_CFG_SetPulseProfile", "ml", 10, 23, 35, 55, 45;
-
 	// SQL-backed pool registry.
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.alberta";
