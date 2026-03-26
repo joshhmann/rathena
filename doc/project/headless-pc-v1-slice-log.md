@@ -3469,3 +3469,71 @@ This slice does not yet add:
 - guild creation or guild seeding helpers for selftests
 - full live guild invite acceptance proof in the current empty-guild dev DB
 - guild follow/assist, guild chat, or guild event semantics
+
+## Slice 60: Playerbot Guild Creation Helper And Economy Signals
+
+### Goal
+
+Close the empty-guild validation gap with a real dev guild-creation helper, and
+extend controller demand beyond merchant presence into merchant stock depth.
+
+### Files Touched
+
+- `src/map/script.cpp`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/playerbot_provisioner.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_economy_signals.sql`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added `playerbot_guildcreate(name$)` in `script.cpp`.
+- The helper mirrors the `@guild` dev path:
+  - attached-player only
+  - temporarily bypasses Emperium requirement
+  - calls the normal `guild_create(...)` runtime
+- Added `guild.prontera.open` as a first open-invite guild-capable template.
+- Extended the provisioner with a matching quick/manual guild-open option.
+- Extended `Playerbot Guild Lab` with a full guild selftest lane:
+  - create guild if needed
+  - provision/open a guild-capable bot
+  - spawn it
+  - invite it through the guild runtime
+  - verify guild ids
+- Added a richer demand signal family:
+  - `merchant_stock_map`
+- Controller demand can now react to merchant stock depth, not only:
+  - merchant-open counts
+  - live merchanting counts
+
+### Validation
+
+- rebuilt `map-server`
+- applied `upgrade_20260326_playerbot_economy_signals.sql`
+- restarted the full stack cleanly after the changes
+- verified SQL demand rows for:
+  - `social.alberta`
+  - `merchant.alberta`
+  now include `merchant_stock_map`
+- verified from a live OpenKore login that `playerbot_guildcreate(...)` works:
+  - the attached `codex` test character received `Guild create successful.`
+  - the client also reported `You are a guildmaster.`
+- verified in SQL that the new guild row exists:
+  - `guild_id 1`
+  - `name PBG150001`
+  - `master codex`
+- kept the guild selftest harness in place, but did not claim a full end-to-end
+  bot invite/join proof for this slice because the dormant autorun/manual path
+  still needs a cleaner repeatable trigger in CLI
+
+### Deferrals
+
+This slice does not yet add:
+
+- a fully repeatable CLI-proven guild bot invite/join selftest result
+- guild-aware scheduler demand from real live guild roster/activity
+- richer economy pressure from sales, trades, or zeny flow

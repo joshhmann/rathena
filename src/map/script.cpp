@@ -123,6 +123,8 @@ static std::string playerbot_template_alias(const char* template_key) {
 		return "mas";
 	if (strcmp(template_key, "guild.prontera.member") == 0)
 		return "pgm";
+	if (strcmp(template_key, "guild.prontera.open") == 0)
+		return "pgo";
 	return template_key;
 }
 
@@ -11977,6 +11979,34 @@ BUILDIN_FUNC(playerbot_guildid)
 {
 	TBL_PC* tsd = map_charid2sd(script_getnum(st, 2));
 	script_pushint(st, tsd != nullptr ? tsd->status.guild_id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Create one guild for the attached player without requiring
+ * an Emperium, mirroring the @guild dev path.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_guildcreate)
+{
+	map_session_data* sd = nullptr;
+	char guild_name[NAME_LENGTH];
+	int32 prev = battle_config.guild_emperium_check;
+
+	if (!script_rid2sd(sd))
+		return SCRIPT_CMD_FAILURE;
+
+	memset(guild_name, '\0', sizeof(guild_name));
+	safestrncpy(guild_name, script_getstr(st, 2), NAME_LENGTH);
+	trim(guild_name);
+
+	if (guild_name[0] == '\0' || sd->clan != nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	battle_config.guild_emperium_check = 0;
+	script_pushint(st, guild_create(*sd, guild_name) ? 1 : 0);
+	battle_config.guild_emperium_check = prev;
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -29391,6 +29421,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_partyid,"i"),
 	BUILDIN_DEF(playerbot_guildinvite,"i"),
 	BUILDIN_DEF(playerbot_guildid,"i"),
+	BUILDIN_DEF(playerbot_guildcreate,"s"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),

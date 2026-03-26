@@ -3,7 +3,7 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 	mes "Provision persistent playerbot identities and refresh SQL-backed pools.";
 	next;
 
-	switch(select("Quick Provision Prontera Social:Quick Provision Alberta Social:Quick Provision Party Bot:Quick Provision Guild Bot:Quick Provision Alberta Merchant:Provision Prontera Social Day:Provision Alberta Social Night:Provision Prontera Party Open:Provision Prontera Guild Member:Provision Alberta Merchant Stall:Inspect Bot Summary:Reload SQL Pools:Close")) {
+	switch(select("Quick Provision Prontera Social:Quick Provision Alberta Social:Quick Provision Party Bot:Quick Provision Guild Bot:Quick Provision Alberta Merchant:Provision Prontera Social Day:Provision Alberta Social Night:Provision Prontera Party Open:Provision Prontera Guild Member:Provision Prontera Guild Open:Provision Alberta Merchant Stall:Inspect Bot Summary:Reload SQL Pools:Close")) {
 	case 1:
 		.@template$ = "social.prontera.day";
 		.@bot_key$ = "quick_social_prontera";
@@ -47,9 +47,12 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 		.@template$ = "guild.prontera.member";
 		break;
 	case 10:
-		.@template$ = "merchant.alberta.stall";
+		.@template$ = "guild.prontera.open";
 		break;
 	case 11:
+		.@template$ = "merchant.alberta.stall";
+		break;
+	case 12:
 		input .@bot_key$;
 		if (.@bot_key$ == "")
 			close;
@@ -72,7 +75,7 @@ prontera,146,183,4	script	Playerbot Provisioner	4_F_KAFRA1,{
 		mes "Shop / Market: " + ($@pbbot_shop_name$ == "" ? "<none>" : $@pbbot_shop_name$) + " / " + ($@pbbot_market_map$ == "" ? "<none>" : $@pbbot_market_map$ + " (" + $@pbbot_market_x + "," + $@pbbot_market_y + ")");
 		mes "Hours / Open: " + $@pbbot_merchant_start + "-" + $@pbbot_merchant_end + " / " + ($@pbbot_open_state$ == "" ? "<none>" : $@pbbot_open_state$);
 		close;
-	case 12:
+	case 13:
 		.@loaded = callfunc("F_PB_DB_LoadAllPools");
 		mes "[Playerbot Provisioner]";
 		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";

@@ -488,6 +488,18 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "merchant_stock_map") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_merchant_state` m "
+			+ "JOIN `bot_merchant_stock_item` s ON s.`stock_profile` = m.`stock_profile` "
+			+ "WHERE m.`enabled` = 1 "
+			+ "AND m.`market_map` = '" + .@key$ + "' "
+			+ "AND m.`open_state` IN ('scheduled', 'open')",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_enabled_name") {
 		query_sql(
 			"SELECT COUNT(*) "

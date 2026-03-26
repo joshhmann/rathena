@@ -3,7 +3,7 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 	mes "Drive the first guild-capable playerbot identity path.";
 	next;
 
-	switch(select("Quick guild self-provision:Provision guild bot:Spawn bot by key:Invite bot by key:Inspect bot by key:Reload SQL Pools:Close")) {
+	switch(select("Quick guild self-provision:Quick full guild selftest:Provision guild bot:Spawn bot by key:Invite bot by key:Inspect bot by key:Reload SQL Pools:Close")) {
 	case 1:
 		.@bot_key$ = "quick_guild_member";
 		.@display_name$ = "PBQGuild01";
@@ -28,6 +28,16 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 		close;
 
 	case 2:
+		.selftest_aid = getcharid(3);
+		.selftest_key$ = "qgo" + getcharid(0);
+		.selftest_name$ = "PBGO" + getcharid(0);
+		donpcevent strnpcinfo(3) + "::OnGuildSelftestStart";
+		mes "[Playerbot Guild Lab]";
+		mes "Guild selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+
+	case 3:
 		input .@bot_key$;
 		if (.@bot_key$ == "")
 			close;
@@ -49,7 +59,7 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Reloaded pools with " + .@loaded + " eligible identities.";
 		close;
 
-	case 3:
+	case 4:
 		input .@bot_key$;
 		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
 			mes "[Playerbot Guild Lab]";
@@ -61,7 +71,7 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 		mes .@ok ? "Spawn request queued." : "Spawn request failed.";
 		close;
 
-	case 4:
+	case 5:
 		input .@bot_key$;
 		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
 			mes "[Playerbot Guild Lab]";
@@ -76,7 +86,7 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Note: the attached player must already be in a guild and have invite permission.";
 		close;
 
-	case 5:
+	case 6:
 		input .@bot_key$;
 		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
 			mes "[Playerbot Guild Lab]";
@@ -95,7 +105,7 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Current guild_id: " + playerbot_guildid($@pbbot_char_id);
 		close;
 
-	case 6:
+	case 7:
 		.@loaded = callfunc("F_PB_DB_LoadAllPools");
 		mes "[Playerbot Guild Lab]";
 		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
@@ -103,4 +113,128 @@ prontera,144,179,4	script	Playerbot Guild Lab	4_M_02,{
 	}
 
 	close;
+
+OnInit:
+	.autorun = 0;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.autorun || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	.ran = 1;
+	.selftest_aid = getcharid(3);
+	.selftest_key$ = "qgo" + getcharid(0);
+	.selftest_name$ = "PBGO" + getcharid(0);
+	donpcevent strnpcinfo(3) + "::OnGuildSelftestStart";
+	end;
+
+OnGuildSelftestStart:
+	.selftest_wait = 0;
+	.selftest_result = 0;
+	.selftest_log$ = "starting";
+	.selftest_spawn_ok = 0;
+	.selftest_invite_ok = 0;
+	.selftest_char_id = 0;
+	if (!attachrid(.selftest_aid))
+		end;
+	if (getcharid(2)) {
+		detachrid;
+		donpcevent strnpcinfo(3) + "::OnGuildSelftestReady";
+		end;
+	}
+	.@gname$ = "PBG" + getcharid(0);
+	.@ok = playerbot_guildcreate(.@gname$);
+	.selftest_log$ = .@ok ? "guild-create-requested" : "guild-create-failed";
+	addtimer 1200, strnpcinfo(3) + "::OnGuildSelftestWaitGuild";
+	detachrid;
+	end;
+
+OnGuildSelftestWaitGuild:
+	if (!attachrid(.selftest_aid))
+		end;
+	if (getcharid(2)) {
+		detachrid;
+		donpcevent strnpcinfo(3) + "::OnGuildSelftestReady";
+		end;
+	}
+	.selftest_wait++;
+	if (.selftest_wait >= 10) {
+		.selftest_log$ = "guild-create-timeout";
+		debugmes "playerbot_guild_selftest: " + .selftest_log$ + " result=0.";
+		detachrid;
+		end;
+	}
+	addtimer 1200, strnpcinfo(3) + "::OnGuildSelftestWaitGuild";
+	detachrid;
+	end;
+
+OnGuildSelftestReady:
+	if (!attachrid(.selftest_aid))
+		end;
+	.@bot_id = playerbot_profile(.selftest_key$);
+	if (!.@bot_id)
+		.@bot_id = playerbot_provision(.selftest_key$, .selftest_name$, "guild.prontera.open");
+	if (!.@bot_id) {
+		.selftest_log$ = "provision-failed";
+		debugmes "playerbot_guild_selftest: " + .selftest_log$ + " result=0.";
+		detachrid;
+		end;
+	}
+	callfunc "F_PB_DB_LoadBotSummary", .selftest_key$;
+	callfunc "F_PB_DB_LoadAllPools";
+	.selftest_char_id = $@pbbot_char_id;
+	.selftest_spawn_ok = headlesspc_spawn(.selftest_char_id, "prontera", 156, 181);
+	.selftest_wait = 0;
+	.selftest_log$ = "spawn-queued";
+	addtimer 1200, strnpcinfo(3) + "::OnGuildSelftestWaitSpawn";
+	detachrid;
+	end;
+
+OnGuildSelftestWaitSpawn:
+	if (!attachrid(.selftest_aid))
+		end;
+	if (headlesspc_spawnack(.selftest_char_id) >= 1 && headlesspc_status(.selftest_char_id) == 2) {
+		detachrid;
+		donpcevent strnpcinfo(3) + "::OnGuildSelftestInvite";
+		end;
+	}
+	.selftest_wait++;
+	if (.selftest_wait >= 10) {
+		.selftest_log$ = "spawn-timeout";
+		debugmes "playerbot_guild_selftest: " + .selftest_log$ + " result=0.";
+		detachrid;
+		end;
+	}
+	addtimer 1200, strnpcinfo(3) + "::OnGuildSelftestWaitSpawn";
+	detachrid;
+	end;
+
+OnGuildSelftestInvite:
+	if (!attachrid(.selftest_aid))
+		end;
+	.selftest_invite_ok = playerbot_guildinvite(.selftest_char_id);
+	.selftest_log$ = "invite-issued";
+	addtimer 1600, strnpcinfo(3) + "::OnGuildSelftestVerify";
+	detachrid;
+	end;
+
+OnGuildSelftestVerify:
+	if (!attachrid(.selftest_aid))
+		end;
+	callfunc "F_PB_DB_LoadBotSummary", .selftest_key$;
+	.@inviter_gid = getcharid(2);
+	.@bot_gid = playerbot_guildid(.selftest_char_id);
+	.selftest_result = (.selftest_spawn_ok && .selftest_invite_ok && .@inviter_gid > 0 && .@bot_gid == .@inviter_gid);
+	.selftest_log$ = "spawn=" + .selftest_spawn_ok
+		+ " invite=" + .selftest_invite_ok
+		+ " inviter_gid=" + .@inviter_gid
+		+ " bot_gid=" + .@bot_gid
+		+ " status=" + headlesspc_status(.selftest_char_id);
+	debugmes "playerbot_guild_selftest: " + .selftest_log$ + " result=" + .selftest_result + ".";
+	detachrid;
+	end;
 }

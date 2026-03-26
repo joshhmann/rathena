@@ -139,6 +139,32 @@ OnInit:
 	callfunc "F_PB_CFG_SetStr", "tp.pgm.gi", "selective";
 	callfunc "F_PB_CFG_SetStr", "tp.pgm.gs", "candidate";
 
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.pf", "guild.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.pk", "pool.guild.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.rl", "guild_member";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.hm", "prontera";
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.hx", 156;
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.hy", 181;
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.rs", 7;
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.re", 23;
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.pp", "square_anchor_day";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.ip", "clickable";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.py", "never";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.ps", "demand_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.tz", "day";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.pt", "guild.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.sx", "F";
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.jb", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.pgo.cc", 0;
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.gp", "town_member";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.gn", "Adventurer Circle";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.gr", "Member";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.gi", "open";
+	callfunc "F_PB_CFG_SetStr", "tp.pgo.gs", "candidate";
+
 	callfunc "F_PB_CFG_SetStr", "tp.mas.pf", "merchant.alberta";
 	callfunc "F_PB_CFG_SetStr", "tp.mas.pk", "pool.merchant.alberta";
 	callfunc "F_PB_CFG_SetStr", "tp.mas.rl", "stall_merchant";

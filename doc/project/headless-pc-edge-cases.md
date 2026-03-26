@@ -1116,6 +1116,44 @@ Current limits:
   guild routines, chat, storage, or event behavior
 - guild creation/seeding for automated selftests is still missing
 
+### 49. Guild creation was missing from the dev proof path
+
+Current support:
+
+- script runtime now has a dev-only `playerbot_guildcreate(name$)` helper
+- it mirrors the `@guild` path and temporarily bypasses the Emperium
+  requirement for the attached player
+- the guild lab and provisioner now include a first open-invite guild template
+  lane
+- live validation now proves guild creation against the running server:
+  - `Guild create successful.`
+  - guild row `PBG150001` owned by `codex`
+
+Current limits:
+
+- full bot invite/join proof is still not claimed as a clean repeatable CLI
+  selftest yet
+- the current guild lab selftest path exists, but its trigger/automation still
+  needs tightening before it becomes a trusted smoke path
+
+### 50. Economy demand only tracked merchant presence, not stock depth
+
+Current support:
+
+- controller demand now supports a richer SQL-backed signal:
+  - `merchant_stock_map`
+- Alberta social/merchant demand can now react to:
+  - open merchant presence
+  - live merchanting presence
+  - configured stock depth
+
+Current limits:
+
+- stock depth is still a coarse proxy based on configured merchant stock rows,
+  not real purchases, sell-through, or zeny flow
+- economy-aware demand is still controller-level, not per-bot or per-market
+  segment
+
 ### 36. Fresh-restart ambient stability
 
 Current support:
