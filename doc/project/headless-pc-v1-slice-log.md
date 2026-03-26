@@ -3289,3 +3289,70 @@ This slice does not yet add:
 - guild/economy-aware demand signals
 - operator-authored demand-map editing surfaces
 - richer market demand feedback from real shop activity
+
+## Slice 57: Playerbot Guild State Foundation
+
+### Goal
+
+Add the persistent guild-facing metadata layer for recurring playerbots so
+guild-capable identities can be provisioned, inspected, and pooled without
+pretending guild mechanics are already complete.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_state.sql`
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `npc/custom/playerbot/playerbot_provisioner.txt`
+- `npc/custom/playerbot/playerbot_party_lab.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added persistent guild metadata through:
+  - `bot_guild_state`
+- Extended provisioning so templates can create guild-capable recurring bots
+  with:
+  - `guild_policy`
+  - `guild_name`
+  - `guild_position`
+  - `invite_policy`
+  - `guild_member_state`
+- Extended cleanup of failed bot provisioning so `bot_guild_state` is removed
+  along with the other bot tables
+- Extended `F_PB_DB_LoadBotSummary(...)` to surface guild metadata beside the
+  existing party and merchant summaries
+- Added a new provisioning template:
+  - `guild.prontera.member`
+- Added a visible dev harness:
+  - `Playerbot Guild Lab`
+- Updated the existing provisioner and party lab inspect paths to show guild
+  metadata
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_guild_state.sql`
+- rebuilt `map-server`
+- restarted the full stack cleanly
+- verified `bot_guild_state` exists and backfilled persistent rows for the
+  current recurring bot set
+- verified the new guild-capable provision/inspect surfaces load cleanly in:
+  - `Playerbot Provisioner`
+  - `Playerbot Party Lab`
+  - `Playerbot Guild Lab`
+- OpenKore baseline still logs in and reaches Prontera after the slice
+
+### Deferrals
+
+This slice does not yet add:
+
+- actual guild invite/join semantics
+- guild membership synchronization with the base `guild` and `guild_member`
+  tables
+- guild-aware scheduler demand or event participation

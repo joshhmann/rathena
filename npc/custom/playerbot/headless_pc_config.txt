@@ -40,6 +40,7 @@ OnInit:
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.alberta";
 	callfunc "F_PB_CFG_RegisterPool", "pool.party.prontera";
+	callfunc "F_PB_CFG_RegisterPool", "pool.guild.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.merchant.alberta";
 
 	// Merchant stock profiles.
@@ -111,6 +112,32 @@ OnInit:
 	callfunc "F_PB_CFG_SetInt", "tp.ppo.hs", 0;
 	callfunc "F_PB_CFG_SetInt", "tp.ppo.hc", 0;
 	callfunc "F_PB_CFG_SetInt", "tp.ppo.cc", 0;
+
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.pf", "guild.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.pk", "pool.guild.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.rl", "guild_member";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.hm", "prontera";
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.hx", 156;
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.hy", 181;
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.rs", 7;
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.re", 23;
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.pp", "square_anchor_day";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.ip", "clickable";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.py", "never";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.ps", "demand_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.tz", "day";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.pt", "guild.prontera";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.sx", "M";
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.jb", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.pgm.cc", 0;
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.gp", "town_member";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.gn", "Adventurer Circle";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.gr", "Member";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.gi", "selective";
+	callfunc "F_PB_CFG_SetStr", "tp.pgm.gs", "candidate";
 
 	callfunc "F_PB_CFG_SetStr", "tp.mas.pf", "merchant.alberta";
 	callfunc "F_PB_CFG_SetStr", "tp.mas.pk", "pool.merchant.alberta";

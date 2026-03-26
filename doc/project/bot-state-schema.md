@@ -351,7 +351,41 @@ Status:
 
 - deferred
 
-### 11. `bot_party_state`
+### 11. `bot_guild_state`
+
+One row per bot profile.
+
+Committed fields:
+
+- `bot_id`
+  - foreign key
+- `guild_policy`
+  - town_member, event_roster, guildless, reserved
+- `guild_name`
+- `guild_position`
+- `invite_policy`
+  - never, selective, open
+- `guild_member_state`
+  - unguilded, candidate, member, officer, leader
+- `enabled`
+
+Purpose:
+
+- separates guild-capable recurring bot state from generic party and merchant
+  policy
+- gives recurring bots a stable guild-facing identity even while parked or not
+  currently attached to real guild mechanics
+- provides the persistent metadata layer that later guild invitation,
+  membership, and schedule/event work can build on without redefining bot
+  identity
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_guild_state.sql`
+
+### 12. `bot_party_state`
 
 Deferred until party-capable pseudo-players are implemented.
 

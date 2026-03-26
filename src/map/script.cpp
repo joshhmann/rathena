@@ -121,6 +121,8 @@ static std::string playerbot_template_alias(const char* template_key) {
 		return "ppo";
 	if (strcmp(template_key, "merchant.alberta.stall") == 0)
 		return "mas";
+	if (strcmp(template_key, "guild.prontera.member") == 0)
+		return "pgm";
 	return template_key;
 }
 
@@ -153,6 +155,7 @@ static bool playerbot_profile_lookup_by_key(const char* bot_key, uint32* bot_id)
 
 static void playerbot_cleanup_provisioned(uint32 account_id, uint32 char_id, uint32 bot_id) {
 	if (bot_id != 0) {
+		Sql_Query(mmysql_handle, "DELETE FROM `bot_guild_state` WHERE `bot_id` = '%u'", bot_id);
 		Sql_Query(mmysql_handle, "DELETE FROM `bot_merchant_state` WHERE `bot_id` = '%u'", bot_id);
 		Sql_Query(mmysql_handle, "DELETE FROM `bot_behavior_config` WHERE `bot_id` = '%u'", bot_id);
 		Sql_Query(mmysql_handle, "DELETE FROM `bot_runtime_state` WHERE `bot_id` = '%u'", bot_id);
@@ -191,6 +194,11 @@ static uint32 playerbot_provision_identity(const char* bot_key, const char* disp
 	const std::string price_profile = playerbot_cfg_get_str(key_prefix + "pr");
 	const std::string stall_style = playerbot_cfg_get_str(key_prefix + "ss", "anchored");
 	const std::string open_state = playerbot_cfg_get_str(key_prefix + "mo", "closed");
+	const std::string guild_policy = playerbot_cfg_get_str(key_prefix + "gp");
+	const std::string guild_name = playerbot_cfg_get_str(key_prefix + "gn");
+	const std::string guild_position = playerbot_cfg_get_str(key_prefix + "gr");
+	const std::string guild_invite = playerbot_cfg_get_str(key_prefix + "gi", "never");
+	const std::string guild_state = playerbot_cfg_get_str(key_prefix + "gs", "unguilded");
 	const std::string sex_string = playerbot_cfg_get_str(key_prefix + "sx", "M");
 	const int16 map_id = map_mapname2mapid(home_map.c_str());
 	const uint16 home_x = static_cast<uint16>(playerbot_cfg_get_int(key_prefix + "hx", 0));
@@ -211,6 +219,7 @@ static uint32 playerbot_provision_identity(const char* bot_key, const char* disp
 	char esc_presence_policy[65], esc_controller_tag[129], esc_timezone_policy[129], esc_personality[129];
 	char esc_merchant_policy[129], esc_shop_name[NAME_LENGTH * 2 + 1], esc_market_map[MAP_NAME_LENGTH_EXT * 2 + 1];
 	char esc_stock_profile[129], esc_price_profile[129], esc_stall_style[65], esc_open_state[65];
+	char esc_guild_policy[129], esc_guild_name[129], esc_guild_position[129], esc_guild_invite[65], esc_guild_state[65];
 	uint32 existing_bot_id = 0, account_id = 0, char_id = 0, bot_id = 0;
 	char sex = 'M';
 
@@ -264,6 +273,11 @@ static uint32 playerbot_provision_identity(const char* bot_key, const char* disp
 	Sql_EscapeStringLen(mmysql_handle, esc_price_profile, price_profile.c_str(), price_profile.size());
 	Sql_EscapeStringLen(mmysql_handle, esc_stall_style, stall_style.c_str(), stall_style.size());
 	Sql_EscapeStringLen(mmysql_handle, esc_open_state, open_state.c_str(), open_state.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_guild_policy, guild_policy.c_str(), guild_policy.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_guild_name, guild_name.c_str(), guild_name.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_guild_position, guild_position.c_str(), guild_position.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_guild_invite, guild_invite.c_str(), guild_invite.size());
+	Sql_EscapeStringLen(mmysql_handle, esc_guild_state, guild_state.c_str(), guild_state.size());
 
 	if (SQL_ERROR == Sql_Query(mmysql_handle, "SELECT 1 FROM `login` WHERE `userid` = '%s' LIMIT 1", esc_login)) {
 		Sql_ShowDebug(mmysql_handle);
@@ -342,7 +356,11 @@ static uint32 playerbot_provision_identity(const char* bot_key, const char* disp
 		|| SQL_ERROR == Sql_Query(mmysql_handle,
 			"INSERT INTO `bot_merchant_state` (`bot_id`, `merchant_policy`, `shop_name`, `market_map`, `market_x`, `market_y`, `opening_start_hour`, `opening_end_hour`, `stock_profile`, `price_profile`, `stall_style`, `open_state`, `enabled`) "
 			"VALUES ('%u', '%s', '%s', '%s', '%u', '%u', '%u', '%u', '%s', '%s', '%s', '%s', '%u')",
-			bot_id, esc_merchant_policy, esc_shop_name, esc_market_map, market_x, market_y, merchant_start, merchant_end, esc_stock_profile, esc_price_profile, esc_stall_style, esc_open_state, merchant_policy.empty() ? 0 : 1)) {
+			bot_id, esc_merchant_policy, esc_shop_name, esc_market_map, market_x, market_y, merchant_start, merchant_end, esc_stock_profile, esc_price_profile, esc_stall_style, esc_open_state, merchant_policy.empty() ? 0 : 1)
+		|| SQL_ERROR == Sql_Query(mmysql_handle,
+			"INSERT INTO `bot_guild_state` (`bot_id`, `guild_policy`, `guild_name`, `guild_position`, `invite_policy`, `guild_member_state`, `enabled`) "
+			"VALUES ('%u', '%s', '%s', '%s', '%s', '%s', '%u')",
+			bot_id, esc_guild_policy, esc_guild_name, esc_guild_position, esc_guild_invite, esc_guild_state, guild_policy.empty() ? 0 : 1)) {
 		Sql_ShowDebug(mmysql_handle);
 		playerbot_cleanup_provisioned(account_id, char_id, bot_id);
 		return 0;

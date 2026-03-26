@@ -1041,6 +1041,32 @@ Current limits:
 - pulse profiles are global keyed profiles, not yet per-bot or per-role
   overrides
 
+### 46. Guild-capable identities without guild semantics
+
+Current support:
+
+- recurring bots now have persistent guild-facing metadata through:
+  - `bot_guild_state`
+- provisioning templates can now define:
+  - guild policy
+  - guild name
+  - guild position
+  - guild invite policy
+  - guild member state
+- the inspect/provision harnesses now surface that metadata alongside the
+  existing party and merchant summaries
+- failed provisioning cleanup now removes guild metadata with the rest of the
+  bot identity state
+
+Current limits:
+
+- guild-capable bots are not yet synchronized into live `guild` /
+  `guild_member` membership
+- invite policy is metadata only; it does not yet drive runtime guild invite
+  responses
+- scheduler demand still does not account for guild activity, guild events, or
+  guild roster pressure
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

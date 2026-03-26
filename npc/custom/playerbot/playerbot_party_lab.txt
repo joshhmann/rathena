@@ -99,6 +99,9 @@ prontera,146,181,4	script	Playerbot Party Lab	4_F_KAFRA2,{
 		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
 		mes "Pool / Profile / Role: " + $@pbbot_pool$ + " / " + $@pbbot_profile$ + " / " + $@pbbot_role$;
 		mes "Interaction / Party: " + $@pbbot_interaction$ + " / " + $@pbbot_party$;
+		mes "Guild: " + ($@pbbot_guild_enabled ? "enabled" : "disabled") + " / " + ($@pbbot_guild_policy$ == "" ? "<none>" : $@pbbot_guild_policy$);
+		mes "Guild Name / Position: " + ($@pbbot_guild_name$ == "" ? "<none>" : $@pbbot_guild_name$) + " / " + ($@pbbot_guild_position$ == "" ? "<none>" : $@pbbot_guild_position$);
+		mes "Guild Invite / State: " + ($@pbbot_guild_invite$ == "" ? "<none>" : $@pbbot_guild_invite$) + " / " + ($@pbbot_guild_state$ == "" ? "<none>" : $@pbbot_guild_state$);
 		close;
 	}
 

@@ -713,6 +713,12 @@ function	script	F_PB_DB_LoadBotSummary	{
 	$@pbbot_role$ = "";
 	$@pbbot_interaction$ = "";
 	$@pbbot_party$ = "";
+	$@pbbot_guild_policy$ = "";
+	$@pbbot_guild_name$ = "";
+	$@pbbot_guild_position$ = "";
+	$@pbbot_guild_invite$ = "";
+	$@pbbot_guild_state$ = "";
+	$@pbbot_guild_enabled = 0;
 	$@pbbot_merchant_policy$ = "";
 	$@pbbot_shop_name$ = "";
 	$@pbbot_market_map$ = "";
@@ -729,6 +735,9 @@ function	script	F_PB_DB_LoadBotSummary	{
 		"SELECT p.`bot_id`, p.`name`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0), "
 		+ "p.`status`, p.`role`, IFNULL(b.`pool_key`, ''), IFNULL(b.`profile_key`, ''), "
 		+ "IFNULL(b.`interaction_policy`, ''), IFNULL(b.`party_policy`, ''), "
+		+ "IFNULL(g.`guild_policy`, ''), IFNULL(g.`guild_name`, ''), "
+		+ "IFNULL(g.`guild_position`, ''), IFNULL(g.`invite_policy`, ''), "
+		+ "IFNULL(g.`guild_member_state`, ''), IFNULL(g.`enabled`, 0), "
 		+ "IFNULL(m.`merchant_policy`, ''), IFNULL(m.`shop_name`, ''), IFNULL(m.`market_map`, ''), "
 		+ "IFNULL(m.`market_x`, 0), IFNULL(m.`market_y`, 0), "
 		+ "IFNULL(m.`opening_start_hour`, 0), IFNULL(m.`opening_end_hour`, 0), "
@@ -737,9 +746,11 @@ function	script	F_PB_DB_LoadBotSummary	{
 		+ "FROM `bot_profile` p "
 		+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `bot_guild_state` g ON g.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_merchant_state` m ON m.`bot_id` = p.`bot_id` "
 		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
 		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@role$, .@pool$, .@profile$, .@interaction$, .@party$,
+		.@guild_policy$, .@guild_name$, .@guild_position$, .@guild_invite$, .@guild_state$, .@guild_enabled,
 		.@merchant_policy$, .@shop_name$, .@market_map$, .@market_x, .@market_y, .@merchant_start, .@merchant_end,
 		.@stock_profile$, .@price_profile$, .@stall_style$, .@open_state$, .@merchant_enabled);
 	if (.@rows > 0) {
@@ -754,6 +765,12 @@ function	script	F_PB_DB_LoadBotSummary	{
 		$@pbbot_profile$ = .@profile$[0];
 		$@pbbot_interaction$ = .@interaction$[0];
 		$@pbbot_party$ = .@party$[0];
+		$@pbbot_guild_policy$ = .@guild_policy$[0];
+		$@pbbot_guild_name$ = .@guild_name$[0];
+		$@pbbot_guild_position$ = .@guild_position$[0];
+		$@pbbot_guild_invite$ = .@guild_invite$[0];
+		$@pbbot_guild_state$ = .@guild_state$[0];
+		$@pbbot_guild_enabled = .@guild_enabled[0];
 		$@pbbot_merchant_policy$ = .@merchant_policy$[0];
 		$@pbbot_shop_name$ = .@shop_name$[0];
 		$@pbbot_market_map$ = .@market_map$[0];
