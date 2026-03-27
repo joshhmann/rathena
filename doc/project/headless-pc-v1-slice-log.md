@@ -4555,3 +4555,27 @@ Notes:
   market spill
 - focus derivation is shared, but geometry/flavor application still remains
   controller-local
+
+## Slice: Cross-Controller Posture Separation
+
+Date: 2026-03-26
+
+Summary:
+- upgraded the shared focus-state layer into visible posture separation for the
+  guild watch and Alberta market-spill controllers
+- sibling controllers can now steer those lanes away from duplicating the
+  obvious focus when a reasonable alternate exists
+
+Changed:
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the posture-separation pass
+
+Notes:
+- this is still a heuristic coordination layer, not a hard planner
+- the main gain is visible posture separation, not perfect map-wide behavior

@@ -93,37 +93,48 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
-	.focus_state$ = callfunc("F_PB_DB_MarketSpillFocus$", "alberta");
+	.@focus$ = callfunc("F_PB_DB_MarketSpillFocus$", "alberta");
+	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "browsers", "harbor", "HeadlessAlbertaMerchantController", "HeadlessAlbertaTradeFlowController");
+	.focus_state$ = .@focus$;
+	if (.@focus$ == "front")
+		.@focus_label$ = "front fringe";
+	else if (.@focus$ == "browsers")
+		.@focus_label$ = "browse fringe";
+	else
+		.@focus_label$ = "harbor fringe";
 	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "spill", "alberta");
+	.@next$ += " / " + .@focus_label$;
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefClearAnchors", .owner$, 0;
-	if (.@score >= 10) {
+	if (.@focus$ == "front") {
 		callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "loiter";
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 0, 51, 241;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 0, 53, 242;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 0, 49, 239;
-	} else if (.@score >= 4) {
+	} else if (.@focus$ == "browsers") {
 		callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "loiter";
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 0, 51, 241;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 0, 52, 242;
 	} else {
 		callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";
-		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 241;
+		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 49, 238;
 	}
 	callfunc "F_LW_HPC_DefClearTalk", .owner$, 0;
 	callfunc "F_LW_HPC_DefClearEmote", .owner$, 0;
-	if (.@score >= 10) {
+	if (.@focus$ == "front") {
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Crowded stalls tonight.";
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Harbor bargains over here.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
-	} else if (.@score >= 4) {
+	} else if (.@focus$ == "browsers") {
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Good traffic near the market.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Browsers are drifting off the main stalls.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
 	} else {
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "A quiet corner by the stalls.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "A quiet harbor fringe tonight.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Spill traffic is staying closer to the docks.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 0;

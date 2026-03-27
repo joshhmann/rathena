@@ -1663,3 +1663,19 @@ Current limits:
 
 - focus derivation is shared, but geometry/flavor application still remains
   controller-local
+
+## Cross-Controller Posture Separation
+
+- Some sibling controllers now use shared focus-state to pick a visibly
+  different posture when another controller already owns the obvious lane.
+
+Current support:
+
+- Prontera guild watch can yield from notice-watch into roster-watch
+- Alberta market spill can yield from front-fringe into browse or harbor fringe
+
+Current limits:
+
+- posture separation is still local and heuristic
+- there is still no map-wide solver that guarantees optimal or non-overlapping
+  posture choices

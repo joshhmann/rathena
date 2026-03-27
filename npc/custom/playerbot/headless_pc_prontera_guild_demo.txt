@@ -93,48 +93,95 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
-	.focus_state$ = callfunc("F_PB_DB_GuildWatchFocus$", "PBG150001");
+	.@focus$ = callfunc("F_PB_DB_GuildWatchFocus$", "PBG150001");
+	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "roster", "", "HeadlessPronteraGuildQuarterController", "HeadlessPronteraSocialController");
+	.focus_state$ = .@focus$;
+	if (.@focus$ == "notice")
+		.@focus_label$ = "notice watch";
+	else
+		.@focus_label$ = "roster watch";
 	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
+	.@next$ += " / " + .@focus_label$;
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "loiter";
 	callfunc "F_LW_HPC_DefClearAnchors", .owner$, 1;
 	if (.@score >= 8) {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 189;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 191;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 147, 192;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 145, 189;
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 185;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 186;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 184;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 186;
+		} else {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 189;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 191;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 147, 192;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 145, 189;
+		}
 	} else if (.@score >= 3) {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 151, 191;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 147, 190;
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 185;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 153, 186;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 185;
+		} else {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 151, 191;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 147, 190;
+		}
 	} else {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 191;
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 185;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 151, 185;
+		} else {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 191;
+		}
 	}
 	for (.@i = 0; .@i <= 1; ++.@i) {
 		callfunc "F_LW_HPC_DefClearTalk", .owner$, .@i;
 		callfunc "F_LW_HPC_DefClearEmote", .owner$, .@i;
 	}
 	if (.@score >= 8) {
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep the quarter open.";
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Guild traffic is picking up.";
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep the notice lane open.";
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Fresh guild notices are drawing a crowd.";
+		} else {
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep the quarter open.";
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Guild traffic is picking up.";
+		}
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_SWEAT;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Runner on the move.";
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Watch the guild board.";
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Watch the guild board.";
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Notice wall is active tonight.";
+		} else {
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Runner on the move.";
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Roster traffic is building.";
+		}
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
 	} else if (.@score >= 3) {
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "A few guild matters today.";
+		if (.@focus$ == "notice")
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "A new notice is pulling a few eyes.";
+		else
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "A few guild matters today.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Keeping an eye on the square.";
+		if (.@focus$ == "notice")
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Keeping an eye on the board side.";
+		else
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Keeping an eye on the square.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_OK;
 	} else {
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Quiet watch this hour.";
+		if (.@focus$ == "notice")
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Quiet notice watch this hour.";
+		else
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Quiet watch this hour.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Nothing urgent from the guild.";
+		if (.@focus$ == "notice")
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "No urgent updates on the board.";
+		else
+			callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Nothing urgent from the guild.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
