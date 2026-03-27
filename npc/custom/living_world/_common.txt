@@ -281,9 +281,13 @@ function	script	F_LW_HPC_EnsureActive	{
 	.@map$ = getarg(1);
 	.@x = getarg(2);
 	.@y = getarg(3);
+	.@controller$ = getarg(4, "");
+	.@owner$ = getarg(5, "");
+	.@reason$ = getarg(6, "scheduler.topup");
 	.@status = headlesspc_status(.@char_id);
 	if (.@status == 0) {
 		headlesspc_spawn(.@char_id, .@map$, .@x, .@y);
+		callfunc "F_PB_DB_TraceEmitByChar", "scheduler.spawned", "scheduler", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "spawn", .@map$ + ":" + .@x + ":" + .@y, .@reason$, "status=0", "", "", "ok", 0, "", "", "";
 		return 0;
 	}
 	return (.@status == 2);
@@ -1314,6 +1318,238 @@ function	script	F_PB_CFG_LoadStockProfileToCart	{
 	return .@count;
 }
 
+function	script	F_PB_DB_TraceNextId$	{
+	.@seq = getd("$PBTR_SEQ") + 1;
+	setd("$PBTR_SEQ", .@seq);
+	return gettimetick(2) + "-" + .@seq + "-" + rand(1000000);
+}
+
+function	script	F_PB_DB_TraceEmit	{
+	.@action$ = escape_sql(getarg(0));
+	.@phase$ = escape_sql(getarg(1));
+	.@bot_id = getarg(2, 0);
+	.@char_id = getarg(3, 0);
+	.@account_id = getarg(4, 0);
+	.@map$ = getarg(5, "");
+	.@x = getarg(6, 0);
+	.@y = getarg(7, 0);
+	.@controller_id$ = escape_sql(getarg(8, ""));
+	.@controller_kind$ = escape_sql(getarg(9, ""));
+	.@owner_token$ = escape_sql(getarg(10, ""));
+	.@target_type$ = escape_sql(getarg(11, ""));
+	.@target_id$ = escape_sql(getarg(12, ""));
+	.@reason_code$ = escape_sql(getarg(13, "none"));
+	.@inputs$ = escape_sql(getarg(14, ""));
+	.@signals$ = escape_sql(getarg(15, ""));
+	.@reservation_refs$ = escape_sql(getarg(16, ""));
+	.@result$ = escape_sql(getarg(17, "ok"));
+	.@duration_ms = getarg(18, 0);
+	.@fallback$ = escape_sql(getarg(19, ""));
+	.@error_code$ = escape_sql(getarg(20, ""));
+	.@error_detail$ = escape_sql(getarg(21, ""));
+	.@trace_id$ = escape_sql(callfunc("F_PB_DB_TraceNextId$"));
+
+	if (.@bot_id < 1 || .@account_id < 1) {
+		if (.@char_id > 0) {
+			.@ctx_rows = query_sql(
+				"SELECT `bot_id`, `account_id` "
+				+ "FROM `bot_identity_link` "
+				+ "WHERE `char_id` = '" + .@char_id + "' LIMIT 1",
+				.@ctx_bot_id, .@ctx_account_id);
+			if (.@ctx_rows > 0) {
+				if (.@bot_id < 1)
+					.@bot_id = .@ctx_bot_id[0];
+				if (.@account_id < 1)
+					.@account_id = .@ctx_account_id[0];
+			}
+		}
+	}
+
+	if (.@map$ == "" && .@char_id > 0) {
+		.@map$ = headlesspc_map(.@char_id);
+		.@x = headlesspc_x(.@char_id);
+		.@y = headlesspc_y(.@char_id);
+		if (.@map$ == "") {
+			.@runtime_rows = query_sql(
+				"SELECT r.`current_map`, r.`current_x`, r.`current_y` "
+				+ "FROM `bot_runtime_state` r "
+				+ "JOIN `bot_identity_link` l ON l.`bot_id` = r.`bot_id` "
+				+ "WHERE l.`char_id` = '" + .@char_id + "' LIMIT 1",
+				.@runtime_map$, .@runtime_x, .@runtime_y);
+			if (.@runtime_rows > 0) {
+				.@map$ = .@runtime_map$[0];
+				.@x = .@runtime_x[0];
+				.@y = .@runtime_y[0];
+			}
+		}
+	}
+
+	.@map$ = escape_sql(.@map$);
+	if (.@x < 0)
+		.@x = 0;
+	if (.@y < 0)
+		.@y = 0;
+	if (.@duration_ms < 0)
+		.@duration_ms = 0;
+
+	return query_sql(
+		"INSERT INTO `bot_trace_event` "
+		+ "(`ts`, `trace_id`, `bot_id`, `char_id`, `account_id`, `map_id`, `map_name`, `x`, `y`, "
+		+ "`controller_id`, `controller_kind`, `owner_token`, `phase`, `action`, "
+		+ "`target_type`, `target_id`, `reason_code`, `inputs`, `signals`, `reservation_refs`, "
+		+ "`result`, `duration_ms`, `fallback`, `error_code`, `error_detail`) "
+		+ "VALUES ("
+		+ "'" + gettimetick(2) + "', "
+		+ "'" + .@trace_id$ + "', "
+		+ "'" + .@bot_id + "', "
+		+ "'" + .@char_id + "', "
+		+ "'" + .@account_id + "', "
+		+ "'0', "
+		+ "'" + .@map$ + "', "
+		+ "'" + .@x + "', "
+		+ "'" + .@y + "', "
+		+ "'" + .@controller_id$ + "', "
+		+ "'" + .@controller_kind$ + "', "
+		+ "'" + .@owner_token$ + "', "
+		+ "'" + .@phase$ + "', "
+		+ "'" + .@action$ + "', "
+		+ "'" + .@target_type$ + "', "
+		+ "'" + .@target_id$ + "', "
+		+ "'" + .@reason_code$ + "', "
+		+ "'" + .@inputs$ + "', "
+		+ "'" + .@signals$ + "', "
+		+ "'" + .@reservation_refs$ + "', "
+		+ "'" + .@result$ + "', "
+		+ "'" + .@duration_ms + "', "
+		+ "'" + .@fallback$ + "', "
+		+ "'" + .@error_code$ + "', "
+		+ "'" + .@error_detail$ + "')");
+}
+
+function	script	F_PB_DB_TraceEmitByChar	{
+	.@char_id = getarg(2, 0);
+	return callfunc(
+		"F_PB_DB_TraceEmit",
+		getarg(0),
+		getarg(1),
+		0,
+		.@char_id,
+		0,
+		getarg(3, ""),
+		getarg(4, 0),
+		getarg(5, 0),
+		getarg(6, ""),
+		getarg(7, ""),
+		getarg(8, ""),
+		getarg(9, ""),
+		getarg(10, ""),
+		getarg(11, "none"),
+		getarg(12, ""),
+		getarg(13, ""),
+		getarg(14, ""),
+		getarg(15, "ok"),
+		getarg(16, 0),
+		getarg(17, ""),
+		getarg(18, ""),
+		getarg(19, "")
+	);
+}
+
+function	script	F_PB_DB_TraceEmitByBotKey	{
+	.@bot_key$ = escape_sql(getarg(2, ""));
+	.@bot_id = 0;
+	.@char_id = 0;
+	.@account_id = 0;
+	if (.@bot_key$ != "") {
+		.@ctx_rows = query_sql(
+			"SELECT p.`bot_id`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0) "
+			+ "FROM `bot_profile` p "
+			+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
+			+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
+			.@ctx_bot_id, .@ctx_char_id, .@ctx_account_id);
+		if (.@ctx_rows > 0) {
+			.@bot_id = .@ctx_bot_id[0];
+			.@char_id = .@ctx_char_id[0];
+			.@account_id = .@ctx_account_id[0];
+		}
+	}
+	return callfunc(
+		"F_PB_DB_TraceEmit",
+		getarg(0),
+		getarg(1),
+		.@bot_id,
+		.@char_id,
+		.@account_id,
+		getarg(3, ""),
+		getarg(4, 0),
+		getarg(5, 0),
+		getarg(6, ""),
+		getarg(7, ""),
+		getarg(8, ""),
+		getarg(9, ""),
+		getarg(10, ""),
+		getarg(11, "none"),
+		getarg(12, ""),
+		getarg(13, ""),
+		getarg(14, ""),
+		getarg(15, "ok"),
+		getarg(16, 0),
+		getarg(17, ""),
+		getarg(18, ""),
+		getarg(19, "")
+	);
+}
+
+function	script	F_PB_DB_BuildRecentTraceSummary$	{
+	.@controller_id$ = escape_sql(getarg(0, ""));
+	.@bot_key$ = escape_sql(getarg(1, ""));
+	.@map_name$ = escape_sql(getarg(2, ""));
+	.@failures_only = getarg(3, 0);
+	.@limit = getarg(4, 8);
+	if (.@limit < 1)
+		.@limit = 1;
+	if (.@limit > 12)
+		.@limit = 12;
+	.@where$ = "1=1";
+	if (.@controller_id$ != "")
+		.@where$ += " AND e.`controller_id` = '" + .@controller_id$ + "'";
+	if (.@bot_key$ != "")
+		.@where$ += " AND EXISTS (SELECT 1 FROM `bot_profile` p JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` WHERE p.`bot_key` = '" + .@bot_key$ + "' AND l.`char_id` = e.`char_id`)";
+	if (.@map_name$ != "")
+		.@where$ += " AND e.`map_name` = '" + .@map_name$ + "'";
+	if (.@failures_only)
+		.@where$ += " AND e.`result` NOT IN ('ok', 'noop')";
+	.@rows = query_sql(
+		"SELECT e.`ts`, e.`action`, e.`controller_id`, e.`map_name`, e.`x`, e.`y`, e.`reason_code`, e.`result`, e.`error_code`, e.`char_id`, "
+		+ "IFNULL((SELECT p.`bot_key` FROM `bot_profile` p JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` WHERE l.`char_id` = e.`char_id` LIMIT 1), '') "
+		+ "FROM `bot_trace_event` e "
+		+ "WHERE " + .@where$ + " "
+		+ "ORDER BY e.`id` DESC LIMIT " + .@limit,
+		.@ts, .@action$, .@controller$, .@map$, .@x, .@y, .@reason$, .@result$, .@error$, .@char_id, .@bot_key_out$);
+	if (.@rows < 1)
+		return "No trace rows matched.";
+	.@now = gettimetick(2);
+	.@summary$ = "Trace Rows: " + .@rows + ".";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@summary$ += "\n" + (.@i + 1) + ". "
+			+ ((.@now - .@ts[.@i]) * 1000) + "ms "
+			+ .@action$[.@i] + " -> " + .@result$[.@i];
+		if (.@controller$[.@i] != "")
+			.@summary$ += " [" + .@controller$[.@i] + "]";
+		if (.@bot_key_out$[.@i] != "")
+			.@summary$ += " bot=" + .@bot_key_out$[.@i];
+		else if (.@char_id[.@i] > 0)
+			.@summary$ += " char=" + .@char_id[.@i];
+		if (.@map$[.@i] != "")
+			.@summary$ += " @" + .@map$[.@i] + "(" + .@x[.@i] + "," + .@y[.@i] + ")";
+		if (.@reason$[.@i] != "" && .@reason$[.@i] != "none")
+			.@summary$ += " reason=" + .@reason$[.@i];
+		if (.@error$[.@i] != "")
+			.@summary$ += " err=" + .@error$[.@i];
+	}
+	return .@summary$;
+}
+
 function	script	F_PB_DB_LoadPool	{
 	.@pool$ = getarg(0);
 	.@esc_pool$ = escape_sql(.@pool$);
@@ -1588,6 +1824,7 @@ function	script	F_PB_DB_RecordMerchantBrowse	{
 	.@bot_key$ = escape_sql(getarg(0));
 	if (.@bot_key$ == "")
 		return 0;
+	callfunc "F_PB_DB_TraceEmitByBotKey", "interaction.completed", "interaction", .@bot_key$, "", 0, 0, "MerchantActivity", "merchant", "", "shop", "browse", "interaction.shop", "browse event", "", "", "ok", 0, "", "", "";
 	.@rows = query_sql(
 		"INSERT INTO `bot_merchant_runtime` (`bot_id`, `last_browse_at`, `total_browse_count`) "
 		+ "SELECT p.`bot_id`, UNIX_TIMESTAMP(), 1 "
@@ -1611,6 +1848,7 @@ function	script	F_PB_DB_RecordMerchantSale	{
 		return 0;
 	if (.@units < 0)
 		.@units = 0;
+	callfunc "F_PB_DB_TraceEmitByBotKey", "interaction.completed", "interaction", .@bot_key$, "", 0, 0, "MerchantActivity", "merchant", "", "shop", "sale", "interaction.shop", "sold_units=" + .@units, "", "", "ok", 0, "", "", "";
 	.@rows = query_sql(
 		"INSERT INTO `bot_merchant_runtime` (`bot_id`, `last_sale_at`, `total_sale_count`, `total_items_sold`) "
 		+ "SELECT p.`bot_id`, UNIX_TIMESTAMP(), 1, '" + .@units + "' "
@@ -1856,7 +2094,11 @@ function	script	F_PB_DB_ReconcileMerchantRuntime	{
 		.@bot_key$, .@char_id);
 	.@touched = 0;
 	for (.@i = 0; .@i < .@rows; ++.@i) {
-		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$[.@i]))
+		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.started", "reconcile", .@char_id[.@i], "", 0, 0, "MerchantRuntimeReconcile", "reconcile", "", "merchant", .@bot_key$[.@i], "reconcile.scan", "", "", "", "ok", 0, "", "", "";
+		.@summary_ok = callfunc("F_PB_DB_LoadBotSummary", .@bot_key$[.@i]);
+		if (!.@summary_ok)
+			callfunc("F_PB_DB_TraceEmitByChar", "reconcile.failed", "reconcile", .@char_id[.@i], "", 0, 0, "MerchantRuntimeReconcile", "reconcile", "", "merchant", .@bot_key$[.@i], "reconcile.sync", "", "", "", "fatal", 0, "", "summary.missing", "bot summary missing");
+		if (!.@summary_ok)
 			continue;
 		.@should_open = ($@pbbot_merchant_enabled
 			&& $@pbbot_open_state$ != "closed"
@@ -1865,6 +2107,7 @@ function	script	F_PB_DB_ReconcileMerchantRuntime	{
 			if (headlesspc_status(.@char_id[.@i]) == 2) {
 				callfunc "F_PB_DB_SetMerchantStateByChar", .@char_id[.@i], 1, "open";
 				callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id[.@i], "merchanting", "active", "merchant.alberta";
+				callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@char_id[.@i], "", 0, 0, "MerchantRuntimeReconcile", "reconcile", "", "merchant", .@bot_key$[.@i], "reconcile.sync", "state=open", "", "", "ok", 0, "", "", "";
 				.@touched++;
 			}
 			continue;
@@ -1876,6 +2119,7 @@ function	script	F_PB_DB_ReconcileMerchantRuntime	{
 		if (headlesspc_status(.@char_id[.@i]) == 2)
 			headlesspc_remove(.@char_id[.@i]);
 		callfunc "F_PB_DB_SetRuntimeStateByChar", .@char_id[.@i], "offline", "parked", "";
+		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@char_id[.@i], "", 0, 0, "MerchantRuntimeReconcile", "reconcile", "", "merchant", .@bot_key$[.@i], "reconcile.sync", "state=parked", "", "", "ok", 0, "", "", "";
 		.@touched++;
 	}
 	$@pbctl_merchants = .@touched;
@@ -2095,6 +2339,10 @@ function	script	F_PB_POOL_Owner	{
 	return getd("$PBPOOL_OWN$" + getarg(0) + "$");
 }
 
+function	script	F_PB_POOL_Source	{
+	return getd("$PBPOOL_SRC$" + getarg(0) + "$");
+}
+
 function	script	F_PB_POOL_Claim	{
 	.@pool$ = getarg(0);
 	.@owner$ = getarg(1);
@@ -2118,8 +2366,10 @@ function	script	F_PB_POOL_Claim	{
 			continue;
 		setd("$PBPOOL_OWN$" + .@char_id + "$", .@owner$);
 		setd("$PBPOOL_SRC$" + .@char_id + "$", .@pool$);
+		callfunc "F_PB_DB_TraceEmitByChar", "reservation.acquired", "reservation", .@char_id, "", 0, 0, .@owner$, "pool", .@owner$, "pool", .@pool$, "pool.available", "profile=" + .@profile$ + ",role=" + .@role$, "", .@pool$, "ok", 0, "", "", "";
 		return .@char_id;
 	}
+	callfunc "F_PB_DB_TraceEmit", "reservation.denied", "reservation", 0, 0, 0, "", 0, 0, .@owner$, "pool", .@owner$, "pool", .@pool$, "pool.denied", "want_profile=" + .@want_profile$ + ",want_role=" + .@want_role$, "", .@pool$, "denied", 0, "", "", "";
 	return 0;
 }
 
@@ -2128,6 +2378,7 @@ function	script	F_PB_POOL_Release	{
 	.@owner$ = getarg(1);
 	if (callfunc("F_PB_POOL_Owner", .@char_id) != .@owner$)
 		return 0;
+	callfunc "F_PB_DB_TraceEmitByChar", "reservation.released", "reservation", .@char_id, "", 0, 0, .@owner$, "pool", .@owner$, "pool", callfunc("F_PB_POOL_Source", .@char_id), "none", "", "", callfunc("F_PB_POOL_Source", .@char_id), "ok", 0, "", "", "";
 	setd("$PBPOOL_OWN$" + .@char_id + "$", "");
 	setd("$PBPOOL_SRC$" + .@char_id + "$", "");
 	return 1;
@@ -2426,8 +2677,10 @@ function	script	F_LW_HPC_DefResolveActor	{
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	}
 	.@assigned = callfunc("F_PB_POOL_Claim", .@pool$, .@owner$, .@want_profile$, .@want_role$);
-	if (.@assigned > 0)
+	if (.@assigned > 0) {
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", .@assigned);
+		callfunc "F_PB_DB_TraceEmitByChar", "controller.assigned", "controller", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "pool.available", "pool=" + .@pool$ + ",profile=" + .@want_profile$ + ",role=" + .@want_role$, "", .@pool$, "ok", 0, "", "", "";
+	}
 	return .@assigned;
 }
 
@@ -2440,6 +2693,7 @@ function	script	F_LW_HPC_DefReleaseActor	{
 	.@assigned = getd("$LWHD" + .@seed + "_RA[" + .@i + "]");
 	if (.@pool$ == "" || .@assigned < 1)
 		return 0;
+	callfunc "F_PB_DB_TraceEmitByChar", "controller.released", "controller", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "none", "pool=" + .@pool$, "", .@pool$, "ok", 0, "", "", "";
 	callfunc "F_PB_POOL_Release", .@assigned, .@owner$;
 	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	return 1;
@@ -3266,8 +3520,10 @@ function	script	F_LW_HPC_DefStop	{
 					headlesspc_owned_routestop(.@char_id, .@owner$);
 				if (.@current_owner$ == .@owner$)
 					headlesspc_release(.@char_id, .@owner$);
-				if (headlesspc_status(.@char_id) == 2)
+				if (headlesspc_status(.@char_id) == 2) {
+					callfunc "F_PB_DB_TraceEmitByChar", "scheduler.parked", "scheduler", .@char_id, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "park.policy", "policy=park", "", "", "ok", 0, "", "", "";
 					headlesspc_remove(.@char_id);
+				}
 			} else
 				callfunc "F_LW_HPC_ControllerReleaseOwned", .@char_id, .@owner$;
 		}
@@ -3297,10 +3553,12 @@ function	script	F_LW_HPC_DefTickActor	{
 		return 0;
 	}
 	.@char_id = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@i);
-	if (.@char_id < 1)
+	if (.@char_id < 1) {
+		callfunc "F_PB_DB_TraceEmit", "controller.released", "controller", 0, 0, 0, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "slot", .@i, "pool.denied", "unresolved actor", "", "", "denied", 0, "", "actor.unresolved", "";
 		return 0;
+	}
 
-	if (!callfunc("F_LW_HPC_EnsureActive", .@char_id, .@map$, .@x, .@y))
+	if (!callfunc("F_LW_HPC_EnsureActive", .@char_id, .@map$, .@x, .@y, .@controller$, .@owner$, "scheduler.topup"))
 		return 0;
 
 	.@current_owner$ = headlesspc_owner(.@char_id);
@@ -3315,8 +3573,15 @@ function	script	F_LW_HPC_DefTickActor	{
 	.@current_y = headlesspc_y(.@char_id);
 
 	if (.@mode$ == "hold") {
-		if (.@current_map$ != .@map$ || .@current_x != .@x || .@current_y != .@y)
-			return headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y);
+		if (.@current_map$ != .@map$ || .@current_x != .@x || .@current_y != .@y) {
+			callfunc "F_PB_DB_TraceEmitByChar", "move.started", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "hold", .@x + "," + .@y, "scheduler.topup", "mode=hold", "", "", "ok", 0, "", "", "";
+			if (headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y)) {
+				callfunc "F_PB_DB_TraceEmitByChar", "move.completed", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "hold", .@x + "," + .@y, "none", "mode=hold", "", "", "ok", 0, "", "", "";
+				return 1;
+			}
+			callfunc "F_PB_DB_TraceEmitByChar", "move.failed", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "hold", .@x + "," + .@y, "path.blocked", "mode=hold", "", "", "fallback", 0, "", "setpos.failed", "";
+			return 0;
+		}
 		callfunc "F_LW_HPC_DefPulseActor", .@controller$, .@i;
 		return 1;
 	}
@@ -3333,11 +3598,17 @@ function	script	F_LW_HPC_DefTickActor	{
 				headlesspc_owned_routestop(.@char_id, .@owner$);
 			setd("$LWHD" + .@seed + "_LI[" + .@i + "]", 0);
 			setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 0);
-			return headlesspc_owned_setpos(
+			callfunc "F_PB_DB_TraceEmitByChar", "move.started", "move", .@char_id, .@map$, getd("$LWHD" + .@seed + "_AX" + .@i + "[0]"), getd("$LWHD" + .@seed + "_AY" + .@i + "[0]"), .@controller$, "controller", .@owner$, "loiter", "anchor:0", "map.changed", "mode=loiter", "", "", "ok", 0, "", "", "";
+			if (headlesspc_owned_setpos(
 				.@char_id, .@owner$, .@map$,
 				getd("$LWHD" + .@seed + "_AX" + .@i + "[0]"),
 				getd("$LWHD" + .@seed + "_AY" + .@i + "[0]")
-			);
+			)) {
+				callfunc "F_PB_DB_TraceEmitByChar", "move.completed", "move", .@char_id, .@map$, getd("$LWHD" + .@seed + "_AX" + .@i + "[0]"), getd("$LWHD" + .@seed + "_AY" + .@i + "[0]"), .@controller$, "controller", .@owner$, "loiter", "anchor:0", "none", "mode=loiter", "", "", "ok", 0, "", "", "";
+				return 1;
+			}
+			callfunc "F_PB_DB_TraceEmitByChar", "move.failed", "move", .@char_id, .@map$, getd("$LWHD" + .@seed + "_AX" + .@i + "[0]"), getd("$LWHD" + .@seed + "_AY" + .@i + "[0]"), .@controller$, "controller", .@owner$, "loiter", "anchor:0", "map.changed", "mode=loiter", "", "", "fallback", 0, "", "setpos.failed", "";
+			return 0;
 		}
 
 		.@current_walk_event = headlesspc_walkevent(.@char_id);
@@ -3345,6 +3616,7 @@ function	script	F_LW_HPC_DefTickActor	{
 			.@loiter_pending = 0;
 			setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 0);
 			setd("$LWHD" + .@seed + "_LE[" + .@i + "]", .@current_walk_event);
+			callfunc "F_PB_DB_TraceEmitByChar", "move.completed", "move", .@char_id, .@current_map$, .@current_x, .@current_y, .@controller$, "controller", .@owner$, "loiter", .@loiter_index, "none", "mode=loiter", "", "", "ok", 0, "", "", "";
 			callfunc "F_LW_HPC_DefPulseActor", .@controller$, .@i;
 		}
 
@@ -3363,17 +3635,25 @@ function	script	F_LW_HPC_DefTickActor	{
 
 		.@current_walk_event = headlesspc_walkevent(.@char_id);
 		if (headlesspc_owned_walkto(.@char_id, .@owner$, .@target_x, .@target_y)) {
+			callfunc "F_PB_DB_TraceEmitByChar", "move.started", "move", .@char_id, .@current_map$, .@target_x, .@target_y, .@controller$, "controller", .@owner$, "loiter", .@target_x + "," + .@target_y, "none", "mode=loiter", "", "", "ok", 0, "", "", "";
 			setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 1);
 			setd("$LWHD" + .@seed + "_LE[" + .@i + "]", .@current_walk_event);
 			return 1;
 		}
+		callfunc "F_PB_DB_TraceEmitByChar", "move.failed", "move", .@char_id, .@current_map$, .@target_x, .@target_y, .@controller$, "controller", .@owner$, "loiter", .@target_x + "," + .@target_y, "path.blocked", "mode=loiter", "", "", "fallback", 0, "", "walkto.failed", "";
 		return 0;
 	}
 
 	if (.@current_map$ != .@map$) {
 		if (headlesspc_routestatus(.@char_id) != 0)
 			headlesspc_owned_routestop(.@char_id, .@owner$);
-		return headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y);
+		callfunc "F_PB_DB_TraceEmitByChar", "move.started", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "route", .@x + "," + .@y, "map.changed", "mode=" + .@mode$, "", "", "ok", 0, "", "", "";
+		if (headlesspc_owned_setpos(.@char_id, .@owner$, .@map$, .@x, .@y)) {
+			callfunc "F_PB_DB_TraceEmitByChar", "move.completed", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "route", .@x + "," + .@y, "none", "mode=" + .@mode$, "", "", "ok", 0, "", "", "";
+			return 1;
+		}
+		callfunc "F_PB_DB_TraceEmitByChar", "move.failed", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "route", .@x + "," + .@y, "map.changed", "mode=" + .@mode$, "", "", "fallback", 0, "", "setpos.failed", "";
+		return 0;
 	}
 
 	if (headlesspc_routestatus(.@char_id) == 2)
@@ -3402,5 +3682,10 @@ function	script	F_LW_HPC_DefTickActor	{
 		}
 	}
 
-	return headlesspc_owned_routestart(.@char_id, .@owner$, .@loop);
+	if (headlesspc_owned_routestart(.@char_id, .@owner$, .@loop)) {
+		callfunc "F_PB_DB_TraceEmitByChar", "move.started", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "route", .@mode$, "none", "route_count=" + .@route_count + ",anchors=" + .@anchor_count, "", "", "ok", 0, "", "", "";
+		return 1;
+	}
+	callfunc "F_PB_DB_TraceEmitByChar", "move.failed", "move", .@char_id, .@map$, .@x, .@y, .@controller$, "controller", .@owner$, "route", .@mode$, "path.blocked", "route_count=" + .@route_count + ",anchors=" + .@anchor_count, "", "", "fallback", 0, "", "route.start_failed", "";
+	return 0;
 }

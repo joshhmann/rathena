@@ -1696,3 +1696,31 @@ Current limits:
 - lane choice is still heuristic rather than globally optimized
 - coordination still depends on sibling controller runtime state rather than a
   central planner
+
+## Structured Trace Events V1
+
+- Playerbot observability now has a first append-only structured trace table:
+  `bot_trace_event`.
+
+Current support:
+
+- merchant runtime reconcile emits:
+  - `reconcile.started`
+  - `reconcile.fixed`
+  - `reconcile.failed`
+- merchant activity emits:
+  - `interaction.completed`
+- a visible `Playerbot Trace Lab` NPC can show recent rows by:
+  - all
+  - failure-only
+  - controller
+  - bot key
+  - map
+
+Current limits:
+
+- the current trace slice is still script-first rather than full engine-wide
+- live scheduler/controller/move trace points exist in the shared helper layer,
+  but current smoke coverage is still strongest on reconcile and merchant
+  interaction paths
+- there is not yet a replay tool, timeline compactor, or external trace viewer

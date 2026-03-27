@@ -217,6 +217,7 @@ alberta,52,242,4	script	Harbor Curios Counter#pb	4_F_01,{
 	.@controller$ = "HeadlessAlbertaMerchantController";
 	.@bot_key$ = getvariableofnpc(.active_bot_key$, .@controller$);
 	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$) || !$@pbbot_merchant_enabled || $@pbbot_open_state$ != "open") {
+		callfunc "F_PB_DB_TraceEmitByBotKey", "interaction.failed", "interaction", .@bot_key$, "alberta", 52, 242, .@controller$, "merchant", "", "shop", "Harbor Curios Counter#pb", "interaction.shop", "proxy stall closed", "", "", "denied", 0, "", "shop.closed", "";
 		mes "[Harbor Curios]";
 		mes "The stall is closed right now.";
 		close;
@@ -226,6 +227,7 @@ alberta,52,242,4	script	Harbor Curios Counter#pb	4_F_01,{
 	next;
 	switch(select("Browse wares:Leave")) {
 	case 1:
+		callfunc "F_PB_DB_TraceEmitByBotKey", "interaction.requested", "interaction", .@bot_key$, "alberta", 52, 242, .@controller$, "merchant", "", "shop", "pb_merchant_alberta_shop", "interaction.shop", "browse request", "", "", "ok", 0, "", "", "";
 		callfunc "F_PB_DB_RecordMerchantBrowse", .@bot_key$;
 		close2;
 		callshop "pb_merchant_alberta_shop", 1;
@@ -242,6 +244,7 @@ OnBuyItem:
 		for (.@i = 0; .@i < getarraysize(@bought_quantity); ++.@i)
 			.@sold_units += @bought_quantity[.@i];
 		callfunc "F_PB_DB_RecordMerchantSale", .@bot_key$, .@sold_units;
+		callfunc "F_PB_DB_TraceEmitByBotKey", "interaction.completed", "interaction", .@bot_key$, "alberta", 52, 242, .@controller$, "merchant", "", "shop", "pb_merchant_alberta_shop", "interaction.shop", "sold_units=" + .@sold_units, "", "", "ok", 0, "", "", "";
 	}
 	end;
 }

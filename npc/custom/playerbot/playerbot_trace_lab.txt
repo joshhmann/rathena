@@ -1,0 +1,45 @@
+prontera,152,179,4	script	Playerbot Trace Lab	4_F_KAFRA5,{
+	mes "[Playerbot Trace Lab]";
+	mes "Inspect recent structured playerbot traces.";
+	next;
+
+	switch(select("Recent traces:Recent failures:By controller:By bot key:By map:Close")) {
+	case 1:
+		mes "[Playerbot Trace Lab]";
+		mes callfunc("F_PB_DB_BuildRecentTraceSummary$", "", "", "", 0, 8);
+		close;
+
+	case 2:
+		mes "[Playerbot Trace Lab]";
+		mes callfunc("F_PB_DB_BuildRecentTraceSummary$", "", "", "", 1, 8);
+		close;
+
+	case 3:
+		.@menu$ = callfunc("F_PB_DB_ControllerMenu$");
+		.@pick = select(.@menu$) - 1;
+		if (.@pick < 0 || .@pick >= $@pbctl_count)
+			close;
+		mes "[Playerbot Trace Lab]";
+		mes callfunc("F_PB_DB_BuildRecentTraceSummary$", $@pbctl_npc$[.@pick], "", "", 0, 8);
+		close;
+
+	case 4:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		mes "[Playerbot Trace Lab]";
+		mes callfunc("F_PB_DB_BuildRecentTraceSummary$", "", .@bot_key$, "", 0, 8);
+		close;
+
+	case 5:
+		input .@map_name$;
+		if (.@map_name$ == "")
+			close;
+		mes "[Playerbot Trace Lab]";
+		mes callfunc("F_PB_DB_BuildRecentTraceSummary$", "", "", .@map_name$, 0, 8);
+		close;
+
+	default:
+		close;
+	}
+}

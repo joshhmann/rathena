@@ -4608,3 +4608,38 @@ Validation:
 Notes:
 - lane choice is still heuristic and local
 - the main gain is coordinated escalation and cleaner demanded-slot pressure
+
+## Slice: Structured Trace Events V1
+
+Date: 2026-03-26
+
+Summary:
+- added the first append-only structured playerbot trace ledger
+- wired the first live trace events into the shared merchant reconcile and
+  merchant activity paths
+- added an in-game trace viewer surface for quick operator inspection
+
+Changed:
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_trace_events.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `npc/custom/playerbot/playerbot_trace_lab.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `mysql -uroot rathena < sql-files/upgrades/upgrade_20260326_playerbot_trace_events.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `talknpc 148 135 c r8` from OpenKore to trigger the merchant selftest
+- verified `bot_trace_event` rows for:
+  - `reconcile.started`
+  - `reconcile.fixed`
+  - `interaction.completed`
+
+Notes:
+- this first observability slice is intentionally script-first
+- the trace viewer is an operator/debug surface, not a replay system yet
+- movement, scheduler, and controller trace points are scaffolded but still need
+  broader runtime exercise and later expansion
