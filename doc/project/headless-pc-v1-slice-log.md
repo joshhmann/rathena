@@ -4728,3 +4728,43 @@ Notes:
 - current stale-holder cleanup only reaps expired rows or truly missing bot
   identities
 - controllers are not yet migrated to use these primitives automatically
+
+## Slice: Shared Memory And State Inspector V1
+
+Date: 2026-03-27
+
+Summary:
+- added the first shared world/social memory ledger for playerbot runtime state
+- exposed the four-layer state model through a live operator inspector
+- added recovery-authority summaries so partial-failure ownership rules are
+  inspectable from in game
+
+Changed:
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260327_playerbot_shared_memory.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `mysql -uroot rathena < sql-files/upgrades/upgrade_20260327_playerbot_shared_memory.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- OpenKore login in Alberta
+- `talknpc 157 135 c r0` for quick merchant state
+- `talknpc 157 135 c r1` for quick party state
+- `talknpc 157 135 c r5` to write a 30s shared-memory probe marker
+- `talknpc 157 135 c r4 r2` for the stale-reservation authority summary
+- verified SQL rows in:
+  - `bot_shared_memory`
+  - live lab marker `social / alberta.lab_probe / state.lab`
+- verified controller-derived shared-memory rows are being published by the
+  guild and merchant focus helpers
+
+Notes:
+- shared memory is medium-lived and intentionally expires; the lab marker is the
+  stable validation path for the first slice
+- this slice makes shared world/social memory and state boundaries real and
+  inspectable, but does not yet migrate every controller-local transient value
+  into the ledger

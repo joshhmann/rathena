@@ -1,0 +1,82 @@
+alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
+	mes "[Playerbot State Lab]";
+	mes "Inspect the four-layer playerbot state model and recovery authorities.";
+	next;
+
+	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Write lab memory marker:Close")) {
+	case 1:
+		mes "[Playerbot State Lab]";
+		mes callfunc("F_PB_STATE_BuildBotStateSummary$", "quick_merc_alb");
+		close;
+
+	case 2:
+		mes "[Playerbot State Lab]";
+		mes callfunc("F_PB_STATE_BuildBotStateSummary$", "quick_party_open");
+		close;
+
+	case 3:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		mes "[Playerbot State Lab]";
+		mes callfunc("F_PB_STATE_BuildBotStateSummary$", .@bot_key$);
+		close;
+
+	case 4:
+		switch(select("Alberta shared memory:Prontera shared memory:Guild shared memory:Merchant shared memory:Close")) {
+		case 1:
+			mes "[Playerbot State Lab]";
+			mes callfunc("F_PB_MEM_BuildSummary$", "", "alberta.", 8);
+			close;
+		case 2:
+			mes "[Playerbot State Lab]";
+			mes callfunc("F_PB_MEM_BuildSummary$", "", "prontera.", 8);
+			close;
+		case 3:
+			mes "[Playerbot State Lab]";
+			mes callfunc("F_PB_MEM_BuildSummary$", "guild", "", 8);
+			close;
+		case 4:
+			mes "[Playerbot State Lab]";
+			mes callfunc("F_PB_MEM_BuildSummary$", "merchant", "", 8);
+			close;
+		}
+		close;
+
+	case 5:
+		switch(select("Controller assigned, actor missing:Actor present, controller missing:Stale reservation:Merchant divergence:Path owner split:Stale runtime location:Close")) {
+		case 1:
+			.@case$ = "controller_missing_actor";
+			break;
+		case 2:
+			.@case$ = "actor_missing_controller";
+			break;
+		case 3:
+			.@case$ = "stale_reservation";
+			break;
+		case 4:
+			.@case$ = "merchant_divergence";
+			break;
+		case 5:
+			.@case$ = "path_owner_split";
+			break;
+		case 6:
+			.@case$ = "stale_runtime_location";
+			break;
+		default:
+			close;
+		}
+		mes "[Playerbot State Lab]";
+		mes callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", .@case$);
+		close;
+
+	case 6:
+		callfunc "F_PB_MEM_Remember", "social", "alberta.lab_probe", 1, "state.lab", 30000, "state.lab";
+		mes "[Playerbot State Lab]";
+		mes "Wrote a 30s shared-memory probe marker.";
+		mes callfunc("F_PB_MEM_BuildSummary$", "social", "alberta.lab_probe", 4);
+		close;
+	}
+
+	close;
+}

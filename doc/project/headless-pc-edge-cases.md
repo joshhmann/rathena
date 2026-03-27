@@ -1798,3 +1798,41 @@ Current limits:
 - stale-holder cleanup currently treats expiry and missing bot identities as
   authoritative cleanup cases; controller-ownership-driven cleanup is still a
   later integration slice
+
+## Shared Memory And State Inspector V1
+
+- Playerbot state boundaries now have a first live shared-memory ledger:
+  `bot_shared_memory`.
+
+Current support:
+
+- shared world/social memory rows with:
+  - scope
+  - key
+  - integer value
+  - text value
+  - source tag
+  - expiry
+- shared helper surfaces now exist for:
+  - remember / upsert
+  - expiry reap
+  - summary building
+  - recovery-authority summaries
+  - bot four-layer state summaries
+- active guild and merchant focus helpers now publish medium-lived shared memory
+  so operators can inspect current derived posture state
+- a visible `Playerbot State Lab` NPC now shows:
+  - quick merchant state
+  - quick party state
+  - bot-key inspection
+  - shared-memory inspection
+  - recovery-authority summaries
+  - a probe marker write path
+
+Current limits:
+
+- shared memory is still a medium-lived ledger, not a full replay/history
+  surface
+- controller-local transient scratch state remains script-local in this slice
+- the current stable validation path is the lab probe marker plus controller
+  focus publication, not a full migration of every runtime variable

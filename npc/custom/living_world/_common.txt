@@ -800,10 +800,13 @@ function	script	F_PB_DB_GuildCommonsFocus$	{
 	.@leader = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_leader_live_name", .@guild_name$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_live_name", .@guild_name$);
 	if (.@notice > .@join && .@notice >= .@leader)
-		return "notice";
-	if (.@join > .@leader)
-		return "recruit";
-	return "roster";
+		.@focus$ = "notice";
+	else if (.@join > .@leader)
+		.@focus$ = "recruit";
+	else
+		.@focus$ = "roster";
+	callfunc "F_PB_MEM_Remember", "guild", "prontera.commons." + .@guild_name$, .@notice + .@join + .@leader, .@focus$, 20000, "guild.commons.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_DB_MerchantSocialFocus$	{
@@ -817,10 +820,13 @@ function	script	F_PB_DB_MerchantSocialFocus$	{
 	.@stock = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_stock_map", .@map$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_open_map", .@map$);
 	if (.@sale > .@browse && .@sale >= .@stock)
-		return "buyers";
-	if (.@browse >= .@stock)
-		return "browsers";
-	return "harbor";
+		.@focus$ = "buyers";
+	else if (.@browse >= .@stock)
+		.@focus$ = "browsers";
+	else
+		.@focus$ = "harbor";
+	callfunc "F_PB_MEM_Remember", "merchant", .@map$ + ".social", .@sale + .@browse + .@stock, .@focus$, 20000, "merchant.social.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_DB_MerchantStallFocus$	{
@@ -832,10 +838,13 @@ function	script	F_PB_DB_MerchantStallFocus$	{
 	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
 	if (.@sale > .@browse)
-		return "sales";
-	if (.@browse > 0)
-		return "browsers";
-	return "stock";
+		.@focus$ = "sales";
+	else if (.@browse > 0)
+		.@focus$ = "browsers";
+	else
+		.@focus$ = "stock";
+	callfunc "F_PB_MEM_Remember", "merchant", .@map$ + ".stall", .@sale + .@browse, .@focus$, 20000, "merchant.stall.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_DB_GuildWatchFocus$	{
@@ -849,7 +858,9 @@ function	script	F_PB_DB_GuildWatchFocus$	{
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_live_name", .@guild$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_recent_name", .@guild$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_events_name", .@guild$);
-	return (.@notice >= .@roster ? "notice" : "roster");
+	.@focus$ = (.@notice >= .@roster ? "notice" : "roster");
+	callfunc "F_PB_MEM_Remember", "guild", "prontera.watch." + .@guild$, .@notice + .@roster, .@focus$, 20000, "guild.watch.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_DB_GuildQuarterFocus$	{
@@ -859,7 +870,9 @@ function	script	F_PB_DB_GuildQuarterFocus$	{
 	.@notice = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_recent_name", .@guild$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_events_name", .@guild$);
 	.@storage = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_storage_log_name", .@guild$);
-	return (.@notice >= .@storage ? "notice" : "storage");
+	.@focus$ = (.@notice >= .@storage ? "notice" : "storage");
+	callfunc "F_PB_MEM_Remember", "guild", "prontera.quarter." + .@guild$, .@notice + .@storage, .@focus$, 20000, "guild.quarter.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_DB_TradeFlowFocus$	{
@@ -870,7 +883,9 @@ function	script	F_PB_DB_TradeFlowFocus$	{
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", .@map$);
 	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
-	return (.@sale > .@browse ? "supply" : "front");
+	.@focus$ = (.@sale > .@browse ? "supply" : "front");
+	callfunc "F_PB_MEM_Remember", "merchant", .@map$ + ".trade_flow", .@sale + .@browse, .@focus$, 20000, "merchant.trade.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_DB_MarketSpillFocus$	{
@@ -882,10 +897,13 @@ function	script	F_PB_DB_MarketSpillFocus$	{
 	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
 		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
 	if (.@sale > .@browse)
-		return "front";
-	if (.@browse > 0)
-		return "browsers";
-	return "harbor";
+		.@focus$ = "front";
+	else if (.@browse > 0)
+		.@focus$ = "browsers";
+	else
+		.@focus$ = "harbor";
+	callfunc "F_PB_MEM_Remember", "merchant", .@map$ + ".spill", .@sale + .@browse, .@focus$, 20000, "merchant.spill.focus";
+	return .@focus$;
 }
 
 function	script	F_PB_BehaviorDistinctFocus$	{
@@ -1563,6 +1581,114 @@ function	script	F_PB_PERC_Format$	{
 		+ "\nObserved: " + $@pbperc_observed_at
 		+ " | stale " + $@pbperc_stale_ms + "ms"
 		+ " | confidence " + $@pbperc_confidence + ".";
+}
+
+function	script	F_PB_MEM_ReapExpired	{
+	.@now = gettimetick(2);
+	query_sql("DELETE FROM `bot_shared_memory` WHERE `expires_at` > 0 AND `expires_at` <= '" + .@now + "'");
+	return 1;
+}
+
+function	script	F_PB_MEM_Remember	{
+	.@scope$ = escape_sql(getarg(0, ""));
+	.@key$ = escape_sql(getarg(1, ""));
+	.@int_value = getarg(2, 0);
+	.@text_value$ = escape_sql(getarg(3, ""));
+	.@ttl_ms = getarg(4, 15000);
+	.@source$ = escape_sql(getarg(5, ""));
+	.@now = gettimetick(2);
+	if (.@scope$ == "" || .@key$ == "")
+		return 0;
+	if (.@ttl_ms < 1000)
+		.@ttl_ms = 1000;
+	.@expires_at = .@now + ((.@ttl_ms + 999) / 1000);
+	callfunc "F_PB_MEM_ReapExpired";
+	query_sql(
+		"INSERT INTO `bot_shared_memory` "
+		+ "(`memory_scope`, `memory_key`, `int_value`, `text_value`, `source_tag`, `expires_at`, `updated_at`) "
+		+ "VALUES ('" + .@scope$ + "', '" + .@key$ + "', '" + .@int_value + "', '" + .@text_value$ + "', '" + .@source$ + "', '" + .@expires_at + "', '" + .@now + "') "
+		+ "ON DUPLICATE KEY UPDATE "
+		+ "`int_value` = VALUES(`int_value`), "
+		+ "`text_value` = VALUES(`text_value`), "
+		+ "`source_tag` = VALUES(`source_tag`), "
+		+ "`expires_at` = VALUES(`expires_at`), "
+		+ "`updated_at` = VALUES(`updated_at`)");
+	return 1;
+}
+
+function	script	F_PB_MEM_BuildSummary$	{
+	.@scope$ = escape_sql(getarg(0, ""));
+	.@key_prefix$ = escape_sql(getarg(1, ""));
+	.@limit = getarg(2, 8);
+	if (.@limit < 1)
+		.@limit = 1;
+	if (.@limit > 20)
+		.@limit = 20;
+	callfunc "F_PB_MEM_ReapExpired";
+	.@sql$ = "SELECT `memory_scope`, `memory_key`, `int_value`, `text_value`, `source_tag`, `expires_at`, `updated_at` "
+		+ "FROM `bot_shared_memory` ";
+	if (.@scope$ != "" || .@key_prefix$ != "") {
+		.@sql$ += "WHERE 1=1 ";
+		if (.@scope$ != "")
+			.@sql$ += "AND `memory_scope` = '" + .@scope$ + "' ";
+		if (.@key_prefix$ != "")
+			.@sql$ += "AND `memory_key` LIKE '" + .@key_prefix$ + "%' ";
+	}
+	.@sql$ += "ORDER BY `updated_at` DESC, `memory_scope`, `memory_key` LIMIT " + .@limit;
+	.@rows = query_sql(.@sql$, .@scope_out$, .@key_out$, .@int_value, .@text_value$, .@source$, .@expires_at, .@updated_at);
+	if (.@rows < 1)
+		return "Shared memory: none.";
+	.@summary$ = "Shared memory: " + .@rows + ".";
+	.@now = gettimetick(2);
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@ttl = .@expires_at[.@i] - .@now;
+		if (.@ttl < 0)
+			.@ttl = 0;
+		.@summary$ += "\n- [" + .@scope_out$[.@i] + "] " + .@key_out$[.@i]
+			+ " int=" + .@int_value[.@i]
+			+ " text=" + (.@text_value$[.@i] == "" ? "<none>" : .@text_value$[.@i])
+			+ " src=" + (.@source$[.@i] == "" ? "<none>" : .@source$[.@i])
+			+ " ttl=" + .@ttl + "s";
+	}
+	return .@summary$;
+}
+
+function	script	F_PB_RECOVERY_BuildAuthoritySummary$	{
+	.@case$ = getarg(0, "");
+	if (.@case$ == "controller_missing_actor")
+		return "Authority: live world actor state. Recovery: drop controller assignment, release reservations, retry spawn/reconcile from runtime.";
+	if (.@case$ == "actor_missing_controller")
+		return "Authority: persisted scheduler/runtime state. Recovery: park or reassign after grace; controller-local transient state loses.";
+	if (.@case$ == "stale_reservation")
+		return "Authority: reservation table. Recovery: expire on ttl or missing holder identity; traces record cleanup.";
+	if (.@case$ == "merchant_divergence")
+		return "Authority: live shop/world presence plus merchant state policy. Recovery: reconcile closes stale open state or rebuilds the proxy.";
+	if (.@case$ == "path_owner_split")
+		return "Authority: newest owner/controller epoch token. Recovery: old owner releases and route state is invalidated.";
+	if (.@case$ == "stale_runtime_location")
+		return "Authority: live map actor state when present; otherwise persisted runtime ledger. Recovery: prefer live coordinates, then reconcile runtime cache.";
+	return "Authority summary unavailable.";
+}
+
+function	script	F_PB_STATE_BuildBotStateSummary$	{
+	.@bot_key$ = getarg(0, "");
+	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "State: unknown bot key.";
+	.@summary$ = "Persistent: bot_id=" + $@pbbot_bot_id
+		+ ", char/account=" + $@pbbot_char_id + "/" + $@pbbot_account_id
+		+ ", pool/profile/role=" + $@pbbot_pool$ + "/" + $@pbbot_profile$ + "/" + $@pbbot_role$
+		+ ", interaction/party=" + $@pbbot_interaction$ + "/" + $@pbbot_party$ + ".";
+	.@summary$ += "\nRuntime: state=" + ($@pbbot_state$ == "" ? "<none>" : $@pbbot_state$)
+		+ ", park=" + ($@pbbot_park$ == "" ? "<none>" : $@pbbot_park$)
+		+ ", route=" + ($@pbbot_route$ == "" ? "<none>" : $@pbbot_route$)
+		+ ", map=" + ($@pbbot_map$ == "" ? "<none>" : $@pbbot_map$ + "(" + $@pbbot_x + "," + $@pbbot_y + ")");
+	.@summary$ += "\nTransient: controller-local scratch stays in script vars/timers only; not persisted by this inspector.";
+	.@shared_key$ = "";
+	if ($@pbbot_map$ != "")
+		.@shared_key$ = $@pbbot_map$ + ".";
+	.@summary$ += "\n" + callfunc("F_PB_MEM_BuildSummary$", "", .@shared_key$, 4);
+	.@summary$ += "\n" + callfunc("F_PB_RES_BuildHolderSummary$", .@bot_key$);
+	return .@summary$;
 }
 
 function	script	F_PB_RES_TypeMode$	{
