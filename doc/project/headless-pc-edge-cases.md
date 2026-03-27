@@ -1320,3 +1320,9 @@ Current limits:
   - the guild leader identity existing
   - the guild leader actually being online
 - This is still a demand-layer slice only; it does not yet add leader-follow, guild-chat, or guild-event behavior.
+
+## Guild Notice Signals
+
+- Scheduler demand can now react to whether a guild currently has notice text posted.
+- This is useful as a small social/activity signal without needing full guild-chat behavior yet.
+- The repo-local smoke helper can seed and clear notice text safely for the current dev guild.

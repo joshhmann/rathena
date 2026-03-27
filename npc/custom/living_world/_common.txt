@@ -629,6 +629,16 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "guild_notice_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "WHERE gu.`name` = '" + .@key$ + "' "
+			+ "AND (gu.`mes1` <> '' OR gu.`mes2` <> '')",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_storage_name") {
 		query_sql(
 			"SELECT COUNT(*) "

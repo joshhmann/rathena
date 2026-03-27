@@ -3955,3 +3955,31 @@ Validation:
 
 Notes:
 - this complements the earlier roster/live/storage/castle guild signals by adding leadership-aware demand pressure
+
+## Slice: Guild Notice Demand Signals
+
+Date: 2026-03-26
+
+Summary:
+- added guild notice presence as another scheduler demand signal
+- Prontera social and patrol controllers can now react to whether a guild currently has a posted notice
+- added a safe repo-local notice smoke helper so the signal can be seeded and cleared without hand-editing SQL
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_notice_signals.sql`
+- `tools/ci/playerbot-guild-notice-smoke.sh`
+- `doc/project/bot-state-schema.md`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_guild_notice_signals.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash -n tools/ci/playerbot-guild-notice-smoke.sh`
+- `bash tools/ci/playerbot-guild-notice-smoke.sh clear`
+- `bash tools/ci/playerbot-guild-notice-smoke.sh seed`
+- `bash tools/ci/playerbot-guild-notice-smoke.sh check`
+- `bash tools/ci/playerbot-guild-notice-smoke.sh clear`
+
+Notes:
+- this is still demand/state only; it does not yet add guild notice authoring or guild chat behavior
