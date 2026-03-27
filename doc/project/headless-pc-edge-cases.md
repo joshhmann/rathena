@@ -1506,3 +1506,30 @@ Current limits:
   - role reassignment
   - guild/event-specific actions
 - this is still a foundation layer for later richer behavior scripting
+
+## Runtime-Reactive Route And Anchor Selection
+
+- Specialized guild and market controllers can now push the reactive layer past
+  posture-only changes.
+- Active controllers can swap:
+  - loiter anchor sets
+  - patrol route geometry
+  - hold-vs-loiter mode for selected slots
+- The active movement state is invalidated when geometry changes so the owned
+  actor can stop the stale route and repick from the new definition on the next
+  controller tick.
+
+Current support:
+
+- guild watch pressure can widen or tighten the runner's watch loop
+- guild quarter pressure can widen or tighten the courier's quarter loop
+- Alberta trade pressure can widen or shorten the runner patrol circuit
+- Alberta market spill pressure can switch the barker between hold and loiter
+  anchor sets
+
+Current limits:
+
+- route and anchor geometry is still script-defined for this phase
+- switching is controller-local and heuristic-driven
+- there is still no global path scoring, crowd scoring, or learned destination
+  selection

@@ -55,7 +55,7 @@ OnTick:
 	.tick_pending = 0;
 	.running = 1;
 	callsub S_Prime;
-	.behavior$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "flow", "alberta");
+	callsub S_ApplyBehavior;
 	if (!.enabled)
 		goto L_Done;
 
@@ -86,7 +86,34 @@ S_Prime:
 		return;
 	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
 	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
-	.behavior$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "flow", "alberta");
+	callsub S_ApplyBehavior;
 	.loaded = 1;
+	return;
+
+S_ApplyBehavior:
+	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
+	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "flow", "alberta");
+	if (.behavior$ == .@next$)
+		return;
+	.behavior$ = .@next$;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "patrol";
+	callfunc "F_LW_HPC_DefClearRoute", .owner$, 1;
+	if (.@score >= 14) {
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 45, 243;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 244;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 50, 239;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 46, 240;
+	} else if (.@score >= 6) {
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 45, 243;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 244;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 47, 240;
+	} else {
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 46, 243;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 243;
+		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+	}
+	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
 	return;
 }

@@ -55,7 +55,7 @@ OnTick:
 	.tick_pending = 0;
 	.running = 1;
 	callsub S_Prime;
-	.behavior$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
+	callsub S_ApplyBehavior;
 	if (!.enabled)
 		goto L_Done;
 
@@ -86,7 +86,31 @@ S_Prime:
 		return;
 	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
 	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
-	.behavior$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
+	callsub S_ApplyBehavior;
 	.loaded = 1;
+	return;
+
+S_ApplyBehavior:
+	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
+	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
+	if (.behavior$ == .@next$)
+		return;
+	.behavior$ = .@next$;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "loiter";
+	callfunc "F_LW_HPC_DefClearAnchors", .owner$, 1;
+	if (.@score >= 8) {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 189;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 191;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 147, 192;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 145, 189;
+	} else if (.@score >= 3) {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 151, 191;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 147, 190;
+	} else {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 191;
+	}
+	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
 	return;
 }

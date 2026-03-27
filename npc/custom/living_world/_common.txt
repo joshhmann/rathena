@@ -2307,6 +2307,16 @@ function	script	F_LW_HPC_DefSetMode	{
 	return 1;
 }
 
+function	script	F_LW_HPC_DefSetHome	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(2));
+	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(3));
+	setd("$LWHD" + .@seed + "_Y[" + .@i + "]", getarg(4));
+	return 1;
+}
+
 function	script	F_LW_HPC_DefAddTalk	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
@@ -2357,6 +2367,14 @@ function	script	F_LW_HPC_DefAddRoutePoint	{
 	return 1;
 }
 
+function	script	F_LW_HPC_DefClearRoute	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_RC[" + .@i + "]", 0);
+	return 1;
+}
+
 function	script	F_LW_HPC_DefAddAnchor	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
@@ -2365,6 +2383,31 @@ function	script	F_LW_HPC_DefAddAnchor	{
 	setd("$LWHD" + .@seed + "_AX" + .@i + "[" + .@j + "]", getarg(2));
 	setd("$LWHD" + .@seed + "_AY" + .@i + "[" + .@j + "]", getarg(3));
 	setd("$LWHD" + .@seed + "_ACN[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefClearAnchors	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_ACN[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LI[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LE[" + .@i + "]", 0);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefInvalidateMovement	{
+	.@controller$ = getarg(0);
+	.@owner$ = getarg(1);
+	.@i = getarg(2);
+	.@char_id = callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
+	.@seed = getnpcid(0, .@controller$);
+	setd("$LWHD" + .@seed + "_LI[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LP[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_LE[" + .@i + "]", 0);
+	if (.@char_id > 0 && headlesspc_owner(.@char_id) == .@owner$ && headlesspc_routestatus(.@char_id) != 0)
+		headlesspc_owned_routestop(.@char_id, .@owner$);
 	return 1;
 }
 

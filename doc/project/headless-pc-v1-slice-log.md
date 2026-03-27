@@ -4303,3 +4303,36 @@ Notes:
 - “behavior” here means posture, tempo, and presentation intensity, not bespoke AI
 - the scheduler still decides whether controllers should be active, but active
   controllers now react to the same guild/economy pressure at runtime
+
+## Slice: Runtime-Reactive Route And Anchor Selection
+
+Date: 2026-03-26
+
+Summary:
+- pushed the reactive layer past tick/pulse posture and into actual movement choice
+- specialized guild and market controllers can now swap anchor loops or patrol
+  routes when runtime pressure changes
+- this is the first deeper behavior pass built on the shared reactive controller
+  layer rather than one-off script logic
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the movement-reconfiguration helpers
+- OpenKore status check on `Headless Alberta Trade` showed:
+  - `Behavior: steady trade (pressure 1)`
+- OpenKore status check on the previously reactive guild/economy controllers still
+  showed live behavior state without parser/runtime regressions
+
+Notes:
+- this slice does not introduce new schema; it deepens how active controllers use
+  the existing guild/economy pressure layer
+- route and anchor geometry is still script-defined for this phase, but now it is
+  switchable at runtime instead of being frozen once the controller primes
