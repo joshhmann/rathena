@@ -165,6 +165,20 @@ S_ApplyBehavior:
 		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 242;
 	else
 		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 241;
+	callfunc "F_LW_HPC_DefClearTalk", .owner$, 0;
+	callfunc "F_LW_HPC_DefClearEmote", .owner$, 0;
+	if (.@score >= 12) {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Fresh curios by the pier.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Harbor stock moves fast tonight.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_SWEAT;
+	} else if (.@score >= 4) {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Step up and browse the stall.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
+	} else {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Curios on offer by the harbor.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
+	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 0;
 	return;
 }

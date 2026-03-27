@@ -114,6 +114,28 @@ S_ApplyBehavior:
 		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 243;
 		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
 	}
+	for (.@i = 0; .@i <= 1; ++.@i) {
+		callfunc "F_LW_HPC_DefClearTalk", .owner$, .@i;
+		callfunc "F_LW_HPC_DefClearEmote", .owner$, .@i;
+	}
+	if (.@score >= 14) {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Harbor stock is moving fast.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep the aisle clear.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Runner through, make way.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "More crates for the market.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_SWEAT;
+	} else if (.@score >= 6) {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Trade is steady at the docks.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Another harbor run.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_OK;
+	} else {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Light trade this hour.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Short run and back.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
+	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
 	return;
 }

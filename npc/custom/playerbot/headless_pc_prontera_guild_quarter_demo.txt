@@ -111,6 +111,28 @@ S_ApplyBehavior:
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 155, 180;
 	}
+	for (.@i = 0; .@i <= 1; ++.@i) {
+		callfunc "F_LW_HPC_DefClearTalk", .owner$, .@i;
+		callfunc "F_LW_HPC_DefClearEmote", .owner$, .@i;
+	}
+	if (.@score >= 9) {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "The quarter is busy tonight.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Make room by the notice wall.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_SWEAT;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Fresh notices coming through.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Courier route is crowded.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_OK;
+	} else if (.@score >= 4) {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Steady guild foot traffic.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "New notice posted in the quarter.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
+	} else {
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Quiet corner for now.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "No rush on the courier loop.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
+	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
 	return;
 }

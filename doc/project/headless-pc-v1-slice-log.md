@@ -4367,3 +4367,35 @@ Notes:
   introduced in the prior runtime-reactive route-selection slice
 - the merchant controller still uses the proxy-shop model; this slice only moves
   the live merchant body within a small stall footprint
+
+## Slice: Runtime-Reactive Guild And Market Flavor Sets
+
+Date: 2026-03-26
+
+Summary:
+- deepened the reactive behavior layer so active guild and market controllers
+  now swap lines and emotes from runtime pressure, not only route/anchor
+  geometry and pulse tempo
+- this keeps the system in a shared data-driven controller lane instead of
+  jumping to bespoke AI scripts
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after adding shared talk/emote clear helpers
+- OpenKore still reached the merchant and guild controller surfaces cleanly
+- no new parser/runtime errors from the runtime-reactive flavor path
+
+Notes:
+- flavor-set switching remains controller-local for this phase
+- the shared helper layer now supports replacing movement geometry and pulse
+  flavor together when a controller changes posture

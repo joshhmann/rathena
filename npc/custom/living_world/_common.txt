@@ -2327,6 +2327,15 @@ function	script	F_LW_HPC_DefAddTalk	{
 	return 1;
 }
 
+function	script	F_LW_HPC_DefClearTalk	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_TC[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_NX[" + .@i + "]", 0);
+	return 1;
+}
+
 function	script	F_LW_HPC_DefAddEmote	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);
@@ -2334,6 +2343,15 @@ function	script	F_LW_HPC_DefAddEmote	{
 	.@j = getd("$LWHD" + .@seed + "_EC[" + .@i + "]");
 	setd("$LWHD" + .@seed + "_EM" + .@i + "[" + .@j + "]", getarg(2));
 	setd("$LWHD" + .@seed + "_EC[" + .@i + "]", .@j + 1);
+	return 1;
+}
+
+function	script	F_LW_HPC_DefClearEmote	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	setd("$LWHD" + .@seed + "_EC[" + .@i + "]", 0);
+	setd("$LWHD" + .@seed + "_NX[" + .@i + "]", 0);
 	return 1;
 }
 

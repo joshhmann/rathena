@@ -1554,3 +1554,21 @@ Current limits:
   emulation
 - social and merchant geometry changes are still local heuristics, not global
   crowd balancing
+
+## Runtime-Reactive Guild And Market Flavor Sets
+
+- Active guild and market controllers can now replace their talk/emote sets when
+  runtime pressure changes.
+
+Current support:
+
+- guild watch and guild quarter controllers swap lines/emotes with calmer or
+  busier guild pressure
+- Alberta trade, spill, and merchant controllers swap lines/emotes with calmer
+  or hotter market pressure
+
+Current limits:
+
+- flavor changes are still controller-local and hand-authored
+- there is still no global dialogue planner, social memory, or learned
+  interaction model
