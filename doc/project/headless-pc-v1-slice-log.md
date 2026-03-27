@@ -3847,3 +3847,64 @@ This slice does not yet add:
 - guild chat, castle, tax, or event-backed demand signals
 - a scheduler surface that explains storage-signal contribution in per-signal
   detail
+
+## Slice 66: Guild Castle Demand Signals
+
+### Goal
+
+Extend guild-aware scheduler demand into castle ownership so Prontera
+controllers can later react to WoE-style guild presence using the same
+data-backed signal lane.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_castle_signals.sql`
+- `tools/ci/playerbot-guild-castle-smoke.sh`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added one new SQL-backed scheduler signal family:
+  - `guild_castle_name`
+- `guild_castle_name` counts current `guild_castle` ownership rows for a guild.
+- Updated Prontera controller policy seeds so:
+  - `social.prontera`
+  - `patrol.prontera`
+  can react to castle ownership for `PBG150001`.
+- Added a safe dev smoke helper:
+  - `tools/ci/playerbot-guild-castle-smoke.sh`
+  - inserts a sentinel castle row when the dev DB has no castle rows
+  - restores or deletes that sentinel row on cleanup
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_guild_castle_signals.sql`
+- restarted from the repo-local control path:
+  - `bash tools/dev/playerbot-dev.sh restart`
+- verified the new SQL demand rows exist:
+  - `social.prontera -> guild_castle_name / PBG150001`
+  - `patrol.prontera -> guild_castle_name / PBG150001`
+- ran the castle smoke helper:
+  - `bash tools/ci/playerbot-guild-castle-smoke.sh clear`
+  - `bash tools/ci/playerbot-guild-castle-smoke.sh seed`
+  - `bash tools/ci/playerbot-guild-castle-smoke.sh check`
+- verified seeded castle ownership for `PBG150001`:
+  - `owned_castles = 1`
+- verified the helper created a sentinel castle row in the otherwise-empty dev
+  DB:
+  - `castle_id = 999`
+  - `guild_id = 1`
+- cleared the sentinel row again and verified `guild_castle` returned empty
+
+### Deferrals
+
+This slice does not yet add:
+
+- real WoE/event controller behavior
+- tax, defense, economy, or castle-activity demand signals
+- scheduler drill-down that breaks out each guild signal as a separate
+  contribution line

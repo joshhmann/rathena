@@ -587,6 +587,16 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "guild_castle_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `guild_castle` gc ON gc.`guild_id` = gu.`guild_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "'",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_candidate_map") {
 		query_sql(
 			"SELECT COUNT(*) "

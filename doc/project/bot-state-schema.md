@@ -434,6 +434,7 @@ Purpose:
   - real linked guild members currently online
   - real guild storage depth
   - recent guild storage activity
+  - guild castle ownership pressure
 - keeps economy/guild participation heuristics data-owned instead of scattered
   through controller scripts
 

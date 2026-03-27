@@ -1263,6 +1263,25 @@ Current limits:
 - guild demand still does not account for chat, castle ownership, or event
   activity
 
+### 55. Guild demand can now see castle ownership, but not castle activity
+
+Current support:
+
+- scheduler demand now supports:
+  - `guild_castle_name`
+- this reads real `guild_castle` ownership rows for a guild
+- the dev smoke helper:
+  - `tools/ci/playerbot-guild-castle-smoke.sh`
+  can safely seed and clear a sentinel castle row even when the dev DB starts
+  with no castle rows
+
+Current limits:
+
+- the current proof is ownership only, not WoE/event participation, defense
+  pressure, tax, or castle economy behavior
+- guild demand still does not account for chat/activity rhythm inside those
+  owned castle systems
+
 ### 36. Fresh-restart ambient stability
 
 Current support:
