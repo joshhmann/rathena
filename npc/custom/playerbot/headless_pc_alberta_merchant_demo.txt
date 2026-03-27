@@ -80,6 +80,7 @@ L_Done:
 OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
+	.focus_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	.active_bot_key$ = "";
@@ -155,6 +156,8 @@ S_Prime:
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
 	.@focus$ = callfunc("F_PB_DB_MerchantStallFocus$", "alberta");
+	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "stock", "browsers", "HeadlessAlbertaTradeFlowController", "HeadlessAlbertaSocialController");
+	.focus_state$ = .@focus$;
 	if (.@focus$ == "sales")
 		.@focus_label$ = "sales heat";
 	else if (.@focus$ == "browsers")

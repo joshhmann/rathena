@@ -76,6 +76,7 @@ L_Done:
 OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
+	.focus_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
@@ -92,11 +93,8 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
-	.@browse = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", "alberta")
-		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", "alberta");
-	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", "alberta")
-		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", "alberta");
-	.@focus$ = (.@sale > .@browse ? "supply" : "front");
+	.@focus$ = callfunc("F_PB_DB_TradeFlowFocus$", "alberta");
+	.focus_state$ = .@focus$;
 	if (.@focus$ == "supply")
 		.@focus_label$ = "supply run";
 	else

@@ -76,6 +76,7 @@ L_Done:
 OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
+	.focus_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
@@ -93,6 +94,8 @@ S_Prime:
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
 	.@focus$ = callfunc("F_PB_DB_GuildCommonsFocus$", "PBG150001");
+	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "recruit", "roster", "HeadlessPronteraGuildQuarterController", "HeadlessPronteraGuildWatchController");
+	.focus_state$ = .@focus$;
 	if (.@focus$ == "notice")
 		.@focus_label$ = "notice buzz";
 	else if (.@focus$ == "recruit")

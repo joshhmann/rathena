@@ -1629,3 +1629,37 @@ Current limits:
   controller-local
 - there is still no single planner that coordinates focus changes across the
   whole map
+
+## Lightweight Cross-Controller Focus Coordination
+
+- Related controllers on the same map can now avoid duplicating the same focus
+  if a reasonable alternate exists.
+
+Current support:
+
+- Prontera social can avoid mirroring the guild-quarter focus exactly
+- Alberta social, trade, and merchant controllers can avoid collapsing onto the
+  same market focus when alternatives are available
+
+Current limits:
+
+- coordination is soft and heuristic-driven
+- there is still no hard global planner, reservation model, or map-wide posture
+  solver
+
+## Shared Guild/Trade Focus Helpers
+
+- Guild and Alberta trade-focused controllers now derive their focus through
+  shared helper functions instead of duplicating local signal reads.
+
+Current support:
+
+- guild watch publishes a shared focus state
+- guild quarter focus is shared and coordination-aware
+- Alberta trade flow uses a shared focus helper
+- Alberta market spill now publishes a shared focus state
+
+Current limits:
+
+- focus derivation is shared, but geometry/flavor application still remains
+  controller-local

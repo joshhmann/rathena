@@ -76,6 +76,7 @@ L_Done:
 OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
+	.focus_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
@@ -92,6 +93,7 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
+	.focus_state$ = callfunc("F_PB_DB_GuildWatchFocus$", "PBG150001");
 	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
 	if (.behavior$ == .@next$)
 		goto L_Demand;

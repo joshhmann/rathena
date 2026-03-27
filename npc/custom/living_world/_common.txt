@@ -834,6 +834,73 @@ function	script	F_PB_DB_MerchantStallFocus$	{
 	return "stock";
 }
 
+function	script	F_PB_DB_GuildWatchFocus$	{
+	.@guild$ = escape_sql(getarg(0, ""));
+	if (.@guild$ == "")
+		return "roster";
+	.@notice = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_recent_name", .@guild$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_events_name", .@guild$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_name", .@guild$);
+	.@roster = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_roster_name", .@guild$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_live_name", .@guild$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_recent_name", .@guild$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_events_name", .@guild$);
+	return (.@notice >= .@roster ? "notice" : "roster");
+}
+
+function	script	F_PB_DB_GuildQuarterFocus$	{
+	.@guild$ = escape_sql(getarg(0, ""));
+	if (.@guild$ == "")
+		return "storage";
+	.@notice = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_recent_name", .@guild$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_events_name", .@guild$);
+	.@storage = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_storage_log_name", .@guild$);
+	return (.@notice >= .@storage ? "notice" : "storage");
+}
+
+function	script	F_PB_DB_TradeFlowFocus$	{
+	.@map$ = escape_sql(getarg(0, ""));
+	if (.@map$ == "")
+		return "front";
+	.@browse = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", .@map$);
+	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
+	return (.@sale > .@browse ? "supply" : "front");
+}
+
+function	script	F_PB_DB_MarketSpillFocus$	{
+	.@map$ = escape_sql(getarg(0, ""));
+	if (.@map$ == "")
+		return "harbor";
+	.@browse = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", .@map$);
+	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
+	if (.@sale > .@browse)
+		return "front";
+	if (.@browse > 0)
+		return "browsers";
+	return "harbor";
+}
+
+function	script	F_PB_BehaviorDistinctFocus$	{
+	.@preferred$ = getarg(0, "");
+	.@alt1$ = getarg(1, "");
+	.@alt2$ = getarg(2, "");
+	.@npc1$ = getarg(3, "");
+	.@npc2$ = getarg(4, "");
+	.@used1$ = (.@npc1$ != "" ? getvariableofnpc(.focus_state$, .@npc1$) : "");
+	.@used2$ = (.@npc2$ != "" ? getvariableofnpc(.focus_state$, .@npc2$) : "");
+	if (.@preferred$ != "" && .@preferred$ != .@used1$ && .@preferred$ != .@used2$)
+		return .@preferred$;
+	if (.@alt1$ != "" && .@alt1$ != .@used1$ && .@alt1$ != .@used2$)
+		return .@alt1$;
+	if (.@alt2$ != "" && .@alt2$ != .@used1$ && .@alt2$ != .@used2$)
+		return .@alt2$;
+	return .@preferred$;
+}
+
 function	script	F_PB_BehaviorApplyGuildMood$	{
 	.@controller$ = getarg(0);
 	.@style$ = getarg(1, "watch");

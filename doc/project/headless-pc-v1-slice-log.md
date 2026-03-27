@@ -4494,3 +4494,64 @@ Validation:
 Notes:
 - focus derivation is shared now, but concrete anchors/lines still remain
   controller-local for this phase
+
+## Slice: Lightweight Cross-Controller Focus Coordination
+
+Date: 2026-03-26
+
+Summary:
+- added a lightweight coordination rule so related controllers on the same map
+  can prefer distinct reactive focuses when a reasonable alternate exists
+- this is the first cross-controller behavior layer above pure per-controller
+  signal reaction
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the coordination helper layer
+- OpenKore operator surfaces remained reachable after the focus-state wiring
+
+Notes:
+- coordination is still soft and local; it only avoids duplicate focus when an
+  alternate is available
+- there is still no central planner or hard reservation system across
+  controllers
+
+## Slice: Shared Guild/Trade Focus Helpers
+
+Date: 2026-03-26
+
+Summary:
+- moved the remaining guild and trade focus derivation into shared helper
+  functions
+- widened focus-state publication so more controllers participate in
+  coordination and operator status
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the shared focus-helper pass
+- OpenKore operator status remained reachable for the updated controller set
+
+Notes:
+- shared focus helpers now cover guild watch, guild quarter, trade flow, and
+  market spill
+- focus derivation is shared, but geometry/flavor application still remains
+  controller-local
