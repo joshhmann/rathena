@@ -11,6 +11,7 @@ Use the repo-local project docs as the authority for scope, architecture, and va
 - `doc/project/bot-state-schema.md`
 - `doc/project/openkore-test-harness.md`
 - `doc/project/playerbot-foundation-priorities.md`
+- `doc/project/playerbot-foundation-program.md`
 - `doc/project/parallel-branch-workmap.md`
 - `doc/project/parallel-branches/*.md`
 
@@ -35,6 +36,9 @@ Current workflow priorities:
   - failure-recovery semantics
   - transactional inventory/equipment/storage
   - broader player-system participation hooks
+- use a `Primary + Parallel` model:
+  - one canonical primary lane
+  - only safe side lanes for docs/tooling/disjoint prep work
 - prefer larger coherent slices when the boundary is clear
 - document every non-trivial slice
 - work autonomously through a milestone unless blocked by missing information or a real architectural fork

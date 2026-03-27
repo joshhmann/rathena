@@ -87,6 +87,31 @@ Main-thread responsibilities when sub-agents are active:
   - repo brief: [test-openkore-smoke-scenarios.md](/root/dev/rathena/doc/project/parallel-branches/test-openkore-smoke-scenarios.md)
   - status: ready
 
+## Current Foundation Program Lanes
+
+Current preferred primary lane:
+
+1. observability and replayability
+2. perception facade
+3. reservation primitives
+4. recovery/state-boundary formalization
+5. transactional inventory/equipment/storage
+6. broader participation hooks
+
+Safe side lanes while the primary lane is active:
+
+- contract docs and slice logging
+- scenario runner / trace viewer tooling
+- reservation and scheduler inspection tooling
+- SQL-only preparation work after an interface is frozen
+
+Unsafe side lanes:
+
+- another lane editing `_common.txt` while the primary lane owns shared
+  controller/runtime semantics
+- another lane editing the same `src/map/*` or `src/char/*` hotspot files
+- side lanes that change the active contract mid-slice
+
 ## Assignment Guidance
 
 Best next assignments:

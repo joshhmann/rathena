@@ -33,6 +33,7 @@ Execution preference:
   - `doc/project/playerbot-future-design-notes.md`
 - drive the remaining foundation phase from:
   - `doc/project/playerbot-foundation-priorities.md`
+  - `doc/project/playerbot-foundation-program.md`
 - keep the branch-scoped parallel work briefs current:
   - `doc/project/parallel-branch-workmap.md`
 - keep parallel work inside approved write-scope lanes instead of splitting
@@ -118,6 +119,11 @@ The current preferred order is:
 5. failure-recovery semantics
 6. transactional inventory / equipment / storage foundation
 7. broader player-system participation hooks
+
+Execution model:
+
+- use one canonical primary lane
+- allow only safe side lanes for docs, tooling, and disjoint support work
 
 These are not rejected. They are deferred until the script/content layer is
 clearly worth extending.

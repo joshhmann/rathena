@@ -20,6 +20,7 @@ Future-phase playerbot behavior notes now live in:
 
 - `doc/project/playerbot-future-design-notes.md`
 - `doc/project/playerbot-foundation-priorities.md`
+- `doc/project/playerbot-foundation-program.md`
 
 That file is for aligned long-term design ideas, not for claiming current
 implementation status.
@@ -27,6 +28,7 @@ implementation status.
 Current foundation priorities for the playerbot lane live in:
 
 - `doc/project/playerbot-foundation-priorities.md`
+- `doc/project/playerbot-foundation-program.md`
 
 That file is the working source of truth for what should be finished before the
 project leans harder into richer behavior scripting.

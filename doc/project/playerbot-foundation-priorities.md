@@ -18,6 +18,17 @@ The current preferred order for remaining foundation work is:
 6. transactional inventory / equipment / storage foundation
 7. broader player-system participation hooks
 
+Execution shape:
+
+- use a `Primary + Parallel` model
+- keep one canonical order
+- allow only safe side lanes that do not compete for the same runtime or script
+  hotspots
+
+Execution companion:
+
+- `doc/project/playerbot-foundation-program.md`
+
 ## 1. Observability And Replayability
 
 The first step should be one append-only structured event model.
