@@ -3908,3 +3908,24 @@ This slice does not yet add:
 - tax, defense, economy, or castle-activity demand signals
 - scheduler drill-down that breaks out each guild signal as a separate
   contribution line
+## Slice: Scheduler Demand Breakdown Visibility
+
+Date: 2026-03-26
+
+Summary:
+- expanded scheduler and controller status so demand is no longer shown only as a compressed inline summary
+- added a multiline demand breakdown that shows each weighted map-user and signal contribution separately
+- kept the existing total weighted-demand calculation unchanged; this slice is observability-only
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- checked clean `map-server` / `char-server` startup after the script change
+- `bash -n tools/ci/openkore-smoke.sh`
+- `bash tools/ci/openkore-smoke.sh --no-launch scheduler-status`
+
+Notes:
+- controller drill-down now includes the same demand breakdown used by scheduler status
+- this makes guild/economy demand signals easier to audit before adding more behavior layers

@@ -459,6 +459,47 @@ function	script	F_PB_DB_ControllerDemandSummary$	{
 	return .@summary$;
 }
 
+function	script	F_PB_DB_ControllerDemandBreakdown$	{
+	.@key$ = escape_sql(getarg(0));
+	.@fallback_map$ = getarg(1, "");
+	.@rows = query_sql(
+		"SELECT `map_name`, `user_weight` "
+		+ "FROM `bot_controller_demand_map` "
+		+ "WHERE `controller_key` = '" + .@key$ + "' "
+		+ "ORDER BY `point_index`, `map_name`",
+		.@map$, .@weight);
+	.@summary$ = "";
+	if (.@rows < 1) {
+		if (.@fallback_map$ == "")
+			return "  demand sources: <none>.";
+		.@users = getmapusers(.@fallback_map$);
+		return "  demand sources: map " + .@fallback_map$ + " users " + .@users + " x1 => " + .@users + ".";
+	}
+	.@summary$ = "  demand sources:";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@w = .@weight[.@i];
+		if (.@w < 1)
+			.@w = 1;
+		.@users = getmapusers(.@map$[.@i]);
+		.@summary$ += "\n    map " + .@map$[.@i] + " users " + .@users + " x" + .@w + " => " + (.@users * .@w);
+	}
+	.@signal_rows = query_sql(
+		"SELECT `signal_type`, `signal_key`, `signal_weight` "
+		+ "FROM `bot_controller_demand_signal` "
+		+ "WHERE `controller_key` = '" + .@key$ + "' "
+		+ "ORDER BY `point_index`",
+		.@signal_type$, .@signal_key$, .@signal_weight);
+	for (.@i = 0; .@i < .@signal_rows; ++.@i) {
+		.@w = .@signal_weight[.@i];
+		if (.@w < 1)
+			.@w = 1;
+		.@units = callfunc("F_PB_DB_ControllerDemandSignalUnits", .@signal_type$[.@i], .@signal_key$[.@i]);
+		.@summary$ += "\n    signal " + .@signal_type$[.@i] + ":" + .@signal_key$[.@i]
+			+ " units " + .@units + " x" + .@w + " => " + (.@units * .@w);
+	}
+	return .@summary$ + ".";
+}
+
 function	script	F_PB_DB_ControllerDemandSignalUnits	{
 	.@type$ = escape_sql(getarg(0));
 	.@key$ = escape_sql(getarg(1));
@@ -1289,6 +1330,7 @@ function	script	F_PB_DB_BuildControllerSummary$	{
 	.@summary$ += "Type / Map: " + $@pbctl_type$[.@index] + " / " + $@pbctl_map$[.@index] + "\n";
 	.@summary$ += "Priority / Weight: " + $@pbctl_prio[.@index] + " / " + $@pbctl_actors[.@index] + "\n";
 	.@summary$ += "Scheduler / Enabled: " + ($@pbctl_sched[.@index] ? "yes" : "no") + " / " + ($@pbctl_enabled[.@index] ? "yes" : "no") + "\n";
+	.@summary$ += callfunc("F_PB_DB_ControllerDemandBreakdown$", $@pbctl_key$[.@index], $@pbctl_map$[.@index]) + "\n";
 	.@summary$ += getvariableofnpc(.status$, .@npc$);
 	return .@summary$;
 }
@@ -2311,6 +2353,7 @@ function	script	F_LW_HPC_SchedBuildStatus	{
 		.@summary$ += "\n  sticky/cooldown: " + .@min_active + "ms / " + .@restart_cd + "ms";
 		.@summary$ += ", demand step/bonus cap: " + .@demand_step + " / " + .@demand_prio + " / " + .@demand_cap;
 		.@summary$ += ", demand maps " + .@demand_summary$;
+		.@summary$ += "\n" + callfunc("F_PB_DB_ControllerDemandBreakdown$", .@key$, .@map$);
 		if (.@last_sel > 0)
 			.@summary$ += ", last picked " + ((.@now - .@last_sel) * 1000) + "ms ago";
 		if (.@last_start > 0 && .@active)

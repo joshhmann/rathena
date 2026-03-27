@@ -1302,3 +1302,12 @@ Current limits:
   source coordinates are cleaned up
 - OpenKore merchant-controller smoke is still pending even though restart and
   startup validation are now green
+## Scheduler Demand Visibility
+
+- Scheduler demand can now include weighted map users plus weighted system signals like merchant and guild activity.
+- A single inline total was too opaque once multiple signal families existed.
+- Status output now prints per-source breakdown lines so operator review can answer:
+  - which maps are contributing demand
+  - which guild/economy signals are contributing demand
+  - how much weighted pressure each source is adding
+- This is an observability slice only; it does not change scheduler selection math.
