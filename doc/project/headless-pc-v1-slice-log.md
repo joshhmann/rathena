@@ -4216,3 +4216,48 @@ Validation:
 Notes:
 - this is still a script-side scheduler refinement
 - per-slot demand now affects both controller behavior and scheduler capacity reasoning, even though controller policy still keeps a maximum actor weight for coarse budgeting
+
+## Slice: Activity Log Demand Signals And Lab Summaries
+
+Date: 2026-03-26
+
+Summary:
+- added persistent recent-activity ledgers for merchant and guild systems
+- extended scheduler demand so controllers can react to event volume, not only coarse
+  latest-timestamp and presence signals
+- exposed those same recent activity counts through the playerbot merchant and guild
+  lab surfaces
+
+Changed:
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_activity_logs.sql`
+- `src/map/guild.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_activity_logs.sql`
+- rebuilt `map-server` with `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- ran the repo-local guild smoke:
+  - `bash tools/ci/playerbot-guild-smoke.sh arm`
+  - OpenKore login with the `codex` profile
+  - `bash tools/ci/playerbot-guild-smoke.sh check`
+- verified guild selftest line:
+  - `playerbot_guild_selftest: spawn=1 invite=1 notice=1 activity=1 inviter_gid=1 bot_gid=1 status=2 result=1`
+- ran `Playerbot Merchant Lab -> Run merchant selftest` through OpenKore
+- verified merchant selftest line:
+  - `playerbot_merchant_selftest: bot_id=12 base_ok=1 spawn_ok=1 bootstrap_ok=1 shop_ok=1 activity_ok=1 park_ok=1 reload_ok=1 result=1`
+- verified new recent activity rows in SQL:
+  - `bot_guild_activity_log` for `PBG150001`
+  - `bot_merchant_activity_log` for `quick_merc_alb`
+
+Notes:
+- the older runtime tables still own the cheap latest-state view:
+  - `bot_guild_runtime`
+  - `bot_merchant_runtime`
+- the new activity-log tables now own recent event-volume signals used by scheduler
+  demand and operator summaries

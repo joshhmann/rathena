@@ -83,6 +83,7 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "[Playerbot Guild Lab]";
 		mes .@ok ? "Invite processed through the runtime guild path." : "Invite failed.";
 		mes "Current guild_id: " + .@guild_id;
+		mes callfunc("F_PB_DB_BuildGuildRuntimeSummary$", $@pbbot_guild_name$);
 		mes "Note: the attached player must already be in a guild and have invite permission.";
 		close;
 
@@ -97,6 +98,8 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		.@ok = playerbot_guildnotice(.@mes1$, .@mes2$);
 		mes "[Playerbot Guild Lab]";
 		mes .@ok ? "Guild notice update queued." : "Guild notice update failed.";
+		if (getcharid(2))
+			mes callfunc("F_PB_DB_BuildGuildRuntimeSummary$", strcharinfo(2));
 		close;
 
 	case 7:
@@ -267,6 +270,7 @@ S_Run:
 		.invite_ok = 1;
 	}
 	.notice_ok = 0;
+	.activity_ok = 0;
 	.@joined = (.spawn_ok && .inviter_gid > 0 && .bot_gid == .inviter_gid);
 	if (.@joined) {
 		if (!attachrid(.aid)) {
@@ -276,12 +280,22 @@ S_Run:
 		}
 		.notice_ok = playerbot_guildnotice("PB selftest", "Guild activity signal probe");
 		sleep 1000;
+		.@activity_rows = query_sql(
+			"SELECT "
+			+ "COALESCE(SUM(CASE WHEN `activity_type` = 'member_join' THEN `activity_units` ELSE 0 END), 0), "
+			+ "COALESCE(SUM(CASE WHEN `activity_type` = 'notice_change' THEN `activity_units` ELSE 0 END), 0) "
+			+ "FROM `bot_guild_activity_log` "
+			+ "WHERE `guild_name` = '" + escape_sql(.guild_name$) + "' "
+			+ "AND UNIX_TIMESTAMP() - `created_at` <= 900",
+			.@join_events, .@notice_events);
+		.activity_ok = (.@activity_rows > 0 && .@join_events[0] >= 1 && .@notice_events[0] >= 1);
 	}
 
-	.result = .@joined;
+	.result = (.@joined && .activity_ok);
 	.log$ = "spawn=" + .spawn_ok
 		+ " invite=" + .invite_ok
 		+ " notice=" + .notice_ok
+		+ " activity=" + .activity_ok
 		+ " inviter_gid=" + .inviter_gid
 		+ " bot_gid=" + .bot_gid
 		+ " status=" + headlesspc_status(.char_id);

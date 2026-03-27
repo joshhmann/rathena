@@ -102,6 +102,7 @@ S_ShowMerchant:
 	mes "Shop / Market: " + ($@pbbot_shop_name$ == "" ? "<none>" : $@pbbot_shop_name$) + " / " + ($@pbbot_market_map$ == "" ? "<none>" : $@pbbot_market_map$ + " (" + $@pbbot_market_x + "," + $@pbbot_market_y + ")");
 	mes "Hours / Open: " + $@pbbot_merchant_start + "-" + $@pbbot_merchant_end + " / " + ($@pbbot_open_state$ == "" ? "<none>" : $@pbbot_open_state$);
 	mes "Stock / Price / Stall: " + ($@pbbot_stock_profile$ == "" ? "<none>" : $@pbbot_stock_profile$) + " / " + ($@pbbot_price_profile$ == "" ? "<none>" : $@pbbot_price_profile$) + " / " + ($@pbbot_stall_style$ == "" ? "<none>" : $@pbbot_stall_style$);
+	mes callfunc("F_PB_DB_BuildMerchantRuntimeSummary$", .@bot_key$);
 	return;
 }
 
@@ -207,10 +208,21 @@ S_Run:
 					+ "FROM `bot_merchant_runtime` "
 					+ "WHERE `bot_id` = '" + .@bot_id + "'",
 					.@browse_count, .@sale_count, .@sold_total);
+				.@activity_log_rows = query_sql(
+					"SELECT "
+					+ "COALESCE(SUM(CASE WHEN `activity_type` = 'browse' THEN `activity_units` ELSE 0 END), 0), "
+					+ "COALESCE(SUM(CASE WHEN `activity_type` = 'sale' THEN `activity_units` ELSE 0 END), 0) "
+					+ "FROM `bot_merchant_activity_log` "
+					+ "WHERE `bot_id` = '" + .@bot_id + "' "
+					+ "AND UNIX_TIMESTAMP() - `created_at` <= 900",
+					.@browse_events, .@sale_units);
 				.@activity_ok = (.@runtime_rows > 0
+					&& .@activity_log_rows > 0
 					&& .@browse_count[0] >= 1
 					&& .@sale_count[0] >= 1
-					&& .@sold_total[0] >= 3);
+					&& .@sold_total[0] >= 3
+					&& .@browse_events[0] >= 1
+					&& .@sale_units[0] >= 3);
 				callfunc "F_PB_DB_HideMerchantProxy", "Harbor Curios Counter#pb";
 			}
 		}

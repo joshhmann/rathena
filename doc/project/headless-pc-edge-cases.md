@@ -1435,3 +1435,42 @@ Current limits:
 - controller policy still carries a coarse max actor weight
 - deeper per-slot persistence/history is still not modeled separately from the
   controller runtime record
+
+## Activity Ledgers Vs Latest-State Tables
+
+- Merchant and guild demand now uses two different runtime surfaces on purpose:
+  - latest-state runtime tables
+  - recent activity ledgers
+- latest-state runtime tables are still:
+  - `bot_guild_runtime`
+  - `bot_merchant_runtime`
+- recent activity ledgers are now:
+  - `bot_guild_activity_log`
+  - `bot_merchant_activity_log`
+
+Why this split exists:
+
+- latest-state tables answer:
+  - did anything happen recently?
+  - when was the last join / notice / browse / sale?
+- activity ledgers answer:
+  - how much happened recently?
+  - how many joins, notice changes, browse events, or sold units occurred in the
+    recent window?
+
+Current support:
+
+- scheduler demand can now react to recent event volume through:
+  - `guild_join_events_name`
+  - `guild_notice_events_name`
+  - `merchant_browse_events_map`
+  - `merchant_sale_units_map`
+- in-game operator surfaces now expose those recent counts through:
+  - `Playerbot Guild Lab`
+  - `Playerbot Merchant Lab`
+
+Current limits:
+
+- activity ledgers are append-only and currently use a fixed recent window in the
+  signal queries
+- there is no pruning/rollup policy yet for older activity rows

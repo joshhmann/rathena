@@ -1347,7 +1347,7 @@ CREATE TABLE IF NOT EXISTS `bot_controller_demand_map` (
 CREATE TABLE IF NOT EXISTS `bot_controller_demand_signal` (
   `controller_key` varchar(64) NOT NULL default '',
   `point_index` smallint(5) unsigned NOT NULL default '0',
-  `signal_type` enum('merchant_open_map','merchant_live_map','merchant_stock_map','merchant_browse_map','merchant_sale_map','guild_enabled_name','guild_roster_name','guild_live_name','guild_leader_name','guild_leader_live_name','guild_notice_name','guild_join_recent_name','guild_notice_recent_name','guild_storage_name','guild_storage_log_name','guild_castle_name','guild_candidate_map') NOT NULL default 'merchant_open_map',
+  `signal_type` enum('merchant_open_map','merchant_live_map','merchant_stock_map','merchant_browse_map','merchant_sale_map','merchant_browse_events_map','merchant_sale_units_map','guild_enabled_name','guild_roster_name','guild_live_name','guild_leader_name','guild_leader_live_name','guild_notice_name','guild_join_recent_name','guild_notice_recent_name','guild_join_events_name','guild_notice_events_name','guild_storage_name','guild_storage_log_name','guild_castle_name','guild_candidate_map') NOT NULL default 'merchant_open_map',
   `signal_key` varchar(64) NOT NULL default '',
   `signal_weight` smallint(5) unsigned NOT NULL default '1',
   PRIMARY KEY (`controller_key`,`point_index`),
@@ -1522,6 +1522,22 @@ CREATE TABLE IF NOT EXISTS `bot_guild_runtime` (
 ) ENGINE=InnoDB;
 
 --
+-- Table structure for table `bot_guild_activity_log`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_guild_activity_log` (
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `guild_name` varchar(64) NOT NULL default '',
+  `activity_type` enum('member_join','notice_change') NOT NULL default 'member_join',
+  `activity_units` int(10) unsigned NOT NULL default '1',
+  `created_at` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY (`id`),
+  KEY `guild_name` (`guild_name`),
+  KEY `activity_type` (`activity_type`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB;
+
+--
 -- Table structure for table `bot_merchant_stock_item`
 --
 
@@ -1549,6 +1565,22 @@ CREATE TABLE IF NOT EXISTS `bot_merchant_runtime` (
   PRIMARY KEY (`bot_id`),
   KEY `last_browse_at` (`last_browse_at`),
   KEY `last_sale_at` (`last_sale_at`)
+) ENGINE=InnoDB;
+
+--
+-- Table structure for table `bot_merchant_activity_log`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_merchant_activity_log` (
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `bot_id` int(10) unsigned NOT NULL,
+  `activity_type` enum('browse','sale') NOT NULL default 'browse',
+  `activity_units` int(10) unsigned NOT NULL default '1',
+  `created_at` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY (`id`),
+  KEY `bot_id` (`bot_id`),
+  KEY `activity_type` (`activity_type`),
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB;
 
 INSERT INTO `bot_controller_policy`
@@ -1665,20 +1697,35 @@ VALUES
   ('social.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('social.alberta', 1, 'merchant_stock_map', 'alberta', 1),
   ('social.alberta', 2, 'merchant_browse_map', 'alberta', 1),
+  ('social.alberta', 3, 'merchant_browse_events_map', 'alberta', 1),
   ('merchant.alberta', 0, 'merchant_open_map', 'alberta', 3),
   ('merchant.alberta', 1, 'merchant_live_map', 'alberta', 2),
   ('merchant.alberta', 2, 'merchant_stock_map', 'alberta', 1),
   ('merchant.alberta', 3, 'merchant_browse_map', 'alberta', 1),
   ('merchant.alberta', 4, 'merchant_sale_map', 'alberta', 2),
+  ('merchant.alberta', 5, 'merchant_browse_events_map', 'alberta', 1),
+  ('merchant.alberta', 6, 'merchant_sale_units_map', 'alberta', 1),
   ('market.flow.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('market.flow.alberta', 1, 'merchant_browse_map', 'alberta', 2),
   ('market.flow.alberta', 2, 'merchant_sale_map', 'alberta', 2),
   ('market.flow.alberta', 3, 'merchant_stock_map', 'alberta', 1),
+  ('market.flow.alberta', 4, 'merchant_browse_events_map', 'alberta', 1),
+  ('market.flow.alberta', 5, 'merchant_sale_units_map', 'alberta', 1),
   ('market.spill.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('market.spill.alberta', 1, 'merchant_live_map', 'alberta', 1),
   ('market.spill.alberta', 2, 'merchant_browse_map', 'alberta', 2),
   ('market.spill.alberta', 3, 'merchant_sale_map', 'alberta', 2),
-  ('market.spill.alberta', 4, 'merchant_stock_map', 'alberta', 1)
+  ('market.spill.alberta', 4, 'merchant_stock_map', 'alberta', 1),
+  ('market.spill.alberta', 5, 'merchant_browse_events_map', 'alberta', 1),
+  ('market.spill.alberta', 6, 'merchant_sale_units_map', 'alberta', 1),
+  ('social.prontera', 11, 'guild_join_events_name', 'PBG150001', 1),
+  ('social.prontera', 12, 'guild_notice_events_name', 'PBG150001', 1),
+  ('patrol.prontera', 8, 'guild_join_events_name', 'PBG150001', 1),
+  ('patrol.prontera', 9, 'guild_notice_events_name', 'PBG150001', 1),
+  ('guild.watch.prontera', 5, 'guild_join_events_name', 'PBG150001', 1),
+  ('guild.watch.prontera', 6, 'guild_notice_events_name', 'PBG150001', 1),
+  ('guild.square.prontera', 5, 'guild_join_events_name', 'PBG150001', 1),
+  ('guild.square.prontera', 6, 'guild_notice_events_name', 'PBG150001', 1)
 ON DUPLICATE KEY UPDATE
   `signal_type` = VALUES(`signal_type`),
   `signal_key` = VALUES(`signal_key`),

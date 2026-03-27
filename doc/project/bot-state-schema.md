@@ -411,6 +411,35 @@ Status:
 - migration artifact:
   `sql-files/upgrades/upgrade_20260326_playerbot_guild_activity_signals.sql`
 
+### 12a. `bot_guild_activity_log`
+
+Recent guild-activity event ledger.
+
+Committed fields:
+
+- `id`
+- `guild_name`
+- `activity_type`
+  - `member_join`
+  - `notice_change`
+- `activity_units`
+- `created_at`
+
+Purpose:
+
+- keeps recent guild activity queryable as event volume, not only latest timestamp
+- supports richer scheduler demand signals such as:
+  - `guild_join_events_name`
+  - `guild_notice_events_name`
+- lets in-game operator surfaces show recent guild pressure without falling back to
+  ad hoc SQL inspection
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_activity_logs.sql`
+
 ### 13. `bot_party_state`
 
 Deferred until party-capable pseudo-players are implemented.
@@ -443,10 +472,12 @@ Committed fields:
 - `point_index`
 - `signal_type`
   - merchant_open_map, merchant_live_map, merchant_stock_map,
-    merchant_browse_map, merchant_sale_map, guild_enabled_name,
+    merchant_browse_map, merchant_sale_map, merchant_browse_events_map,
+    merchant_sale_units_map, guild_enabled_name,
     guild_roster_name, guild_live_name, guild_leader_name,
     guild_leader_live_name, guild_notice_name, guild_join_recent_name,
-    guild_notice_recent_name, guild_storage_name, guild_storage_log_name,
+    guild_notice_recent_name, guild_join_events_name,
+    guild_notice_events_name, guild_storage_name, guild_storage_log_name,
     guild_castle_name, guild_candidate_map
 - `signal_key`
 - `signal_weight`
@@ -461,10 +492,17 @@ Purpose:
   - real linked guild roster membership
   - real linked guild members currently online
   - recent guild joins
+  - recent guild join event volume
   - recent guild notice changes
+  - recent guild notice event volume
   - real guild storage depth
   - recent guild storage activity
   - guild castle ownership pressure
+- newer merchant signal families can distinguish:
+  - merchants merely being open
+  - merchants being interacted with recently
+  - recent browse-event volume
+  - recent sale-unit volume
 - keeps economy/guild participation heuristics data-owned instead of scattered
   through controller scripts
 
@@ -473,6 +511,36 @@ Status:
 - committed in `sql-files/main.sql`
 - migration artifact:
   `sql-files/upgrades/upgrade_20260326_playerbot_demand_signals.sql`
+
+### 14a. `bot_merchant_activity_log`
+
+Recent merchant-activity event ledger.
+
+Committed fields:
+
+- `id`
+- `bot_id`
+- `activity_type`
+  - `browse`
+  - `sale`
+- `activity_units`
+- `created_at`
+
+Purpose:
+
+- keeps recent merchant interaction volume queryable as events instead of only the
+  latest browse/sale timestamps
+- supports richer economy-aware scheduler signals such as:
+  - `merchant_browse_events_map`
+  - `merchant_sale_units_map`
+- lets in-game merchant lab inspection reflect the same recent demand surfaces the
+  scheduler now uses
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_activity_logs.sql`
 
 ### 15. `bot_progression_state`
 

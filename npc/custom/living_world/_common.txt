@@ -567,6 +567,32 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "merchant_browse_events_map") {
+		query_sql(
+			"SELECT COALESCE(SUM(al.`activity_units`), 0) "
+			+ "FROM `bot_merchant_activity_log` al "
+			+ "JOIN `bot_merchant_state` m ON m.`bot_id` = al.`bot_id` "
+			+ "WHERE m.`enabled` = 1 "
+			+ "AND m.`market_map` = '" + .@key$ + "' "
+			+ "AND al.`activity_type` = 'browse' "
+			+ "AND UNIX_TIMESTAMP() - al.`created_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "merchant_sale_units_map") {
+		query_sql(
+			"SELECT COALESCE(SUM(al.`activity_units`), 0) "
+			+ "FROM `bot_merchant_activity_log` al "
+			+ "JOIN `bot_merchant_state` m ON m.`bot_id` = al.`bot_id` "
+			+ "WHERE m.`enabled` = 1 "
+			+ "AND m.`market_map` = '" + .@key$ + "' "
+			+ "AND al.`activity_type` = 'sale' "
+			+ "AND UNIX_TIMESTAMP() - al.`created_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_enabled_name") {
 		query_sql(
 			"SELECT COUNT(*) "
@@ -657,6 +683,28 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 			+ "WHERE `guild_name` = '" + .@key$ + "' "
 			+ "AND `last_notice_at` > 0 "
 			+ "AND UNIX_TIMESTAMP() - `last_notice_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_join_events_name") {
+		query_sql(
+			"SELECT COALESCE(SUM(`activity_units`), 0) "
+			+ "FROM `bot_guild_activity_log` "
+			+ "WHERE `guild_name` = '" + .@key$ + "' "
+			+ "AND `activity_type` = 'member_join' "
+			+ "AND UNIX_TIMESTAMP() - `created_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_notice_events_name") {
+		query_sql(
+			"SELECT COALESCE(SUM(`activity_units`), 0) "
+			+ "FROM `bot_guild_activity_log` "
+			+ "WHERE `guild_name` = '" + .@key$ + "' "
+			+ "AND `activity_type` = 'notice_change' "
+			+ "AND UNIX_TIMESTAMP() - `created_at` <= 900",
 			.@units);
 		return .@units[0];
 	}
@@ -1073,10 +1121,47 @@ function	script	F_PB_DB_BuildGuildRuntimeSummary$	{
 		.@join_at, .@notice_at);
 	if (.@rows < 1)
 		return "Guild Runtime: " + .@guild_name$ + " has no runtime activity row.";
+	query_sql(
+		"SELECT COALESCE(SUM(CASE WHEN `activity_type` = 'member_join' AND UNIX_TIMESTAMP() - `created_at` <= 900 THEN `activity_units` ELSE 0 END), 0), "
+		+ "COALESCE(SUM(CASE WHEN `activity_type` = 'notice_change' AND UNIX_TIMESTAMP() - `created_at` <= 900 THEN `activity_units` ELSE 0 END), 0) "
+		+ "FROM `bot_guild_activity_log` "
+		+ "WHERE `guild_name` = '" + .@guild_name$ + "'",
+		.@join_events, .@notice_events);
 	.@now = gettimetick(2);
 	.@summary$ = "Guild Runtime: " + .@guild_name$;
 	.@summary$ += "\nJoin Activity: " + (.@join_at[0] > 0 ? ((.@now - .@join_at[0]) * 1000) + "ms ago" : "<never>");
 	.@summary$ += "\nNotice Activity: " + (.@notice_at[0] > 0 ? ((.@now - .@notice_at[0]) * 1000) + "ms ago" : "<never>");
+	.@summary$ += "\nRecent Join Events: " + .@join_events[0];
+	.@summary$ += "\nRecent Notice Events: " + .@notice_events[0];
+	return .@summary$;
+}
+
+function	script	F_PB_DB_BuildMerchantRuntimeSummary$	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	if (.@bot_key$ == "")
+		return "Merchant Runtime: <none>.";
+	.@rows = query_sql(
+		"SELECT mr.`last_browse_at`, mr.`last_sale_at`, mr.`total_browse_count`, mr.`total_sale_count`, mr.`total_items_sold` "
+		+ "FROM `bot_merchant_runtime` mr "
+		+ "JOIN `bot_profile` p ON p.`bot_id` = mr.`bot_id` "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
+		.@browse_at, .@sale_at, .@browse_total, .@sale_total, .@items_total);
+	if (.@rows < 1)
+		return "Merchant Runtime: " + .@bot_key$ + " has no runtime activity row.";
+	query_sql(
+		"SELECT "
+		+ "COALESCE(SUM(CASE WHEN al.`activity_type` = 'browse' AND UNIX_TIMESTAMP() - al.`created_at` <= 900 THEN al.`activity_units` ELSE 0 END), 0), "
+		+ "COALESCE(SUM(CASE WHEN al.`activity_type` = 'sale' AND UNIX_TIMESTAMP() - al.`created_at` <= 900 THEN al.`activity_units` ELSE 0 END), 0) "
+		+ "FROM `bot_merchant_activity_log` al "
+		+ "JOIN `bot_profile` p ON p.`bot_id` = al.`bot_id` "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "'",
+		.@browse_events, .@sale_units);
+	.@now = gettimetick(2);
+	.@summary$ = "Merchant Runtime: " + .@bot_key$;
+	.@summary$ += "\nLast Browse: " + (.@browse_at[0] > 0 ? ((.@now - .@browse_at[0]) * 1000) + "ms ago" : "<never>");
+	.@summary$ += "\nLast Sale: " + (.@sale_at[0] > 0 ? ((.@now - .@sale_at[0]) * 1000) + "ms ago" : "<never>");
+	.@summary$ += "\nBrowse Total / Recent: " + .@browse_total[0] + " / " + .@browse_events[0];
+	.@summary$ += "\nSale Total / Items / Recent Units: " + .@sale_total[0] + " / " + .@items_total[0] + " / " + .@sale_units[0];
 	return .@summary$;
 }
 
@@ -1186,7 +1271,7 @@ function	script	F_PB_DB_RecordMerchantBrowse	{
 	.@bot_key$ = escape_sql(getarg(0));
 	if (.@bot_key$ == "")
 		return 0;
-	return query_sql(
+	.@rows = query_sql(
 		"INSERT INTO `bot_merchant_runtime` (`bot_id`, `last_browse_at`, `total_browse_count`) "
 		+ "SELECT p.`bot_id`, UNIX_TIMESTAMP(), 1 "
 		+ "FROM `bot_profile` p "
@@ -1194,6 +1279,12 @@ function	script	F_PB_DB_RecordMerchantBrowse	{
 		+ "ON DUPLICATE KEY UPDATE "
 		+ "`last_browse_at` = UNIX_TIMESTAMP(), "
 		+ "`total_browse_count` = `total_browse_count` + 1");
+	query_sql(
+		"INSERT INTO `bot_merchant_activity_log` (`bot_id`, `activity_type`, `activity_units`, `created_at`) "
+		+ "SELECT p.`bot_id`, 'browse', 1, UNIX_TIMESTAMP() "
+		+ "FROM `bot_profile` p "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "'");
+	return .@rows;
 }
 
 function	script	F_PB_DB_RecordMerchantSale	{
@@ -1203,7 +1294,7 @@ function	script	F_PB_DB_RecordMerchantSale	{
 		return 0;
 	if (.@units < 0)
 		.@units = 0;
-	return query_sql(
+	.@rows = query_sql(
 		"INSERT INTO `bot_merchant_runtime` (`bot_id`, `last_sale_at`, `total_sale_count`, `total_items_sold`) "
 		+ "SELECT p.`bot_id`, UNIX_TIMESTAMP(), 1, '" + .@units + "' "
 		+ "FROM `bot_profile` p "
@@ -1212,6 +1303,12 @@ function	script	F_PB_DB_RecordMerchantSale	{
 		+ "`last_sale_at` = UNIX_TIMESTAMP(), "
 		+ "`total_sale_count` = `total_sale_count` + 1, "
 		+ "`total_items_sold` = `total_items_sold` + '" + .@units + "'");
+	query_sql(
+		"INSERT INTO `bot_merchant_activity_log` (`bot_id`, `activity_type`, `activity_units`, `created_at`) "
+		+ "SELECT p.`bot_id`, 'sale', '" + .@units + "', UNIX_TIMESTAMP() "
+		+ "FROM `bot_profile` p "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "'");
+	return .@rows;
 }
 
 function	script	F_PB_DB_ShowMerchantProxy	{
