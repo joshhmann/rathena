@@ -901,6 +901,36 @@ function	script	F_PB_BehaviorDistinctFocus$	{
 	return .@preferred$;
 }
 
+function	script	F_PB_BehaviorPressureLane$	{
+	.@score = getarg(0, 0);
+	.@hot = getarg(1, 0);
+	.@warm = getarg(2, 0);
+	if (.@score >= .@hot)
+		return "hot";
+	if (.@score >= .@warm)
+		return "warm";
+	return "cool";
+}
+
+function	script	F_PB_BehaviorDistinctLane$	{
+	.@preferred$ = getarg(0, "cool");
+	.@npc1$ = getarg(1, "");
+	.@npc2$ = getarg(2, "");
+	.@alt1$ = "";
+	.@alt2$ = "";
+	if (.@preferred$ == "hot") {
+		.@alt1$ = "warm";
+		.@alt2$ = "cool";
+	} else if (.@preferred$ == "warm") {
+		.@alt1$ = "cool";
+		.@alt2$ = "hot";
+	} else {
+		.@alt1$ = "warm";
+		.@alt2$ = "hot";
+	}
+	return callfunc("F_PB_BehaviorDistinctFocus$", .@preferred$, .@alt1$, .@alt2$, .@npc1$, .@npc2$);
+}
+
 function	script	F_PB_BehaviorApplyGuildMood$	{
 	.@controller$ = getarg(0);
 	.@style$ = getarg(1, "watch");

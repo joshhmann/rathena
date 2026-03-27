@@ -4579,3 +4579,32 @@ Validation:
 Notes:
 - this is still a heuristic coordination layer, not a hard planner
 - the main gain is visible posture separation, not perfect map-wide behavior
+
+## Slice: Shared Intensity Lanes
+
+Date: 2026-03-26
+
+Summary:
+- added a shared `hot`, `warm`, and `cool` lane layer so same-map sibling
+  controllers can spread out escalation posture instead of all intensifying at
+  once
+- tied those lanes into live demanded-slot thresholds
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the shared lane pass
+
+Notes:
+- lane choice is still heuristic and local
+- the main gain is coordinated escalation and cleaner demanded-slot pressure

@@ -81,6 +81,7 @@ OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
 	.focus_state$ = "";
+	.lane_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	.active_bot_key$ = "";
@@ -158,6 +159,9 @@ S_ApplyBehavior:
 	.@focus$ = callfunc("F_PB_DB_MerchantStallFocus$", "alberta");
 	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "stock", "browsers", "HeadlessAlbertaTradeFlowController", "HeadlessAlbertaSocialController");
 	.focus_state$ = .@focus$;
+	.@lane$ = callfunc("F_PB_BehaviorPressureLane$", .@score, 12, 5);
+	.@lane$ = callfunc("F_PB_BehaviorDistinctLane$", .@lane$, "HeadlessAlbertaTradeFlowController", "HeadlessAlbertaSocialController");
+	.lane_state$ = .@lane$;
 	if (.@focus$ == "sales")
 		.@focus_label$ = "sales heat";
 	else if (.@focus$ == "browsers")
@@ -165,7 +169,7 @@ S_ApplyBehavior:
 	else
 		.@focus_label$ = "stock hold";
 	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
-	.@next$ += " / " + .@focus_label$;
+	.@next$ += " / " + .@focus_label$ + " / " + .@lane$ + " lane";
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
@@ -200,6 +204,12 @@ L_Demand:
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 2;
 	else
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 4;
+	if (.@lane$ == "hot")
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 1;
+	else if (.@lane$ == "warm")
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 3;
+	else
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 5;
 	return;
 }
 

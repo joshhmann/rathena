@@ -1679,3 +1679,20 @@ Current limits:
 - posture separation is still local and heuristic
 - there is still no map-wide solver that guarantees optimal or non-overlapping
   posture choices
+
+## Shared Intensity Lanes
+
+- Same-map sibling controllers can now spread out escalation posture using
+  shared `hot`, `warm`, and `cool` lanes.
+
+Current support:
+
+- Prontera guild/social controllers now coordinate escalation lanes
+- Alberta social/trade/merchant controllers now coordinate escalation lanes
+- demanded-slot thresholds can react to the chosen lane
+
+Current limits:
+
+- lane choice is still heuristic rather than globally optimized
+- coordination still depends on sibling controller runtime state rather than a
+  central planner

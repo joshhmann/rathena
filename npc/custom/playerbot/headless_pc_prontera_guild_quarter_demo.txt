@@ -77,6 +77,7 @@ OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
 	.focus_state$ = "";
+	.lane_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
@@ -96,6 +97,9 @@ S_ApplyBehavior:
 	.@focus$ = callfunc("F_PB_DB_GuildQuarterFocus$", "PBG150001");
 	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "storage", "", "HeadlessPronteraGuildWatchController", "HeadlessPronteraSocialController");
 	.focus_state$ = .@focus$;
+	.@lane$ = callfunc("F_PB_BehaviorPressureLane$", .@score, 9, 4);
+	.@lane$ = callfunc("F_PB_BehaviorDistinctLane$", .@lane$, "HeadlessPronteraGuildWatchController", "HeadlessPronteraSocialController");
+	.lane_state$ = .@lane$;
 	if (.@focus$ == "notice")
 		.@focus_label$ = "notice courier";
 	else
@@ -104,7 +108,7 @@ S_ApplyBehavior:
 	.@line1$ = "";
 	.@line2$ = "";
 	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "quarter", "PBG150001");
-	.@next$ += " / " + .@focus_label$;
+	.@next$ += " / " + .@focus_label$ + " / " + .@lane$ + " lane";
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
@@ -183,11 +187,11 @@ S_ApplyBehavior:
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
 L_Demand:
 	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 2;
-	if (.@score >= 9)
+	if (.@lane$ == "hot")
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 2;
-	else if (.@score >= 4)
+	else if (.@lane$ == "warm")
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 4;
 	else
-		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 8;
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 9;
 	return;
 }

@@ -77,6 +77,7 @@ OnStop:
 	.enabled = 0;
 	.tick_pending = 0;
 	.focus_state$ = "";
+	.lane_state$ = "";
 	if (playerattached() > 0)
 		deltimer strnpcinfo(3) + "::OnTick";
 	callfunc "F_LW_HPC_DefStop", .owner$, .owner$;
@@ -96,6 +97,9 @@ S_ApplyBehavior:
 	.@focus$ = callfunc("F_PB_DB_GuildCommonsFocus$", "PBG150001");
 	.@focus$ = callfunc("F_PB_BehaviorDistinctFocus$", .@focus$, "recruit", "roster", "HeadlessPronteraGuildQuarterController", "HeadlessPronteraGuildWatchController");
 	.focus_state$ = .@focus$;
+	.@lane$ = callfunc("F_PB_BehaviorPressureLane$", .@score, 8, 3);
+	.@lane$ = callfunc("F_PB_BehaviorDistinctLane$", .@lane$, "HeadlessPronteraGuildQuarterController", "HeadlessPronteraGuildWatchController");
+	.lane_state$ = .@lane$;
 	if (.@focus$ == "notice")
 		.@focus_label$ = "notice buzz";
 	else if (.@focus$ == "recruit")
@@ -103,7 +107,7 @@ S_ApplyBehavior:
 	else
 		.@focus_label$ = "roster commons";
 	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "social", "PBG150001");
-	.@next$ += " / " + .@focus_label$;
+	.@next$ += " / " + .@focus_label$ + " / " + .@lane$ + " lane";
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
@@ -170,6 +174,14 @@ L_Demand:
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 3;
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 6;
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 4, 10;
+	}
+	if (.@lane$ == "hot") {
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 0;
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 2;
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 4, 4;
+	} else if (.@lane$ == "warm") {
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 2;
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 4;
 	}
 	return;
 }
