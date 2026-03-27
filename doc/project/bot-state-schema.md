@@ -418,7 +418,8 @@ Committed fields:
 - `signal_type`
   - merchant_open_map, merchant_live_map, merchant_stock_map,
     merchant_browse_map, merchant_sale_map, guild_enabled_name,
-    guild_roster_name, guild_live_name, guild_candidate_map
+    guild_roster_name, guild_live_name, guild_storage_name,
+    guild_storage_log_name, guild_candidate_map
 - `signal_key`
 - `signal_weight`
 
@@ -431,6 +432,8 @@ Purpose:
   - configured guild-capable identity pressure
   - real linked guild roster membership
   - real linked guild members currently online
+  - real guild storage depth
+  - recent guild storage activity
 - keeps economy/guild participation heuristics data-owned instead of scattered
   through controller scripts
 

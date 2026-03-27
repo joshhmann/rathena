@@ -1242,6 +1242,27 @@ Current limits:
 - the current guild smoke path cleans up quickly, so long-lived live-guild
   pressure is not yet sampled as a steady-state scenario
 
+### 54. Guild demand now sees storage depth/activity, but not full guild-system behavior
+
+Current support:
+
+- scheduler demand now supports:
+  - `guild_storage_name`
+  - `guild_storage_log_name`
+- these read real guild-system tables:
+  - `guild_storage`
+  - `guild_storage_log`
+- the dev smoke helper:
+  - `tools/ci/playerbot-guild-storage-smoke.sh`
+  can seed and clear sentinel probe rows safely for validation
+
+Current limits:
+
+- the current proof is SQL-backed storage participation, not a full playerbot
+  guild-storage interaction loop through the normal UI/runtime
+- guild demand still does not account for chat, castle ownership, or event
+  activity
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

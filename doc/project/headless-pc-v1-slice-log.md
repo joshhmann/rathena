@@ -3783,3 +3783,67 @@ This slice does not yet add:
   storage usage
 - a sticky guild smoke path that leaves the invited bot online long enough to
   sample `guild_live_name` over time without a fast selftest cleanup
+
+## Slice 65: Guild Storage Demand Signals
+
+### Goal
+
+Extend the guild-aware scheduler foundation so Prontera controllers can react
+to real guild storage depth and recent guild storage activity, not only roster
+membership.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_storage_signals.sql`
+- `tools/ci/playerbot-guild-storage-smoke.sh`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added two new SQL-backed scheduler signal families:
+  - `guild_storage_name`
+  - `guild_storage_log_name`
+- `guild_storage_name` counts current rows in `guild_storage` for a live guild.
+- `guild_storage_log_name` counts recent `guild_storage_log` rows in the last
+  15 minutes for that guild.
+- Updated Prontera scheduler policy seeds so:
+  - `social.prontera`
+  - `patrol.prontera`
+  can react to storage-backed guild activity for `PBG150001`.
+- Added a non-destructive dev helper:
+  - `tools/ci/playerbot-guild-storage-smoke.sh`
+  - uses a fixed sentinel `unique_id` probe row for seed/clear validation
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_guild_storage_signals.sql`
+- restarted from the repo-local control path:
+  - `bash tools/dev/playerbot-dev.sh restart`
+- ran the storage smoke helper:
+  - `bash tools/ci/playerbot-guild-storage-smoke.sh clear`
+  - `bash tools/ci/playerbot-guild-storage-smoke.sh seed`
+  - `bash tools/ci/playerbot-guild-storage-smoke.sh check`
+- verified seeded counts for `PBG150001`:
+  - `storage_rows = 1`
+  - `recent_log_rows = 1`
+- verified the new SQL demand rows exist:
+  - `social.prontera -> guild_storage_name / PBG150001`
+  - `social.prontera -> guild_storage_log_name / PBG150001`
+  - `patrol.prontera -> guild_storage_name / PBG150001`
+- cleared the sentinel probe rows after validation:
+  - `storage_rows = 0`
+  - `recent_log_rows = 0`
+
+### Deferrals
+
+This slice does not yet add:
+
+- true guild-storage interaction by playerbots through the normal in-game
+  storage UI/runtime
+- guild chat, castle, tax, or event-backed demand signals
+- a scheduler surface that explains storage-signal contribution in per-signal
+  detail

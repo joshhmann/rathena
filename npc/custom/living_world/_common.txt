@@ -566,6 +566,27 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "guild_storage_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `guild_storage` gs ON gs.`guild_id` = gu.`guild_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "'",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_storage_log_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `guild_storage_log` gsl ON gsl.`guild_id` = gu.`guild_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "' "
+			+ "AND gsl.`time` >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_candidate_map") {
 		query_sql(
 			"SELECT COUNT(*) "
