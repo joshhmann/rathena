@@ -1062,6 +1062,24 @@ function	script	F_PB_DB_LoadBotSummary	{
 	return .@rows;
 }
 
+function	script	F_PB_DB_BuildGuildRuntimeSummary$	{
+	.@guild_name$ = escape_sql(getarg(0, ""));
+	if (.@guild_name$ == "")
+		return "Guild Runtime: <none>.";
+	.@rows = query_sql(
+		"SELECT `last_member_join_at`, `last_notice_at` "
+		+ "FROM `bot_guild_runtime` "
+		+ "WHERE `guild_name` = '" + .@guild_name$ + "' LIMIT 1",
+		.@join_at, .@notice_at);
+	if (.@rows < 1)
+		return "Guild Runtime: " + .@guild_name$ + " has no runtime activity row.";
+	.@now = gettimetick(2);
+	.@summary$ = "Guild Runtime: " + .@guild_name$;
+	.@summary$ += "\nJoin Activity: " + (.@join_at[0] > 0 ? ((.@now - .@join_at[0]) * 1000) + "ms ago" : "<never>");
+	.@summary$ += "\nNotice Activity: " + (.@notice_at[0] > 0 ? ((.@now - .@notice_at[0]) * 1000) + "ms ago" : "<never>");
+	return .@summary$;
+}
+
 function	script	F_PB_DB_SetMerchantState	{
 	.@bot_key$ = escape_sql(getarg(0));
 	.@enabled = getarg(1, 0);

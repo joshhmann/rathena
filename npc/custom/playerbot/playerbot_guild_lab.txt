@@ -24,6 +24,7 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Guild: " + ($@pbbot_guild_enabled ? "enabled" : "disabled") + " / " + ($@pbbot_guild_policy$ == "" ? "<none>" : $@pbbot_guild_policy$);
 		mes "Guild Name / Position: " + ($@pbbot_guild_name$ == "" ? "<none>" : $@pbbot_guild_name$) + " / " + ($@pbbot_guild_position$ == "" ? "<none>" : $@pbbot_guild_position$);
 		mes "Guild Invite / State: " + ($@pbbot_guild_invite$ == "" ? "<none>" : $@pbbot_guild_invite$) + " / " + ($@pbbot_guild_state$ == "" ? "<none>" : $@pbbot_guild_state$);
+		mes callfunc("F_PB_DB_BuildGuildRuntimeSummary$", $@pbbot_guild_name$);
 		mes "Reloaded pools with " + .@loaded + " eligible identities.";
 		close;
 
@@ -54,6 +55,7 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Provisioned " + $@pbbot_name$ + " with bot_id " + $@pbbot_bot_id + ".";
 		mes "Guild Name / Position: " + ($@pbbot_guild_name$ == "" ? "<none>" : $@pbbot_guild_name$) + " / " + ($@pbbot_guild_position$ == "" ? "<none>" : $@pbbot_guild_position$);
 		mes "Guild Invite / State: " + ($@pbbot_guild_invite$ == "" ? "<none>" : $@pbbot_guild_invite$) + " / " + ($@pbbot_guild_state$ == "" ? "<none>" : $@pbbot_guild_state$);
+		mes callfunc("F_PB_DB_BuildGuildRuntimeSummary$", $@pbbot_guild_name$);
 		mes "Reloaded pools with " + .@loaded + " eligible identities.";
 		close;
 
@@ -113,6 +115,7 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Guild: " + ($@pbbot_guild_enabled ? "enabled" : "disabled") + " / " + ($@pbbot_guild_policy$ == "" ? "<none>" : $@pbbot_guild_policy$);
 		mes "Guild Name / Position: " + ($@pbbot_guild_name$ == "" ? "<none>" : $@pbbot_guild_name$) + " / " + ($@pbbot_guild_position$ == "" ? "<none>" : $@pbbot_guild_position$);
 		mes "Guild Invite / State: " + ($@pbbot_guild_invite$ == "" ? "<none>" : $@pbbot_guild_invite$) + " / " + ($@pbbot_guild_state$ == "" ? "<none>" : $@pbbot_guild_state$);
+		mes callfunc("F_PB_DB_BuildGuildRuntimeSummary$", $@pbbot_guild_name$);
 		mes "Current guild_id: " + playerbot_guildid($@pbbot_char_id);
 		close;
 

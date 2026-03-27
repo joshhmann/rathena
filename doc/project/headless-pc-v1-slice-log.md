@@ -4016,3 +4016,23 @@ Validation:
 
 Notes:
 - this is the first guild activity slice driven by runtime hooks rather than static guild table state only
+
+## Slice: Guild Runtime Operator Surface
+
+Date: 2026-03-26
+
+Summary:
+- added a shared guild-runtime summary helper for script/operator surfaces
+- updated the guild lab so guild-capable bot inspection now shows recent join and notice activity without dropping to SQL
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- checked clean `map-server` startup after the script-only change
+- confirmed the existing `bot_guild_runtime` row for `PBG150001` remains readable
+
+Notes:
+- this is an operator/inspection slice only; it does not change guild runtime semantics

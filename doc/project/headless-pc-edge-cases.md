@@ -1334,3 +1334,8 @@ Current limits:
   - recent member joins
   - recent notice changes
 - Those timestamps are written from real runtime hooks, not from raw scheduler SQL.
+
+## Guild Runtime Visibility
+
+- Guild activity state is now visible from the in-game guild lab, not only from SQL or tmux logs.
+- This reduces the need for manual DB inspection when validating guild participation slices.
