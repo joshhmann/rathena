@@ -4136,3 +4136,31 @@ Validation:
 
 Notes:
 - this deepens the economy behavior lane, but it is still not a full autonomous market simulation
+
+## Slice: Guild And Trade Roster Specialization
+
+Date: 2026-03-26
+
+Summary:
+- retargeted the guild controllers onto the dedicated guild recurring-bot pool instead of the broad Prontera social pool
+- split Alberta into:
+  - a smaller true ambient social pool
+  - a dedicated trade-runner pool for direct market-flow behavior
+- reduced the Alberta market-spill lane to a lighter one-actor spillover presence so the scheduler no longer has to overcommit the same small bot supply
+
+Changed:
+- `npc/custom/playerbot/headless_pc_config.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_roster_specialization.sql`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_roster_specialization.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified bot roster SQL now shows:
+  - `botpc03`, `botpc05` -> `pool.trade.alberta` / `market.alberta.runner` / `market_runner`
+  - guild watch and guild quarter slots -> `pool.guild.prontera`
+- verified controller slot SQL now reflects the specialized pools
+
+Notes:
+- this is a foundation/roster-curation slice, not a new behavior family
+- the goal is cleaner controller ownership and less pool contention

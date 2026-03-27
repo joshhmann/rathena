@@ -1555,12 +1555,12 @@ INSERT INTO `bot_controller_policy`
 VALUES
   ('social.prontera', 'HeadlessPronteraSocialController', 'Prontera social', 'social', 'prontera', 1, 1, 1, 90, 5, 2200, 400, 1500, 12000, 45000, 15000, 3, 2, 2, 8, 'park', 'day', 7, 23),
   ('patrol.prontera', 'HeadlessPronteraPatrolController', 'Prontera patrol', 'social', 'prontera', 0, 1, 1, 70, 1, 2400, 300, 900, 10000, 30000, 15000, 1, 3, 1, 4, 'park', 'day', 8, 22),
-  ('social.alberta', 'HeadlessAlbertaSocialController', 'Alberta social', 'social', 'alberta', 1, 1, 1, 80, 5, 2400, 500, 1800, 15000, 60000, 20000, 3, 2, 2, 8, 'park', 'night', 0, 6),
+  ('social.alberta', 'HeadlessAlbertaSocialController', 'Alberta social', 'social', 'alberta', 1, 1, 1, 80, 3, 2400, 500, 1800, 15000, 60000, 20000, 3, 2, 2, 8, 'park', 'night', 0, 6),
   ('merchant.alberta', 'HeadlessAlbertaMerchantController', 'Alberta merchants', 'merchant', 'alberta', 1, 1, 1, 85, 1, 2600, 600, 1600, 18000, 90000, 30000, 2, 4, 1, 3, 'park', 'day', 8, 22),
   ('guild.watch.prontera', 'HeadlessPronteraGuildWatchController', 'Prontera guild watch', 'event', 'prontera', 1, 1, 1, 92, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23),
   ('guild.square.prontera', 'HeadlessPronteraGuildQuarterController', 'Prontera guild quarter', 'event', 'prontera', 1, 1, 1, 89, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23),
   ('market.flow.alberta', 'HeadlessAlbertaTradeFlowController', 'Alberta trade flow', 'merchant', 'alberta', 1, 1, 1, 88, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23),
-  ('market.spill.alberta', 'HeadlessAlbertaMarketSpillController', 'Alberta market spill', 'merchant', 'alberta', 1, 1, 1, 87, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23)
+  ('market.spill.alberta', 'HeadlessAlbertaMarketSpillController', 'Alberta market spill', 'merchant', 'alberta', 1, 1, 1, 87, 1, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23)
 ON DUPLICATE KEY UPDATE
   `controller_label` = VALUES(`controller_label`),
   `controller_type` = VALUES(`controller_type`),
@@ -1697,18 +1697,15 @@ VALUES
   ('patrol.prontera', 0, 'Square Patrol', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 160, 186, 1, 'patrol', 'square_loiter_busy', '', 'patrol.prontera.loop', '', '', 1),
   ('social.alberta', 0, 'Dock Regular A', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 47, 245, 0, 'hold', 'market_anchor_day', '', '', 'social.alberta.regular.a', 'social.alberta.regular.a', 1),
   ('social.alberta', 1, 'Dock Regular B', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 50, 244, 0, 'hold', 'market_anchor_trade', '', '', 'social.alberta.regular.b', 'social.alberta.regular.b', 1),
-  ('social.alberta', 2, 'Market Browser A', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 44, 243, 1, 'loiter', 'market_loiter_browse', 'social.alberta.browser.a', '', 'social.alberta.browser.a', 'social.alberta.browser.a', 1),
-  ('social.alberta', 3, 'Harbor Wanderer', 'pool.social.alberta', 'social.alberta.harbor', 'harbor_wanderer', 'alberta', 45, 247, 1, 'loiter', 'mh', 'social.alberta.harbor.a', '', 'social.alberta.harbor.a', 'social.alberta.harbor.a', 1),
-  ('social.alberta', 4, 'Market Browser B', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 43, 241, 1, 'loiter', 'ml', 'social.alberta.browser.b', '', 'social.alberta.browser.b', 'social.alberta.browser.b', 1),
+  ('social.alberta', 2, 'Harbor Wanderer', 'pool.social.alberta', 'social.alberta.harbor', 'harbor_wanderer', 'alberta', 45, 247, 1, 'loiter', 'mh', 'social.alberta.harbor.a', '', 'social.alberta.harbor.a', 'social.alberta.harbor.a', 1),
   ('merchant.alberta', 0, 'Harbor Curios', 'pool.merchant.alberta', 'merchant.alberta', 'stall_merchant', 'alberta', 52, 242, 0, 'hold', 'market_anchor_trade', '', '', 'merchant.alberta.stall.a', 'merchant.alberta.stall.a', 1),
-  ('guild.watch.prontera', 0, 'Guild Watch Captain', 'pool.social.prontera', 'social.prontera.regular', 'square_regular', 'prontera', 149, 191, 0, 'hold', 'square_anchor_evening', '', '', 'guild.watch.prontera.a', 'guild.watch.prontera.a', 1),
-  ('guild.watch.prontera', 1, 'Guild Watch Runner', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 150, 189, 1, 'loiter', 'square_loiter_busy', 'guild.watch.prontera.runner', '', 'guild.watch.prontera.b', 'guild.watch.prontera.b', 1),
-  ('guild.square.prontera', 0, 'Guild Quarter Steward', 'pool.social.prontera', 'social.prontera.regular', 'square_regular', 'prontera', 155, 180, 0, 'hold', 'square_anchor_evening', '', '', 'guild.square.prontera.a', 'guild.square.prontera.a', 1),
-  ('guild.square.prontera', 1, 'Notice Courier', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 154, 179, 1, 'loiter', 'square_loiter_busy', 'guild.square.prontera.courier', '', 'guild.square.prontera.b', 'guild.square.prontera.b', 1),
-  ('market.flow.alberta', 0, 'Trade Crier', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 49, 242, 0, 'hold', 'market_anchor_trade', '', '', 'market.flow.alberta.a', 'market.flow.alberta.a', 1),
-  ('market.flow.alberta', 1, 'Supply Runner', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 45, 243, 1, 'patrol', 'market_loiter_browse', '', 'market.flow.alberta.loop', 'market.flow.alberta.b', 'market.flow.alberta.b', 1),
-  ('market.spill.alberta', 0, 'Market Barker', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 51, 241, 0, 'hold', 'market_anchor_trade', '', '', 'market.spill.alberta.a', 'market.spill.alberta.a', 1),
-  ('market.spill.alberta', 1, 'Dock Runner', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 46, 245, 1, 'patrol', 'market_loiter_browse', '', 'market.spill.alberta.loop', 'market.spill.alberta.b', 'market.spill.alberta.b', 1);
+  ('guild.watch.prontera', 0, 'Guild Watch Captain', 'pool.guild.prontera', 'guild.prontera', 'guild_member', 'prontera', 149, 191, 0, 'hold', 'square_anchor_evening', '', '', 'guild.watch.prontera.a', 'guild.watch.prontera.a', 1),
+  ('guild.watch.prontera', 1, 'Guild Watch Runner', 'pool.guild.prontera', 'guild.prontera', 'guild_member', 'prontera', 150, 189, 1, 'loiter', 'square_loiter_busy', 'guild.watch.prontera.runner', '', 'guild.watch.prontera.b', 'guild.watch.prontera.b', 1),
+  ('guild.square.prontera', 0, 'Guild Quarter Steward', 'pool.guild.prontera', 'guild.prontera', 'guild_member', 'prontera', 155, 180, 0, 'hold', 'square_anchor_evening', '', '', 'guild.square.prontera.a', 'guild.square.prontera.a', 1),
+  ('guild.square.prontera', 1, 'Notice Courier', 'pool.guild.prontera', 'guild.prontera', 'guild_member', 'prontera', 154, 179, 1, 'loiter', 'square_loiter_busy', 'guild.square.prontera.courier', '', 'guild.square.prontera.b', 'guild.square.prontera.b', 1),
+  ('market.flow.alberta', 0, 'Trade Crier', 'pool.trade.alberta', 'market.alberta.runner', 'market_runner', 'alberta', 49, 242, 0, 'hold', 'market_anchor_trade', '', '', 'market.flow.alberta.a', 'market.flow.alberta.a', 1),
+  ('market.flow.alberta', 1, 'Supply Runner', 'pool.trade.alberta', 'market.alberta.runner', 'market_runner', 'alberta', 45, 243, 1, 'patrol', 'market_loiter_browse', '', 'market.flow.alberta.loop', 'market.flow.alberta.b', 'market.flow.alberta.b', 1),
+  ('market.spill.alberta', 0, 'Market Barker', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 51, 241, 0, 'hold', 'market_anchor_trade', '', '', 'market.spill.alberta.a', 'market.spill.alberta.a', 1);
 
 DELETE FROM `bot_controller_anchor_point`
 WHERE `set_key` IN (

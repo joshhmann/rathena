@@ -1371,3 +1371,24 @@ Current limits:
   - market spillover presence around the harbor-market seam
 - It still uses the wider Alberta social pool for now.
 - That is acceptable in this phase because the current goal is deeper scheduler/controller behavior, not final merchant-only identity assignment.
+
+## Guild And Trade Roster Specialization
+
+- The newer behavior controllers no longer need to keep borrowing from the broadest available pools.
+- Current specialization:
+  - `guild.watch.prontera` -> `pool.guild.prontera`
+  - `guild.square.prontera` -> `pool.guild.prontera`
+  - `market.flow.alberta` -> `pool.trade.alberta`
+- Alberta ambient social presence was narrowed so it no longer competes as heavily with direct trade-flow behavior.
+- `market.spill.alberta` remains a lighter spillover lane on the social side by design.
+
+Why:
+
+- cleaner role ownership
+- less controller contention
+- better long-term path toward stricter guild/economy curation
+
+Current limits:
+
+- `pool.trade.alberta` is still built from repurposed recurring Alberta identities, not a fully separate long-term merchant-courier roster
+- `market.spill.alberta` still uses ambient/social identity rather than a dedicated economy-only pool

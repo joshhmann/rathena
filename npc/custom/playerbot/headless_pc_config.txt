@@ -39,6 +39,7 @@ OnInit:
 	// SQL-backed pool registry.
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.social.alberta";
+	callfunc "F_PB_CFG_RegisterPool", "pool.trade.alberta";
 	callfunc "F_PB_CFG_RegisterPool", "pool.party.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.guild.prontera";
 	callfunc "F_PB_CFG_RegisterPool", "pool.merchant.alberta";
@@ -196,6 +197,27 @@ OnInit:
 	callfunc "F_PB_CFG_SetStr", "tp.mas.pr", "default";
 	callfunc "F_PB_CFG_SetStr", "tp.mas.ss", "anchored";
 	callfunc "F_PB_CFG_SetStr", "tp.mas.mo", "scheduled";
+
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.pf", "market.alberta.runner";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.pk", "pool.trade.alberta";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.rl", "market_runner";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.hm", "alberta";
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.hx", 46;
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.hy", 245;
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.rg", "day";
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.rs", 8;
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.re", 22;
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.pp", "market_loiter_browse";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.ip", "ambient_only";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.py", "never";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.ps", "demand_gated";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.tz", "day";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.pt", "market.alberta.runner";
+	callfunc "F_PB_CFG_SetStr", "tp.mtr.sx", "M";
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.jb", Job_Merchant;
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.hs", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.hc", 0;
+	callfunc "F_PB_CFG_SetInt", "tp.mtr.cc", 0;
 
 	end;
 }
