@@ -3720,3 +3720,66 @@ This slice does not yet add:
 - guild chat/storage/event behavior
 - guild-aware scheduler demand from live guild roster activity
 - a fully automated no-manual-login guild smoke launcher
+
+## Slice 64: Real Guild Roster Demand Signals
+
+### Goal
+
+Promote guild-aware scheduler demand from metadata-only candidate checks into
+real guild participation signals backed by actual `guild` / `guild_member`
+rows and live online state.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_signals.sql`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added two new SQL-backed scheduler signal families:
+  - `guild_roster_name`
+  - `guild_live_name`
+- `guild_roster_name` counts real recurring bot identities linked into a live
+  `guild` roster through:
+  - `guild`
+  - `guild_member`
+  - `bot_identity_link`
+  - `bot_profile`
+- `guild_live_name` counts those same linked guild members when their
+  underlying `char.online` state is currently live.
+- Updated Prontera policy seeds so scheduler demand can react to the actual dev
+  guild:
+  - `social.prontera`
+  - `patrol.prontera`
+  - guild key `PBG150001`
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_guild_signals.sql`
+- restarted from the repo-local control path:
+  - `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL demand rows now include:
+  - `social.prontera -> guild_roster_name / PBG150001`
+  - `social.prontera -> guild_live_name / PBG150001`
+  - `patrol.prontera -> guild_roster_name / PBG150001`
+- re-ran the repeatable guild smoke path:
+  - `bash tools/ci/playerbot-guild-smoke.sh arm`
+  - OpenKore `codex` login
+- verified the guild runtime still passes end-to-end:
+  - `playerbot_guild_selftest: spawn=1 invite=1 inviter_gid=1 bot_gid=1 status=2 result=1`
+- verified the real guild roster signal is non-zero in SQL after the proof path:
+  - roster count for `PBG150001` > `0`
+
+### Deferrals
+
+This slice does not yet add:
+
+- guild chat/storage/event behavior
+- guild-aware scheduler demand from chat traffic, castle ownership, or guild
+  storage usage
+- a sticky guild smoke path that leaves the invited bot online long enough to
+  sample `guild_live_name` over time without a fast selftest cleanup

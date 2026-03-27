@@ -1218,6 +1218,30 @@ Current remaining limits:
 - guild behavior still stops at invite/join participation, not guild chat,
   storage, territory, or event semantics
 
+### 53. Guild demand can now read real roster state, but not richer guild activity
+
+Current support:
+
+- scheduler demand now supports real guild-backed signal families:
+  - `guild_roster_name`
+  - `guild_live_name`
+- these read actual linked recurring bot membership from:
+  - `guild`
+  - `guild_member`
+  - `bot_identity_link`
+  - `bot_profile`
+- Prontera scheduler policy can now react to:
+  - guild-capable candidates on the map
+  - real linked guild roster membership
+  - real linked guild members currently online
+
+Current limits:
+
+- `guild_live_name` is still a coarse online-presence signal based on
+  `char.online`, not richer guild activity like chat, storage use, or events
+- the current guild smoke path cleans up quickly, so long-lived live-guild
+  pressure is not yet sampled as a steady-state scenario
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

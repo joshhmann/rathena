@@ -536,6 +536,36 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "guild_roster_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `guild_member` gm ON gm.`guild_id` = gu.`guild_id` "
+			+ "JOIN `bot_identity_link` l ON l.`char_id` = gm.`char_id` "
+			+ "JOIN `bot_profile` p ON p.`bot_id` = l.`bot_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "' "
+			+ "AND l.`link_status` = 'linked' "
+			+ "AND p.`status` = 'active'",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_live_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `guild_member` gm ON gm.`guild_id` = gu.`guild_id` "
+			+ "JOIN `char` c ON c.`char_id` = gm.`char_id` "
+			+ "JOIN `bot_identity_link` l ON l.`char_id` = gm.`char_id` "
+			+ "JOIN `bot_profile` p ON p.`bot_id` = l.`bot_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "' "
+			+ "AND c.`online` = 1 "
+			+ "AND l.`link_status` = 'linked' "
+			+ "AND p.`status` = 'active'",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_candidate_map") {
 		query_sql(
 			"SELECT COUNT(*) "
