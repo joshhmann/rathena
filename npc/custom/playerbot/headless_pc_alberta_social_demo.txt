@@ -94,7 +94,7 @@ S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
 	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "social", "alberta");
 	if (.behavior$ == .@next$)
-		return;
+		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 2, "loiter";
 	callfunc "F_LW_HPC_DefClearAnchors", .owner$, 2;
@@ -110,5 +110,14 @@ S_ApplyBehavior:
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 46, 246;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 2;
+L_Demand:
+	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 0;
+	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 1;
+	if (.@score >= 10)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 2;
+	else if (.@score >= 4)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 3;
+	else
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 6;
 	return;
 }

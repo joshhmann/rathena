@@ -4399,3 +4399,67 @@ Notes:
 - flavor-set switching remains controller-local for this phase
 - the shared helper layer now supports replacing movement geometry and pulse
   flavor together when a controller changes posture
+
+## Slice: Runtime-Reactive Role Emphasis
+
+Date: 2026-03-26
+
+Summary:
+- extended the reactive layer into demanded-slot emphasis
+- active controllers can now raise or lower the demand threshold for secondary
+  roles like runners, couriers, wanderers, and barkers based on live guild or
+  market pressure
+- this is the first step where runtime pressure changes which roles matter, not
+  only how already-selected roles behave
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after adding shared runtime min-demand
+  override support
+- OpenKore status surfaces remained readable after the slot-demand changes
+
+Notes:
+- slot definitions are still seeded from SQL, but active controllers can now
+  override live min-demand thresholds in script
+- this keeps role emphasis dynamic without forcing a schema rewrite in the same
+  slice
+
+## Slice: Signal-Directed Guild And Trade Focus
+
+Date: 2026-03-26
+
+Summary:
+- pushed two active controllers past generic pressure and into signal-directed
+  focus changes
+- guild quarter now reacts differently to notice pressure versus storage
+  activity
+- Alberta trade flow now reacts differently to browse-heavy pressure versus
+  sale-heavy pressure
+
+Changed:
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the signal-directed focus layer
+- OpenKore operator surfaces remained reachable after the controller update
+
+Notes:
+- this is still lightweight scripted behavior selection, not a generalized AI
+  planner
+- focus selection is derived from existing runtime signals, not new schema

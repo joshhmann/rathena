@@ -2307,6 +2307,17 @@ function	script	F_LW_HPC_DefSetMode	{
 	return 1;
 }
 
+function	script	F_LW_HPC_DefSetMinDemand	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@need = getarg(2, 0);
+	if (.@need < 0)
+		.@need = 0;
+	setd("$LWHD" + .@seed + "_MD[" + .@i + "]", .@need);
+	return 1;
+}
+
 function	script	F_LW_HPC_DefSetHome	{
 	.@controller$ = getarg(0);
 	.@seed = getnpcid(0, .@controller$);

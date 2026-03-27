@@ -92,50 +92,115 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
+	.@browse = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", "alberta")
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", "alberta");
+	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", "alberta")
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", "alberta");
+	.@focus$ = (.@sale > .@browse ? "supply" : "front");
+	if (.@focus$ == "supply")
+		.@focus_label$ = "supply run";
+	else
+		.@focus_label$ = "front hawk";
+	.@lead0$ = "";
+	.@lead1$ = "";
+	.@line1$ = "";
+	.@line2$ = "";
 	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "flow", "alberta");
+	.@next$ += " / " + .@focus_label$;
 	if (.behavior$ == .@next$)
-		return;
+		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "patrol";
 	callfunc "F_LW_HPC_DefClearRoute", .owner$, 1;
 	if (.@score >= 14) {
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 45, 243;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 244;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 50, 239;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 46, 240;
+		if (.@focus$ == "supply") {
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 45, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 48, 245;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 239;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 46, 240;
+		} else {
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 47, 244;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 50, 244;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 53, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 240;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 48, 240;
+		}
 	} else if (.@score >= 6) {
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 45, 243;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 244;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 47, 240;
+		if (.@focus$ == "supply") {
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 45, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 244;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 47, 240;
+		} else {
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 47, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 50, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 240;
+		}
 	} else {
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 46, 243;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 243;
-		callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+		if (.@focus$ == "supply") {
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 46, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 49, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+		} else {
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 48, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 50, 243;
+			callfunc "F_LW_HPC_DefAddRoutePoint", .owner$, 1, 52, 242;
+		}
 	}
 	for (.@i = 0; .@i <= 1; ++.@i) {
 		callfunc "F_LW_HPC_DefClearTalk", .owner$, .@i;
 		callfunc "F_LW_HPC_DefClearEmote", .owner$, .@i;
 	}
+	if (.@focus$ == "supply") {
+		.@lead0$ = "Harbor stock is moving fast.";
+		.@lead1$ = "Keep the aisle clear.";
+		.@line1$ = "Runner through, make way.";
+		.@line2$ = "More crates for the market.";
+	} else {
+		.@lead0$ = "The market front is packed.";
+		.@lead1$ = "Crowd the front and keep trade moving.";
+		.@line1$ = "Bringing eyes to the front stalls.";
+		.@line2$ = "Front lane stays busy tonight.";
+	}
 	if (.@score >= 14) {
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Harbor stock is moving fast.";
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Keep the aisle clear.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, .@lead0$;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, .@lead1$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Runner through, make way.";
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "More crates for the market.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line1$;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line2$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_SWEAT;
 	} else if (.@score >= 6) {
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Trade is steady at the docks.";
+		if (.@focus$ == "supply") {
+			.@lead0$ = "Trade is steady at the docks.";
+			.@line1$ = "Another harbor run.";
+		} else {
+			.@lead0$ = "Steady traffic by the front stalls.";
+			.@line1$ = "Circling the front market again.";
+		}
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, .@lead0$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Another harbor run.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line1$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_OK;
 	} else {
+		if (.@focus$ == "supply")
+			.@line1$ = "Short run and back.";
+		else
+			.@line1$ = "Keeping the front lane warm.";
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Light trade this hour.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Short run and back.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line1$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
+L_Demand:
+	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 2;
+	if (.@score >= 14)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 2;
+	else if (.@score >= 6)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 4;
+	else
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 9;
 	return;
 }

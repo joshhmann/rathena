@@ -92,47 +92,102 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
+	.@notice = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_recent_name", "PBG150001")
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_events_name", "PBG150001");
+	.@storage = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_storage_log_name", "PBG150001");
+	.@focus$ = (.@notice >= .@storage ? "notice" : "storage");
+	if (.@focus$ == "notice")
+		.@focus_label$ = "notice courier";
+	else
+		.@focus_label$ = "warehouse courier";
+	.@lead0$ = "";
+	.@line1$ = "";
+	.@line2$ = "";
 	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "quarter", "PBG150001");
+	.@next$ += " / " + .@focus_label$;
 	if (.behavior$ == .@next$)
-		return;
+		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 1, "loiter";
 	callfunc "F_LW_HPC_DefClearAnchors", .owner$, 1;
 	if (.@score >= 9) {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 157, 181;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 182;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 179;
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 157, 181;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 182;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 179;
+		} else {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 151, 191;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 153, 189;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 188;
+		}
 	} else if (.@score >= 4) {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 156, 180;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 181;
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 156, 180;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 152, 181;
+		} else {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 151, 190;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 188;
+		}
 	} else {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 155, 180;
+		if (.@focus$ == "notice") {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 154, 179;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 155, 180;
+		} else {
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 149, 190;
+			callfunc "F_LW_HPC_DefAddAnchor", .owner$, 1, 150, 189;
+		}
 	}
 	for (.@i = 0; .@i <= 1; ++.@i) {
 		callfunc "F_LW_HPC_DefClearTalk", .owner$, .@i;
 		callfunc "F_LW_HPC_DefClearEmote", .owner$, .@i;
 	}
+	if (.@focus$ == "notice") {
+		.@lead0$ = "Make room by the notice wall.";
+		.@line1$ = "Fresh notices coming through.";
+		.@line2$ = "Courier route is crowded.";
+	} else {
+		.@lead0$ = "Storage traffic is backing up.";
+		.@line1$ = "Warehouse lane is crowded.";
+		.@line2$ = "Moving stock through the quarter.";
+	}
 	if (.@score >= 9) {
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "The quarter is busy tonight.";
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Make room by the notice wall.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, .@lead0$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_SWEAT;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Fresh notices coming through.";
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "Courier route is crowded.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line1$;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line2$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_OK;
 	} else if (.@score >= 4) {
+		if (.@focus$ == "notice")
+			.@line1$ = "New notice posted in the quarter.";
+		else
+			.@line1$ = "Checking the warehouse side.";
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Steady guild foot traffic.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "New notice posted in the quarter.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line1$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
 	} else {
+		if (.@focus$ == "notice")
+			.@line1$ = "No rush on the courier loop.";
+		else
+			.@line1$ = "Warehouse side is quiet.";
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Quiet corner for now.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
-		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, "No rush on the courier loop.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 1, .@line1$;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 1, ET_THINK;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 1;
+L_Demand:
+	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 2;
+	if (.@score >= 9)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 2;
+	else if (.@score >= 4)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 4;
+	else
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 8;
 	return;
 }

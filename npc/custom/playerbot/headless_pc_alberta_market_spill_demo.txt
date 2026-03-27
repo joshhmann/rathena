@@ -94,7 +94,7 @@ S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
 	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "spill", "alberta");
 	if (.behavior$ == .@next$)
-		return;
+		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefClearAnchors", .owner$, 0;
 	if (.@score >= 10) {
@@ -125,5 +125,12 @@ S_ApplyBehavior:
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 0;
+L_Demand:
+	if (.@score >= 10)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 2;
+	else if (.@score >= 4)
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 4;
+	else
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 8;
 	return;
 }

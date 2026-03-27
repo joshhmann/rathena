@@ -1572,3 +1572,41 @@ Current limits:
 - flavor changes are still controller-local and hand-authored
 - there is still no global dialogue planner, social memory, or learned
   interaction model
+
+## Runtime-Reactive Role Emphasis
+
+- Active controllers can now adjust slot demand thresholds at runtime.
+- Pressure changes can now influence which secondary roles are worth filling,
+  not just how active slots move or pulse.
+
+Current support:
+
+- guild watch and guild quarter can promote or suppress runner/courier roles
+- Prontera social can promote or suppress extra wanderers
+- Alberta social can promote or suppress the harbor wanderer
+- Alberta trade and spill can promote or suppress the runner or barker lane
+- Alberta merchant can make the stall body easier or harder to demand depending
+  on live market pressure
+
+Current limits:
+
+- dynamic role emphasis still uses script-side min-demand overrides
+- there is still no runtime role reassignment across controllers or pools
+
+## Signal-Directed Guild And Trade Focus
+
+- Some controllers now react to specific runtime signal families, not only the
+  aggregate pressure score.
+
+Current support:
+
+- guild quarter can bias toward notice-running versus warehouse-running based on
+  notice activity versus storage activity
+- Alberta trade flow can bias toward front-market circulation versus supply-run
+  circulation based on browse-heavy versus sale-heavy activity
+
+Current limits:
+
+- signal-directed focus is still controller-local and hand-authored
+- there is still no generic planner that arbitrates among multiple competing
+  goals across controllers
