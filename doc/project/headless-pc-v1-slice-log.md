@@ -4036,3 +4036,53 @@ Validation:
 
 Notes:
 - this is an operator/inspection slice only; it does not change guild runtime semantics
+
+## Slice: Prontera Guild Watch Controller
+
+Date: 2026-03-26
+
+Summary:
+- added the first guild-activity behavior controller on top of the existing guild demand/runtime foundation
+- `guild.watch.prontera` is SQL-backed and scheduler-eligible
+- this controller uses the existing recurring Prontera social pool, but is driven by guild activity instead of general crowd presence
+
+Changed:
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/scripts_custom.conf`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_behavior_controllers.sql`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_behavior_controllers.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL policy / slot rows exist for `guild.watch.prontera`
+- OpenKore on Prontera confirmed visible lab/controller NPC:
+  - `Headless Prontera Guild`
+
+Notes:
+- this is a controller-behavior foundation slice, not a full guild AI system
+
+## Slice: Alberta Trade Flow Controller
+
+Date: 2026-03-26
+
+Summary:
+- added the first economy-flow behavior controller on top of the merchant demand/runtime foundation
+- `market.flow.alberta` is SQL-backed and scheduler-eligible
+- this controller uses the existing Alberta social pool and a dedicated SQL route set to react to trade pressure around the harbor market
+
+Changed:
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/scripts_custom.conf`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_behavior_controllers.sql`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_behavior_controllers.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL policy / slot rows exist for `market.flow.alberta`
+- verified SQL route rows exist for `market.flow.alberta.loop`
+- confirmed clean map-server startup with no parser/runtime regressions after loading both new controller files
+
+Notes:
+- this is a behavior/controller slice, not a full merchant economy simulation

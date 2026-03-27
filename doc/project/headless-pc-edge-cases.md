@@ -1339,3 +1339,17 @@ Current limits:
 
 - Guild activity state is now visible from the in-game guild lab, not only from SQL or tmux logs.
 - This reduces the need for manual DB inspection when validating guild participation slices.
+
+## Guild Watch Behavior
+
+- The first guild-driven controller layer now exists in Prontera.
+- It still draws from the broader Prontera social pool for now.
+- That is intentional at this stage:
+  - controller behavior is being proven first
+  - stricter guild-only pool ownership can come later once more recurring guild bots are provisioned
+
+## Trade Flow Behavior
+
+- The first economy-flow controller now exists in Alberta.
+- It is demand-driven and SQL-backed, but still uses social identities rather than a dedicated merchant-only courier pool.
+- That is acceptable for this phase because the goal is proving the behavior lane, not final world curation.
