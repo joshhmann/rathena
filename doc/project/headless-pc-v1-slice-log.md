@@ -4463,3 +4463,34 @@ Notes:
 - this is still lightweight scripted behavior selection, not a generalized AI
   planner
 - focus selection is derived from existing runtime signals, not new schema
+
+## Slice: Shared Signal-Directed Social And Merchant Focus
+
+Date: 2026-03-26
+
+Summary:
+- extended signal-directed focus into the remaining active social and merchant
+  controllers
+- moved the focus-selection pattern into shared helpers so controllers stop
+  re-deriving the same signal comparisons inline
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- confirmed clean map-server startup after the shared social/merchant focus
+  helper layer
+- OpenKore operator status remained reachable for:
+  - `Headless Prontera Social`
+  - `Headless Alberta Social`
+  - `Headless Alberta Merchants`
+
+Notes:
+- focus derivation is shared now, but concrete anchors/lines still remain
+  controller-local for this phase

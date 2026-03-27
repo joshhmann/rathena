@@ -92,52 +92,77 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
+	.@focus$ = callfunc("F_PB_DB_GuildCommonsFocus$", "PBG150001");
+	if (.@focus$ == "notice")
+		.@focus_label$ = "notice buzz";
+	else if (.@focus$ == "recruit")
+		.@focus_label$ = "recruit bustle";
+	else
+		.@focus_label$ = "roster commons";
 	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "social", "PBG150001");
+	.@next$ += " / " + .@focus_label$;
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
 	for (.@i = 2; .@i <= 4; ++.@i) {
 		callfunc "F_LW_HPC_DefSetMode", .owner$, .@i, "loiter";
 		callfunc "F_LW_HPC_DefClearAnchors", .owner$, .@i;
+		callfunc "F_LW_HPC_DefClearTalk", .owner$, .@i;
+		callfunc "F_LW_HPC_DefClearEmote", .owner$, .@i;
 	}
-	if (.@score >= 8) {
+	if (.@focus$ == "notice") {
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 147, 186;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 149, 184;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 149, 186;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 151, 188;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 146, 188;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 148, 190;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "New notice by the guild wall.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "Plenty to read in the commons.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "Looks like the guild board changed again.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_THINK;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_OK;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_THINK;
+	} else if (.@focus$ == "recruit") {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 146, 184;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 148, 185;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 151, 187;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 189;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 150, 190;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 146, 190;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 148, 192;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 150, 191;
-	} else if (.@score >= 3) {
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 147, 185;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 152, 187;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 188;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 189;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 149, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 149, 189;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 151, 190;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "More fresh faces in town.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "Guilds are looking lively tonight.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "Seems like a recruiting night.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_OK;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_CHAT_PROHIBIT;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_OK;
 	} else {
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 146, 185;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 152, 187;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 188;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 152, 188;
-		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 189;
 		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 148, 190;
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 2, "The commons feel familiar tonight.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 3, "Same guild faces around the square.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 4, "Looks like the regular crowd.";
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 2, ET_CHAT_PROHIBIT;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 3, ET_THINK;
+		callfunc "F_LW_HPC_DefAddEmote", .owner$, 4, ET_THINK;
 	}
 	for (.@i = 2; .@i <= 4; ++.@i)
 		callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, .@i;
 L_Demand:
 	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 0;
 	callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 1, 0;
-	if (.@score >= 8) {
+	if (.@focus$ == "notice") {
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 1;
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 3;
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 4, 5;
+	} else if (.@focus$ == "recruit") {
+		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 2;
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 2;
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 4, 4;
-	} else if (.@score >= 3) {
-		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 2;
-		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 4;
-		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 4, 7;
 	} else {
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 2, 3;
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 3, 6;

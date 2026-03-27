@@ -154,36 +154,46 @@ S_Prime:
 
 S_ApplyBehavior:
 	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
+	.@focus$ = callfunc("F_PB_DB_MerchantStallFocus$", "alberta");
+	if (.@focus$ == "sales")
+		.@focus_label$ = "sales heat";
+	else if (.@focus$ == "browsers")
+		.@focus_label$ = "browse draw";
+	else
+		.@focus_label$ = "stock hold";
 	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
+	.@next$ += " / " + .@focus_label$;
 	if (.behavior$ == .@next$)
 		goto L_Demand;
 	.behavior$ = .@next$;
 	callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";
-	if (.@score >= 12)
+	if (.@focus$ == "sales")
 		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 52, 242;
-	else if (.@score >= 4)
+	else if (.@focus$ == "browsers")
 		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 242;
 	else
 		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 241;
 	callfunc "F_LW_HPC_DefClearTalk", .owner$, 0;
 	callfunc "F_LW_HPC_DefClearEmote", .owner$, 0;
-	if (.@score >= 12) {
+	if (.@focus$ == "sales") {
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Fresh curios by the pier.";
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Harbor stock moves fast tonight.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_OK;
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_SWEAT;
-	} else if (.@score >= 4) {
+	} else if (.@focus$ == "browsers") {
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Step up and browse the stall.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Take your time with the curios.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_THINK;
 	} else {
 		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Curios on offer by the harbor.";
+		callfunc "F_LW_HPC_DefAddTalk", .owner$, 0, "Stock is ready whenever the market wakes.";
 		callfunc "F_LW_HPC_DefAddEmote", .owner$, 0, ET_CHAT_PROHIBIT;
 	}
 	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 0;
 L_Demand:
-	if (.@score >= 12)
+	if (.@focus$ == "sales")
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 1;
-	else if (.@score >= 4)
+	else if (.@focus$ == "browsers")
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 2;
 	else
 		callfunc "F_LW_HPC_DefSetMinDemand", .owner$, 0, 4;

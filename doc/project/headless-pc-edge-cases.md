@@ -1610,3 +1610,22 @@ Current limits:
 - signal-directed focus is still controller-local and hand-authored
 - there is still no generic planner that arbitrates among multiple competing
   goals across controllers
+
+## Shared Signal-Directed Social And Merchant Focus
+
+- The signal-directed focus pattern now extends into the remaining active social
+  and merchant controllers.
+
+Current support:
+
+- Prontera social can bias toward notice buzz, recruit bustle, or roster
+  commons
+- Alberta social can bias toward buyer drift, browse pocket, or harbor drift
+- Alberta merchant can bias toward sales heat, browse draw, or stock hold
+
+Current limits:
+
+- focus selection is shared, but the concrete routes, anchors, and lines remain
+  controller-local
+- there is still no single planner that coordinates focus changes across the
+  whole map

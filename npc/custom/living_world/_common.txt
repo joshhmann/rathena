@@ -785,6 +785,55 @@ function	script	F_PB_DB_MerchantPressure	{
 	return .@score;
 }
 
+function	script	F_PB_DB_GuildCommonsFocus$	{
+	.@guild_name$ = escape_sql(getarg(0, ""));
+	if (.@guild_name$ == "")
+		return "roster";
+	.@notice = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_recent_name", .@guild_name$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_events_name", .@guild_name$);
+	.@join = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_recent_name", .@guild_name$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_events_name", .@guild_name$);
+	.@leader = callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_leader_live_name", .@guild_name$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_live_name", .@guild_name$);
+	if (.@notice > .@join && .@notice >= .@leader)
+		return "notice";
+	if (.@join > .@leader)
+		return "recruit";
+	return "roster";
+}
+
+function	script	F_PB_DB_MerchantSocialFocus$	{
+	.@map$ = escape_sql(getarg(0, ""));
+	if (.@map$ == "")
+		return "harbor";
+	.@browse = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", .@map$);
+	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
+	.@stock = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_stock_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_open_map", .@map$);
+	if (.@sale > .@browse && .@sale >= .@stock)
+		return "buyers";
+	if (.@browse >= .@stock)
+		return "browsers";
+	return "harbor";
+}
+
+function	script	F_PB_DB_MerchantStallFocus$	{
+	.@map$ = escape_sql(getarg(0, ""));
+	if (.@map$ == "")
+		return "stock";
+	.@browse = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", .@map$);
+	.@sale = callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$)
+		+ callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$);
+	if (.@sale > .@browse)
+		return "sales";
+	if (.@browse > 0)
+		return "browsers";
+	return "stock";
+}
+
 function	script	F_PB_BehaviorApplyGuildMood$	{
 	.@controller$ = getarg(0);
 	.@style$ = getarg(1, "watch");
