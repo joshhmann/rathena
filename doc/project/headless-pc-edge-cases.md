@@ -1724,3 +1724,37 @@ Current limits:
   but current smoke coverage is still strongest on reconcile and merchant
   interaction paths
 - there is not yet a replay tool, timeline compactor, or external trace viewer
+
+## Shared Perception Facade V1
+
+- Playerbot controllers and operator tools now have a first shared read-only
+  world-query facade.
+
+Current support:
+
+- self state
+- nearby players
+- nearby bots
+- nearby NPCs
+- nearby shops
+- local heat
+- recent social contacts from trace history
+- party context
+- guild context
+- route viability
+- interaction target state
+- anchor-set inspection
+- each query now returns:
+  - value
+  - observed time
+  - stale milliseconds
+  - confidence
+
+Current limits:
+
+- perception is still script-first and not yet backed by a central cache or
+  observer pipeline
+- anchor occupancy and reservation are still deferred until reservation
+  primitives land
+- controllers are not yet migrated systematically to the shared facade; this
+  slice establishes the interface and operator surface first

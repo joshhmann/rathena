@@ -1,0 +1,103 @@
+alberta,151,135,4	script	Playerbot Perception Lab	4_F_KAFRA5,{
+	mes "[Playerbot Perception Lab]";
+	mes "Inspect the shared read-only playerbot world-query facade.";
+	next;
+
+	switch(select("Quick merchant probe:Quick guild probe:Inspect bot key:Anchor set probe:Interaction target probe:Close")) {
+	case 1:
+		.@bot_key$ = "quick_merc_alb";
+		callsub S_QueryBot, .@bot_key$;
+		close;
+
+	case 2:
+		.@bot_key$ = "quick_guild_member";
+		callsub S_QueryBot, .@bot_key$;
+		close;
+
+	case 3:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		callsub S_QueryBot, .@bot_key$;
+		close;
+
+	case 4:
+		input .@anchor_key$;
+		if (.@anchor_key$ == "")
+			close;
+		input .@map_name$;
+		mes "[Playerbot Perception Lab]";
+		mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetAnchorState$", .@anchor_key$, .@map_name$));
+		close;
+
+	case 5:
+		switch(select("Merchant bot target:NPC target:Close")) {
+		case 1:
+			input .@bot_key$;
+			if (.@bot_key$ == "")
+				close;
+			mes "[Playerbot Perception Lab]";
+			mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetInteractionTargetState$", "merchant.bot", .@bot_key$));
+			close;
+
+		case 2:
+			input .@npc_name$;
+			if (.@npc_name$ == "")
+				close;
+			mes "[Playerbot Perception Lab]";
+			mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", .@npc_name$));
+			close;
+		}
+		close;
+	}
+
+	close;
+
+S_QueryBot:
+	.@bot_key$ = getarg(0, "");
+	if (.@bot_key$ == "")
+		return;
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$)) {
+		mes "[Playerbot Perception Lab]";
+		mes "Unknown bot key.";
+		return;
+	}
+	.@route_map$ = $@pbperc_map$;
+	.@route_x = $@pbperc_x + 2;
+	.@route_y = $@pbperc_y;
+	if ($@pbperc_market_map$ != "") {
+		.@route_map$ = $@pbperc_market_map$;
+		.@route_x = $@pbperc_market_x;
+		.@route_y = $@pbperc_market_y;
+	}
+	mes "[Playerbot Perception Lab]";
+	mes "Bot key: " + .@bot_key$;
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetSelfState$", .@bot_key$));
+	next;
+	mes "[Playerbot Perception Lab]";
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetNearbyPlayers$", .@bot_key$, 8));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetNearbyBots$", .@bot_key$, 8));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetNearbyNPCs$", .@bot_key$, 8));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetNearbyShops$", .@bot_key$, 8));
+	next;
+	mes "[Playerbot Perception Lab]";
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetLocalHeat$", .@bot_key$, 8));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetRecentSocialContacts$", .@bot_key$, 900));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetPartyContext$", .@bot_key$));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetGuildContext$", .@bot_key$));
+	next;
+	mes "[Playerbot Perception Lab]";
+	.@anchor_key$ = "";
+	if ($@pbperc_map$ == "alberta")
+		.@anchor_key$ = "social.alberta.browser.a";
+	else if ($@pbperc_map$ == "prontera")
+		.@anchor_key$ = "social.prontera.wanderer.a";
+	if (.@anchor_key$ != "")
+		mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetAnchorState$", .@anchor_key$, $@pbperc_map$));
+	mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetRouteViability$", .@route_map$, $@pbperc_x, $@pbperc_y, .@route_x, .@route_y));
+	if ($@pbperc_merchant_open$ != "")
+		mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetInteractionTargetState$", "merchant.bot", .@bot_key$));
+	else
+		mes callfunc("F_PB_PERC_Format$", callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", "Playerbot Merchant Lab"));
+	return;
+}

@@ -1550,6 +1550,368 @@ function	script	F_PB_DB_BuildRecentTraceSummary$	{
 	return .@summary$;
 }
 
+function	script	F_PB_PERC_SetMeta$	{
+	$@pbperc_value$ = getarg(0, "");
+	$@pbperc_observed_at = getarg(1, gettimetick(2));
+	$@pbperc_stale_ms = getarg(2, 0);
+	$@pbperc_confidence = getarg(3, 100);
+	return $@pbperc_value$;
+}
+
+function	script	F_PB_PERC_Format$	{
+	return getarg(0, "")
+		+ "\nObserved: " + $@pbperc_observed_at
+		+ " | stale " + $@pbperc_stale_ms + "ms"
+		+ " | confidence " + $@pbperc_confidence + ".";
+}
+
+function	script	F_PB_PERC_LoadBotContext	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	$@pbperc_found = 0;
+	$@pbperc_bot_id = 0;
+	$@pbperc_char_id = 0;
+	$@pbperc_account_id = 0;
+	$@pbperc_name$ = "";
+	$@pbperc_role$ = "";
+	$@pbperc_map$ = "";
+	$@pbperc_x = 0;
+	$@pbperc_y = 0;
+	$@pbperc_state$ = "";
+	$@pbperc_park$ = "";
+	$@pbperc_route$ = "";
+	$@pbperc_party_id = 0;
+	$@pbperc_guild_name$ = "";
+	$@pbperc_guild_position$ = "";
+	$@pbperc_guild_state$ = "";
+	$@pbperc_merchant_open$ = "";
+	$@pbperc_market_map$ = "";
+	$@pbperc_market_x = 0;
+	$@pbperc_market_y = 0;
+	.@rows = query_sql(
+		"SELECT p.`bot_id`, p.`name`, p.`role`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0), "
+		+ "IFNULL(r.`current_map`, ''), IFNULL(r.`current_x`, 0), IFNULL(r.`current_y`, 0), "
+		+ "IFNULL(r.`current_state`, ''), IFNULL(r.`park_state`, ''), IFNULL(r.`last_route_key`, ''), "
+		+ "IFNULL(c.`party_id`, 0), IFNULL(g.`guild_name`, ''), IFNULL(g.`guild_position`, ''), IFNULL(g.`guild_member_state`, ''), "
+		+ "IFNULL(m.`open_state`, ''), IFNULL(m.`market_map`, ''), IFNULL(m.`market_x`, 0), IFNULL(m.`market_y`, 0) "
+		+ "FROM `bot_profile` p "
+		+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `bot_runtime_state` r ON r.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `char` c ON c.`char_id` = l.`char_id` "
+		+ "LEFT JOIN `bot_guild_state` g ON g.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `bot_merchant_state` m ON m.`bot_id` = p.`bot_id` "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
+		.@bot_id, .@name$, .@role$, .@char_id, .@account_id, .@map$, .@x, .@y, .@state$, .@park$, .@route$, .@party_id,
+		.@guild_name$, .@guild_position$, .@guild_state$, .@merchant_open$, .@market_map$, .@market_x, .@market_y);
+	if (.@rows < 1)
+		return 0;
+	$@pbperc_found = 1;
+	$@pbperc_bot_id = .@bot_id[0];
+	$@pbperc_char_id = .@char_id[0];
+	$@pbperc_account_id = .@account_id[0];
+	$@pbperc_name$ = .@name$[0];
+	$@pbperc_role$ = .@role$[0];
+	$@pbperc_map$ = .@map$[0];
+	$@pbperc_x = .@x[0];
+	$@pbperc_y = .@y[0];
+	$@pbperc_state$ = .@state$[0];
+	$@pbperc_park$ = .@park$[0];
+	$@pbperc_route$ = .@route$[0];
+	$@pbperc_party_id = .@party_id[0];
+	$@pbperc_guild_name$ = .@guild_name$[0];
+	$@pbperc_guild_position$ = .@guild_position$[0];
+	$@pbperc_guild_state$ = .@guild_state$[0];
+	$@pbperc_merchant_open$ = .@merchant_open$[0];
+	$@pbperc_market_map$ = .@market_map$[0];
+	$@pbperc_market_x = .@market_x[0];
+	$@pbperc_market_y = .@market_y[0];
+	if ($@pbperc_char_id > 0 && headlesspc_status($@pbperc_char_id) == 2) {
+		.@live_map$ = headlesspc_map($@pbperc_char_id);
+		if (.@live_map$ != "") {
+			$@pbperc_map$ = .@live_map$;
+			$@pbperc_x = headlesspc_x($@pbperc_char_id);
+			$@pbperc_y = headlesspc_y($@pbperc_char_id);
+			if ($@pbperc_state$ == "")
+				$@pbperc_state$ = "active";
+		}
+	}
+	return 1;
+}
+
+function	script	F_PB_PERC_NearbyBotCount	{
+	.@map$ = escape_sql(getarg(0, ""));
+	.@x = getarg(1, 0);
+	.@y = getarg(2, 0);
+	.@radius = getarg(3, 6);
+	.@exclude_bot_id = getarg(4, 0);
+	if (.@map$ == "")
+		return 0;
+	.@x0 = max(.@x - .@radius, 0);
+	.@y0 = max(.@y - .@radius, 0);
+	.@x1 = .@x + .@radius;
+	.@y1 = .@y + .@radius;
+	query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_runtime_state` r "
+		+ "JOIN `bot_identity_link` l ON l.`bot_id` = r.`bot_id` "
+		+ "WHERE r.`current_map` = '" + .@map$ + "' "
+		+ "AND r.`current_x` BETWEEN '" + .@x0 + "' AND '" + .@x1 + "' "
+		+ "AND r.`current_y` BETWEEN '" + .@y0 + "' AND '" + .@y1 + "' "
+		+ "AND r.`current_state` <> 'offline' "
+		+ "AND l.`bot_id` <> '" + .@exclude_bot_id + "'",
+		.@count);
+	return .@count[0];
+}
+
+function	script	F_PB_PERC_NearbyShopCount	{
+	.@map$ = escape_sql(getarg(0, ""));
+	.@x = getarg(1, 0);
+	.@y = getarg(2, 0);
+	.@radius = getarg(3, 6);
+	if (.@map$ == "")
+		return 0;
+	.@x0 = max(.@x - .@radius, 0);
+	.@y0 = max(.@y - .@radius, 0);
+	.@x1 = .@x + .@radius;
+	.@y1 = .@y + .@radius;
+	query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_merchant_state` m "
+		+ "JOIN `bot_runtime_state` r ON r.`bot_id` = m.`bot_id` "
+		+ "WHERE m.`open_state` = 'open' "
+		+ "AND r.`current_map` = '" + .@map$ + "' "
+		+ "AND r.`current_x` BETWEEN '" + .@x0 + "' AND '" + .@x1 + "' "
+		+ "AND r.`current_y` BETWEEN '" + .@y0 + "' AND '" + .@y1 + "'",
+		.@count);
+	return .@count[0];
+}
+
+function	script	F_PB_PERC_GetSelfState$	{
+	.@bot_key$ = getarg(0, "");
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$))
+		return callfunc("F_PB_PERC_SetMeta$", "Self: no bot found.", gettimetick(2), 0, 0);
+	.@stale_ms = 3000;
+	.@confidence = 65;
+	if ($@pbperc_char_id > 0 && headlesspc_status($@pbperc_char_id) == 2) {
+		.@stale_ms = 0;
+		.@confidence = 95;
+	}
+	return callfunc(
+		"F_PB_PERC_SetMeta$",
+		"Self: " + $@pbperc_name$ + " bot_id=" + $@pbperc_bot_id
+			+ " char_id=" + $@pbperc_char_id
+			+ " role=" + ($@pbperc_role$ == "" ? "<none>" : $@pbperc_role$)
+			+ " state=" + ($@pbperc_state$ == "" ? "<none>" : $@pbperc_state$)
+			+ " park=" + ($@pbperc_park$ == "" ? "<none>" : $@pbperc_park$)
+			+ " @ " + ($@pbperc_map$ == "" ? "<unknown>" : $@pbperc_map$ + "(" + $@pbperc_x + "," + $@pbperc_y + ")"),
+		gettimetick(2),
+		.@stale_ms,
+		.@confidence
+	);
+}
+
+function	script	F_PB_PERC_GetNearbyPlayers$	{
+	.@bot_key$ = getarg(0, "");
+	.@radius = getarg(1, 7);
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$) || $@pbperc_map$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Nearby Players: unavailable.", gettimetick(2), 0, 0);
+	.@pc_total = getareaunits(BL_PC, $@pbperc_map$, max($@pbperc_x - .@radius, 0), max($@pbperc_y - .@radius, 0), $@pbperc_x + .@radius, $@pbperc_y + .@radius);
+	.@bots = callfunc("F_PB_PERC_NearbyBotCount", $@pbperc_map$, $@pbperc_x, $@pbperc_y, .@radius, $@pbperc_bot_id);
+	.@players = .@pc_total - .@bots;
+	if (.@players < 0)
+		.@players = 0;
+	return callfunc("F_PB_PERC_SetMeta$", "Nearby Players: " + .@players + " within r=" + .@radius + ".", gettimetick(2), 0, 90);
+}
+
+function	script	F_PB_PERC_GetNearbyBots$	{
+	.@bot_key$ = getarg(0, "");
+	.@radius = getarg(1, 7);
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$) || $@pbperc_map$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Nearby Bots: unavailable.", gettimetick(2), 0, 0);
+	.@bots = callfunc("F_PB_PERC_NearbyBotCount", $@pbperc_map$, $@pbperc_x, $@pbperc_y, .@radius, $@pbperc_bot_id);
+	return callfunc("F_PB_PERC_SetMeta$", "Nearby Bots: " + .@bots + " within r=" + .@radius + ".", gettimetick(2), 0, 95);
+}
+
+function	script	F_PB_PERC_GetNearbyNPCs$	{
+	.@bot_key$ = getarg(0, "");
+	.@radius = getarg(1, 7);
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$) || $@pbperc_map$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Nearby NPCs: unavailable.", gettimetick(2), 0, 0);
+	.@count = getareaunits(BL_NPC, $@pbperc_map$, max($@pbperc_x - .@radius, 0), max($@pbperc_y - .@radius, 0), $@pbperc_x + .@radius, $@pbperc_y + .@radius);
+	return callfunc("F_PB_PERC_SetMeta$", "Nearby NPCs: " + .@count + " within r=" + .@radius + ".", gettimetick(2), 0, 90);
+}
+
+function	script	F_PB_PERC_GetNearbyShops$	{
+	.@bot_key$ = getarg(0, "");
+	.@radius = getarg(1, 7);
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$) || $@pbperc_map$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Nearby Shops: unavailable.", gettimetick(2), 0, 0);
+	.@count = callfunc("F_PB_PERC_NearbyShopCount", $@pbperc_map$, $@pbperc_x, $@pbperc_y, .@radius);
+	return callfunc("F_PB_PERC_SetMeta$", "Nearby Shops: " + .@count + " within r=" + .@radius + ".", gettimetick(2), 0, 95);
+}
+
+function	script	F_PB_PERC_GetAnchorState$	{
+	.@set_key$ = escape_sql(getarg(0, ""));
+	.@map$ = getarg(1, "");
+	if (.@set_key$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Anchor State: missing set key.", gettimetick(2), 0, 0);
+	.@rows = query_sql(
+		"SELECT COUNT(*), IFNULL(MIN(`anchor_x`), 0), IFNULL(MIN(`anchor_y`), 0) "
+		+ "FROM `bot_controller_anchor_point` "
+		+ "WHERE `set_key` = '" + .@set_key$ + "'",
+		.@count, .@sample_x, .@sample_y);
+	if (.@rows < 1 || .@count[0] < 1)
+		return callfunc("F_PB_PERC_SetMeta$", "Anchor State: set " + .@set_key$ + " missing.", gettimetick(2), 0, 0);
+	.@passable$ = "<unknown>";
+	if (.@map$ != "")
+		.@passable$ = checkcell(.@map$, .@sample_x[0], .@sample_y[0], cell_chkpass) ? "yes" : "no";
+	return callfunc(
+		"F_PB_PERC_SetMeta$",
+		"Anchor State: set=" + .@set_key$
+			+ " points=" + .@count[0]
+			+ " sample=(" + .@sample_x[0] + "," + .@sample_y[0] + ")"
+			+ " passable=" + .@passable$
+			+ " occupancy=<deferred> reservation=<deferred>.",
+		gettimetick(2),
+		0,
+		70
+	);
+}
+
+function	script	F_PB_PERC_GetLocalHeat$	{
+	.@bot_key$ = getarg(0, "");
+	.@radius = getarg(1, 7);
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$) || $@pbperc_map$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Local Heat: unavailable.", gettimetick(2), 0, 0);
+	.@x0 = max($@pbperc_x - .@radius, 0);
+	.@y0 = max($@pbperc_y - .@radius, 0);
+	.@x1 = $@pbperc_x + .@radius;
+	.@y1 = $@pbperc_y + .@radius;
+	.@pc_total = getareaunits(BL_PC, $@pbperc_map$, .@x0, .@y0, .@x1, .@y1);
+	.@bots = callfunc("F_PB_PERC_NearbyBotCount", $@pbperc_map$, $@pbperc_x, $@pbperc_y, .@radius, $@pbperc_bot_id);
+	.@players = .@pc_total - .@bots;
+	if (.@players < 0)
+		.@players = 0;
+	.@npcs = getareaunits(BL_NPC, $@pbperc_map$, .@x0, .@y0, .@x1, .@y1);
+	.@shops = callfunc("F_PB_PERC_NearbyShopCount", $@pbperc_map$, $@pbperc_x, $@pbperc_y, .@radius);
+	.@score = .@players + (.@bots * 2) + (.@shops * 2) + (.@npcs / 5);
+	if (.@score >= 12)
+		.@bucket$ = "hot";
+	else if (.@score >= 5)
+		.@bucket$ = "warm";
+	else
+		.@bucket$ = "cool";
+	return callfunc("F_PB_PERC_SetMeta$", "Local Heat: " + .@bucket$ + " score=" + .@score + " (players=" + .@players + ", bots=" + .@bots + ", shops=" + .@shops + ", npcs=" + .@npcs + ").", gettimetick(2), 0, 90);
+}
+
+function	script	F_PB_PERC_GetRecentSocialContacts$	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	.@window = getarg(1, 900);
+	if (.@window < 1)
+		.@window = 900;
+	.@rows = query_sql(
+		"SELECT COUNT(*), COUNT(DISTINCT `target_id`) "
+		+ "FROM `bot_trace_event` e "
+		+ "JOIN `bot_profile` p ON p.`bot_id` = e.`bot_id` "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' "
+		+ "AND e.`action` = 'interaction.completed' "
+		+ "AND UNIX_TIMESTAMP() - e.`ts` <= '" + .@window + "'",
+		.@count, .@distinct_targets);
+	if (.@rows < 1)
+		return callfunc("F_PB_PERC_SetMeta$", "Recent Contacts: unavailable.", gettimetick(2), 0, 0);
+	return callfunc("F_PB_PERC_SetMeta$", "Recent Contacts: " + .@count[0] + " events, " + .@distinct_targets[0] + " targets in " + .@window + "s.", gettimetick(2), 0, 95);
+}
+
+function	script	F_PB_PERC_GetGuildContext$	{
+	.@bot_key$ = getarg(0, "");
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$))
+		return callfunc("F_PB_PERC_SetMeta$", "Guild Context: unavailable.", gettimetick(2), 0, 0);
+	if ($@pbperc_guild_name$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Guild Context: no guild profile.", gettimetick(2), 0, 95);
+	query_sql(
+		"SELECT COUNT(*), COALESCE(SUM(CASE WHEN `online` > 0 THEN 1 ELSE 0 END), 0) "
+		+ "FROM `char` c JOIN `guild` g ON g.`guild_id` = c.`guild_id` "
+		+ "WHERE g.`name` = '" + escape_sql($@pbperc_guild_name$) + "'",
+		.@members, .@online);
+	return callfunc(
+		"F_PB_PERC_SetMeta$",
+		"Guild Context: " + $@pbperc_guild_name$
+			+ " position=" + ($@pbperc_guild_position$ == "" ? "<none>" : $@pbperc_guild_position$)
+			+ " state=" + ($@pbperc_guild_state$ == "" ? "<none>" : $@pbperc_guild_state$)
+			+ " members/online=" + .@members[0] + "/" + .@online[0],
+		gettimetick(2),
+		0,
+		90
+	);
+}
+
+function	script	F_PB_PERC_GetPartyContext$	{
+	.@bot_key$ = getarg(0, "");
+	if (!callfunc("F_PB_PERC_LoadBotContext", .@bot_key$))
+		return callfunc("F_PB_PERC_SetMeta$", "Party Context: unavailable.", gettimetick(2), 0, 0);
+	if ($@pbperc_party_id < 1)
+		return callfunc("F_PB_PERC_SetMeta$", "Party Context: no party.", gettimetick(2), 0, 95);
+	query_sql(
+		"SELECT IFNULL(p.`name`, ''), IFNULL(p.`leader_id`, 0), COUNT(c.`char_id`) "
+		+ "FROM `party` p "
+		+ "LEFT JOIN `char` c ON c.`party_id` = p.`party_id` "
+		+ "WHERE p.`party_id` = '" + $@pbperc_party_id + "' "
+		+ "GROUP BY p.`party_id`, p.`name`, p.`leader_id`",
+		.@party_name$, .@leader_id, .@members);
+	return callfunc(
+		"F_PB_PERC_SetMeta$",
+		"Party Context: id=" + $@pbperc_party_id
+			+ " name=" + (.@party_name$[0] == "" ? "<none>" : .@party_name$[0])
+			+ " leader=" + .@leader_id[0]
+			+ " members=" + .@members[0],
+		gettimetick(2),
+		0,
+		90
+	);
+}
+
+function	script	F_PB_PERC_GetRouteViability$	{
+	.@map$ = getarg(0, "");
+	.@x0 = getarg(1, 0);
+	.@y0 = getarg(2, 0);
+	.@x1 = getarg(3, 0);
+	.@y1 = getarg(4, 0);
+	if (.@map$ == "")
+		return callfunc("F_PB_PERC_SetMeta$", "Route: unavailable.", gettimetick(2), 0, 0);
+	.@src_ok = checkcell(.@map$, .@x0, .@y0, cell_chkpass);
+	.@dst_ok = checkcell(.@map$, .@x1, .@y1, cell_chkpass);
+	.@dx = .@x1 - .@x0;
+	if (.@dx < 0)
+		.@dx = -.@dx;
+	.@dy = .@y1 - .@y0;
+	if (.@dy < 0)
+		.@dy = -.@dy;
+	.@cost = .@dx + .@dy;
+	.@state$ = "blocked";
+	.@confidence = 80;
+	if (.@src_ok && .@dst_ok) {
+		.@state$ = "viable";
+		.@confidence = 95;
+	}
+	return callfunc("F_PB_PERC_SetMeta$", "Route: " + .@state$ + " " + .@map$ + " (" + .@x0 + "," + .@y0 + ") -> (" + .@x1 + "," + .@y1 + "), cost=" + .@cost + ".", gettimetick(2), 0, .@confidence);
+}
+
+function	script	F_PB_PERC_GetInteractionTargetState$	{
+	.@type$ = getarg(0, "");
+	.@target$ = getarg(1, "");
+	if (.@type$ == "merchant.bot") {
+		if (!callfunc("F_PB_PERC_LoadBotContext", .@target$))
+			return callfunc("F_PB_PERC_SetMeta$", "Target: merchant bot missing.", gettimetick(2), 0, 0);
+		return callfunc("F_PB_PERC_SetMeta$", "Target: merchant " + $@pbperc_name$ + " open=" + ($@pbperc_merchant_open$ == "" ? "<none>" : $@pbperc_merchant_open$) + " @ " + ($@pbperc_map$ == "" ? "<unknown>" : $@pbperc_map$ + "(" + $@pbperc_x + "," + $@pbperc_y + ")"), gettimetick(2), 0, 90);
+	}
+	if (.@type$ == "npc") {
+		.@gid = getnpcid(0, .@target$);
+		if (.@gid < 1)
+			return callfunc("F_PB_PERC_SetMeta$", "Target: npc missing.", gettimetick(2), 0, 0);
+		return callfunc("F_PB_PERC_SetMeta$", "Target: npc " + .@target$ + " exists gid=" + .@gid + ".", gettimetick(2), 0, 90);
+	}
+	return callfunc("F_PB_PERC_SetMeta$", "Target: unsupported type.", gettimetick(2), 0, 0);
+}
+
 function	script	F_PB_DB_LoadPool	{
 	.@pool$ = getarg(0);
 	.@esc_pool$ = escape_sql(.@pool$);

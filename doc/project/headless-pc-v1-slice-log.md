@@ -4643,3 +4643,41 @@ Notes:
 - the trace viewer is an operator/debug surface, not a replay system yet
 - movement, scheduler, and controller trace points are scaffolded but still need
   broader runtime exercise and later expansion
+
+## Slice: Shared Perception Facade V1
+
+Date: 2026-03-27
+
+Summary:
+- added the first shared read-only playerbot perception/query facade
+- exposed the minimum v1 query set through common helper functions instead of
+  controller-local ad hoc reads
+- added an Alberta lab NPC so operators can inspect live perception results
+  through OpenKore or a normal client
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_perception_lab.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- `talknpc 151 135` from OpenKore to open `Playerbot Perception Lab`
+- `talk resp 0` from OpenKore to run the quick merchant probe
+- verified live perception output for:
+  - self state
+  - nearby players / bots / NPCs / shops
+  - local heat
+  - recent social contacts
+  - party / guild context
+  - anchor state
+  - route viability
+  - interaction target state
+
+Notes:
+- perception is read-only in this slice
+- freshness and confidence are now part of the shared query surface
+- anchor occupancy/reservation are still deferred until the reservation model
+  lands
