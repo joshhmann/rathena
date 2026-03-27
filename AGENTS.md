@@ -43,7 +43,8 @@ When starting a new conversation on this repo:
 2. check `git status` and `git log --oneline -n 5`
 3. assume `master` is the latest integrated baseline unless the user explicitly assigns a feature branch
 4. inspect the latest slice in `doc/project/headless-pc-v1-slice-log.md`
-5. continue from the most recent accepted foundation milestone, not from stale plans or generic contributor assumptions
+5. use `bash /root/setup_dev.sh restart` as the canonical local restart path when a restart is needed
+6. continue from the most recent accepted foundation milestone, not from stale plans or generic contributor assumptions
 
 Do not restart architecture from scratch when the repo already contains the answer.
 

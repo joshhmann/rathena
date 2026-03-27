@@ -1195,6 +1195,20 @@ Current limits:
 - this is a dev-environment/runtime ownership issue, not evidence that the
   guild invite hook itself is absent
 
+Update:
+
+- the root cause was pinned down to orphan local repo server processes and a
+  stray tmux debug session (`pb-map-debug`)
+- `/root/setup_dev.sh restart` now cleans those orphan server processes and
+  tmux lanes before bringing the normal dev stack back up
+- after that cleanup, char-server returns to a single owner lane:
+  - `Map-Server 0 connected`
+
+Current remaining limit:
+
+- the guild invite proof still needs one cleaner repeatable OpenKore/manual lab
+  run on top of the now-clean restart baseline
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

@@ -3608,3 +3608,57 @@ This slice does not yet add:
 - a clean repeatable end-to-end guild invite/join selftest result
 - real purchase-driven stock depletion or zeny-flow accounting
 - guild-aware demand from live guild roster activity
+
+## Slice 62: Dev Restart Ownership Cleanup
+
+### Goal
+
+Make the local dev restart path collapse orphan rAthena server processes and
+stray tmux debug sessions so playerbot lifecycle tests stop failing because
+char-server sees duplicate map-server owners.
+
+### Files Touched
+
+- `/root/setup_dev.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added `cleanup_server_processes()` to `/root/setup_dev.sh`.
+- `start`/`stop`/`restart` now clean up:
+  - orphan `map-server`, `char-server`, and `login-server` processes running
+    from `/root/dev/rathena`
+  - stray tmux sessions whose pane start command is launching those same repo
+    binaries, such as one-off debug sessions
+- This removes the stale multi-owner failure mode where char-server would show:
+  - `Map-Server 0 connected`
+  - `Map-Server 1 connected`
+  for the same local repo stack
+
+### Validation
+
+- reproduced the bad state with an extra tmux debug session:
+  - `pb-map-debug`
+- confirmed char-server showed duplicate owners before cleanup:
+  - `Map-Server 0 connected`
+  - `Map-Server 1 connected`
+  - `claims to have ... online`
+- ran `bash /root/setup_dev.sh restart`
+- verified restart output now explicitly kills:
+  - orphan `map-server` processes
+  - orphan tmux session `pb-map-debug`
+- verified post-fix char-server startup shows only:
+  - `Map-Server 0 connected`
+- verified the normal dev tmux set remains:
+  - `rathena-dev-login-server`
+  - `rathena-dev-char-server`
+  - `rathena-dev-map-server`
+
+### Deferrals
+
+This slice does not yet add:
+
+- an always-on guild selftest proof path through OpenKore
+- automatic detection/reporting of bad third-party debug sessions before they
+  are cleaned
