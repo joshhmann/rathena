@@ -1414,3 +1414,24 @@ Current limits:
   threshold-aware per slot
 - this still improves real runtime behavior because the controller itself no
   longer forces every slot online when demand is weak
+
+## Scheduler Budgeting For Demanded Slots
+
+- The scheduler no longer has to treat every controller as if its full slot list
+  is currently required.
+- Controller defs are now primed before scheduling so slot-demand thresholds are
+  visible earlier.
+- Scheduler selection/status can now reason in:
+  - desired actors now
+  - maximum configured actors
+
+Current support:
+
+- status uses `desired/max` actor reporting
+- a controller with zero currently demanded slots can now be skipped explicitly
+
+Current limits:
+
+- controller policy still carries a coarse max actor weight
+- deeper per-slot persistence/history is still not modeled separately from the
+  controller runtime record

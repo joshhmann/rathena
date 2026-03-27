@@ -4189,3 +4189,30 @@ Validation:
 Notes:
 - this is a controller-logic foundation slice
 - scheduler actor budgeting is still controller-level, but actor activation inside the controller is now demand-aware per slot
+
+## Slice: Scheduler Budgeting For Demanded Slots
+
+Date: 2026-03-26
+
+Summary:
+- carried the new slot-level demand thresholds upward into the scheduler layer
+- scheduler status now distinguishes:
+  - current demanded actors
+  - maximum configured actor weight
+- scheduler priming now loads controller defs before scheduling so slot-demand math is available earlier
+- selection can now reject controllers with `no demanded slots` instead of treating every controller as if all of its slots are always needed
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified clean map-server startup after the scheduler change
+- verified the scheduler helper now contains:
+  - controller priming on registry load
+  - desired/max actor status formatting
+  - `blocked: no demanded slots`
+
+Notes:
+- this is still a script-side scheduler refinement
+- per-slot demand now affects both controller behavior and scheduler capacity reasoning, even though controller policy still keeps a maximum actor weight for coarse budgeting
