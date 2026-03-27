@@ -4761,6 +4761,11 @@ Validation:
   - live lab marker `social / alberta.lab_probe / state.lab`
 - verified controller-derived shared-memory rows are being published by the
   guild and merchant focus helpers
+- verified the live recovery audit on `quick_merc_alb` reports:
+  - world `<offline>`
+  - runtime `offline/parked@alberta(52,242)`
+  - reservations `0`
+  - `Issue: none`
 
 Notes:
 - shared memory is medium-lived and intentionally expires; the lab marker is the
@@ -4768,3 +4773,5 @@ Notes:
 - this slice makes shared world/social memory and state boundaries real and
   inspectable, but does not yet migrate every controller-local transient value
   into the ledger
+- the state lab now includes a real per-bot recovery audit, not only static
+  authority text

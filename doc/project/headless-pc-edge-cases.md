@@ -1819,6 +1819,7 @@ Current support:
   - summary building
   - recovery-authority summaries
   - bot four-layer state summaries
+  - per-bot recovery audits
 - active guild and merchant focus helpers now publish medium-lived shared memory
   so operators can inspect current derived posture state
 - a visible `Playerbot State Lab` NPC now shows:
@@ -1836,3 +1837,6 @@ Current limits:
 - controller-local transient scratch state remains script-local in this slice
 - the current stable validation path is the lab probe marker plus controller
   focus publication, not a full migration of every runtime variable
+- recovery summaries are now partly live: the state lab compares world state,
+  runtime ledger state, reservation counts, and merchant-open policy for a bot
+  key before suggesting the recovery rule

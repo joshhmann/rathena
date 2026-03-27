@@ -1670,6 +1670,62 @@ function	script	F_PB_RECOVERY_BuildAuthoritySummary$	{
 	return "Authority summary unavailable.";
 }
 
+function	script	F_PB_RECOVERY_BuildBotAudit$	{
+	.@bot_key$ = getarg(0, "");
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Recovery Audit: unknown bot key.";
+	.@runtime_rows = query_sql(
+		"SELECT `current_state`, `park_state`, `current_map`, `current_x`, `current_y` "
+		+ "FROM `bot_runtime_state` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' LIMIT 1",
+		.@runtime_state$, .@park_state$, .@runtime_map$, .@runtime_x, .@runtime_y);
+	.@live_status = ($@pbbot_char_id > 0 ? headlesspc_status($@pbbot_char_id) : 0);
+	.@live_map$ = ($@pbbot_char_id > 0 && .@live_status == 2 ? headlesspc_map($@pbbot_char_id) : "");
+	.@live_x = ($@pbbot_char_id > 0 && .@live_status == 2 ? headlesspc_x($@pbbot_char_id) : 0);
+	.@live_y = ($@pbbot_char_id > 0 && .@live_status == 2 ? headlesspc_y($@pbbot_char_id) : 0);
+	.@owner$ = ($@pbbot_char_id > 0 && .@live_status == 2 ? headlesspc_owner($@pbbot_char_id) : "");
+	query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_reservation` "
+		+ "WHERE `holder_bot_id` = '" + $@pbbot_bot_id + "'",
+		.@held_count);
+	.@summary$ = "Recovery Audit: " + .@bot_key$ + ".";
+	.@summary$ += "\nAuthority inputs: world="
+		+ (.@live_status == 2 ? .@live_map$ + "(" + .@live_x + "," + .@live_y + ")" : "<offline>")
+		+ ", runtime="
+		+ (.@runtime_rows > 0 ? .@runtime_state$[0] + "/" + .@park_state$[0] + "@" + .@runtime_map$[0] + "(" + .@runtime_x[0] + "," + .@runtime_y[0] + ")" : "<none>")
+		+ ", reservations=" + .@held_count[0]
+		+ ", owner=" + (.@owner$ == "" ? "<none>" : .@owner$) + ".";
+	if (.@runtime_rows > 0 && .@runtime_state$[0] == "active" && .@live_status != 2) {
+		.@summary$ += "\nIssue: controller/runtime thinks actor should be active but no live actor exists.";
+		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "controller_missing_actor");
+		return .@summary$;
+	}
+	if (.@runtime_rows < 1 && .@live_status == 2) {
+		.@summary$ += "\nIssue: live actor exists without a runtime ledger row.";
+		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "actor_missing_controller");
+		return .@summary$;
+	}
+	if (.@held_count[0] > 0 && .@live_status != 2) {
+		.@summary$ += "\nIssue: stale reservations remain without a live holder.";
+		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "stale_reservation");
+		return .@summary$;
+	}
+	if ($@pbbot_merchant_enabled && $@pbbot_open_state$ == "open" && .@live_status != 2) {
+		.@summary$ += "\nIssue: merchant policy is open but the live merchant actor is missing.";
+		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "merchant_divergence");
+		return .@summary$;
+	}
+	if (.@runtime_rows > 0 && .@live_status == 2 && .@runtime_map$[0] != "" && .@runtime_map$[0] != .@live_map$) {
+		.@summary$ += "\nIssue: runtime location diverges from the live actor map.";
+		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "stale_runtime_location");
+		return .@summary$;
+	}
+	.@summary$ += "\nIssue: none.";
+	.@summary$ += "\nAction: authorities agree closely enough for this slice.";
+	return .@summary$;
+}
+
 function	script	F_PB_STATE_BuildBotStateSummary$	{
 	.@bot_key$ = getarg(0, "");
 	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
@@ -1688,6 +1744,7 @@ function	script	F_PB_STATE_BuildBotStateSummary$	{
 		.@shared_key$ = $@pbbot_map$ + ".";
 	.@summary$ += "\n" + callfunc("F_PB_MEM_BuildSummary$", "", .@shared_key$, 4);
 	.@summary$ += "\n" + callfunc("F_PB_RES_BuildHolderSummary$", .@bot_key$);
+	.@summary$ += "\n" + callfunc("F_PB_RECOVERY_BuildBotAudit$", .@bot_key$);
 	return .@summary$;
 }
 
