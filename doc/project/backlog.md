@@ -31,6 +31,8 @@ Execution preference:
   - `doc/project/playerbot-execution-plan.md`
 - keep future behavior ideas aligned with the implemented foundation:
   - `doc/project/playerbot-future-design-notes.md`
+- drive the remaining foundation phase from:
+  - `doc/project/playerbot-foundation-priorities.md`
 - keep the branch-scoped parallel work briefs current:
   - `doc/project/parallel-branch-workmap.md`
 - keep parallel work inside approved write-scope lanes instead of splitting
@@ -104,6 +106,18 @@ adapted without committing to heavy engine work.
 - ML-driven behavior systems
 - LLM-generated dialogue systems
 - external AI bridge or MCP control
+
+## Remaining Playerbot Foundation
+
+The current preferred order is:
+
+1. observability and replayability
+2. shared perception / world-query facade
+3. reservation and contention primitives
+4. explicit memory/state boundaries
+5. failure-recovery semantics
+6. transactional inventory / equipment / storage foundation
+7. broader player-system participation hooks
 
 These are not rejected. They are deferred until the script/content layer is
 clearly worth extending.

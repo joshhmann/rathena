@@ -10,6 +10,7 @@ Use the repo-local project docs as the authority for scope, architecture, and va
 - `doc/project/pseudo-player-architecture.md`
 - `doc/project/bot-state-schema.md`
 - `doc/project/openkore-test-harness.md`
+- `doc/project/playerbot-foundation-priorities.md`
 - `doc/project/parallel-branch-workmap.md`
 - `doc/project/parallel-branches/*.md`
 
@@ -26,6 +27,14 @@ Current workflow priorities:
 - build real foundations first
 - keep runtime semantics honest
 - prove behavior at the right boundary
+- prioritize remaining playerbot foundation work in this order:
+  - observability and replayability
+  - shared perception facade
+  - reservation/contention primitives
+  - explicit state-boundary contract
+  - failure-recovery semantics
+  - transactional inventory/equipment/storage
+  - broader player-system participation hooks
 - prefer larger coherent slices when the boundary is clear
 - document every non-trivial slice
 - work autonomously through a milestone unless blocked by missing information or a real architectural fork
@@ -35,6 +44,8 @@ Current integrated baseline at time of this guide:
 - persistent `headless_pc` lifecycle, restore, reconcile, and visibility are already in
 - scheduler, parked pools, provisioning, role/profile pool assignment, party assist, and merchant state foundations are already in
 - SQL-backed controller registry and merchant control-plane hardening are already in
+- guild and merchant runtime-demand foundations are already in
+- cross-controller focus, posture, and intensity-lane coordination are already in
 
 ## Fresh Convo Startup
 When starting a new conversation on this repo:
