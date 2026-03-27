@@ -3662,3 +3662,61 @@ This slice does not yet add:
 - an always-on guild selftest proof path through OpenKore
 - automatic detection/reporting of bad third-party debug sessions before they
   are cleaned
+
+## Slice 63: Repo-Tracked Restart Cleanup And Guild Smoke Proof
+
+### Goal
+
+Move the local restart-ownership cleanup into a tracked repo tool and use that
+clean baseline to finish a repeatable end-to-end guild invite proof.
+
+### Files Touched
+
+- `AGENTS.md`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `tools/dev/playerbot-dev.sh`
+- `tools/ci/playerbot-guild-smoke.sh`
+- `doc/project/openkore-test-harness.md`
+- `doc/project/openkore-smoke-scenarios.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added a tracked repo-local dev tool:
+  - `tools/dev/playerbot-dev.sh`
+- It now owns the canonical local playerbot restart path for this repo:
+  - stop/cleanup/start/restart/status
+- The cleanup logic now kills:
+  - orphan repo-owned `login-server`, `char-server`, and `map-server` processes
+  - stray tmux lanes launching those same repo binaries
+- Updated `PlayerbotGuildSelftest` so it can be armed for the next test-account
+  login through:
+  - `$PBGST_AUTORUN_AID`
+- Added a tracked guild smoke helper:
+  - `tools/ci/playerbot-guild-smoke.sh`
+  - `arm` writes the mapreg trigger and restarts from the repo-local tool
+  - `check` reads the recent guild selftest result from the map-server tmux pane
+- Fixed the guild selftest script so it re-attaches the inviter RID before the
+  post-spawn guild invite step.
+
+### Validation
+
+- ran `bash tools/dev/playerbot-dev.sh restart`
+- verified char-server startup returned to a single clean owner lane:
+  - `Map-Server 0 connected`
+- verified only the normal repo tmux server sessions remained
+- ran `bash tools/ci/playerbot-guild-smoke.sh arm`
+- logged in with the `codex` OpenKore profile
+- verified the map-server guild selftest result:
+  - `playerbot_guild_selftest: spawn=1 invite=1 inviter_gid=1 bot_gid=1 status=2 result=1`
+- verified the live OpenKore client saw the normal guild acceptance feedback:
+  - `Guild join request: Target has accepted.`
+
+### Deferrals
+
+This slice does not yet add:
+
+- guild chat/storage/event behavior
+- guild-aware scheduler demand from live guild roster activity
+- a fully automated no-manual-login guild smoke launcher

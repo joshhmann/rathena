@@ -126,4 +126,5 @@ perl /root/testing/openkore/openkore.pl \
 - generate or import additional `.fld2` files for the maps we care about testing
 - use [openkore-smoke-scenarios.md](/root/dev/rathena/doc/project/openkore-smoke-scenarios.md) as the canonical repeatable scenario list
 - use `tools/ci/openkore-smoke.sh` as the local scenario launcher/checklist helper
+- use `tools/ci/playerbot-guild-smoke.sh` to arm/check the hidden guild selftest from a clean repo-managed restart path
 - later, add scripted interaction checks for key Prontera NPCs

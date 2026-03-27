@@ -43,7 +43,7 @@ When starting a new conversation on this repo:
 2. check `git status` and `git log --oneline -n 5`
 3. assume `master` is the latest integrated baseline unless the user explicitly assigns a feature branch
 4. inspect the latest slice in `doc/project/headless-pc-v1-slice-log.md`
-5. use `bash /root/setup_dev.sh restart` as the canonical local restart path when a restart is needed
+5. use `bash tools/dev/playerbot-dev.sh restart` as the canonical repo-local restart path when a restart is needed
 6. continue from the most recent accepted foundation milestone, not from stale plans or generic contributor assumptions
 
 Do not restart architecture from scratch when the repo already contains the answer.
@@ -148,7 +148,7 @@ For playerbot/living-world work:
 Run from repo root unless noted otherwise.
 
 - `bash /root/setup_dev.sh build`
-- `bash /root/setup_dev.sh restart`
+- `bash tools/dev/playerbot-dev.sh restart`
 - `bash tools/ci/sql.sh`
 - `/root/.codex/skills/rathena-playerbot-dev/scripts/openkore-login.sh`
 

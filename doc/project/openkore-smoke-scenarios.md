@@ -9,6 +9,7 @@ Use it with:
 
 - [OpenKore Test Harness](/root/dev/rathena/doc/project/openkore-test-harness.md)
 - `tools/ci/openkore-smoke.sh`
+- `tools/ci/playerbot-guild-smoke.sh`
 
 ## Current Baseline
 
@@ -131,3 +132,34 @@ Expected signals:
 - If a scenario needs a second observer, note that in the validation log.
 - If a controller menu changes, update this document and the launcher script in
   the same slice.
+
+## Scenario 5: Guild Invite Proof
+
+Purpose:
+
+- prove the active headless/playerbot guild invite path end-to-end from a clean
+  repo-managed restart baseline
+
+Command:
+
+```bash
+tools/ci/playerbot-guild-smoke.sh arm
+```
+
+Manual path:
+
+1. Run the arm command above.
+2. Log in with the `codex` OpenKore profile.
+3. Check the result:
+
+```bash
+tools/ci/playerbot-guild-smoke.sh check
+```
+
+Expected signals:
+
+- the hidden guild selftest provisions a fresh guild-capable bot
+- the bot spawns as a headless player
+- the guild invite is accepted through the runtime hook
+- the map-server log shows:
+  - `playerbot_guild_selftest: ... result=1`

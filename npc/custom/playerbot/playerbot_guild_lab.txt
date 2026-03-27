@@ -123,12 +123,16 @@ OnInit:
 	end;
 
 OnPCLoginEvent:
-	if (!.enabled || !.autorun || .ran)
+	if (!.enabled || .ran)
 		end;
 	if (getcharid(0) != .test_char_id)
 		end;
+	if (!.autorun && $PBGST_AUTORUN_AID != getcharid(3))
+		end;
 	.ran = 1;
 	.aid = getcharid(3);
+	if ($PBGST_AUTORUN_AID == .aid)
+		setd("$PBGST_AUTORUN_AID", 0);
 	callsub S_Run;
 	end;
 
@@ -232,6 +236,11 @@ S_Run:
 		return;
 	}
 
+	if (!attachrid(.aid)) {
+		.log$ = "attach-failed-post-spawn";
+		debugmes "playerbot_guild_selftest: " + .log$ + " result=0.";
+		return;
+	}
 	.inviter_gid = getcharid(2);
 	.bot_gid = playerbot_guildid(.char_id);
 	if (.inviter_gid > 0 && .bot_gid != .inviter_gid) {

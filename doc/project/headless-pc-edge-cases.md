@@ -1206,8 +1206,17 @@ Update:
 
 Current remaining limit:
 
-- the guild invite proof still needs one cleaner repeatable OpenKore/manual lab
-  run on top of the now-clean restart baseline
+- the guild invite proof now has a repeatable armed-on-login smoke path through:
+  - `tools/ci/playerbot-guild-smoke.sh`
+- the guild runtime accept/join lane is now proven end-to-end on the clean
+  restart baseline
+
+Current remaining limits:
+
+- the guild smoke path still expects a real `codex` login after arming; it is
+  not yet a one-command launcher
+- guild behavior still stops at invite/join participation, not guild chat,
+  storage, territory, or event semantics
 
 ### 36. Fresh-restart ambient stability
 
