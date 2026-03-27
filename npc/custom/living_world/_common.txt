@@ -1271,14 +1271,14 @@ function	script	F_PB_DB_LoadControllerDef	{
 	.@controller$ = getarg(0);
 	.@key$ = escape_sql(getarg(1));
 	.@rows = query_sql(
-		"SELECT `slot_index`, `slot_label`, `pool_key`, `profile_key`, `role_key`, `map_name`, `spawn_x`, `spawn_y`, `loop_route`, `mode`, `pulse_profile`, `anchor_set_key`, `route_set_key`, `talk_set_key`, `emote_set_key` "
+		"SELECT `slot_index`, `slot_label`, `pool_key`, `profile_key`, `role_key`, `map_name`, `spawn_x`, `spawn_y`, `loop_route`, `mode`, `pulse_profile`, `anchor_set_key`, `route_set_key`, `talk_set_key`, `emote_set_key`, `min_demand_users` "
 		+ "FROM `bot_controller_slot` "
 		+ "WHERE `controller_key` = '" + .@key$ + "' AND `enabled` = 1 "
 		+ "ORDER BY `slot_index`",
-		.@slot, .@label$, .@pool$, .@profile$, .@role$, .@map$, .@x, .@y, .@loop, .@mode$, .@pulse$, .@anchor$, .@route_set$, .@talk$, .@emote$);
+		.@slot, .@label$, .@pool$, .@profile$, .@role$, .@map$, .@x, .@y, .@loop, .@mode$, .@pulse$, .@anchor$, .@route_set$, .@talk$, .@emote$, .@min_demand);
 	for (.@i = 0; .@i < .@rows; ++.@i) {
 		callfunc "F_LW_HPC_DefSetPoolActor", .@controller$, .@slot[.@i],
-			.@label$[.@i], .@pool$[.@i], .@map$[.@i], .@x[.@i], .@y[.@i], .@loop[.@i], .@mode$[.@i], .@profile$[.@i], .@role$[.@i];
+			.@label$[.@i], .@pool$[.@i], .@map$[.@i], .@x[.@i], .@y[.@i], .@loop[.@i], .@mode$[.@i], .@profile$[.@i], .@role$[.@i], .@min_demand[.@i];
 		if (.@pulse$[.@i] != "")
 			callfunc "F_PB_CFG_ApplyPulseProfile", .@controller$, .@slot[.@i], .@pulse$[.@i];
 		if (.@anchor$[.@i] != "")
@@ -1918,6 +1918,7 @@ function	script	F_LW_HPC_DefSetActor	{
 	setd("$LWHD" + .@seed + "_PK$[" + .@i + "]", "");
 	setd("$LWHD" + .@seed + "_PF$[" + .@i + "]", "");
 	setd("$LWHD" + .@seed + "_RL$[" + .@i + "]", "");
+	setd("$LWHD" + .@seed + "_MD[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
 	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
@@ -1943,6 +1944,7 @@ function	script	F_LW_HPC_DefSetPoolActor	{
 	setd("$LWHD" + .@seed + "_PK$[" + .@i + "]", getarg(3));
 	setd("$LWHD" + .@seed + "_PF$[" + .@i + "]", getarg(9, ""));
 	setd("$LWHD" + .@seed + "_RL$[" + .@i + "]", getarg(10, ""));
+	setd("$LWHD" + .@seed + "_MD[" + .@i + "]", getarg(11, 0));
 	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	setd("$LWHD" + .@seed + "_M$[" + .@i + "]", getarg(4));
 	setd("$LWHD" + .@seed + "_X[" + .@i + "]", getarg(5));
@@ -1957,6 +1959,26 @@ function	script	F_LW_HPC_DefSetPoolActor	{
 	if (getd("$LWHD" + .@seed + "_AC") < .@i + 1)
 		setd("$LWHD" + .@seed + "_AC", .@i + 1);
 	return 1;
+}
+
+function	script	F_LW_HPC_DefSlotDemandUsers	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@policy_key$ = getd("$LWHD" + .@seed + "_KY$");
+	.@gate_map$ = getd("$LWHD" + .@seed + "_GM$");
+	if (.@policy_key$ == "")
+		return 0;
+	return callfunc("F_PB_DB_ControllerDemandUsers", .@policy_key$, .@gate_map$);
+}
+
+function	script	F_LW_HPC_DefSlotDemandOk	{
+	.@controller$ = getarg(0);
+	.@seed = getnpcid(0, .@controller$);
+	.@i = getarg(1);
+	.@need = getd("$LWHD" + .@seed + "_MD[" + .@i + "]");
+	if (.@need < 1)
+		return 1;
+	return callfunc("F_LW_HPC_DefSlotDemandUsers", .@controller$) >= .@need;
 }
 
 function	script	F_LW_HPC_DefActorCharId	{
@@ -2124,6 +2146,7 @@ function	script	F_LW_HPC_DefBuildStatus	{
 		.@pool$ = getd("$LWHD" + .@seed + "_PK$[" + .@i + "]");
 		.@want_profile$ = getd("$LWHD" + .@seed + "_PF$[" + .@i + "]");
 		.@want_role$ = getd("$LWHD" + .@seed + "_RL$[" + .@i + "]");
+		.@min_demand = getd("$LWHD" + .@seed + "_MD[" + .@i + "]");
 		.@owner$ = (.@char_id > 0 ? headlesspc_owner(.@char_id) : "");
 		if (.@pool$ != "" && .@char_id > 0 && .@owner$ == "")
 			.@owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
@@ -2131,11 +2154,12 @@ function	script	F_LW_HPC_DefBuildStatus	{
 			+ (.@owner$ == "" ? (.@pool$ != "" && .@char_id < 1 ? "<unassigned>" : "<none>") : .@owner$) + " / "
 			+ (.@char_id > 0 ? headlesspc_status(.@char_id) : 0) + " / "
 			+ (.@char_id > 0 ? headlesspc_routestatus(.@char_id) : 0) + " (" + .@mode$
-			+ (.@pool$ != "" ? ", pool " + .@pool$
-				+ (.@want_profile$ != "" ? ", profile " + .@want_profile$ : "")
-				+ (.@want_role$ != "" ? ", role " + .@want_role$ : "") : "") + ", pulse "
-			+ getd("$LWHD" + .@seed + "_NX[" + .@i + "]") + ").";
-	}
+				+ (.@pool$ != "" ? ", pool " + .@pool$
+					+ (.@want_profile$ != "" ? ", profile " + .@want_profile$ : "")
+					+ (.@want_role$ != "" ? ", role " + .@want_role$ : "")
+					+ (.@min_demand > 0 ? ", min demand " + .@min_demand : "") : "") + ", pulse "
+				+ getd("$LWHD" + .@seed + "_NX[" + .@i + "]") + ").";
+		}
 	.@summary$ += callfunc("F_LW_HPC_DefBuildPoolSummary", .@controller$, .@controller$);
 	set getvariableofnpc(.status$, .@controller$), .@summary$;
 	return .@count;
@@ -2754,6 +2778,11 @@ function	script	F_LW_HPC_DefTickActor	{
 	.@loiter_index = getd("$LWHD" + .@seed + "_LI[" + .@i + "]");
 	.@loiter_pending = getd("$LWHD" + .@seed + "_LP[" + .@i + "]");
 	.@last_walk_event = getd("$LWHD" + .@seed + "_LE[" + .@i + "]");
+	.@min_demand = getd("$LWHD" + .@seed + "_MD[" + .@i + "]");
+	if (.@min_demand > 0 && !callfunc("F_LW_HPC_DefSlotDemandOk", .@controller$, .@i)) {
+		callfunc "F_LW_HPC_DefReleaseActor", .@controller$, .@owner$, .@i;
+		return 0;
+	}
 	.@char_id = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@i);
 	if (.@char_id < 1)
 		return 0;

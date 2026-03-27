@@ -1392,3 +1392,25 @@ Current limits:
 
 - `pool.trade.alberta` is still built from repurposed recurring Alberta identities, not a fully separate long-term merchant-courier roster
 - `market.spill.alberta` still uses ambient/social identity rather than a dedicated economy-only pool
+
+## Demand-Scaled Controller Slots
+
+- Controllers no longer need to treat every slot as equally active at all times.
+- Each slot can now define `min_demand_users`.
+- That means a controller can keep:
+  - a base anchor actor
+  - plus extra runners/couriers only when weighted demand rises
+
+Current support:
+
+- slot demand thresholds are SQL-backed in `bot_controller_slot`
+- controller tick logic releases or withholds pooled actors when slot demand is
+  not satisfied
+- status surfaces now show slot-level minimum demand when set
+
+Current limits:
+
+- scheduler actor budgeting is still controller-level rather than fully
+  threshold-aware per slot
+- this still improves real runtime behavior because the controller itself no
+  longer forces every slot online when demand is weak

@@ -4164,3 +4164,28 @@ Validation:
 Notes:
 - this is a foundation/roster-curation slice, not a new behavior family
 - the goal is cleaner controller ownership and less pool contention
+
+## Slice: Demand-Scaled Controller Slots
+
+Date: 2026-03-26
+
+Summary:
+- added slot-level demand thresholds so controllers can scale individual actors in and out based on weighted demand instead of always trying to drive the full slot list
+- the controller layer can now keep:
+  - base actors always or almost always present
+  - extra runners/couriers only when the relevant guild/economy pressure is high enough
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_slot_demand_scaling.sql`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_slot_demand_scaling.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL `min_demand_users` values for active controller slots
+- confirmed clean map-server startup after the script helper and schema changes
+
+Notes:
+- this is a controller-logic foundation slice
+- scheduler actor budgeting is still controller-level, but actor activation inside the controller is now demand-aware per slot
