@@ -1311,3 +1311,12 @@ Current limits:
   - which guild/economy signals are contributing demand
   - how much weighted pressure each source is adding
 - This is an observability slice only; it does not change scheduler selection math.
+
+## Guild Leadership Signals
+
+- Guild demand is no longer only about total roster or storage depth.
+- Scheduler policy can now distinguish:
+  - a guild merely existing
+  - the guild leader identity existing
+  - the guild leader actually being online
+- This is still a demand-layer slice only; it does not yet add leader-follow, guild-chat, or guild-event behavior.

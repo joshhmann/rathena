@@ -607,6 +607,28 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "guild_leader_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `char` c ON c.`char_id` = gu.`char_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "' "
+			+ "AND c.`char_id` > 0",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_leader_live_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `guild` gu "
+			+ "JOIN `char` c ON c.`char_id` = gu.`char_id` "
+			+ "WHERE gu.`name` = '" + .@key$ + "' "
+			+ "AND c.`online` = 1",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_storage_name") {
 		query_sql(
 			"SELECT COUNT(*) "

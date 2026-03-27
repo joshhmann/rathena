@@ -418,8 +418,9 @@ Committed fields:
 - `signal_type`
   - merchant_open_map, merchant_live_map, merchant_stock_map,
     merchant_browse_map, merchant_sale_map, guild_enabled_name,
-    guild_roster_name, guild_live_name, guild_storage_name,
-    guild_storage_log_name, guild_candidate_map
+    guild_roster_name, guild_live_name, guild_leader_name,
+    guild_leader_live_name, guild_storage_name, guild_storage_log_name,
+    guild_castle_name, guild_candidate_map
 - `signal_key`
 - `signal_weight`
 

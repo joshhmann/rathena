@@ -3929,3 +3929,29 @@ Validation:
 Notes:
 - controller drill-down now includes the same demand breakdown used by scheduler status
 - this makes guild/economy demand signals easier to audit before adding more behavior layers
+
+## Slice: Guild Leader Demand Signals
+
+Date: 2026-03-26
+
+Summary:
+- added guild leader presence signals to the scheduler demand layer
+- Prontera social and patrol controllers can now react to whether a guild leader exists and whether that leader is currently online
+- this stays in the foundation lane: demand/state only, not guild behavior AI yet
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_leader_signals.sql`
+- `doc/project/bot-state-schema.md`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_guild_leader_signals.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL demand rows for:
+  - `social.prontera -> guild_leader_name / guild_leader_live_name`
+  - `patrol.prontera -> guild_leader_live_name`
+- verified clean startup after the script + SQL change
+
+Notes:
+- this complements the earlier roster/live/storage/castle guild signals by adding leadership-aware demand pressure
