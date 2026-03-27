@@ -16,6 +16,13 @@ For now, the project should prioritize:
 ML, LLM, and external agent control are explicitly backburner items until the
 server already feels alive through normal rAthena systems.
 
+Future-phase playerbot behavior notes now live in:
+
+- `doc/project/playerbot-future-design-notes.md`
+
+That file is for aligned long-term design ideas, not for claiming current
+implementation status.
+
 ## External Test Harness
 
 An external CLI client harness is now part of the project workflow:
