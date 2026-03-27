@@ -4681,3 +4681,50 @@ Notes:
 - freshness and confidence are now part of the shared query surface
 - anchor occupancy/reservation are still deferred until the reservation model
   lands
+
+## Slice: Reservation Primitives V1
+
+Date: 2026-03-27
+
+Summary:
+- added the first authority-backed playerbot reservation ledger
+- implemented shared lease / hard-lock primitives for:
+  - anchors
+  - dialog targets
+  - social targets
+  - merchant spots
+  - party roles
+- added an Alberta reservation lab to exercise contention and inspection from a
+  live operator path
+
+Changed:
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260327_playerbot_reservations.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_reservation_lab.txt`
+- `npc/scripts_custom.conf`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `mysql -uroot rathena < sql-files/upgrades/upgrade_20260327_playerbot_reservations.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- OpenKore login in Alberta
+- `talknpc 154 135` then:
+  - `talk resp 0` for quick anchor contention
+  - `talk resp 1` for quick NPC lock contention
+- verified live outcomes:
+  - primary holder acquires
+  - secondary holder is denied
+  - resource summary shows active holder, mode, ttl, epoch, and priority
+- verified SQL rows in:
+  - `bot_reservation`
+  - `bot_trace_event` for `reservation.acquired`, `reservation.denied`, and
+    `reservation.released`
+
+Notes:
+- reservations are now a platform surface instead of controller-local ad hoc
+  state
+- current stale-holder cleanup only reaps expired rows or truly missing bot
+  identities
+- controllers are not yet migrated to use these primitives automatically

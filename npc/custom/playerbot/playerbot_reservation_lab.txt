@@ -1,0 +1,82 @@
+alberta,154,135,4	script	Playerbot Reservation Lab	4_F_KAFRA5,{
+	mes "[Playerbot Reservation Lab]";
+	mes "Inspect and exercise the first playerbot reservation primitives.";
+	next;
+
+	switch(select("Quick anchor contention:Quick NPC lock contention:Quick social target contention:Quick merchant spot contention:Quick party role contention:Inspect resource:Inspect holder:Release quick lab reservations:Reap stale reservations:Close")) {
+	case 1:
+		callsub S_RunContention, "anchor", "social.alberta.browser.a", "quick_merc_alb", "botpc03", "ReservationLabAnchor";
+		close;
+
+	case 2:
+		callsub S_RunContention, "dialog_target", "npc:Playerbot Merchant Lab", "quick_merc_alb", "botpc03", "ReservationLabDialog";
+		close;
+
+	case 3:
+		callsub S_RunContention, "social_target", "social:player:codex", "quick_merc_alb", "botpc03", "ReservationLabSocial";
+		close;
+
+	case 4:
+		callsub S_RunContention, "merchant_spot", "merchant_spot:alberta:52:242", "quick_merc_alb", "botpc03", "ReservationLabMerchant";
+		close;
+
+	case 5:
+		callsub S_RunContention, "party_role", "party_role:PBST150001:assist", "quick_party_open", "quick_merc_alb", "ReservationLabParty";
+		close;
+
+	case 6:
+		input .@type$;
+		if (.@type$ == "")
+			close;
+		input .@resource_key$;
+		if (.@resource_key$ == "")
+			close;
+		mes "[Playerbot Reservation Lab]";
+		mes callfunc("F_PB_RES_BuildResourceSummary$", .@type$, .@resource_key$);
+		close;
+
+	case 7:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		mes "[Playerbot Reservation Lab]";
+		mes callfunc("F_PB_RES_BuildHolderSummary$", .@bot_key$);
+		close;
+
+	case 8:
+		.@released = 0;
+		.@released += callfunc("F_PB_RES_Release", "anchor", "social.alberta.browser.a", "quick_merc_alb", "ReservationLabAnchor", "operator.stop");
+		.@released += callfunc("F_PB_RES_Release", "dialog_target", "npc:Playerbot Merchant Lab", "quick_merc_alb", "ReservationLabDialog", "operator.stop");
+		.@released += callfunc("F_PB_RES_Release", "social_target", "social:player:codex", "quick_merc_alb", "ReservationLabSocial", "operator.stop");
+		.@released += callfunc("F_PB_RES_Release", "merchant_spot", "merchant_spot:alberta:52:242", "quick_merc_alb", "ReservationLabMerchant", "operator.stop");
+		.@released += callfunc("F_PB_RES_Release", "party_role", "party_role:PBST150001:assist", "quick_party_open", "ReservationLabParty", "operator.stop");
+		mes "[Playerbot Reservation Lab]";
+		mes "Released " + .@released + " quick lab reservations.";
+		close;
+
+	case 9:
+		.@reaped = callfunc("F_PB_RES_ReapExpired");
+		mes "[Playerbot Reservation Lab]";
+		mes "Reaped " + .@reaped + " stale reservation rows.";
+		close;
+	}
+
+	close;
+
+S_RunContention:
+	.@type$ = getarg(0, "");
+	.@resource_key$ = getarg(1, "");
+	.@primary_bot$ = getarg(2, "");
+	.@secondary_bot$ = getarg(3, "");
+	.@controller$ = getarg(4, "");
+	callfunc "F_PB_RES_Release", .@type$, .@resource_key$, .@primary_bot$, .@controller$, "preflight";
+	callfunc "F_PB_RES_Release", .@type$, .@resource_key$, .@secondary_bot$, .@controller$, "preflight";
+	.@primary_id = callfunc("F_PB_RES_Acquire", .@type$, .@resource_key$, .@primary_bot$, .@controller$, 15000, 50, "lab.primary");
+	.@secondary_id = callfunc("F_PB_RES_Acquire", .@type$, .@resource_key$, .@secondary_bot$, .@controller$, 15000, 40, "lab.secondary");
+	mes "[Playerbot Reservation Lab]";
+	mes "Type / Resource: " + .@type$ + " / " + .@resource_key$;
+	mes "Primary acquire: " + (.@primary_id ? "ok #" + .@primary_id : "denied");
+	mes "Secondary acquire: " + (.@secondary_id ? "ok #" + .@secondary_id : "denied");
+	mes callfunc("F_PB_RES_BuildResourceSummary$", .@type$, .@resource_key$);
+	return;
+}

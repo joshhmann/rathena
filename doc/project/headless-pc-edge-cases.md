@@ -1758,3 +1758,43 @@ Current limits:
   primitives land
 - controllers are not yet migrated systematically to the shared facade; this
   slice establishes the interface and operator surface first
+
+## Reservation Primitives V1
+
+- Playerbot contention now has a first SQL-backed reservation ledger:
+  `bot_reservation`.
+
+Current support:
+
+- reservation types:
+  - `anchor`
+  - `dialog_target`
+  - `social_target`
+  - `merchant_spot`
+  - `party_role`
+- lock modes:
+  - `lease`
+  - `hard_lock`
+- shared helper surfaces now exist for:
+  - acquire
+  - release
+  - release-by-holder
+  - cleanup / reap
+  - resource summary
+  - holder summary
+- reservation events now emit into the trace ledger:
+  - `reservation.acquired`
+  - `reservation.denied`
+  - `reservation.released`
+- a visible `Playerbot Reservation Lab` NPC can exercise contention and inspect
+  active rows
+
+Current limits:
+
+- reservations are not yet wired into live controller movement / interaction
+  ownership automatically
+- anchor occupancy is still summary-level, not a fully synchronized live crowd
+  model
+- stale-holder cleanup currently treats expiry and missing bot identities as
+  authoritative cleanup cases; controller-ownership-driven cleanup is still a
+  later integration slice
