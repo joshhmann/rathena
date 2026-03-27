@@ -1,0 +1,236 @@
+alberta,160,135,4	script	Playerbot Item Lab	4_M_02,{
+	mes "[Playerbot Item Lab]";
+	mes "Exercise the transactional playerbot item layer.";
+	next;
+
+	switch(select("Spawn quick item bot:Grant knife and potions:Equip knife:Unequip knife:Deposit 2 red potions:Withdraw 1 red potion:Inspect item state:Run item selftest:Close")) {
+	case 1:
+		callsub S_EnsureQuickItemBot;
+		mes "[Playerbot Item Lab]";
+		mes (.@ok ? "Quick item bot ready." : "Failed to ready the quick item bot.");
+		close;
+	case 2:
+		callsub S_EnsureQuickItemBot;
+		.@knife_ok = playerbot_itemgrant(.bot_key$, 1201, 1);
+		.@pot_ok = playerbot_itemgrant(.bot_key$, 501, 3);
+		mes "[Playerbot Item Lab]";
+		mes "Grant knife=" + .@knife_ok + ", potion=" + .@pot_ok + ".";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		close;
+	case 3:
+		callsub S_EnsureQuickItemBot;
+		mes "[Playerbot Item Lab]";
+		mes "Equip knife -> " + playerbot_itemequip(.bot_key$, 1201) + ".";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		close;
+	case 4:
+		callsub S_EnsureQuickItemBot;
+		mes "[Playerbot Item Lab]";
+		mes "Unequip knife -> " + playerbot_itemunequip(.bot_key$, 1201) + ".";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		close;
+	case 5:
+		callsub S_EnsureQuickItemBot;
+		mes "[Playerbot Item Lab]";
+		mes "Deposit -> " + playerbot_storagedeposit(.bot_key$, 501, 2) + ".";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		close;
+	case 6:
+		callsub S_EnsureQuickItemBot;
+		mes "[Playerbot Item Lab]";
+		mes "Withdraw -> " + playerbot_storagewithdraw(.bot_key$, 501, 1) + ".";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		close;
+	case 7:
+		mes "[Playerbot Item Lab]";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		mes callfunc("F_PB_ITEM_BuildAuditSummary$", .bot_key$, 8);
+		close;
+	case 8:
+		setd("$PBITST_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotItemSelftest::OnManualStart";
+		mes "[Playerbot Item Lab]";
+		mes "Item selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	}
+	close;
+
+S_EnsureQuickItemBot:
+	if (playerbot_profile(.bot_key$) == 0)
+		playerbot_provision(.bot_key$, "QuickItemOpen", "party.prontera.open");
+	if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
+		.@ok = 0;
+		return;
+	}
+	if (headlesspc_status($@pbbot_char_id) == 2) {
+		.@ok = 1;
+		return;
+	}
+	.@spawn_ack = headlesspc_spawnack($@pbbot_char_id);
+	if (headlesspc_status($@pbbot_char_id) == 0)
+		headlesspc_spawn($@pbbot_char_id, "alberta", 163, 144);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep2 500;
+		if (headlesspc_spawnack($@pbbot_char_id) > .@spawn_ack && headlesspc_status($@pbbot_char_id) == 2) {
+			.@ok = 1;
+			return;
+		}
+		if (headlesspc_status($@pbbot_char_id) == 2) {
+			.@ok = 1;
+			return;
+		}
+	}
+	.@ok = 0;
+	return;
+
+OnInit:
+	.bot_key$ = "quick_item_open";
+	end;
+}
+
+-	script	PlayerbotItemSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.autorun = 0;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if (!.autorun && $PBITST_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	if ($PBITST_AUTORUN_AID == .aid)
+		setd("$PBITST_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnInterIfInitOnce:
+	sleep 2500;
+	if (!.enabled || !.autorun || .ran)
+		end;
+	for (.@i = 0; .@i < 10; ++.@i) {
+		if (isloggedin(.test_aid, .test_char_id)) {
+			.ran = 1;
+			.aid = .test_aid;
+			callsub S_Run;
+			end;
+		}
+		sleep 1000;
+	}
+	end;
+
+OnManualStart:
+	.aid = $PBITST_MANUAL_AID;
+	callsub S_Run;
+	end;
+
+OnRun:
+	callsub S_Run;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_item_open";
+	.display_name$ = "QuickItemOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_item_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.@provision_ok = ($@pbbot_found && .char_id > 0 && $@pbbot_account_id > 0);
+	if (!.@provision_ok) {
+		debugmes "playerbot_item_selftest: provision_ok=0 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+
+	.@spawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 163, 144);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@spawn_ack && headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+	}
+	if (!.@spawn_ok) {
+		debugmes "playerbot_item_selftest: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) > 0)
+		playerbot_itemunequip(.bot_key$, 1201);
+	.@knife_inv = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201);
+	if (.@knife_inv > 0)
+		playerbot_itemremove(.bot_key$, 1201, .@knife_inv);
+	.@pot_storage = callfunc("F_PB_ITEM_Count", .bot_key$, "storage", 501);
+	if (.@pot_storage > 0)
+		playerbot_storagewithdraw(.bot_key$, 501, .@pot_storage);
+	.@pot_inv = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501);
+	if (.@pot_inv > 0)
+		playerbot_itemremove(.bot_key$, 501, .@pot_inv);
+
+	.@grant_ok = playerbot_itemgrant(.bot_key$, 1201, 1) && playerbot_itemgrant(.bot_key$, 501, 3);
+	.@equip_ok = playerbot_itemequip(.bot_key$, 1201);
+	.@unequip_ok = playerbot_itemunequip(.bot_key$, 1201);
+	.@reequip_ok = playerbot_itemequip(.bot_key$, 1201);
+	.@deposit_ok = playerbot_storagedeposit(.bot_key$, 501, 2);
+	.@withdraw_ok = playerbot_storagewithdraw(.bot_key$, 501, 1);
+	.@remove_ok = playerbot_itemremove(.bot_key$, 501, 1);
+	.@regrant_ok = playerbot_itemgrant(.bot_key$, 501, 1);
+	.@knife_eq = callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201);
+	.@pot_inv = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501);
+	.@pot_storage = callfunc("F_PB_ITEM_Count", .bot_key$, "storage", 501);
+	.@audit$ = callfunc("F_PB_ITEM_BuildAuditSummary$", .bot_key$, 12);
+	.@audit_ok = (countstr(.@audit$, "inventory_add") > 0
+		&& countstr(.@audit$, "inventory_remove") > 0
+		&& countstr(.@audit$, "equip") > 0
+		&& countstr(.@audit$, "unequip") > 0
+		&& countstr(.@audit$, "storage_deposit") > 0
+		&& countstr(.@audit$, "storage_withdraw") > 0);
+
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+
+	.@result = (.@grant_ok && .@equip_ok && .@unequip_ok && .@reequip_ok
+		&& .@deposit_ok && .@withdraw_ok && .@remove_ok && .@regrant_ok
+		&& .@knife_eq >= 1 && .@pot_inv == 2 && .@pot_storage == 1 && .@audit_ok && .@park_ok);
+	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

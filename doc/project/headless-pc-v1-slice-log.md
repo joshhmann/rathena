@@ -4775,3 +4775,52 @@ Notes:
   into the ledger
 - the state lab now includes a real per-bot recovery audit, not only static
   authority text
+
+## Slice: Transactional Item Layer V1
+
+Date: 2026-03-27
+
+Summary:
+- added the first bot-safe transactional item mutation layer on top of the real
+  rAthena `inventory` and `storage` tables
+- added authoritative live item-count reads for online headless bots
+- added a repeatable hidden item selftest and repo-local smoke helper
+
+Changed:
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260327_playerbot_item_audit.sql`
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-item-smoke.sh`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `mysql -uroot rathena < sql-files/upgrades/upgrade_20260327_playerbot_item_audit.sql`
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-item-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-item-smoke.sh check`
+- verified final selftest line:
+  - `playerbot_item_selftest: provision_ok=1 spawn_ok=1 ... result=1`
+- verified final persisted item state for `quick_item_open`:
+  - inventory: Knife `1201 x1` equipped, Red Potion `501 x2`
+  - storage: Red Potion `501 x1`
+- verified audit rows in `bot_item_audit` for:
+  - `inventory_add`
+  - `inventory_remove`
+  - `equip`
+  - `unequip`
+  - `storage_deposit`
+  - `storage_withdraw`
+
+Notes:
+- the item layer intentionally reuses normal rAthena item semantics instead of
+  inventing a parallel bot-only inventory store
+- authoritative item reads now distinguish online live inventory/equipment from
+  offline persisted SQL counts
+- the hidden selftest path is the stable validation lane; the visible item lab
+  remains for operator inspection and manual verbs

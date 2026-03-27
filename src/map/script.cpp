@@ -13,6 +13,7 @@
 #include <cctype>
 #include <cmath>
 #include <csetjmp>
+#include <ctime>
 #include <cstdlib> // atoi, strtol, strtoll, exit
 
 #ifdef PCRE_SUPPORT
@@ -153,6 +154,178 @@ static bool playerbot_profile_lookup_by_key(const char* bot_key, uint32* bot_id)
 		*bot_id = data != nullptr ? static_cast<uint32>(strtoul(data, nullptr, 10)) : 0;
 	Sql_FreeResult(mmysql_handle);
 	return true;
+}
+
+static bool playerbot_identity_lookup_by_key(const char* bot_key, uint32* bot_id, uint32* char_id, uint32* account_id) {
+	char esc_key[129];
+
+	if (bot_key == nullptr || bot_key[0] == '\0')
+		return false;
+
+	Sql_EscapeStringLen(mmysql_handle, esc_key, bot_key, strnlen(bot_key, 64));
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT p.`bot_id`, COALESCE(l.`char_id`, 0), COALESCE(l.`account_id`, 0) "
+		"FROM `bot_profile` p "
+		"LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
+		"WHERE p.`bot_key` = '%s' LIMIT 1",
+		esc_key)) {
+		Sql_ShowDebug(mmysql_handle);
+		return false;
+	}
+
+	if (Sql_NextRow(mmysql_handle) != SQL_SUCCESS) {
+		Sql_FreeResult(mmysql_handle);
+		return false;
+	}
+
+	char* data = nullptr;
+	Sql_GetData(mmysql_handle, 0, &data, nullptr);
+	if (bot_id != nullptr)
+		*bot_id = data != nullptr ? static_cast<uint32>(strtoul(data, nullptr, 10)) : 0;
+	Sql_GetData(mmysql_handle, 1, &data, nullptr);
+	if (char_id != nullptr)
+		*char_id = data != nullptr ? static_cast<uint32>(strtoul(data, nullptr, 10)) : 0;
+	Sql_GetData(mmysql_handle, 2, &data, nullptr);
+	if (account_id != nullptr)
+		*account_id = data != nullptr ? static_cast<uint32>(strtoul(data, nullptr, 10)) : 0;
+	Sql_FreeResult(mmysql_handle);
+	return true;
+}
+
+static map_session_data* playerbot_online_session_by_key(const char* bot_key, uint32* bot_id, uint32* char_id, uint32* account_id) {
+	uint32 resolved_bot_id = 0;
+	uint32 resolved_char_id = 0;
+	uint32 resolved_account_id = 0;
+
+	if (!playerbot_identity_lookup_by_key(bot_key, &resolved_bot_id, &resolved_char_id, &resolved_account_id))
+		return nullptr;
+
+	if (bot_id != nullptr)
+		*bot_id = resolved_bot_id;
+	if (char_id != nullptr)
+		*char_id = resolved_char_id;
+	if (account_id != nullptr)
+		*account_id = resolved_account_id;
+
+	if (resolved_char_id == 0)
+		return nullptr;
+
+	map_session_data* sd = map_charid2sd(resolved_char_id);
+	if (sd == nullptr || !sd->state.headless_bot)
+		return nullptr;
+	return sd;
+}
+
+static void playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* action, t_itemid item_id, uint16 amount, const char* location, const char* result, const char* detail) {
+	char esc_detail[385];
+	const char* safe_action = action != nullptr ? action : "inventory_add";
+	const char* safe_location = location != nullptr ? location : "inventory";
+	const char* safe_result = result != nullptr ? result : "ok";
+	const char* safe_detail = detail != nullptr ? detail : "";
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	Sql_EscapeStringLen(mmysql_handle, esc_detail, safe_detail, strnlen(safe_detail, 191));
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_item_audit` "
+		"(`ts`, `bot_id`, `char_id`, `account_id`, `action`, `item_id`, `amount`, `location`, `result`, `detail`) "
+		"VALUES ('%u', '%u', '%u', '%u', '%s', '%u', '%u', '%s', '%s', '%s')",
+		now, bot_id, char_id, account_id, safe_action, item_id, amount, safe_location, safe_result, esc_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
+static int32 playerbot_inventory_amount(const map_session_data* sd, t_itemid nameid, bool equipped_only = false) {
+	int32 total = 0;
+
+	if (sd == nullptr)
+		return 0;
+
+	for (int32 i = 0; i < MAX_INVENTORY; ++i) {
+		if (sd->inventory.u.items_inventory[i].nameid != nameid)
+			continue;
+		if (equipped_only && sd->inventory.u.items_inventory[i].equip == 0)
+			continue;
+		total += sd->inventory.u.items_inventory[i].amount;
+	}
+	return total;
+}
+
+static int32 playerbot_storage_amount(const map_session_data* sd, t_itemid nameid) {
+	int32 total = 0;
+
+	if (sd == nullptr)
+		return 0;
+
+	for (int32 i = 0; i < ARRAYLENGTH(sd->storage.u.items_storage); ++i) {
+		if (sd->storage.u.items_storage[i].nameid == nameid)
+			total += sd->storage.u.items_storage[i].amount;
+	}
+	return total;
+}
+
+static int32 playerbot_db_item_amount(uint32 char_id, uint32 account_id, t_itemid nameid, const char* location) {
+	int32 total = 0;
+	char* data = nullptr;
+
+	if (nameid == 0 || location == nullptr)
+		return 0;
+
+	if (strcmp(location, "storage") == 0) {
+		if (account_id == 0)
+			return 0;
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"SELECT COALESCE(SUM(`amount`), 0) FROM `storage` WHERE `account_id` = '%u' AND `nameid` = '%u'",
+			account_id, nameid)) {
+			Sql_ShowDebug(mmysql_handle);
+			return 0;
+		}
+	} else if (strcmp(location, "equipped") == 0) {
+		if (char_id == 0)
+			return 0;
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"SELECT COALESCE(SUM(`amount`), 0) FROM `inventory` WHERE `char_id` = '%u' AND `nameid` = '%u' AND `equip` > 0",
+			char_id, nameid)) {
+			Sql_ShowDebug(mmysql_handle);
+			return 0;
+		}
+	} else {
+		if (char_id == 0)
+			return 0;
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"SELECT COALESCE(SUM(`amount`), 0) FROM `inventory` WHERE `char_id` = '%u' AND `nameid` = '%u'",
+			char_id, nameid)) {
+			Sql_ShowDebug(mmysql_handle);
+			return 0;
+		}
+	}
+
+	if (SQL_SUCCESS == Sql_NextRow(mmysql_handle) && SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+		total = atoi(data);
+	Sql_FreeResult(mmysql_handle);
+	return total;
+}
+
+static int16 playerbot_find_inventory_index(const map_session_data* sd, t_itemid nameid, bool equipped_only = false) {
+	if (sd == nullptr)
+		return -1;
+	for (int16 i = 0; i < MAX_INVENTORY; ++i) {
+		if (sd->inventory.u.items_inventory[i].nameid != nameid)
+			continue;
+		if (equipped_only && sd->inventory.u.items_inventory[i].equip == 0)
+			continue;
+		return i;
+	}
+	return -1;
+}
+
+static int16 playerbot_find_storage_index(const map_session_data* sd, t_itemid nameid, uint16 amount) {
+	if (sd == nullptr)
+		return -1;
+	for (int16 i = 0; i < ARRAYLENGTH(sd->storage.u.items_storage); ++i) {
+		if (sd->storage.u.items_storage[i].nameid == nameid && sd->storage.u.items_storage[i].amount >= amount)
+			return i;
+	}
+	return -1;
 }
 
 static void playerbot_cleanup_provisioned(uint32 account_id, uint32 char_id, uint32 bot_id) {
@@ -12021,6 +12194,287 @@ BUILDIN_FUNC(playerbot_guildnotice)
 		return SCRIPT_CMD_FAILURE;
 
 	script_pushint(st, guild_change_notice(sd, sd->status.guild_id, script_getstr(st, 2), script_getstr(st, 3)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Add one item into a live playerbot inventory.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_itemgrant)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 requested = script_getnum(st, 4);
+	uint16 amount = requested > 0 ? static_cast<uint16>(requested) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	std::shared_ptr<item_data> id = item_db.find(nameid);
+	item it = {};
+
+	if (sd == nullptr || amount == 0 || id == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "inventory_add", nameid, amount, "inventory", "invalid", sd == nullptr ? "bot.offline" : "item.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	it.nameid = nameid;
+	it.identify = 1;
+	it.bound = BOUND_NONE;
+	e_additem_result flag = pc_additem(sd, &it, amount, LOG_TYPE_SCRIPT);
+	if (flag != ADDITEM_SUCCESS) {
+		playerbot_item_audit(bot_id, char_id, account_id, "inventory_add", nameid, amount, "inventory", "overflow", "pc_additem.failed");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	playerbot_item_audit(bot_id, char_id, account_id, "inventory_add", nameid, amount, "inventory", "ok", "granted");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Remove one item amount from a live playerbot inventory.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_itemremove)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 requested = script_getnum(st, 4);
+	uint16 amount = requested > 0 ? static_cast<uint16>(requested) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	int32 remaining = amount;
+
+	if (sd == nullptr || amount == 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "inventory_remove", nameid, amount, "inventory", "invalid", "bot.offline_or_amount");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (playerbot_inventory_amount(sd, nameid) < amount) {
+		playerbot_item_audit(bot_id, char_id, account_id, "inventory_remove", nameid, amount, "inventory", "missing", "inventory.short");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	for (int32 i = 0; i < MAX_INVENTORY && remaining > 0; ++i) {
+		if (sd->inventory.u.items_inventory[i].nameid != nameid)
+			continue;
+		int32 take = std::min<int32>(remaining, sd->inventory.u.items_inventory[i].amount);
+		if (pc_delitem(sd, i, take, 0, 0, LOG_TYPE_SCRIPT) != 0) {
+			playerbot_item_audit(bot_id, char_id, account_id, "inventory_remove", nameid, amount, "inventory", "failed", "pc_delitem.failed");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+		remaining -= take;
+	}
+
+	playerbot_item_audit(bot_id, char_id, account_id, "inventory_remove", nameid, amount, "inventory", remaining == 0 ? "ok" : "failed", remaining == 0 ? "removed" : "partial");
+	script_pushint(st, remaining == 0 ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Equip one matching inventory item for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_itemequip)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	std::shared_ptr<item_data> id = item_db.find(nameid);
+
+	if (sd == nullptr || id == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "equip", nameid, 1, "equipped", "invalid", sd == nullptr ? "bot.offline" : "item.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, nameid, false);
+	if (idx < 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "equip", nameid, 1, "equipped", "missing", "inventory.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!pc_equipitem(sd, idx, id->equip)) {
+		playerbot_item_audit(bot_id, char_id, account_id, "equip", nameid, 1, "equipped", "denied", "equip.denied");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	playerbot_item_audit(bot_id, char_id, account_id, "equip", nameid, 1, "equipped", "ok", "equipped");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Unequip one matching equipped item from a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_itemunequip)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "unequip", nameid, 1, "equipped", "invalid", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, nameid, true);
+	if (idx < 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "unequip", nameid, 1, "equipped", "missing", "equip.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!pc_unequipitem(sd, idx, 1 | 2)) {
+		playerbot_item_audit(bot_id, char_id, account_id, "unequip", nameid, 1, "equipped", "denied", "unequip.denied");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	playerbot_item_audit(bot_id, char_id, account_id, "unequip", nameid, 1, "equipped", "ok", "unequipped");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Deposit one item amount from a live playerbot inventory into storage.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_storagedeposit)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 requested = script_getnum(st, 4);
+	uint16 amount = requested > 0 ? static_cast<uint16>(requested) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || amount == 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "storage_deposit", nameid, amount, "storage", "invalid", "bot.offline_or_amount");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, nameid, false);
+	if (idx < 0 || sd->inventory.u.items_inventory[idx].amount < amount) {
+		playerbot_item_audit(bot_id, char_id, account_id, "storage_deposit", nameid, amount, "storage", "missing", "inventory.short");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool opened = false;
+	if (!sd->state.storage_flag) {
+		if (storage_storageopen(sd) != 0) {
+			playerbot_item_audit(bot_id, char_id, account_id, "storage_deposit", nameid, amount, "storage", "denied", "storage.open_failed");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+		opened = true;
+	}
+
+	int32 before_inv = playerbot_inventory_amount(sd, nameid);
+	int32 before_storage = playerbot_storage_amount(sd, nameid);
+	storage_storageadd(sd, &sd->storage, idx, amount);
+	int32 after_inv = playerbot_inventory_amount(sd, nameid);
+	int32 after_storage = playerbot_storage_amount(sd, nameid);
+	if (opened)
+		storage_storageclose(sd);
+
+	bool ok = (after_inv == before_inv - amount && after_storage == before_storage + amount);
+	playerbot_item_audit(bot_id, char_id, account_id, "storage_deposit", nameid, amount, "storage", ok ? "ok" : "failed", ok ? "deposited" : "storage.deposit_failed");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Withdraw one item amount from storage into a live playerbot inventory.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_storagewithdraw)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 requested = script_getnum(st, 4);
+	uint16 amount = requested > 0 ? static_cast<uint16>(requested) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || amount == 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "storage_withdraw", nameid, amount, "storage", "invalid", "bot.offline_or_amount");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool opened = false;
+	if (!sd->state.storage_flag) {
+		if (storage_storageopen(sd) != 0) {
+			playerbot_item_audit(bot_id, char_id, account_id, "storage_withdraw", nameid, amount, "storage", "denied", "storage.open_failed");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+		opened = true;
+	}
+
+	int16 idx = playerbot_find_storage_index(sd, nameid, amount);
+	if (idx < 0) {
+		if (opened)
+			storage_storageclose(sd);
+		playerbot_item_audit(bot_id, char_id, account_id, "storage_withdraw", nameid, amount, "storage", "missing", "storage.short");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 before_inv = playerbot_inventory_amount(sd, nameid);
+	int32 before_storage = playerbot_storage_amount(sd, nameid);
+	storage_storageget(sd, &sd->storage, idx, amount, false);
+	int32 after_inv = playerbot_inventory_amount(sd, nameid);
+	int32 after_storage = playerbot_storage_amount(sd, nameid);
+	if (opened)
+		storage_storageclose(sd);
+
+	bool ok = (after_inv == before_inv + amount && after_storage == before_storage - amount);
+	playerbot_item_audit(bot_id, char_id, account_id, "storage_withdraw", nameid, amount, "storage", ok ? "ok" : "failed", ok ? "withdrew" : "storage.withdraw_failed");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Count one item amount for a playerbot by location.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_itemcount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* location = script_getstr(st, 3);
+	t_itemid nameid = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+
+	if (nameid == 0 || !playerbot_identity_lookup_by_key(bot_key, &bot_id, &char_id, &account_id)) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd != nullptr && sd->state.headless_bot) {
+		if (strcmp(location, "equipped") == 0) {
+			script_pushint(st, playerbot_inventory_amount(sd, nameid, true));
+			return SCRIPT_CMD_SUCCESS;
+		}
+		if (strcmp(location, "inventory") == 0) {
+			script_pushint(st, playerbot_inventory_amount(sd, nameid, false));
+			return SCRIPT_CMD_SUCCESS;
+		}
+		if (strcmp(location, "storage") == 0 && sd->state.storage_flag) {
+			script_pushint(st, playerbot_storage_amount(sd, nameid));
+			return SCRIPT_CMD_SUCCESS;
+		}
+	}
+
+	script_pushint(st, playerbot_db_item_amount(char_id, account_id, nameid, location));
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -29437,6 +29891,13 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_guildid,"i"),
 	BUILDIN_DEF(playerbot_guildcreate,"s"),
 	BUILDIN_DEF(playerbot_guildnotice,"ss"),
+	BUILDIN_DEF(playerbot_itemgrant,"sii"),
+	BUILDIN_DEF(playerbot_itemremove,"sii"),
+	BUILDIN_DEF(playerbot_itemcount,"ssi"),
+	BUILDIN_DEF(playerbot_itemequip,"si"),
+	BUILDIN_DEF(playerbot_itemunequip,"si"),
+	BUILDIN_DEF(playerbot_storagedeposit,"sii"),
+	BUILDIN_DEF(playerbot_storagewithdraw,"sii"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),

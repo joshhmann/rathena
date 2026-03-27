@@ -2517,6 +2517,82 @@ function	script	F_PB_DB_BuildMerchantRuntimeSummary$	{
 	return .@summary$;
 }
 
+function	script	F_PB_ITEM_Count	{
+	.@bot_key$ = getarg(0, "");
+	.@location$ = getarg(1, "inventory");
+	.@item_id = getarg(2, 0);
+	if (.@bot_key$ == "" || .@item_id <= 0 || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return 0;
+	return playerbot_itemcount(.@bot_key$, .@location$, .@item_id);
+}
+
+function	script	F_PB_ITEM_BuildSummary$	{
+	.@bot_key$ = getarg(0, "");
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Item Summary: unknown bot key.";
+	query_sql(
+		"SELECT COUNT(*), COALESCE(SUM(`amount`), 0) "
+		+ "FROM `inventory` "
+		+ "WHERE `char_id` = '" + $@pbbot_char_id + "'",
+		.@inv_rows, .@inv_amount);
+	query_sql(
+		"SELECT COUNT(*), COALESCE(SUM(`amount`), 0) "
+		+ "FROM `inventory` "
+		+ "WHERE `char_id` = '" + $@pbbot_char_id + "' AND `equip` > 0",
+		.@eq_rows, .@eq_amount);
+	query_sql(
+		"SELECT COUNT(*), COALESCE(SUM(`amount`), 0) "
+		+ "FROM `storage` "
+		+ "WHERE `account_id` = '" + $@pbbot_account_id + "'",
+		.@stor_rows, .@stor_amount);
+	.@summary$ = "Item Summary: " + .@bot_key$;
+	.@summary$ += "\nInventory Rows / Amount: " + .@inv_rows[0] + " / " + .@inv_amount[0];
+	.@summary$ += "\nEquipped Rows / Amount: " + .@eq_rows[0] + " / " + .@eq_amount[0];
+	.@summary$ += "\nStorage Rows / Amount: " + .@stor_rows[0] + " / " + .@stor_amount[0];
+	.@summary$ += "\nKnife inv/equipped/storage: "
+		+ callfunc("F_PB_ITEM_Count", .@bot_key$, "inventory", 1201) + " / "
+		+ callfunc("F_PB_ITEM_Count", .@bot_key$, "equipped", 1201) + " / "
+		+ callfunc("F_PB_ITEM_Count", .@bot_key$, "storage", 1201);
+	.@summary$ += "\nRed Potion inv/storage: "
+		+ callfunc("F_PB_ITEM_Count", .@bot_key$, "inventory", 501) + " / "
+		+ callfunc("F_PB_ITEM_Count", .@bot_key$, "storage", 501);
+	return .@summary$;
+}
+
+function	script	F_PB_ITEM_BuildAuditSummary$	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	.@limit = getarg(1, 6);
+	if (.@limit < 1)
+		.@limit = 1;
+	if (.@limit > 12)
+		.@limit = 12;
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Item Audit: unknown bot key.";
+	.@rows = query_sql(
+		"SELECT `action`, `item_id`, `amount`, `location`, `result`, `detail`, `ts` "
+		+ "FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "ORDER BY `id` DESC LIMIT " + .@limit,
+		.@action$, .@item_id, .@amount, .@location$, .@result$, .@detail$, .@ts);
+	if (.@rows < 1)
+		return "Item Audit: none.";
+	.@now = gettimetick(2);
+	.@summary$ = "Item Audit: " + .@rows + ".";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@age_ms = (.@now - .@ts[.@i]) * 1000;
+		if (.@age_ms < 0)
+			.@age_ms = 0;
+		.@summary$ += "\n- " + .@action$[.@i]
+			+ " item=" + .@item_id[.@i]
+			+ " x" + .@amount[.@i]
+			+ " " + .@location$[.@i]
+			+ " -> " + .@result$[.@i]
+			+ " (" + (.@detail$[.@i] == "" ? "<none>" : .@detail$[.@i]) + ")"
+			+ " age=" + .@age_ms + "ms";
+	}
+	return .@summary$;
+}
+
 function	script	F_PB_DB_SetMerchantState	{
 	.@bot_key$ = escape_sql(getarg(0));
 	.@enabled = getarg(1, 0);

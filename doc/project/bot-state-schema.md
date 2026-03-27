@@ -567,6 +567,55 @@ Status:
 
 - deferred
 
+### 16. `bot_item_audit`
+
+Append-only transactional item mutation ledger for live playerbots.
+
+Committed fields:
+
+- `id`
+- `ts`
+- `bot_id`
+- `char_id`
+- `account_id`
+- `action`
+  - `inventory_add`
+  - `inventory_remove`
+  - `equip`
+  - `unequip`
+  - `storage_deposit`
+  - `storage_withdraw`
+- `item_id`
+- `amount`
+- `location`
+  - `inventory`
+  - `equipped`
+  - `storage`
+- `result`
+  - `ok`
+  - `denied`
+  - `invalid`
+  - `missing`
+  - `overflow`
+  - `failed`
+- `detail`
+
+Purpose:
+
+- gives the transactional inventory/equipment/storage foundation an explicit
+  audit trail
+- records the first bot-safe item mutation verbs against the real
+  `inventory` and `storage` tables rather than inventing a parallel item
+  store too early
+- supports operator verification and failure recovery without relying on ad hoc
+  SQL inspection
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260327_playerbot_item_audit.sql`
+
 ## Runtime Ownership
 
 ### Source Layer Owns
@@ -620,13 +669,14 @@ This is enough for:
 
 ### Phase 3
 
+- transactional item audit + bot-safe item verbs
 - `bot_inventory`
 - `bot_party_state`
 - `bot_progression_state`
 
 This is enough for:
 
-- merchant bots
+- merchant bots with auditable item mutations
 - party-capable pseudo-players
 - progression-capable recurring playerbots
 
@@ -636,6 +686,7 @@ This is enough for:
 - current live path may continue to reuse account/login identity until a deeper
   provisioning layer replaces it
 - no char-select semantics
-- no real player inventory logic in phase 1
+- real item ownership still lives in rAthena `inventory` / `storage`; the bot
+  layer currently adds audit and safe mutation surfaces on top
 - one bot maps to one active body at most
 - body absence must not destroy bot identity

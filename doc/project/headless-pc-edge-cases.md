@@ -1840,3 +1840,44 @@ Current limits:
 - recovery summaries are now partly live: the state lab compares world state,
   runtime ledger state, reservation counts, and merchant-open policy for a bot
   key before suggesting the recovery rule
+
+## Transactional Item Layer V1
+
+- Playerbot inventory/equipment/storage mutations now have a first explicit
+  audit ledger: `bot_item_audit`.
+
+Current support:
+
+- live bot-safe script verbs now exist for:
+  - `playerbot_itemgrant`
+  - `playerbot_itemremove`
+  - `playerbot_itemequip`
+  - `playerbot_itemunequip`
+  - `playerbot_storagedeposit`
+  - `playerbot_storagewithdraw`
+- authoritative item counting now distinguishes:
+  - online headless-bot inventory/equipment state
+  - offline persisted SQL state
+- a visible `Playerbot Item Lab` NPC now exposes:
+  - quick bot ready/spawn
+  - grant/equip/unequip/deposit/withdraw verbs
+  - item summary
+  - item audit summary
+- a hidden `PlayerbotItemSelftest` plus repo-local
+  `tools/ci/playerbot-item-smoke.sh` path now validate:
+  - grant
+  - remove
+  - equip
+  - unequip
+  - storage deposit
+  - storage withdraw
+  - post-test parking
+
+Current limits:
+
+- the item layer currently relies on the normal rAthena `inventory` and
+  `storage` tables rather than a dedicated persistent bot inventory model
+- trade, NPC shop buying, item use/consume, and broader storage/trade recovery
+  semantics are still later participation slices
+- item mutations are audited but not yet mirrored into the broader structured
+  trace/event timeline
