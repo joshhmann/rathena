@@ -98,6 +98,33 @@ static bool guild_playerbot_invite_response(map_session_data* tsd, bool* accept)
 	return true;
 }
 
+static void guild_playerbot_sync_state(map_session_data* sd) {
+	char esc_name[129];
+
+	if (sd == nullptr || !sd->state.headless_bot)
+		return;
+
+	if (sd->status.guild_id <= 0 || sd->guild == nullptr) {
+		Sql_Query(mmysql_handle,
+			"UPDATE `bot_guild_state` g "
+			"JOIN `bot_identity_link` l ON l.`bot_id` = g.`bot_id` "
+			"SET g.`guild_member_state` = 'unguilded' "
+			"WHERE l.`char_id` = '%u'",
+			sd->status.char_id);
+		return;
+	}
+
+	Sql_EscapeStringLen(mmysql_handle, esc_name, sd->guild->guild.name, strnlen(sd->guild->guild.name, NAME_LENGTH));
+	Sql_Query(mmysql_handle,
+		"UPDATE `bot_guild_state` g "
+		"JOIN `bot_identity_link` l ON l.`bot_id` = g.`bot_id` "
+		"SET g.`guild_name` = '%s', g.`guild_member_state` = '%s', g.`enabled` = '1' "
+		"WHERE l.`char_id` = '%u'",
+		esc_name,
+		sd->state.gmaster_flag ? "leader" : "member",
+		sd->status.char_id);
+}
+
 struct s_guild_skill_requirement{
 	uint16 id;
 	uint16 lv;
@@ -1143,6 +1170,7 @@ void guild_member_joined(map_session_data *sd) {
 		g->guild.member[i].sd = sd;
 		sd->guild = g;
 		clif_name_area(sd);
+		guild_playerbot_sync_state(sd);
 
 		if( channel_config.ally_tmpl.name[0] && (channel_config.ally_tmpl.opt&CHAN_OPT_AUTOJOIN) ) {
 			channel_gjoin(sd,3);

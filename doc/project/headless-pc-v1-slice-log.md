@@ -3537,3 +3537,74 @@ This slice does not yet add:
 - a fully repeatable CLI-proven guild bot invite/join selftest result
 - guild-aware scheduler demand from real live guild roster/activity
 - richer economy pressure from sales, trades, or zeny flow
+
+## Slice 61: Merchant Activity Runtime Signals
+
+### Goal
+
+Move economy demand beyond configured merchant stock depth by recording real
+browse/sale activity from the playerbot merchant lane, and harden the dev proof
+path around manual selftests instead of noisy startup autoruns.
+
+### Files Touched
+
+- `src/map/guild.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_merchant_activity.sql`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime / Script Path Changes
+
+- Added `bot_merchant_runtime` to persist live merchant activity:
+  - `last_browse_at`
+  - `last_sale_at`
+  - `total_browse_count`
+  - `total_sale_count`
+  - `total_items_sold`
+- Expanded controller demand signals with:
+  - `merchant_browse_map`
+  - `merchant_sale_map`
+- Added shared SQL-backed helpers:
+  - `F_PB_DB_RecordMerchantBrowse`
+  - `F_PB_DB_RecordMerchantSale`
+- The Alberta merchant proxy now records:
+  - browse activity when a player opens the shop
+  - sale activity from `OnBuyItem`
+- The merchant selftest is now an explicit manual harness action from
+  `Playerbot Merchant Lab` and verifies:
+  - merchant bootstrap
+  - proxy/shop visibility
+  - browse/sale activity row creation
+  - control-plane reload
+- Added guild-state synchronization on active headless guild join in
+  `guild.cpp`, and tightened the guild lab into a manual selftest harness.
+
+### Validation
+
+- applied `upgrade_20260326_playerbot_merchant_activity.sql`
+- restarted the full stack cleanly
+- ran `Playerbot Merchant Lab -> Run merchant selftest` from a live OpenKore
+  session in Alberta
+- verified the final map-server selftest line:
+  - `playerbot_merchant_selftest ... base_ok=1 spawn_ok=1 bootstrap_ok=1 shop_ok=1 activity_ok=1 park_ok=1 reload_ok=1 result=1`
+- verified `bot_merchant_runtime` persisted live activity for bot `12`:
+  - browse count `2`
+  - sale count `2`
+  - items sold `6`
+- verified the guild lab manual selftest now fires and logs honestly, but still
+  does not pass cleanly because the current dev restart path can leave a stale
+  duplicate map-server ownership lane that causes reused guild-bot spawns to be
+  rejected at char-server
+
+### Deferrals
+
+This slice does not yet add:
+
+- a clean repeatable end-to-end guild invite/join selftest result
+- real purchase-driven stock depletion or zeny-flow accounting
+- guild-aware demand from live guild roster activity

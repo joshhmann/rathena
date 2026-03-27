@@ -1347,7 +1347,7 @@ CREATE TABLE IF NOT EXISTS `bot_controller_demand_map` (
 CREATE TABLE IF NOT EXISTS `bot_controller_demand_signal` (
   `controller_key` varchar(64) NOT NULL default '',
   `point_index` smallint(5) unsigned NOT NULL default '0',
-  `signal_type` enum('merchant_open_map','merchant_live_map','merchant_stock_map','guild_enabled_name','guild_candidate_map') NOT NULL default 'merchant_open_map',
+  `signal_type` enum('merchant_open_map','merchant_live_map','merchant_stock_map','merchant_browse_map','merchant_sale_map','guild_enabled_name','guild_candidate_map') NOT NULL default 'merchant_open_map',
   `signal_key` varchar(64) NOT NULL default '',
   `signal_weight` smallint(5) unsigned NOT NULL default '1',
   PRIMARY KEY (`controller_key`,`point_index`),
@@ -1520,6 +1520,22 @@ CREATE TABLE IF NOT EXISTS `bot_merchant_stock_item` (
   KEY `item_id` (`item_id`)
 ) ENGINE=InnoDB;
 
+--
+-- Table structure for table `bot_merchant_runtime`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_merchant_runtime` (
+  `bot_id` int(10) unsigned NOT NULL,
+  `last_browse_at` int(10) unsigned NOT NULL default '0',
+  `last_sale_at` int(10) unsigned NOT NULL default '0',
+  `total_browse_count` int(10) unsigned NOT NULL default '0',
+  `total_sale_count` int(10) unsigned NOT NULL default '0',
+  `total_items_sold` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY (`bot_id`),
+  KEY `last_browse_at` (`last_browse_at`),
+  KEY `last_sale_at` (`last_sale_at`)
+) ENGINE=InnoDB;
+
 INSERT INTO `bot_controller_policy`
   (`controller_key`, `controller_npc`, `controller_label`, `controller_type`, `map_name`, `scheduler_enabled`, `controller_enabled`, `gate_users`, `priority`, `actor_weight`, `tick_ms`, `start_min_ms`, `start_max_ms`, `grace_ms`, `min_active_ms`, `restart_cooldown_ms`, `fair_weight`, `demand_users_step`, `demand_priority_step`, `demand_priority_cap`, `stop_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`)
 VALUES
@@ -1590,9 +1606,12 @@ VALUES
   ('patrol.prontera', 0, 'guild_candidate_map', 'prontera', 1),
   ('social.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('social.alberta', 1, 'merchant_stock_map', 'alberta', 1),
+  ('social.alberta', 2, 'merchant_browse_map', 'alberta', 1),
   ('merchant.alberta', 0, 'merchant_open_map', 'alberta', 3),
   ('merchant.alberta', 1, 'merchant_live_map', 'alberta', 2),
-  ('merchant.alberta', 2, 'merchant_stock_map', 'alberta', 1)
+  ('merchant.alberta', 2, 'merchant_stock_map', 'alberta', 1),
+  ('merchant.alberta', 3, 'merchant_browse_map', 'alberta', 1),
+  ('merchant.alberta', 4, 'merchant_sale_map', 'alberta', 2)
 ON DUPLICATE KEY UPDATE
   `signal_type` = VALUES(`signal_type`),
   `signal_key` = VALUES(`signal_key`),

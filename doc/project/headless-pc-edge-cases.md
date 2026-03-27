@@ -1154,6 +1154,47 @@ Current limits:
 - economy-aware demand is still controller-level, not per-bot or per-market
   segment
 
+### 51. Merchant demand needed real activity, not only configured stock
+
+Current support:
+
+- merchant runtime now persists real activity in `bot_merchant_runtime`
+- controller demand can now read:
+  - `merchant_browse_map`
+  - `merchant_sale_map`
+- the Alberta merchant proxy records:
+  - browse activity when the shop is opened
+  - sale activity from `OnBuyItem`
+- the manual merchant selftest now proves:
+  - bootstrap
+  - proxy/shop materialization
+  - activity row updates
+  - control-plane reload
+
+Current limits:
+
+- merchant activity currently measures shop interaction volume, not zeny flow,
+  stock depletion, or broader market pressure
+- the activity proof path is manual-on-demand, not a startup autorun
+
+### 52. Guild selftests are still sensitive to stale dev-server ownership lanes
+
+Current support:
+
+- the guild lab now has a real manual selftest trigger that fires from a live
+  attached player
+- guild-capable playerbot metadata now syncs guild state on active join paths
+
+Current limits:
+
+- the current local restart path can leave char-server seeing duplicate
+  map-server ownership lanes (`server 0` and `server 1`)
+- when that happens, reused headless guild-bot identities can be rejected as
+  already online on the wrong server, and the manual guild selftest reports
+  `spawn-timeout`
+- this is a dev-environment/runtime ownership issue, not evidence that the
+  guild invite hook itself is absent
+
 ### 36. Fresh-restart ambient stability
 
 Current support:

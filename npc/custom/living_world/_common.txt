@@ -500,6 +500,32 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "merchant_browse_map") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_merchant_runtime` mr "
+			+ "JOIN `bot_merchant_state` m ON m.`bot_id` = mr.`bot_id` "
+			+ "WHERE m.`enabled` = 1 "
+			+ "AND m.`market_map` = '" + .@key$ + "' "
+			+ "AND mr.`last_browse_at` > 0 "
+			+ "AND UNIX_TIMESTAMP() - mr.`last_browse_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "merchant_sale_map") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_merchant_runtime` mr "
+			+ "JOIN `bot_merchant_state` m ON m.`bot_id` = mr.`bot_id` "
+			+ "WHERE m.`enabled` = 1 "
+			+ "AND m.`market_map` = '" + .@key$ + "' "
+			+ "AND mr.`last_sale_at` > 0 "
+			+ "AND UNIX_TIMESTAMP() - mr.`last_sale_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_enabled_name") {
 		query_sql(
 			"SELECT COUNT(*) "
@@ -980,6 +1006,38 @@ function	script	F_PB_DB_ApplyMerchantShop	{
 	if (.@count == 7)
 		return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1), $@pbm_item_id[4], ($@pbm_price[4] > 0 ? $@pbm_price[4] : -1), $@pbm_item_id[5], ($@pbm_price[5] > 0 ? $@pbm_price[5] : -1), $@pbm_item_id[6], ($@pbm_price[6] > 0 ? $@pbm_price[6] : -1));
 	return npcshopitem(.@shop_npc$, $@pbm_item_id[0], ($@pbm_price[0] > 0 ? $@pbm_price[0] : -1), $@pbm_item_id[1], ($@pbm_price[1] > 0 ? $@pbm_price[1] : -1), $@pbm_item_id[2], ($@pbm_price[2] > 0 ? $@pbm_price[2] : -1), $@pbm_item_id[3], ($@pbm_price[3] > 0 ? $@pbm_price[3] : -1), $@pbm_item_id[4], ($@pbm_price[4] > 0 ? $@pbm_price[4] : -1), $@pbm_item_id[5], ($@pbm_price[5] > 0 ? $@pbm_price[5] : -1), $@pbm_item_id[6], ($@pbm_price[6] > 0 ? $@pbm_price[6] : -1), $@pbm_item_id[7], ($@pbm_price[7] > 0 ? $@pbm_price[7] : -1));
+}
+
+function	script	F_PB_DB_RecordMerchantBrowse	{
+	.@bot_key$ = escape_sql(getarg(0));
+	if (.@bot_key$ == "")
+		return 0;
+	return query_sql(
+		"INSERT INTO `bot_merchant_runtime` (`bot_id`, `last_browse_at`, `total_browse_count`) "
+		+ "SELECT p.`bot_id`, UNIX_TIMESTAMP(), 1 "
+		+ "FROM `bot_profile` p "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' "
+		+ "ON DUPLICATE KEY UPDATE "
+		+ "`last_browse_at` = UNIX_TIMESTAMP(), "
+		+ "`total_browse_count` = `total_browse_count` + 1");
+}
+
+function	script	F_PB_DB_RecordMerchantSale	{
+	.@bot_key$ = escape_sql(getarg(0));
+	.@units = getarg(1, 0);
+	if (.@bot_key$ == "")
+		return 0;
+	if (.@units < 0)
+		.@units = 0;
+	return query_sql(
+		"INSERT INTO `bot_merchant_runtime` (`bot_id`, `last_sale_at`, `total_sale_count`, `total_items_sold`) "
+		+ "SELECT p.`bot_id`, UNIX_TIMESTAMP(), 1, '" + .@units + "' "
+		+ "FROM `bot_profile` p "
+		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' "
+		+ "ON DUPLICATE KEY UPDATE "
+		+ "`last_sale_at` = UNIX_TIMESTAMP(), "
+		+ "`total_sale_count` = `total_sale_count` + 1, "
+		+ "`total_items_sold` = `total_items_sold` + '" + .@units + "'");
 }
 
 function	script	F_PB_DB_ShowMerchantProxy	{
