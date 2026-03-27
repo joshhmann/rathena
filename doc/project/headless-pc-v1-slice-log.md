@@ -4086,3 +4086,53 @@ Validation:
 
 Notes:
 - this is a behavior/controller slice, not a full merchant economy simulation
+
+## Slice: Prontera Guild Quarter Controller
+
+Date: 2026-03-26
+
+Summary:
+- added a second guild-driven controller lane so guild activity can shape a more stable quarter around Prontera instead of only one watch point
+- `guild.square.prontera` is SQL-backed and scheduler-eligible
+- this controller still uses the existing Prontera social pool while the stricter guild-only bot roster remains a later content step
+
+Changed:
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/scripts_custom.conf`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_behavior_expansion.sql`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_behavior_expansion.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL policy / slot rows exist for `guild.square.prontera`
+- OpenKore on Prontera confirmed visible controller NPC:
+  - `Headless Prontera Guild Quarter`
+
+Notes:
+- this is still a behavior/controller foundation slice, not a full guild-routine or guild-chat system
+
+## Slice: Alberta Market Spill Controller
+
+Date: 2026-03-26
+
+Summary:
+- added a second economy-driven controller lane so market pressure can spill beyond the static merchant stall and first trade-flow route
+- `market.spill.alberta` is SQL-backed and scheduler-eligible
+- this controller stays on the broader Alberta social pool for now because the current milestone is control-plane and demand-shape depth, not final merchant-only roster curation
+
+Changed:
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `npc/scripts_custom.conf`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_behavior_expansion.sql`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_behavior_expansion.sql`
+- `bash tools/dev/playerbot-dev.sh restart`
+- verified SQL policy / slot rows exist for `market.spill.alberta`
+- verified SQL route rows exist for `market.spill.alberta.loop`
+- confirmed clean map-server startup after loading both new controller files
+
+Notes:
+- this deepens the economy behavior lane, but it is still not a full autonomous market simulation

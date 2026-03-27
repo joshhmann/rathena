@@ -1558,7 +1558,9 @@ VALUES
   ('social.alberta', 'HeadlessAlbertaSocialController', 'Alberta social', 'social', 'alberta', 1, 1, 1, 80, 5, 2400, 500, 1800, 15000, 60000, 20000, 3, 2, 2, 8, 'park', 'night', 0, 6),
   ('merchant.alberta', 'HeadlessAlbertaMerchantController', 'Alberta merchants', 'merchant', 'alberta', 1, 1, 1, 85, 1, 2600, 600, 1600, 18000, 90000, 30000, 2, 4, 1, 3, 'park', 'day', 8, 22),
   ('guild.watch.prontera', 'HeadlessPronteraGuildWatchController', 'Prontera guild watch', 'event', 'prontera', 1, 1, 1, 92, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23),
-  ('market.flow.alberta', 'HeadlessAlbertaTradeFlowController', 'Alberta trade flow', 'merchant', 'alberta', 1, 1, 1, 88, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23)
+  ('guild.square.prontera', 'HeadlessPronteraGuildQuarterController', 'Prontera guild quarter', 'event', 'prontera', 1, 1, 1, 89, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23),
+  ('market.flow.alberta', 'HeadlessAlbertaTradeFlowController', 'Alberta trade flow', 'merchant', 'alberta', 1, 1, 1, 88, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23),
+  ('market.spill.alberta', 'HeadlessAlbertaMarketSpillController', 'Alberta market spill', 'merchant', 'alberta', 1, 1, 1, 87, 2, 2400, 400, 1200, 15000, 60000, 20000, 2, 2, 2, 8, 'park', 'day', 8, 23)
 ON DUPLICATE KEY UPDATE
   `controller_label` = VALUES(`controller_label`),
   `controller_type` = VALUES(`controller_type`),
@@ -1591,12 +1593,14 @@ VALUES
   ('social.alberta', 0, 0, 0, '', 0),
   ('merchant.alberta', 0, 0, 0, '', 0),
   ('guild.watch.prontera', 0, 0, 0, '', 0),
-  ('market.flow.alberta', 0, 0, 0, '', 0)
+  ('guild.square.prontera', 0, 0, 0, '', 0),
+  ('market.flow.alberta', 0, 0, 0, '', 0),
+  ('market.spill.alberta', 0, 0, 0, '', 0)
 ON DUPLICATE KEY UPDATE
   `controller_key` = VALUES(`controller_key`);
 
 DELETE FROM `bot_controller_demand_map`
-WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta', 'guild.watch.prontera', 'market.flow.alberta');
+WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta', 'guild.watch.prontera', 'guild.square.prontera', 'market.flow.alberta', 'market.spill.alberta');
 
 INSERT INTO `bot_controller_demand_map`
   (`controller_key`, `map_name`, `user_weight`, `point_index`)
@@ -1612,14 +1616,18 @@ VALUES
   ('merchant.alberta', 'izlude', 2, 1),
   ('guild.watch.prontera', 'prontera', 2, 0),
   ('guild.watch.prontera', 'prt_in', 1, 1),
+  ('guild.square.prontera', 'prontera', 2, 0),
+  ('guild.square.prontera', 'prt_in', 1, 1),
   ('market.flow.alberta', 'alberta', 2, 0),
-  ('market.flow.alberta', 'izlude', 1, 1)
+  ('market.flow.alberta', 'izlude', 1, 1),
+  ('market.spill.alberta', 'alberta', 2, 0),
+  ('market.spill.alberta', 'izlude', 1, 1)
 ON DUPLICATE KEY UPDATE
   `user_weight` = VALUES(`user_weight`),
   `point_index` = VALUES(`point_index`);
 
 DELETE FROM `bot_controller_demand_signal`
-WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta', 'guild.watch.prontera', 'market.flow.alberta');
+WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta', 'guild.watch.prontera', 'guild.square.prontera', 'market.flow.alberta', 'market.spill.alberta');
 
 INSERT INTO `bot_controller_demand_signal`
   (`controller_key`, `point_index`, `signal_type`, `signal_key`, `signal_weight`)
@@ -1648,6 +1656,11 @@ VALUES
   ('guild.watch.prontera', 2, 'guild_join_recent_name', 'PBG150001', 2),
   ('guild.watch.prontera', 3, 'guild_notice_recent_name', 'PBG150001', 1),
   ('guild.watch.prontera', 4, 'guild_storage_log_name', 'PBG150001', 1),
+  ('guild.square.prontera', 0, 'guild_roster_name', 'PBG150001', 1),
+  ('guild.square.prontera', 1, 'guild_notice_name', 'PBG150001', 1),
+  ('guild.square.prontera', 2, 'guild_notice_recent_name', 'PBG150001', 2),
+  ('guild.square.prontera', 3, 'guild_storage_name', 'PBG150001', 1),
+  ('guild.square.prontera', 4, 'guild_castle_name', 'PBG150001', 2),
   ('social.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('social.alberta', 1, 'merchant_stock_map', 'alberta', 1),
   ('social.alberta', 2, 'merchant_browse_map', 'alberta', 1),
@@ -1659,14 +1672,19 @@ VALUES
   ('market.flow.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('market.flow.alberta', 1, 'merchant_browse_map', 'alberta', 2),
   ('market.flow.alberta', 2, 'merchant_sale_map', 'alberta', 2),
-  ('market.flow.alberta', 3, 'merchant_stock_map', 'alberta', 1)
+  ('market.flow.alberta', 3, 'merchant_stock_map', 'alberta', 1),
+  ('market.spill.alberta', 0, 'merchant_open_map', 'alberta', 1),
+  ('market.spill.alberta', 1, 'merchant_live_map', 'alberta', 1),
+  ('market.spill.alberta', 2, 'merchant_browse_map', 'alberta', 2),
+  ('market.spill.alberta', 3, 'merchant_sale_map', 'alberta', 2),
+  ('market.spill.alberta', 4, 'merchant_stock_map', 'alberta', 1)
 ON DUPLICATE KEY UPDATE
   `signal_type` = VALUES(`signal_type`),
   `signal_key` = VALUES(`signal_key`),
   `signal_weight` = VALUES(`signal_weight`);
 
 DELETE FROM `bot_controller_slot`
-WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta', 'guild.watch.prontera', 'market.flow.alberta');
+WHERE `controller_key` IN ('social.prontera', 'patrol.prontera', 'social.alberta', 'merchant.alberta', 'guild.watch.prontera', 'guild.square.prontera', 'market.flow.alberta', 'market.spill.alberta');
 
 INSERT INTO `bot_controller_slot`
   (`controller_key`, `slot_index`, `slot_label`, `pool_key`, `profile_key`, `role_key`, `map_name`, `spawn_x`, `spawn_y`, `loop_route`, `mode`, `pulse_profile`, `anchor_set_key`, `route_set_key`, `talk_set_key`, `emote_set_key`, `enabled`)
@@ -1685,14 +1703,18 @@ VALUES
   ('merchant.alberta', 0, 'Harbor Curios', 'pool.merchant.alberta', 'merchant.alberta', 'stall_merchant', 'alberta', 52, 242, 0, 'hold', 'market_anchor_trade', '', '', 'merchant.alberta.stall.a', 'merchant.alberta.stall.a', 1),
   ('guild.watch.prontera', 0, 'Guild Watch Captain', 'pool.social.prontera', 'social.prontera.regular', 'square_regular', 'prontera', 149, 191, 0, 'hold', 'square_anchor_evening', '', '', 'guild.watch.prontera.a', 'guild.watch.prontera.a', 1),
   ('guild.watch.prontera', 1, 'Guild Watch Runner', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 150, 189, 1, 'loiter', 'square_loiter_busy', 'guild.watch.prontera.runner', '', 'guild.watch.prontera.b', 'guild.watch.prontera.b', 1),
+  ('guild.square.prontera', 0, 'Guild Quarter Steward', 'pool.social.prontera', 'social.prontera.regular', 'square_regular', 'prontera', 155, 180, 0, 'hold', 'square_anchor_evening', '', '', 'guild.square.prontera.a', 'guild.square.prontera.a', 1),
+  ('guild.square.prontera', 1, 'Notice Courier', 'pool.social.prontera', 'social.prontera.wanderer', 'square_wanderer', 'prontera', 154, 179, 1, 'loiter', 'square_loiter_busy', 'guild.square.prontera.courier', '', 'guild.square.prontera.b', 'guild.square.prontera.b', 1),
   ('market.flow.alberta', 0, 'Trade Crier', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 49, 242, 0, 'hold', 'market_anchor_trade', '', '', 'market.flow.alberta.a', 'market.flow.alberta.a', 1),
-  ('market.flow.alberta', 1, 'Supply Runner', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 45, 243, 1, 'patrol', 'market_loiter_browse', '', 'market.flow.alberta.loop', 'market.flow.alberta.b', 'market.flow.alberta.b', 1);
+  ('market.flow.alberta', 1, 'Supply Runner', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 45, 243, 1, 'patrol', 'market_loiter_browse', '', 'market.flow.alberta.loop', 'market.flow.alberta.b', 'market.flow.alberta.b', 1),
+  ('market.spill.alberta', 0, 'Market Barker', 'pool.social.alberta', 'social.alberta.regular', 'dock_regular', 'alberta', 51, 241, 0, 'hold', 'market_anchor_trade', '', '', 'market.spill.alberta.a', 'market.spill.alberta.a', 1),
+  ('market.spill.alberta', 1, 'Dock Runner', 'pool.social.alberta', 'social.alberta.browser', 'market_browser', 'alberta', 46, 245, 1, 'patrol', 'market_loiter_browse', '', 'market.spill.alberta.loop', 'market.spill.alberta.b', 'market.spill.alberta.b', 1);
 
 DELETE FROM `bot_controller_anchor_point`
 WHERE `set_key` IN (
   'social.prontera.wanderer.a', 'social.prontera.wanderer.b', 'social.prontera.wanderer.c',
   'social.alberta.browser.a', 'social.alberta.harbor.a', 'social.alberta.browser.b',
-  'guild.watch.prontera.runner'
+  'guild.watch.prontera.runner', 'guild.square.prontera.courier'
 );
 
 INSERT INTO `bot_controller_anchor_point`
@@ -1721,7 +1743,11 @@ VALUES
   ('guild.watch.prontera.runner', 0, 150, 189),
   ('guild.watch.prontera.runner', 1, 152, 191),
   ('guild.watch.prontera.runner', 2, 147, 192),
-  ('guild.watch.prontera.runner', 3, 145, 189);
+  ('guild.watch.prontera.runner', 3, 145, 189),
+  ('guild.square.prontera.courier', 0, 154, 179),
+  ('guild.square.prontera.courier', 1, 157, 181),
+  ('guild.square.prontera.courier', 2, 152, 182),
+  ('guild.square.prontera.courier', 3, 150, 179);
 
 DELETE FROM `bot_controller_talk_line`
 WHERE `set_key` IN (
@@ -1730,7 +1756,9 @@ WHERE `set_key` IN (
   'social.alberta.regular.a', 'social.alberta.regular.b',
   'social.alberta.browser.a', 'social.alberta.harbor.a', 'social.alberta.browser.b',
   'merchant.alberta.stall.a', 'guild.watch.prontera.a', 'guild.watch.prontera.b',
-  'market.flow.alberta.a', 'market.flow.alberta.b'
+  'guild.square.prontera.a', 'guild.square.prontera.b',
+  'market.flow.alberta.a', 'market.flow.alberta.b',
+  'market.spill.alberta.a', 'market.spill.alberta.b'
 );
 
 INSERT INTO `bot_controller_talk_line`
@@ -1762,10 +1790,18 @@ VALUES
   ('guild.watch.prontera.a', 1, 'Warehouse traffic picks up when members gather.'),
   ('guild.watch.prontera.b', 0, 'I was sent to check the guild quarter.'),
   ('guild.watch.prontera.b', 1, 'Someone always needs a runner when notices go up.'),
+  ('guild.square.prontera.a', 0, 'The guild quarter stays busy whenever fresh notices go up.'),
+  ('guild.square.prontera.a', 1, 'Runners keep crossing this block when storage requests pile up.'),
+  ('guild.square.prontera.b', 0, 'I have another message for the guild office.'),
+  ('guild.square.prontera.b', 1, 'Someone from the roster is always checking the board.'),
   ('market.flow.alberta.a', 0, 'Harbor sellers are moving stock fast today.'),
   ('market.flow.alberta.a', 1, 'If the stalls stay busy, more runners will show.'),
   ('market.flow.alberta.b', 0, 'Another buyer just left the dock stalls.'),
-  ('market.flow.alberta.b', 1, 'Trade lanes stay hot whenever sales keep flowing.');
+  ('market.flow.alberta.b', 1, 'Trade lanes stay hot whenever sales keep flowing.'),
+  ('market.spill.alberta.a', 0, 'The market is spilling out into the harbor lane again.'),
+  ('market.spill.alberta.a', 1, 'More buyers show up whenever the stalls keep moving stock.'),
+  ('market.spill.alberta.b', 0, 'I keep circling between the docks and the counters.'),
+  ('market.spill.alberta.b', 1, 'Sales like this pull half the harbor into the market.');
 
 DELETE FROM `bot_controller_emote_value`
 WHERE `set_key` IN (
@@ -1774,7 +1810,9 @@ WHERE `set_key` IN (
   'social.alberta.regular.a', 'social.alberta.regular.b',
   'social.alberta.browser.a', 'social.alberta.harbor.a', 'social.alberta.browser.b',
   'merchant.alberta.stall.a', 'guild.watch.prontera.a', 'guild.watch.prontera.b',
-  'market.flow.alberta.a', 'market.flow.alberta.b'
+  'guild.square.prontera.a', 'guild.square.prontera.b',
+  'market.flow.alberta.a', 'market.flow.alberta.b',
+  'market.spill.alberta.a', 'market.spill.alberta.b'
 );
 
 INSERT INTO `bot_controller_emote_value`
@@ -1806,13 +1844,21 @@ VALUES
   ('guild.watch.prontera.a', 1, 7),
   ('guild.watch.prontera.b', 0, 4),
   ('guild.watch.prontera.b', 1, 9),
+  ('guild.square.prontera.a', 0, 7),
+  ('guild.square.prontera.a', 1, 9),
+  ('guild.square.prontera.b', 0, 4),
+  ('guild.square.prontera.b', 1, 1),
   ('market.flow.alberta.a', 0, 1),
   ('market.flow.alberta.a', 1, 9),
   ('market.flow.alberta.b', 0, 10),
-  ('market.flow.alberta.b', 1, 4);
+  ('market.flow.alberta.b', 1, 4),
+  ('market.spill.alberta.a', 0, 1),
+  ('market.spill.alberta.a', 1, 9),
+  ('market.spill.alberta.b', 0, 10),
+  ('market.spill.alberta.b', 1, 4);
 
 DELETE FROM `bot_controller_route_point`
-WHERE `set_key` IN ('patrol.prontera.loop', 'market.flow.alberta.loop');
+WHERE `set_key` IN ('patrol.prontera.loop', 'market.flow.alberta.loop', 'market.spill.alberta.loop');
 
 INSERT INTO `bot_controller_route_point`
   (`set_key`, `point_index`, `route_x`, `route_y`)
@@ -1824,7 +1870,11 @@ VALUES
   ('market.flow.alberta.loop', 0, 45, 243),
   ('market.flow.alberta.loop', 1, 49, 244),
   ('market.flow.alberta.loop', 2, 52, 242),
-  ('market.flow.alberta.loop', 3, 47, 240);
+  ('market.flow.alberta.loop', 3, 47, 240),
+  ('market.spill.alberta.loop', 0, 46, 245),
+  ('market.spill.alberta.loop', 1, 50, 244),
+  ('market.spill.alberta.loop', 2, 53, 241),
+  ('market.spill.alberta.loop', 3, 49, 239);
 
 INSERT INTO `bot_pulse_profile`
   (`profile_key`, `start_hour`, `end_hour`, `min_delay_s`, `max_delay_s`, `talk_weight`)

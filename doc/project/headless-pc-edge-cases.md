@@ -1353,3 +1353,21 @@ Current limits:
 - The first economy-flow controller now exists in Alberta.
 - It is demand-driven and SQL-backed, but still uses social identities rather than a dedicated merchant-only courier pool.
 - That is acceptable for this phase because the goal is proving the behavior lane, not final world curation.
+
+## Guild Quarter Behavior
+
+- Prontera now has a second guild-driven behavior lane beyond the first watch controller.
+- This helps separate:
+  - guild watch / reaction presence
+  - guild-quarter / neighborhood presence
+- It still uses the wider Prontera social pool for now.
+- That is acceptable in this phase because the scheduler/control plane is still being hardened before stricter guild-only curation.
+
+## Market Spill Behavior
+
+- Alberta now has a second economy-driven controller lane beyond the first trade-flow controller.
+- This helps separate:
+  - direct trade-flow movement near stalls
+  - market spillover presence around the harbor-market seam
+- It still uses the wider Alberta social pool for now.
+- That is acceptable in this phase because the current goal is deeper scheduler/controller behavior, not final merchant-only identity assignment.
