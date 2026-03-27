@@ -18,6 +18,7 @@ prontera,144,175,4	script	Headless Prontera Guild	4_M_MANAGER,{
 		donpcevent .controller$ + "::OnPrime";
 		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
 		mes getvariableofnpc(.status$, .controller$);
+		mes "Behavior: " + getvariableofnpc(.behavior$, .controller$);
 		close;
 	default:
 		close;
@@ -54,6 +55,7 @@ OnTick:
 	.tick_pending = 0;
 	.running = 1;
 	callsub S_Prime;
+	.behavior$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
 	if (!.enabled)
 		goto L_Done;
 
@@ -84,6 +86,7 @@ S_Prime:
 		return;
 	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
 	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
+	.behavior$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "watch", "PBG150001");
 	.loaded = 1;
 	return;
 }

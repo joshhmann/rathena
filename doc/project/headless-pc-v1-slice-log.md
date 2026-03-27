@@ -4261,3 +4261,45 @@ Notes:
   - `bot_merchant_runtime`
 - the new activity-log tables now own recent event-volume signals used by scheduler
   demand and operator summaries
+
+## Slice: Runtime-Reactive Guild And Market Controller Moods
+
+Date: 2026-03-26
+
+Summary:
+- carried guild and economy signals upward from scheduler-only inputs into live
+  controller posture
+- guild and market controllers now change tick tempo and social pulse cadence based
+  on current runtime pressure
+- visible controller status now reports the current behavior/mood state so operator
+  surfaces show how runtime signals are affecting active logic
+
+Changed:
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_guild_quarter_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_trade_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_market_spill_demo.txt`
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- OpenKore status check on `Headless Prontera Guild` showed:
+  - `Behavior: alert watch (pressure 9)`
+  - policy tick tightened to `1100ms`
+- OpenKore status check on `Headless Prontera Social` showed:
+  - `Behavior: guild-busy commons (pressure 11)`
+  - policy tick tightened to `1300ms`
+- OpenKore status check on `Headless Alberta Merchants` showed:
+  - `Behavior: hot stall (pressure 14)`
+  - policy tick tightened to `1200ms`
+- confirmed clean map-server startup after the script-side controller changes
+
+Notes:
+- this slice still stays inside the logic/control-plane layer
+- “behavior” here means posture, tempo, and presentation intensity, not bespoke AI
+- the scheduler still decides whether controllers should be active, but active
+  controllers now react to the same guild/economy pressure at runtime

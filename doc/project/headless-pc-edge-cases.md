@@ -1474,3 +1474,35 @@ Current limits:
 - activity ledgers are append-only and currently use a fixed recent window in the
   signal queries
 - there is no pruning/rollup policy yet for older activity rows
+
+## Runtime-Reactive Controller Moods
+
+- Guild and economy controllers no longer use runtime signals only for scheduler
+  activation.
+- Active controllers can now also react to pressure by changing:
+  - controller tick tempo
+  - social pulse cadence
+  - talk-vs-emote bias
+
+Current support:
+
+- guild-driven posture is applied to:
+  - `HeadlessPronteraGuildWatchController`
+  - `HeadlessPronteraGuildQuarterController`
+  - `HeadlessPronteraSocialController`
+- market-driven posture is applied to:
+  - `HeadlessAlbertaMerchantController`
+  - `HeadlessAlbertaSocialController`
+  - `HeadlessAlbertaTradeFlowController`
+  - `HeadlessAlbertaMarketSpillController`
+- visible status menus now surface a `Behavior:` line so operator views show the
+  live interpreted mood, not only raw demand numbers
+
+Current limits:
+
+- runtime-reactive posture is still controller-local and heuristic-driven
+- it does not yet change deeper decision trees like:
+  - destination selection
+  - role reassignment
+  - guild/event-specific actions
+- this is still a foundation layer for later richer behavior scripting

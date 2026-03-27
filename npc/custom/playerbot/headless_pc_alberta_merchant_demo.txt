@@ -18,6 +18,7 @@ alberta,148,137,4	script	Headless Alberta Merchants	4_F_KAFRA6,{
 		donpcevent .controller$ + "::OnPrime";
 		callfunc "F_LW_HPC_DefBuildStatus", .controller$, getvariableofnpc(.enabled, .controller$);
 		mes getvariableofnpc(.status$, .controller$);
+		mes "Behavior: " + getvariableofnpc(.behavior$, .controller$);
 		close;
 	default:
 		close;
@@ -59,6 +60,7 @@ OnTick:
 	.tick_pending = 0;
 	.running = 1;
 	callsub S_Prime;
+	.behavior$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
 	if (!.enabled)
 		goto L_Done;
 
@@ -146,6 +148,7 @@ S_Prime:
 		return;
 	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
 	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
+	.behavior$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
 	.loaded = 1;
 	return;
 }

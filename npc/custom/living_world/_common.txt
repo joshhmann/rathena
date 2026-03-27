@@ -755,6 +755,177 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 	return 0;
 }
 
+function	script	F_PB_DB_GuildPressure	{
+	.@guild_name$ = escape_sql(getarg(0, ""));
+	if (.@guild_name$ == "")
+		return 0;
+	.@score = 0;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_live_name", .@guild_name$) * 2;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_leader_live_name", .@guild_name$) * 2;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_recent_name", .@guild_name$) * 2;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_recent_name", .@guild_name$) * 1;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_join_events_name", .@guild_name$) * 2;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_notice_events_name", .@guild_name$) * 1;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_storage_log_name", .@guild_name$) * 1;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "guild_castle_name", .@guild_name$) * 2;
+	return .@score;
+}
+
+function	script	F_PB_DB_MerchantPressure	{
+	.@map$ = escape_sql(getarg(0, ""));
+	if (.@map$ == "")
+		return 0;
+	.@score = 0;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_open_map", .@map$) * 1;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_live_map", .@map$) * 2;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_map", .@map$) * 2;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_map", .@map$) * 3;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_browse_events_map", .@map$) * 1;
+	.@score += callfunc("F_PB_DB_ControllerDemandSignalUnits", "merchant_sale_units_map", .@map$) * 1;
+	return .@score;
+}
+
+function	script	F_PB_BehaviorApplyGuildMood$	{
+	.@controller$ = getarg(0);
+	.@style$ = getarg(1, "watch");
+	.@guild_name$ = getarg(2, "");
+	.@score = callfunc("F_PB_DB_GuildPressure", .@guild_name$);
+	if (.@style$ == "social") {
+		if (.@score >= 8) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1300;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 16, 28, 70;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 16, 28, 68;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 2, 12, 22, 76;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 3, 10, 20, 80;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 4, 8, 18, 82;
+			return "guild-busy commons (pressure " + .@score + ")";
+		}
+		if (.@score >= 3) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1800;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 24, 40, 64;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 24, 40, 62;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 2, 18, 30, 72;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 3, 16, 28, 74;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 4, 14, 24, 76;
+			return "guild-warm commons (pressure " + .@score + ")";
+		}
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2200;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 36, 58, 58;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 36, 58, 56;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 2, 26, 42, 66;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 3, 22, 36, 68;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 4, 20, 32, 70;
+		return "calm commons (pressure " + .@score + ")";
+	}
+	if (.@style$ == "watch") {
+		if (.@score >= 8) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1100;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 12, 24, 82;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 8, 18, 88;
+			return "alert watch (pressure " + .@score + ")";
+		}
+		if (.@score >= 3) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1600;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 20, 36, 72;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 14, 28, 78;
+			return "busy watch (pressure " + .@score + ")";
+		}
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2400;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 38, 65, 60;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 28, 50, 66;
+		return "calm watch (pressure " + .@score + ")";
+	}
+
+	if (.@score >= 9) {
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1200;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 14, 28, 74;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 8, 18, 86;
+		return "crowded quarter (pressure " + .@score + ")";
+	}
+	if (.@score >= 4) {
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1700;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 24, 40, 68;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 12, 24, 80;
+		return "active quarter (pressure " + .@score + ")";
+	}
+	callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2400;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 36, 60, 58;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 24, 42, 70;
+	return "quiet quarter (pressure " + .@score + ")";
+}
+
+function	script	F_PB_BehaviorApplyMarketMood$	{
+	.@controller$ = getarg(0);
+	.@style$ = getarg(1, "flow");
+	.@map$ = getarg(2, "");
+	.@score = callfunc("F_PB_DB_MerchantPressure", .@map$);
+	if (.@style$ == "social") {
+		if (.@score >= 10) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1400;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 18, 30, 66;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 14, 24, 74;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 2, 10, 18, 80;
+			return "market-crowded social (pressure " + .@score + ")";
+		}
+		if (.@score >= 4) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1900;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 26, 40, 62;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 20, 32, 70;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 2, 14, 24, 76;
+			return "market-warm social (pressure " + .@score + ")";
+		}
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2400;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 36, 54, 58;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 1, 28, 44, 64;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 2, 22, 34, 70;
+		return "quiet harbor social (pressure " + .@score + ")";
+	}
+	if (.@style$ == "merchant") {
+		if (.@score >= 12) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1200;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 12, 22, 82;
+			return "hot stall (pressure " + .@score + ")";
+		}
+		if (.@score >= 4) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1800;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 18, 30, 74;
+			return "active stall (pressure " + .@score + ")";
+		}
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2600;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 30, 46, 66;
+		return "quiet stall (pressure " + .@score + ")";
+	}
+	if (.@style$ == "flow") {
+		if (.@score >= 14) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1000;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 10, 18, 86;
+			return "surging trade (pressure " + .@score + ")";
+		}
+		if (.@score >= 6) {
+			callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1500;
+			callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 16, 28, 78;
+			return "busy trade (pressure " + .@score + ")";
+		}
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2400;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 30, 48, 66;
+		return "steady trade (pressure " + .@score + ")";
+	}
+
+	if (.@score >= 10) {
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1200;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 10, 20, 84;
+		return "crowded spill (pressure " + .@score + ")";
+	}
+	if (.@score >= 4) {
+		callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 1700;
+		callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 16, 30, 76;
+		return "warm spill (pressure " + .@score + ")";
+	}
+	callfunc "F_LW_HPC_DefSetTickMs", .@controller$, 2400;
+	callfunc "F_LW_HPC_DefSetPulseTempo", .@controller$, 0, 28, 44, 64;
+	return "light spill (pressure " + .@score + ")";
+}
+
 function	script	F_PB_CFG_AnchorSetIndex	{
 	.@set$ = getarg(0);
 	for (.@i = 0; .@i < $PBCFG_AN_CT; ++.@i) {
