@@ -60,7 +60,7 @@ OnTick:
 	.tick_pending = 0;
 	.running = 1;
 	callsub S_Prime;
-	.behavior$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
+	callsub S_ApplyBehavior;
 	if (!.enabled)
 		goto L_Done;
 
@@ -148,8 +148,24 @@ S_Prime:
 		return;
 	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
 	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
-	.behavior$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
+	callsub S_ApplyBehavior;
 	.loaded = 1;
+	return;
+
+S_ApplyBehavior:
+	.@score = callfunc("F_PB_DB_MerchantPressure", "alberta");
+	.@next$ = callfunc("F_PB_BehaviorApplyMarketMood$", .owner$, "merchant", "alberta");
+	if (.behavior$ == .@next$)
+		return;
+	.behavior$ = .@next$;
+	callfunc "F_LW_HPC_DefSetMode", .owner$, 0, "hold";
+	if (.@score >= 12)
+		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 52, 242;
+	else if (.@score >= 4)
+		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 242;
+	else
+		callfunc "F_LW_HPC_DefSetHome", .owner$, 0, "alberta", 51, 241;
+	callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, 0;
 	return;
 }
 

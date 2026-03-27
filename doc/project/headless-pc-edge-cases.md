@@ -1533,3 +1533,24 @@ Current limits:
 - switching is controller-local and heuristic-driven
 - there is still no global path scoring, crowd scoring, or learned destination
   selection
+
+## Runtime-Reactive Social And Merchant Geometry
+
+- The reactive route/anchor layer now also reaches the base social and merchant
+  controllers, not only the specialized guild-watch and trade-flow lanes.
+
+Current support:
+
+- Prontera social wanderers can widen or tighten their commons loops as guild
+  pressure rises
+- Alberta harbor social traffic can widen or tighten its loiter pocket as
+  market pressure rises
+- Alberta merchants can shift the live stall body within a small market
+  footprint as pressure rises
+
+Current limits:
+
+- merchant runtime still uses a proxy shop NPC instead of full vending-player
+  emulation
+- social and merchant geometry changes are still local heuristics, not global
+  crowd balancing

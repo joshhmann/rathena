@@ -4336,3 +4336,34 @@ Notes:
   the existing guild/economy pressure layer
 - route and anchor geometry is still script-defined for this phase, but now it is
   switchable at runtime instead of being frozen once the controller primes
+
+## Slice: Runtime-Reactive Social And Merchant Geometry
+
+Date: 2026-03-26
+
+Summary:
+- extended the runtime-reactive geometry layer from the specialized guild/trade
+  controllers into the base Prontera social, Alberta social, and Alberta
+  merchant controllers
+- active commons, harbor, and merchant presence can now change where they stand
+  or roam as guild/economy pressure rises or cools
+
+Changed:
+- `npc/custom/playerbot/headless_pc_prontera_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_social_demo.txt`
+- `npc/custom/playerbot/headless_pc_alberta_merchant_demo.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `bash tools/dev/playerbot-dev.sh restart`
+- OpenKore status check on `Headless Prontera Guild` still showed live behavior
+  state after the social/merchant geometry expansion
+- OpenKore status check on `Headless Alberta Merchants` still showed the active
+  merchant behavior line after the geometry expansion
+
+Notes:
+- this slice stays script-only and uses the same shared invalidation helpers
+  introduced in the prior runtime-reactive route-selection slice
+- the merchant controller still uses the proxy-shop model; this slice only moves
+  the live merchant body within a small stall footprint

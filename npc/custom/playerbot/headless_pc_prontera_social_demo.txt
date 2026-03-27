@@ -55,7 +55,7 @@ OnTick:
 	.tick_pending = 0;
 	.running = 1;
 	callsub S_Prime;
-	.behavior$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "social", "PBG150001");
+	callsub S_ApplyBehavior;
 	if (!.enabled)
 		goto L_Done;
 
@@ -86,7 +86,46 @@ S_Prime:
 		return;
 	callfunc "F_PB_DB_ApplyControllerPolicy", .owner$, .policy_key$;
 	callfunc "F_PB_DB_LoadControllerDef", .owner$, .policy_key$;
-	.behavior$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "social", "PBG150001");
+	callsub S_ApplyBehavior;
 	.loaded = 1;
+	return;
+
+S_ApplyBehavior:
+	.@score = callfunc("F_PB_DB_GuildPressure", "PBG150001");
+	.@next$ = callfunc("F_PB_BehaviorApplyGuildMood$", .owner$, "social", "PBG150001");
+	if (.behavior$ == .@next$)
+		return;
+	.behavior$ = .@next$;
+	for (.@i = 2; .@i <= 4; ++.@i) {
+		callfunc "F_LW_HPC_DefSetMode", .owner$, .@i, "loiter";
+		callfunc "F_LW_HPC_DefClearAnchors", .owner$, .@i;
+	}
+	if (.@score >= 8) {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 147, 186;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 149, 184;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 151, 187;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 189;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 150, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 146, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 148, 192;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 150, 191;
+	} else if (.@score >= 3) {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 147, 185;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 152, 187;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 188;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 189;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 149, 190;
+	} else {
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 145, 184;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 2, 146, 185;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 153, 188;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 3, 152, 188;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 147, 190;
+		callfunc "F_LW_HPC_DefAddAnchor", .owner$, 4, 148, 190;
+	}
+	for (.@i = 2; .@i <= 4; ++.@i)
+		callfunc "F_LW_HPC_DefInvalidateMovement", .owner$, .owner$, .@i;
 	return;
 }
