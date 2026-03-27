@@ -639,6 +639,28 @@ function	script	F_PB_DB_ControllerDemandSignalUnits	{
 		return .@units[0];
 	}
 
+	if (.@type$ == "guild_join_recent_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_guild_runtime` "
+			+ "WHERE `guild_name` = '" + .@key$ + "' "
+			+ "AND `last_member_join_at` > 0 "
+			+ "AND UNIX_TIMESTAMP() - `last_member_join_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
+	if (.@type$ == "guild_notice_recent_name") {
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_guild_runtime` "
+			+ "WHERE `guild_name` = '" + .@key$ + "' "
+			+ "AND `last_notice_at` > 0 "
+			+ "AND UNIX_TIMESTAMP() - `last_notice_at` <= 900",
+			.@units);
+		return .@units[0];
+	}
+
 	if (.@type$ == "guild_storage_name") {
 		query_sql(
 			"SELECT COUNT(*) "

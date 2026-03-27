@@ -31,6 +31,11 @@ EOF
 
 check() {
 	tmux capture-pane -pt rathena-dev-map-server -S -200 2>/dev/null | tail -n 200 | grep 'playerbot_guild_selftest' || true
+	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
+SELECT \`guild_name\`, \`last_member_join_at\`, \`last_notice_at\`
+FROM \`bot_guild_runtime\`
+WHERE \`guild_name\` = 'PBG150001';
+EOF
 }
 
 main() {

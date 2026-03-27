@@ -1347,7 +1347,7 @@ CREATE TABLE IF NOT EXISTS `bot_controller_demand_map` (
 CREATE TABLE IF NOT EXISTS `bot_controller_demand_signal` (
   `controller_key` varchar(64) NOT NULL default '',
   `point_index` smallint(5) unsigned NOT NULL default '0',
-  `signal_type` enum('merchant_open_map','merchant_live_map','merchant_stock_map','merchant_browse_map','merchant_sale_map','guild_enabled_name','guild_roster_name','guild_live_name','guild_leader_name','guild_leader_live_name','guild_notice_name','guild_storage_name','guild_storage_log_name','guild_castle_name','guild_candidate_map') NOT NULL default 'merchant_open_map',
+  `signal_type` enum('merchant_open_map','merchant_live_map','merchant_stock_map','merchant_browse_map','merchant_sale_map','guild_enabled_name','guild_roster_name','guild_live_name','guild_leader_name','guild_leader_live_name','guild_notice_name','guild_join_recent_name','guild_notice_recent_name','guild_storage_name','guild_storage_log_name','guild_castle_name','guild_candidate_map') NOT NULL default 'merchant_open_map',
   `signal_key` varchar(64) NOT NULL default '',
   `signal_weight` smallint(5) unsigned NOT NULL default '1',
   PRIMARY KEY (`controller_key`,`point_index`),
@@ -1507,6 +1507,20 @@ CREATE TABLE IF NOT EXISTS `bot_guild_state` (
 ) ENGINE=InnoDB;
 
 --
+-- Table structure for table `bot_guild_runtime`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_guild_runtime` (
+  `guild_name` varchar(64) NOT NULL default '',
+  `last_member_join_at` int(10) unsigned NOT NULL default '0',
+  `last_notice_at` int(10) unsigned NOT NULL default '0',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`guild_name`),
+  KEY `last_member_join_at` (`last_member_join_at`),
+  KEY `last_notice_at` (`last_notice_at`)
+) ENGINE=InnoDB;
+
+--
 -- Table structure for table `bot_merchant_stock_item`
 --
 
@@ -1608,15 +1622,19 @@ VALUES
   ('social.prontera', 3, 'guild_leader_name', 'PBG150001', 1),
   ('social.prontera', 4, 'guild_leader_live_name', 'PBG150001', 2),
   ('social.prontera', 5, 'guild_notice_name', 'PBG150001', 1),
-  ('social.prontera', 6, 'guild_storage_name', 'PBG150001', 1),
-  ('social.prontera', 7, 'guild_storage_log_name', 'PBG150001', 1),
-  ('social.prontera', 8, 'guild_castle_name', 'PBG150001', 2),
+  ('social.prontera', 6, 'guild_join_recent_name', 'PBG150001', 2),
+  ('social.prontera', 7, 'guild_notice_recent_name', 'PBG150001', 1),
+  ('social.prontera', 8, 'guild_storage_name', 'PBG150001', 1),
+  ('social.prontera', 9, 'guild_storage_log_name', 'PBG150001', 1),
+  ('social.prontera', 10, 'guild_castle_name', 'PBG150001', 2),
   ('patrol.prontera', 0, 'guild_candidate_map', 'prontera', 1),
   ('patrol.prontera', 1, 'guild_roster_name', 'PBG150001', 1),
   ('patrol.prontera', 2, 'guild_leader_live_name', 'PBG150001', 1),
   ('patrol.prontera', 3, 'guild_notice_name', 'PBG150001', 1),
-  ('patrol.prontera', 4, 'guild_storage_name', 'PBG150001', 1),
-  ('patrol.prontera', 5, 'guild_castle_name', 'PBG150001', 2),
+  ('patrol.prontera', 4, 'guild_join_recent_name', 'PBG150001', 1),
+  ('patrol.prontera', 5, 'guild_notice_recent_name', 'PBG150001', 1),
+  ('patrol.prontera', 6, 'guild_storage_name', 'PBG150001', 1),
+  ('patrol.prontera', 7, 'guild_castle_name', 'PBG150001', 2),
   ('social.alberta', 0, 'merchant_open_map', 'alberta', 1),
   ('social.alberta', 1, 'merchant_stock_map', 'alberta', 1),
   ('social.alberta', 2, 'merchant_browse_map', 'alberta', 1),

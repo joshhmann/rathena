@@ -12011,6 +12011,20 @@ BUILDIN_FUNC(playerbot_guildcreate)
 }
 
 /*==========================================
+ * Change guild notice for the attached player's guild.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_guildnotice)
+{
+	map_session_data* sd = nullptr;
+
+	if (!script_rid2sd(sd))
+		return SCRIPT_CMD_FAILURE;
+
+	script_pushint(st, guild_change_notice(sd, sd->status.guild_id, script_getstr(st, 2), script_getstr(st, 3)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Read the leader char_id for one party_id.
  *------------------------------------------*/
 BUILDIN_FUNC(partyleadercharid)
@@ -29422,6 +29436,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_guildinvite,"i"),
 	BUILDIN_DEF(playerbot_guildid,"i"),
 	BUILDIN_DEF(playerbot_guildcreate,"s"),
+	BUILDIN_DEF(playerbot_guildnotice,"ss"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),

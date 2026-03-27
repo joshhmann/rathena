@@ -385,7 +385,33 @@ Status:
 - migration artifact:
   `sql-files/upgrades/upgrade_20260326_playerbot_guild_state.sql`
 
-### 12. `bot_party_state`
+### 12. `bot_guild_runtime`
+
+Runtime guild activity ledger used by scheduler demand.
+
+Committed fields:
+
+- `guild_name`
+- `last_member_join_at`
+- `last_notice_at`
+- `updated_at`
+
+Purpose:
+
+- records recent guild activity without overloading static guild-policy state
+- supports time-window scheduler signals such as:
+  - `guild_join_recent_name`
+  - `guild_notice_recent_name`
+- keeps recent guild activity queryable even when bots are parked or demand is
+  being evaluated without a live controller body
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260326_playerbot_guild_activity_signals.sql`
+
+### 13. `bot_party_state`
 
 Deferred until party-capable pseudo-players are implemented.
 
@@ -407,7 +433,7 @@ Status:
 
 - deferred
 
-### 13. `bot_controller_demand_signal`
+### 14. `bot_controller_demand_signal`
 
 One or more weighted participation-signal rows per controller policy.
 
@@ -419,8 +445,9 @@ Committed fields:
   - merchant_open_map, merchant_live_map, merchant_stock_map,
     merchant_browse_map, merchant_sale_map, guild_enabled_name,
     guild_roster_name, guild_live_name, guild_leader_name,
-    guild_leader_live_name, guild_notice_name, guild_storage_name,
-    guild_storage_log_name, guild_castle_name, guild_candidate_map
+    guild_leader_live_name, guild_notice_name, guild_join_recent_name,
+    guild_notice_recent_name, guild_storage_name, guild_storage_log_name,
+    guild_castle_name, guild_candidate_map
 - `signal_key`
 - `signal_weight`
 
@@ -433,6 +460,8 @@ Purpose:
   - configured guild-capable identity pressure
   - real linked guild roster membership
   - real linked guild members currently online
+  - recent guild joins
+  - recent guild notice changes
   - real guild storage depth
   - recent guild storage activity
   - guild castle ownership pressure
@@ -445,7 +474,7 @@ Status:
 - migration artifact:
   `sql-files/upgrades/upgrade_20260326_playerbot_demand_signals.sql`
 
-### 14. `bot_progression_state`
+### 15. `bot_progression_state`
 
 Deferred but explicitly expected for the fuller playerbot lane.
 

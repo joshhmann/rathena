@@ -98,6 +98,22 @@ static bool guild_playerbot_invite_response(map_session_data* tsd, bool* accept)
 	return true;
 }
 
+static void guild_playerbot_record_runtime(const char* guild_name, const char* column) {
+	char esc_name[129];
+
+	if (guild_name == nullptr || guild_name[0] == '\0' || column == nullptr || column[0] == '\0')
+		return;
+
+	Sql_EscapeStringLen(mmysql_handle, esc_name, guild_name, strnlen(guild_name, NAME_LENGTH));
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_guild_runtime` (`guild_name`, `%s`) "
+		"VALUES ('%s', UNIX_TIMESTAMP()) "
+		"ON DUPLICATE KEY UPDATE `%s` = UNIX_TIMESTAMP()",
+		column, esc_name, column)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
 static void guild_playerbot_sync_state(map_session_data* sd) {
 	char esc_name[129];
 
@@ -1222,6 +1238,7 @@ int32 guild_member_added(int32 guild_id,uint32 account_id,uint32 char_id,int32 f
 
 	// Update display name
 	clif_name_area(sd);
+	guild_playerbot_record_runtime(g->guild.name, "last_member_join_at");
 
 	if (g->instance_id > 0)
 		instance_reqinfo(sd, g->instance_id);
@@ -1643,6 +1660,7 @@ int32 guild_notice_changed(int32 guild_id,const char *mes1,const char *mes2) {
 		if(sd != nullptr)
 			clif_guild_notice( *sd );
 	}
+	guild_playerbot_record_runtime(g->guild.name, "last_notice_at");
 	return 0;
 }
 

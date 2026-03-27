@@ -3983,3 +3983,36 @@ Validation:
 
 Notes:
 - this is still demand/state only; it does not yet add guild notice authoring or guild chat behavior
+
+## Slice: Guild Activity Runtime Signals
+
+Date: 2026-03-26
+
+Summary:
+- added a small runtime guild-activity ledger so scheduler demand can react to recent guild joins and recent guild notice changes
+- updated the guild selftest to exercise both join and notice activity through the normal runtime path
+- extended the guild smoke helper to show the activity ledger directly
+
+Changed:
+- `src/map/guild.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `tools/ci/playerbot-guild-smoke.sh`
+- `npc/custom/living_world/_common.txt`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260326_playerbot_guild_activity_signals.sql`
+- `doc/project/bot-state-schema.md`
+
+Validation:
+- applied `sql-files/upgrades/upgrade_20260326_playerbot_guild_activity_signals.sql`
+- rebuilt `map-server`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-guild-smoke.sh arm`
+- OpenKore login with the `codex` test profile
+- `bash tools/ci/playerbot-guild-smoke.sh check`
+- verified `bot_guild_runtime` recorded:
+  - `last_member_join_at`
+  - `last_notice_at`
+
+Notes:
+- this is the first guild activity slice driven by runtime hooks rather than static guild table state only

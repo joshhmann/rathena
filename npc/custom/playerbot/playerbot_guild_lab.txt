@@ -3,7 +3,7 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 	mes "Drive the first guild-capable playerbot identity path.";
 	next;
 
-	switch(select("Quick guild self-provision:Quick full guild selftest:Provision guild bot:Spawn bot by key:Invite bot by key:Inspect bot by key:Reload SQL Pools:Close")) {
+	switch(select("Quick guild self-provision:Quick full guild selftest:Provision guild bot:Spawn bot by key:Invite bot by key:Set guild notice:Inspect bot by key:Reload SQL Pools:Close")) {
 	case 1:
 		.@bot_key$ = "quick_guild_member";
 		.@display_name$ = "PBQGuild01";
@@ -85,6 +85,19 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		close;
 
 	case 6:
+		if (!getcharid(2)) {
+			mes "[Playerbot Guild Lab]";
+			mes "You are not in a guild.";
+			close;
+		}
+		input .@mes1$;
+		input .@mes2$;
+		.@ok = playerbot_guildnotice(.@mes1$, .@mes2$);
+		mes "[Playerbot Guild Lab]";
+		mes .@ok ? "Guild notice update queued." : "Guild notice update failed.";
+		close;
+
+	case 7:
 		input .@bot_key$;
 		if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$)) {
 			mes "[Playerbot Guild Lab]";
@@ -103,7 +116,7 @@ prontera,144,177,4	script	Playerbot Guild Lab	4_M_02,{
 		mes "Current guild_id: " + playerbot_guildid($@pbbot_char_id);
 		close;
 
-	case 7:
+	case 8:
 		.@loaded = callfunc("F_PB_DB_LoadAllPools");
 		mes "[Playerbot Guild Lab]";
 		mes "Reloaded SQL-backed pools. Loaded " + .@loaded + " eligible identities.";
@@ -250,10 +263,22 @@ S_Run:
 	} else if (.inviter_gid > 0) {
 		.invite_ok = 1;
 	}
+	.notice_ok = 0;
+	.@joined = (.spawn_ok && .inviter_gid > 0 && .bot_gid == .inviter_gid);
+	if (.@joined) {
+		if (!attachrid(.aid)) {
+			.log$ = "attach-failed-post-invite";
+			debugmes "playerbot_guild_selftest: " + .log$ + " result=0.";
+			return;
+		}
+		.notice_ok = playerbot_guildnotice("PB selftest", "Guild activity signal probe");
+		sleep 1000;
+	}
 
-	.result = (.spawn_ok && .inviter_gid > 0 && .bot_gid == .inviter_gid);
+	.result = .@joined;
 	.log$ = "spawn=" + .spawn_ok
 		+ " invite=" + .invite_ok
+		+ " notice=" + .notice_ok
 		+ " inviter_gid=" + .inviter_gid
 		+ " bot_gid=" + .bot_gid
 		+ " status=" + headlesspc_status(.char_id);

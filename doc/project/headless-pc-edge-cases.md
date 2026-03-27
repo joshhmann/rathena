@@ -1326,3 +1326,11 @@ Current limits:
 - Scheduler demand can now react to whether a guild currently has notice text posted.
 - This is useful as a small social/activity signal without needing full guild-chat behavior yet.
 - The repo-local smoke helper can seed and clear notice text safely for the current dev guild.
+
+## Guild Activity Runtime
+
+- Static guild state was not enough once scheduler demand needed “recent activity” rather than only current presence.
+- A small `bot_guild_runtime` ledger now tracks:
+  - recent member joins
+  - recent notice changes
+- Those timestamps are written from real runtime hooks, not from raw scheduler SQL.
