@@ -10,6 +10,10 @@ Use it when:
 - reviewing whether two branches are safe to run in parallel
 - checking the intended scope, file ownership, and acceptance target for a branch
 
+Also read:
+
+- `doc/project/playerbot-collaborator-brief.md`
+
 ## Current Rule
 
 Parallel work is allowed only when write scopes are clearly disjoint.
@@ -35,6 +39,7 @@ Required for every branch:
 - desktop-client validation when visual or interaction-heavy
 - SQL artifact when DB changes
 - branch brief kept current enough that another Codex instance can start from the repo alone
+- side-lane labels must distinguish static config from live runtime truth
 
 ## Parallel Policy
 
@@ -125,3 +130,13 @@ Best next assignments:
 
 If a branch needs to touch `_common.txt`, it should usually be the primary branch
 for that round.
+
+## Side-Lane Guardrail
+
+For tooling and diagnostics branches:
+
+- do not present configured scheduler/controller fields as live runtime demand
+- if a tool only reads config/state tables, label them honestly as configured
+  thresholds or supply snapshots
+- if a tool wants to report live requested/runtime demand, it must say exactly
+  which live runtime source it reads

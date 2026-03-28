@@ -12,6 +12,7 @@ Use the repo-local project docs as the authority for scope, architecture, and va
 - `doc/project/openkore-test-harness.md`
 - `doc/project/playerbot-foundation-priorities.md`
 - `doc/project/playerbot-foundation-program.md`
+- `doc/project/playerbot-collaborator-brief.md`
 - `doc/project/parallel-branch-workmap.md`
 - `doc/project/parallel-branches/*.md`
 
@@ -127,6 +128,8 @@ Main-thread role in parallel work:
 - review and integrate
 - keep shared hotspots coherent
 - reject parallel drift instead of silently merging it
+- require side-lane contributors to follow
+  `doc/project/playerbot-collaborator-brief.md`
 
 ## Coding And Content Rules
 Follow `.editorconfig`.
