@@ -2120,3 +2120,24 @@ Current limit:
 - the merged timeline is script-first and read-only
 - it does not yet use shared correlation ids across trace/audit rows
 - it is optimized for recent operator debugging, not long-range replay
+
+Contested live handoffs:
+
+- pooled controller ticks now treat live owner conflicts as an explicit recovery
+  boundary, not a silent `return 0`
+- current tick-time contested-handoff detail codes are:
+  - `live.owner_split`
+  - `claim.denied`
+
+Current behavior:
+
+- when a pooled actor reaches tick-time live-owner contention or claim denial,
+  the local slot assignment is cleared
+- recovery is recorded in:
+  - `bot_recovery_audit`
+  - `bot_trace_event`
+
+Current limit:
+
+- this slice improves visibility and reacquire safety, but it does not yet add a
+  dedicated forced `claim.denied` smoke harness

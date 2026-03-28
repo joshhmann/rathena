@@ -1594,6 +1594,17 @@ function	script	F_PB_DB_TraceEmitByBotKey	{
 	);
 }
 
+function	script	F_PB_DB_BotIdByCharId	{
+	.@char_id = getarg(0, 0);
+	if (.@char_id < 1)
+		return 0;
+	query_sql(
+		"SELECT `bot_id` FROM `bot_identity_link` "
+		+ "WHERE `char_id` = '" + .@char_id + "' LIMIT 1",
+		.@bot_id);
+	return .@bot_id[0];
+}
+
 function	script	F_PB_DB_BuildRecentTraceSummary$	{
 	.@controller_id$ = escape_sql(getarg(0, ""));
 	.@bot_key$ = escape_sql(getarg(1, ""));
@@ -3787,7 +3798,7 @@ function	script	F_LW_HPC_DefResolveActor	{
 		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@assigned);
 		.@current_profile$ = callfunc("F_PB_POOL_Profile", .@pool$, .@assigned);
 		.@current_role$ = callfunc("F_PB_POOL_Role", .@pool$, .@assigned);
-		query_sql("SELECT `bot_id` FROM `bot_identity_link` WHERE `char_id` = '" + .@assigned + "' LIMIT 1", .@audit_bot_id);
+		.@audit_bot_id = callfunc("F_PB_DB_BotIdByCharId", .@assigned);
 		.@live_status = headlesspc_status(.@assigned);
 		.@live_owner$ = (.@live_status == 2 ? headlesspc_owner(.@assigned) : "");
 		if (.@current_owner$ == .@owner$
@@ -3816,7 +3827,7 @@ function	script	F_LW_HPC_DefResolveActor	{
 			+ ",live_owner=" + (.@live_owner$ == "" ? "<none>" : .@live_owner$)
 			+ ",profile=" + (.@current_profile$ == "" ? "<none>" : .@current_profile$)
 			+ ",role=" + (.@current_role$ == "" ? "<none>" : .@current_role$);
-		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "repair", .@audit_bot_id[0], .@before$, "slot.cleared", "ok", .@detail$;
+		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "repair", .@audit_bot_id, .@before$, "slot.cleared", "ok", .@detail$;
 		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, .@reason$, .@before$, "", .@pool$, "ok", 0, "slot.clear", "", .@detail$;
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	}
@@ -3838,11 +3849,11 @@ function	script	F_LW_HPC_DefReleaseActor	{
 	if (.@pool$ == "" || .@assigned < 1)
 		return 0;
 	.@current_owner$ = callfunc("F_PB_POOL_Owner", .@assigned);
-	query_sql("SELECT `bot_id` FROM `bot_identity_link` WHERE `char_id` = '" + .@assigned + "' LIMIT 1", .@audit_bot_id);
+	.@audit_bot_id = callfunc("F_PB_DB_BotIdByCharId", .@assigned);
 	.@before$ = "slot=" + .@i + ",pool=" + .@pool$ + ",owner=" + (.@current_owner$ == "" ? "<none>" : .@current_owner$);
 	if (.@current_owner$ != .@owner$) {
 		.@detail$ = (.@current_owner$ == "" ? "slot.owner_missing" : "owner.split");
-		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "release", .@audit_bot_id[0], .@before$, "slot.cleared", "ok", .@detail$;
+		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "release", .@audit_bot_id, .@before$, "slot.cleared", "ok", .@detail$;
 		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "claim.lost", .@before$, "", .@pool$, "ok", 0, "slot.clear", "", .@detail$;
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 		return 1;
@@ -4716,11 +4727,33 @@ function	script	F_LW_HPC_DefTickActor	{
 		return 0;
 
 	.@current_owner$ = headlesspc_owner(.@char_id);
-	if (.@current_owner$ != "" && .@current_owner$ != .@owner$)
+	if (.@current_owner$ != "" && .@current_owner$ != .@owner$) {
+		.@audit_bot_id = callfunc("F_PB_DB_BotIdByCharId", .@char_id);
+		.@before$ = "slot=" + .@i
+			+ ",pool=" + (.@pool$ == "" ? "<none>" : .@pool$)
+			+ ",owner=" + .@owner$
+			+ ",live_owner=" + .@current_owner$
+			+ ",mode=" + .@mode$;
+		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "repair", .@audit_bot_id, .@before$, "slot.cleared", "ok", "live.owner_split";
+		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@char_id, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "claim.lost", .@before$, "", .@pool$, "ok", 0, "slot.clear", "", "live.owner_split";
+		if (.@pool$ != "")
+			setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 		return 0;
+	}
 
-	if (!headlesspc_claim(.@char_id, .@owner$))
+	if (!headlesspc_claim(.@char_id, .@owner$)) {
+		.@audit_bot_id = callfunc("F_PB_DB_BotIdByCharId", .@char_id);
+		.@before$ = "slot=" + .@i
+			+ ",pool=" + (.@pool$ == "" ? "<none>" : .@pool$)
+			+ ",owner=" + .@owner$
+			+ ",mode=" + .@mode$
+			+ ",map=" + .@map$ + "(" + .@x + "," + .@y + ")";
+		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "repair", .@audit_bot_id, .@before$, "slot.cleared", "ok", "claim.denied";
+		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@char_id, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "claim.lost", .@before$, "", .@pool$, "ok", 0, "slot.clear", "claim.denied", "";
+		if (.@pool$ != "")
+			setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 		return 0;
+	}
 
 	.@current_map$ = headlesspc_map(.@char_id);
 	.@current_x = headlesspc_x(.@char_id);

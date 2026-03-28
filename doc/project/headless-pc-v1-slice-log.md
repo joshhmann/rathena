@@ -5468,3 +5468,50 @@ This slice does not add:
 - a dedicated CLI timeline joiner on top of the new lab view
 - replay/snapshot semantics
 - automatic correlation IDs between trace and recovery rows
+
+## Slice 59: Contested Handoff Recovery Audits
+
+### Summary
+
+This slice broadens ownership/handoff recovery coverage for pooled controller
+ticks. The goal is to stop treating live owner conflicts and failed claims as
+silent scheduler churn.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared helper:
+  - `F_PB_DB_BotIdByCharId`
+- `F_LW_HPC_DefResolveActor` and `F_LW_HPC_DefReleaseActor` now use the shared
+  bot-id lookup instead of ad hoc SQL arrays.
+- `F_LW_HPC_DefTickActor` now audits and traces two contested handoff cases that
+  previously returned `0` quietly:
+  - live owner mismatch during tick:
+    - detail `live.owner_split`
+  - failed `headlesspc_claim(...)` during tick:
+    - detail `claim.denied`
+- For pooled actors, those failures now clear the local slot assignment so the
+  controller can reacquire cleanly on a later tick instead of pretending the
+  stale handoff is still valid.
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash -n tools/ci/playerbot-state-smoke.sh`
+- `bash tools/ci/playerbot-state-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-state-smoke.sh check`
+- verified the ownership smoke still passes on the integrated baseline
+
+### Deferrals
+
+This slice does not add:
+
+- a forced live `claim.denied` smoke harness yet
+- epoch-token persistence outside the current controller/runtime layer
+- automatic reservation cleanup for every contested live-owner mismatch
