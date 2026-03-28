@@ -4995,3 +4995,67 @@ Notes:
   debugging
 - item/storage mutation traces currently reuse the existing `interaction` phase
   because the trace schema is still on the first minimal event family set
+
+## Participation Hooks V4
+
+### Summary
+
+Deepened the participation foundation in three adjacent areas:
+- explicit trade recovery helpers for stale or interrupted trade state
+- reservation-backed contested NPC dialog starts
+- a multi-NPC quest-style participation proof that carries state across two NPCs
+
+### Files Touched
+
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### Runtime Additions
+
+New script buildins:
+- `playerbot_traderecover(bot_key$)`
+- `playerbot_tradecharrecover(char_id)`
+
+New shared script helpers:
+- `F_PB_PART_NPCResourceKey$`
+- `F_PB_PART_NPCStartReserved`
+- `F_PB_PART_NPCCloseReserved`
+- `F_PB_PART_NPCRecoverReserved`
+
+### Behavior
+
+- trade recovery now has an explicit bot-safe path that:
+  - cancels a live trade if a partner still exists
+  - force-clears stale local trade state if flags remain after cancel
+  - emits interaction traces with `target_type = trade_recover`
+- contested dialog starts can now reserve `dialog_target` resources before
+  calling `playerbot_npcstart`
+- participation now has a multi-NPC relay proof:
+  - `Playerbot Quest Relay A`
+  - `Playerbot Quest Relay B`
+  - the proof covers:
+    - cross-NPC state carry
+    - string input
+    - reserved dialog contention
+    - recovery/cleanup between relay steps
+
+### Validation
+
+- rebuilt `map-server`
+- restarted with `bash tools/dev/playerbot-dev.sh restart`
+- armed and ran the repo-local participation smoke:
+  - `bash tools/ci/playerbot-participation-smoke.sh arm`
+  - OpenKore `codex` login
+  - `bash tools/ci/playerbot-participation-smoke.sh check`
+- final selftest line:
+  - `playerbot_participation_selftest: spawn_ok=1 dialog_ok=1 dialog_deep_ok=1 dialog_quest_ok=1 storage_basic_ok=1 storage_manual_ok=1 storage_recover_ok=1 storage_mutation_ok=1 trade_ok=1 trade_recover_ok=1 trade_force_clear_ok=1 park_ok=1 trace_ok=1 result=1.`
+
+### Notes
+
+- the quest relay proof intentionally validates state handoff and participation
+  legality, not quest-content complexity
+- reservation-backed dialog starts are still opt-in through shared helpers; the
+  generic `playerbot_npcstart` verb itself remains unchanged

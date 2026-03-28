@@ -397,6 +397,31 @@ static int32 playerbot_trade_window_amount(const map_session_data* sd, t_itemid 
 	return total;
 }
 
+static bool playerbot_trade_has_staged(const map_session_data* sd) {
+	if (sd == nullptr)
+		return false;
+	if (sd->deal.zeny > 0)
+		return true;
+	for (int32 i = 0; i < 10; ++i) {
+		if (sd->deal.item[i].amount > 0)
+			return true;
+	}
+	return false;
+}
+
+static void playerbot_trade_force_clear(map_session_data* sd) {
+	if (sd == nullptr)
+		return;
+	sd->deal.zeny = 0;
+	for (int32 i = 0; i < 10; ++i) {
+		sd->deal.item[i].index = 0;
+		sd->deal.item[i].amount = 0;
+	}
+	sd->state.deal_locked = 0;
+	sd->state.trading = 0;
+	sd->trade_partner = { 0, 0 };
+}
+
 static void playerbot_cleanup_provisioned(uint32 account_id, uint32 char_id, uint32 bot_id) {
 	if (bot_id != 0) {
 		Sql_Query(mmysql_handle, "DELETE FROM `bot_guild_state` WHERE `bot_id` = '%u'", bot_id);
@@ -12971,6 +12996,37 @@ BUILDIN_FUNC(playerbot_tradelocked)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_traderecover)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade_recover", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade_recover", "", "target.invalid", "denied", "trade.recover", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool had_state = (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd));
+	if (!had_state) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "trade_recover", "", "restart.recovery", "noop", "", "already.clear");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->trade_partner.id != 0 || sd->state.trading)
+		trade_tradecancel(sd);
+	if (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd))
+		playerbot_trade_force_clear(sd);
+
+	bool ok = (sd->trade_partner.id == 0 && !sd->state.trading && sd->state.deal_locked == 0 && !playerbot_trade_has_staged(sd));
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade_recover", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "trade.recover", ok ? "" : "trade.still_active");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_zeny)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -13150,6 +13206,26 @@ BUILDIN_FUNC(playerbot_tradecharactive)
 	int32 char_id = script_getnum(st, 2);
 	map_session_data* sd = map_charid2sd(char_id);
 	script_pushint(st, (sd != nullptr && (sd->trade_partner.id != 0 || sd->state.trading)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharrecover)
+{
+	int32 char_id = script_getnum(st, 2);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->trade_partner.id == 0 && !sd->state.trading && sd->state.deal_locked == 0 && !playerbot_trade_has_staged(sd)) {
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->trade_partner.id != 0 || sd->state.trading)
+		trade_tradecancel(sd);
+	if (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd))
+		playerbot_trade_force_clear(sd);
+	script_pushint(st, (sd->trade_partner.id == 0 && !sd->state.trading && sd->state.deal_locked == 0 && !playerbot_trade_has_staged(sd)) ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -30601,6 +30677,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_tradepartner,"s"),
 	BUILDIN_DEF(playerbot_tradeactive,"s"),
 	BUILDIN_DEF(playerbot_tradelocked,"s"),
+	BUILDIN_DEF(playerbot_traderecover,"s"),
 	BUILDIN_DEF(playerbot_zeny,"s"),
 	BUILDIN_DEF(playerbot_tradeplayerack,"i"),
 	BUILDIN_DEF(playerbot_tradeplayerok,""),
@@ -30615,6 +30692,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_tradecharcancel,"i"),
 	BUILDIN_DEF(playerbot_tradecharcommit,"i"),
 	BUILDIN_DEF(playerbot_tradecharactive,"i"),
+	BUILDIN_DEF(playerbot_tradecharrecover,"i"),
 	BUILDIN_DEF(playerbot_tradecharpartner,"i"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),

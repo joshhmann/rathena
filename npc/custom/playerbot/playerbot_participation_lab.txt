@@ -3,7 +3,7 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 	mes "Drive the first NPC, storage, and trade participation hooks.";
 	next;
 
-	switch(select("Run full participation selftest:Inspect quick participation bot:Close")) {
+	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Close")) {
 	case 1:
 		setd("$PBPST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotParticipationSelftest::OnManualStart";
@@ -22,6 +22,13 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
 		mes "Headless status: " + headlesspc_status($@pbbot_char_id);
 		mes "NPC / Storage / Trade: " + playerbot_npcactive(.bot_key$) + " / " + playerbot_storageisopen(.bot_key$) + " / " + playerbot_tradeactive(.bot_key$) + " / lock " + playerbot_tradelocked(.bot_key$);
+		close;
+	case 3:
+		mes "[Playerbot Participation Lab]";
+		mes callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", "Playerbot Dialog Probe");
+		next;
+		mes "[Playerbot Participation Lab]";
+		mes callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", "Playerbot Quest Relay A");
 		close;
 	}
 	close;
@@ -76,6 +83,54 @@ alberta,169,135,4	script	Playerbot Dialog Deep Probe	4_M_01,{
 		setd("$PBPART_DEEP_HANDIN_" + getcharid(0), 0);
 	}
 	setd("$PBPART_DEEP_STR_" + getcharid(0) + "$", .@phrase$);
+	close;
+}
+
+alberta,172,135,4	script	Playerbot Quest Relay A	4_F_01,{
+	mes "[Playerbot Quest Relay A]";
+	mes "Courier relay step one.";
+	next;
+	.@branch = select("Take courier token:Abort run");
+	if (.@branch == 1) {
+		setd("$PBPART_QUEST_STAGE_" + getcharid(0), 1);
+		setd("$PBPART_QUEST_BRANCH_" + getcharid(0), 1);
+		mes "[Playerbot Quest Relay A]";
+		mes "Relay marker granted. Report to relay B.";
+		close;
+	}
+	setd("$PBPART_QUEST_STAGE_" + getcharid(0), 0);
+	setd("$PBPART_QUEST_BRANCH_" + getcharid(0), 2);
+	mes "[Playerbot Quest Relay A]";
+	mes "Run aborted.";
+	close;
+}
+
+alberta,175,135,4	script	Playerbot Quest Relay B	4_F_01,{
+	mes "[Playerbot Quest Relay B]";
+	mes "Courier relay step two.";
+	next;
+	if (getd("$PBPART_QUEST_STAGE_" + getcharid(0)) != 1) {
+		mes "[Playerbot Quest Relay B]";
+		mes "No active courier token.";
+		close;
+	}
+	input .@phrase$;
+	setd("$PBPART_QUEST_PHRASE_" + getcharid(0) + "$", .@phrase$);
+	mes "[Playerbot Quest Relay B]";
+	mes "Phrase received.";
+	next;
+	.@choice = select("Hand in token:Keep token");
+	setd("$PBPART_QUEST_FINAL_" + getcharid(0), .@choice);
+	if (.@choice == 1) {
+		setd("$PBPART_QUEST_STAGE_" + getcharid(0), 2);
+		setd("$PBPART_QUEST_DONE_" + getcharid(0), 1);
+		mes "[Playerbot Quest Relay B]";
+		mes "Relay completed.";
+		close;
+	}
+	setd("$PBPART_QUEST_DONE_" + getcharid(0), 0);
+	mes "[Playerbot Quest Relay B]";
+	mes "Relay left incomplete.";
 	close;
 }
 
@@ -227,6 +282,42 @@ S_Run:
 	.@deep_phrase_ok = (strcmp(.@deep_phrase$, "supply-pass") == 0);
 	.@dialog_deep_ok = (.@deep_start_ok && .@deep_next_ok && .@deep_str_ok && .@deep_next2_ok && .@deep_menu1_ok && .@deep_next3_ok && .@deep_menu2_ok && .@deep_close_ok && .@deep_phrase_ok && .@deep_menu == 11 && .@deep_handin == 1 && .@deep_idle_ok);
 
+	setd("$PBPART_QUEST_STAGE_" + .char_id, 0);
+	setd("$PBPART_QUEST_BRANCH_" + .char_id, 0);
+	setd("$PBPART_QUEST_FINAL_" + .char_id, 0);
+	setd("$PBPART_QUEST_DONE_" + .char_id, 0);
+	setd("$PBPART_QUEST_PHRASE_" + .char_id + "$", "");
+	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuest", "preflight";
+	.@quest_block_id = callfunc("F_PB_RES_Acquire", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuest", 15000, 60, "selftest.block");
+	.@quest_blocked_ok = (.@quest_block_id > 0 && !callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationQuest", "quest.relay"));
+	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuest", "selftest.release";
+	.@quest_start_a_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationQuest", "quest.relay");
+	sleep 200;
+	.@quest_next_a_ok = playerbot_npcnext(.bot_key$);
+	sleep 200;
+	.@quest_menu_a_ok = playerbot_npcmenu(.bot_key$, 1);
+	sleep 300;
+	.@quest_close_a_ok = callfunc("F_PB_PART_NPCCloseReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationQuest");
+	sleep 300;
+	.@quest_stage1_ok = (getd("$PBPART_QUEST_STAGE_" + .char_id) == 1 && getd("$PBPART_QUEST_BRANCH_" + .char_id) == 1);
+	.@quest_start_b_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay B", "ParticipationQuest", "quest.relay");
+	sleep 200;
+	.@quest_next_b1_ok = playerbot_npcnext(.bot_key$);
+	sleep 200;
+	.@quest_input_b_ok = playerbot_npcinputstr(.bot_key$, "handoff-ready");
+	sleep 200;
+	.@quest_next_b2_ok = playerbot_npcnext(.bot_key$);
+	sleep 200;
+	.@quest_menu_b_ok = playerbot_npcmenu(.bot_key$, 1);
+	sleep 300;
+	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay B"), .bot_key$, "ParticipationQuest", "quest.done";
+	.@quest_close_b_ok = callfunc("F_PB_PART_NPCRecoverReserved", .bot_key$, "ParticipationQuest");
+	sleep 300;
+	.@quest_phrase$ = getd("$PBPART_QUEST_PHRASE_" + .char_id + "$");
+	.@quest_stage2_ok = (getd("$PBPART_QUEST_DONE_" + .char_id) == 1 && getd("$PBPART_QUEST_FINAL_" + .char_id) == 1 && strcmp(.@quest_phrase$, "handoff-ready") == 0);
+	.@quest_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
+	.@dialog_quest_ok = (.@quest_blocked_ok && .@quest_start_a_ok && .@quest_next_a_ok && .@quest_menu_a_ok && .@quest_close_a_ok && .@quest_stage1_ok && .@quest_start_b_ok && .@quest_next_b1_ok && .@quest_input_b_ok && .@quest_next_b2_ok && .@quest_menu_b_ok && .@quest_close_b_ok && .@quest_stage2_ok && .@quest_idle_ok);
+
 	.@storage_open_ok = playerbot_storageopen(.bot_key$);
 	.@storage_live_ok = (playerbot_storageisopen(.bot_key$) == 1);
 	.@storage_close_ok = playerbot_storageclose(.bot_key$);
@@ -343,6 +434,38 @@ S_Run:
 	.@tcclear = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
 	.@trade_recover_ok = (.@trade_player_clear2_ok && .@tcr_ok && .@tca_ok && .@tcbi_ok && .@tcpi_ok && .@tcpz_ok && .@tcc_ok && .@tcclear && .@tcba == .@tcbb + 1 && .@tca == .@tcb && .@tcza == .@tczb);
 
+	if (playerbot_tradeactive(.bot_key$))
+		playerbot_traderecover(.bot_key$);
+	.@trade_player_clear3_ok = playerbot_tradecharrecover(.inviter_char_id);
+	sleep 300;
+	attachrid(.aid);
+	getitem 601,1;
+	if (Zeny < 5000)
+		Zeny = 5000;
+	.@trsb = countitem(601);
+	.@trzb = Zeny;
+	detachrid;
+	.@trbb = playerbot_itemcount(.bot_key$, "inventory", 601);
+	playerbot_itemgrant(.bot_key$, 601, 1);
+	.@tr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+	sleep 200;
+	.@tr_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	sleep 200;
+	.@tr_bot_item_ok = playerbot_tradeadditem(.bot_key$, 601, 1);
+	.@tr_player_item_ok = playerbot_tradecharadditem(.inviter_char_id, 601, 1);
+	.@tr_player_zeny_ok = playerbot_tradecharaddzeny(.inviter_char_id, 33);
+	sleep 200;
+	.@tr_bot_recover_ok = playerbot_traderecover(.bot_key$);
+	sleep 200;
+	.@tr_player_recover_ok = playerbot_tradecharrecover(.inviter_char_id);
+	sleep 300;
+	attachrid(.aid);
+	.@trsa = countitem(601);
+	.@trza = Zeny;
+	detachrid;
+	.@trba = playerbot_itemcount(.bot_key$, "inventory", 601);
+	.@trade_force_clear_ok = (.@trade_player_clear3_ok && .@tr_request_ok && .@tr_ack_ok && .@tr_bot_item_ok && .@tr_player_item_ok && .@tr_player_zeny_ok && .@tr_bot_recover_ok && .@tr_player_recover_ok && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id) && .@trba == .@trbb + 1 && .@trsa == .@trsb && .@trza == .@trzb);
+
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
 		sleep 300;
@@ -357,13 +480,13 @@ S_Run:
 		+ "FROM `bot_trace_event` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' "
 		+ "AND `phase` = 'interaction' "
-		+ "AND `target_type` IN ('npc','npc_input','npc_inputstr','npc_menu','npc_close','storage','trade','trade_item','trade_zeny','trade_ok','trade_commit') "
+		+ "AND `target_type` IN ('npc','npc_input','npc_inputstr','npc_menu','npc_close','storage','trade','trade_item','trade_zeny','trade_ok','trade_commit','trade_recover') "
 		+ "AND `ts` >= UNIX_TIMESTAMP() - 300",
 		.@trace_count);
-	.@trace_ok = (.@trace_rows > 0 && .@trace_count[0] >= 24);
+	.@trace_ok = (.@trace_rows > 0 && .@trace_count[0] >= 30);
 
-	.@result = (.@dialog_ok && .@dialog_deep_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@park_ok && .@trace_ok);
-	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
+	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@park_ok && .@trace_ok);
+	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }
