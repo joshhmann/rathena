@@ -5194,3 +5194,55 @@ wrapper.
   - `trade / recover / ok / trade.cleared`
   - `trade / recover / noop / already.clear`
   - `participation / recover / ok / participation.cleared`
+
+
+## Slice 56: Repo-Local Playerbot Trace Tooling
+
+### Goal
+
+Add a repo-local CLI tool for inspecting `bot_trace_event` so operators can
+answer why bots were assigned, failed, parked, or reconciled without querying
+SQL by hand.
+
+### Files Touched
+
+- `tools/ci/playerbot-trace.sh` (new)
+- `doc/project/playerbot-trace-tooling.md` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- added `tools/ci/playerbot-trace.sh`
+- added `doc/project/playerbot-trace-tooling.md`
+- the CLI supports:
+  - `recent`
+  - `failures`
+  - `bot`
+  - `controller`
+  - `map`
+  - `action`
+  - `why-assigned`
+  - `why-failed`
+  - `why-parked`
+  - `stats`
+- aligned DB defaults with the repo-local dev config:
+  - `rathena`
+  - `rathena_secure_2024`
+- hardened the tool for the integrated baseline:
+  - fixed unset color handling
+  - switched MySQL queries to batch/tab output
+  - fixed `set -e` counter exits
+  - stabilized empty-column parsing so controller/map/reason fields do not shift
+
+### Validation
+
+- `bash tools/ci/playerbot-trace.sh --help`
+- `bash tools/ci/playerbot-trace.sh --no-color recent 5`
+- `bash tools/ci/playerbot-trace.sh --no-color stats`
+- `bash tools/ci/playerbot-trace.sh --no-color controller "MerchantRuntimeReconcile" 3`
+
+### Notes
+
+- this slice is intentionally repo-local CLI tooling only
+- it does not change runtime/controller semantics
+- replay and richer timeline reconstruction are still deferred
