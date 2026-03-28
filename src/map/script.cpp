@@ -12638,6 +12638,31 @@ BUILDIN_FUNC(playerbot_npcnumber)
 }
 
 /*==========================================
+ * Submit one NPC string input for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_npcinputstr)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* value = script_getstr(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc_inputstr", value, "none", "ok", "", "");
+
+	if (sd == nullptr || sd->npc_id == 0 || sd->st == nullptr || !sd->state.menu_or_input) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc_inputstr", value, "target.invalid", "denied", "npc.inputstr", "input.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	safestrncpy(sd->npc_str, value, sizeof(sd->npc_str));
+	bool failed = npc_scriptcont(sd, sd->npc_id, false);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, failed ? "interaction.failed" : "interaction.completed", "npc_inputstr", value, failed ? "script.busy" : "none", failed ? "aborted" : "ok", failed ? "npc.inputstr" : "", failed ? "input.cont_failed" : "");
+	script_pushint(st, failed ? 0 : 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Close one NPC/dialog interaction for a live playerbot.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_npcclose)
@@ -12933,6 +12958,15 @@ BUILDIN_FUNC(playerbot_tradelocked)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_zeny)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->status.zeny : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_tradeplayerack)
 {
 	map_session_data* sd = nullptr;
@@ -13028,6 +13062,43 @@ BUILDIN_FUNC(playerbot_tradecharok)
 	}
 	trade_tradeok(sd);
 	script_pushint(st, sd->state.deal_locked >= 1 ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharadditem)
+{
+	int32 char_id = script_getnum(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 amount = script_getnum(st, 4);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.trading || amount <= 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 index = playerbot_find_inventory_index(sd, nameid, false);
+	if (index < 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradeadditem(sd, index, amount);
+	script_pushint(st, playerbot_trade_window_amount(sd, nameid) >= amount ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharaddzeny)
+{
+	int32 char_id = script_getnum(st, 2);
+	int32 amount = script_getnum(st, 3);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.trading || amount < 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradeaddzeny(sd, amount);
+	script_pushint(st, sd->deal.zeny == amount ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -30499,6 +30570,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_npcnext,"s"),
 	BUILDIN_DEF(playerbot_npcmenu,"si"),
 	BUILDIN_DEF(playerbot_npcnumber,"si"),
+	BUILDIN_DEF(playerbot_npcinputstr,"ss"),
 	BUILDIN_DEF(playerbot_npcclose,"s"),
 	BUILDIN_DEF(playerbot_npcactive,"s"),
 	BUILDIN_DEF(playerbot_storagedeposit,"sii"),
@@ -30516,6 +30588,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_tradepartner,"s"),
 	BUILDIN_DEF(playerbot_tradeactive,"s"),
 	BUILDIN_DEF(playerbot_tradelocked,"s"),
+	BUILDIN_DEF(playerbot_zeny,"s"),
 	BUILDIN_DEF(playerbot_tradeplayerack,"i"),
 	BUILDIN_DEF(playerbot_tradeplayerok,""),
 	BUILDIN_DEF(playerbot_tradeplayercancel,""),
@@ -30524,6 +30597,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_tradeplayerpartner,""),
 	BUILDIN_DEF(playerbot_tradecharack,"ii"),
 	BUILDIN_DEF(playerbot_tradecharok,"i"),
+	BUILDIN_DEF(playerbot_tradecharadditem,"iii"),
+	BUILDIN_DEF(playerbot_tradecharaddzeny,"ii"),
 	BUILDIN_DEF(playerbot_tradecharcancel,"i"),
 	BUILDIN_DEF(playerbot_tradecharcommit,"i"),
 	BUILDIN_DEF(playerbot_tradecharactive,"i"),

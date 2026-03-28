@@ -1916,14 +1916,28 @@ Current support:
 
 Current limits:
 
-- the current dialog path proves direct script participation but does not yet
-  cover richer NPC flows like nested menus, item hand-ins, or quest state
-  mutation
-- storage support currently proves ownership/open-state cleanup, not full
-  rollback semantics for interrupted multi-step storage mutations
-- trade support now covers full request/accept/lock/commit completion in the
-  repo-local selftest path, but deeper trade semantics like dual-sided item and
-  zeny negotiation recovery are still later slices
+- the current dialog path now covers:
+  - numeric input
+  - string input
+  - nested menu branching
+  - deterministic item hand-in
+  but still does not cover richer quest-state mutation or broad NPC-specific
+  scripted side effects
+- storage support now covers:
+  - open/close ownership
+  - manual recovery
+  - despawn/respawn session reset
+  - deposit persistence across forced recovery
+  but still does not cover broader rollback semantics for interrupted
+  multi-step storage mutations
+- trade support now covers:
+  - request/accept
+  - staged item negotiation
+  - staged zeny negotiation on the player side
+  - lock/commit completion
+  - cancel rollback after staged negotiation
+  but still does not cover broader dual-sided negotiation policy or partial
+  failure recovery after peer disconnect mid-commit
 
 Important behavior:
 

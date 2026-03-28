@@ -4909,3 +4909,46 @@ Notes:
 - `playerbot_tradecommit` now treats `deal_locked >= 2` as local commit success
   even before the peer-side commit clears the trade, while the selftest still
   separately proves final trade clearance
+
+## Slice: Participation Hooks V3
+
+Date: 2026-03-27
+
+Summary:
+- deepened the participation lane again with richer dialog input/branching,
+  storage mutation recovery, and trade rollback after staged negotiation
+- added string NPC input and char-targeted trade staging helpers so the same
+  repo-local selftest can prove more realistic multi-step mechanic flows
+
+Changed:
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified final selftest line:
+  - `playerbot_participation_selftest: spawn_ok=1 dialog_ok=1 dialog_deep_ok=1 storage_basic_ok=1 storage_manual_ok=1 storage_recover_ok=1 storage_mutation_ok=1 trade_ok=1 trade_recover_ok=1 park_ok=1 trace_ok=1 result=1.`
+- verified live client outcomes:
+  - clean trade completion
+  - clean trade cancel after staged negotiation
+- verified recent interaction traces for:
+  - `npc_inputstr`
+  - `trade_zeny`
+  - `trade_item`
+  - `trade_commit`
+
+Notes:
+- the deeper dialog probe now proves:
+  - string input
+  - nested branch selection
+  - deterministic item hand-in path
+- storage mutation recovery now proves that a deposit made during an open
+  storage session persists cleanly across forced despawn/respawn while the
+  reopened bot returns with no lingering storage ownership
+- trade recovery now proves rollback after staged negotiation rather than only
+  the clean completion path
