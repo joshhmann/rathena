@@ -147,9 +147,9 @@ S_RefreshBusyShopper:
 	.@pick = rand(1, 3);
 	.active_npc$[0] = "Busy Shopper";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Busy Shopper", 1, 171, 232; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Busy Shopper", 1, 186, 236; break;
-	case 3: callfunc "F_LW_SetAmbientActor", "Busy Shopper", 1, 150, 230; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Busy Shopper", 1, 1002, 171, 232; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Busy Shopper", 1, 1002, 186, 236; break;
+	case 3: callfunc "F_LW_SetAmbientMobActor", "Busy Shopper", 1, 1002, 150, 230; break;
 	}
 	return;
 
@@ -157,24 +157,24 @@ S_RefreshMarketBrowser:
 	.@pick = rand(1, 3);
 	.active_npc$[1] = "Market Browser";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Market Browser", 1, 176, 247; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Market Browser", 1, 160, 196; break;
-	case 3: callfunc "F_LW_SetAmbientActor", "Market Browser", 1, 145, 214; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Market Browser", 1, 1007, 176, 247; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Market Browser", 1, 1007, 160, 196; break;
+	case 3: callfunc "F_LW_SetAmbientMobActor", "Market Browser", 1, 1007, 145, 214; break;
 	}
 	return;
 
 S_RefreshTavernRegular:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 17 || .@hour > 23) {
-		callfunc "F_LW_SetAmbientActor", "Tavern Regular", 0;
+		callfunc "F_LW_SetAmbientMobActor", "Tavern Regular", 0, 1113;
 		.active_npc$[2] = "";
 		return;
 	}
 	.@pick = rand(1, 2);
 	.active_npc$[2] = "Tavern Regular";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Tavern Regular", 1, 208, 160; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Tavern Regular", 1, 203, 184; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Tavern Regular", 1, 1113, 208, 160; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Tavern Regular", 1, 1113, 203, 184; break;
 	}
 	return;
 
@@ -182,25 +182,25 @@ S_RefreshInnVisitor:
 	.@pick = rand(1, 3);
 	.active_npc$[3] = "Inn Visitor";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Inn Visitor", 1, 205, 196; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Inn Visitor", 1, 197, 188; break;
-	case 3: callfunc "F_LW_SetAmbientActor", "Inn Visitor", 1, 157, 188; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Inn Visitor", 1, 1063, 205, 196; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Inn Visitor", 1, 1063, 197, 188; break;
+	case 3: callfunc "F_LW_SetAmbientMobActor", "Inn Visitor", 1, 1063, 157, 188; break;
 	}
 	return;
 
 S_RefreshMerchAsst:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 8 || .@hour > 20) {
-		callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 0;
+		callfunc "F_LW_SetAmbientMobActor", "Merchant Assistant", 0, 1011;
 		.active_npc$[4] = "";
 		return;
 	}
 	.@pick = rand(1, 3);
 	.active_npc$[4] = "Merchant Assistant";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 1, 173, 244; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 1, 182, 249; break;
-	case 3: callfunc "F_LW_SetAmbientActor", "Merchant Assistant", 1, 132, 220; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Merchant Assistant", 1, 1011, 173, 244; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Merchant Assistant", 1, 1011, 182, 249; break;
+	case 3: callfunc "F_LW_SetAmbientMobActor", "Merchant Assistant", 1, 1011, 132, 220; break;
 	}
 	return;
 
@@ -208,40 +208,40 @@ S_RefreshNoviceAdv:
 	.@pick = rand(1, 3);
 	.active_npc$[5] = "Novice Adventurer";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Novice Adventurer", 1, 153, 187; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Novice Adventurer", 1, 120, 84; break;
-	case 3: callfunc "F_LW_SetAmbientActor", "Novice Adventurer", 1, 209, 156; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Novice Adventurer", 1, 1002, 153, 187; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Novice Adventurer", 1, 1002, 120, 84; break;
+	case 3: callfunc "F_LW_SetAmbientMobActor", "Novice Adventurer", 1, 1002, 209, 156; break;
 	}
 	return;
 
 S_RefreshTravelSword:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 10 || .@hour > 22) {
-		callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 0;
+		callfunc "F_LW_SetAmbientMobActor", "Traveling Swordsman", 0, 1008;
 		.active_npc$[6] = "";
 		return;
 	}
 	.@pick = rand(1, 3);
 	.active_npc$[6] = "Traveling Swordsman";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 1, 62, 333; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 1, 99, 184; break;
-	case 3: callfunc "F_LW_SetAmbientActor", "Traveling Swordsman", 1, 208, 153; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "Traveling Swordsman", 1, 1008, 62, 333; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "Traveling Swordsman", 1, 1008, 99, 184; break;
+	case 3: callfunc "F_LW_SetAmbientMobActor", "Traveling Swordsman", 1, 1008, 208, 153; break;
 	}
 	return;
 
 S_RefreshCityClerkRunner:
 	.@hour = gettime(DT_HOUR);
 	if (.@hour < 9 || .@hour > 18) {
-		callfunc "F_LW_SetAmbientActor", "City Clerk Runner", 0;
+		callfunc "F_LW_SetAmbientMobActor", "City Clerk Runner", 0, 1011;
 		.active_npc$[7] = "";
 		return;
 	}
 	.@pick = rand(1, 2);
 	.active_npc$[7] = "City Clerk Runner";
 	switch (.@pick) {
-	case 1: callfunc "F_LW_SetAmbientActor", "City Clerk Runner", 1, 77, 95; break;
-	case 2: callfunc "F_LW_SetAmbientActor", "City Clerk Runner", 1, 130, 183; break;
+	case 1: callfunc "F_LW_SetAmbientMobActor", "City Clerk Runner", 1, 1011, 77, 95; break;
+	case 2: callfunc "F_LW_SetAmbientMobActor", "City Clerk Runner", 1, 1011, 130, 183; break;
 	}
 	return;
 }

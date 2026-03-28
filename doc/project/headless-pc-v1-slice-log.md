@@ -5059,3 +5059,36 @@ New shared script helpers:
   legality, not quest-content complexity
 - reservation-backed dialog starts are still opt-in through shared helpers; the
   generic `playerbot_npcstart` verb itself remains unchanged
+
+## Prontera Ambient Filler Cleanup
+
+### Summary
+
+Replaced Prontera's ambient roaming filler actors with harmless low-level
+mob-backed fillers so the town no longer surfaces Alarm actors during normal
+play and GM/OpenKore mob inspection.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/prontera_ambient.txt`
+
+### Behavior
+
+- added `F_LW_SetAmbientMobActor(...)` as a shared ambient helper for harmless
+  mob-backed fillers
+- moved the Prontera ambient lane onto low-level mobs like:
+  - `Poring`
+  - `Fabre`
+  - `Drops`
+  - `Lunatic`
+  - `Chonchon`
+  - `Pupa`
+- this keeps the existing Prontera ambient hotspot rotation and chatter, but
+  removes the misleading Alarm mob presentation in town
+
+### Validation
+
+- restarted with `bash tools/dev/playerbot-dev.sh restart`
+- logged in with the repo-local `testgm` OpenKore profile
+- verified `@mobsearch Alarm` in Prontera returns no results after the change

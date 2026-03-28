@@ -2000,3 +2000,11 @@ Current limits:
   yet enforced automatically for every `playerbot_npcstart(...)` call
 - the quest-style proof validates participation legality and cleanup, not a
   broad quest-framework abstraction
+
+## Prontera Ambient Filler Cleanup
+
+- the old Prontera ambient filler presentation could surface as `Alarm` when
+  inspected as map mobs, even though the intent was harmless town ambiance
+- the Prontera ambient lane now uses harmless low-level mob-backed fillers
+  instead, so ambient chatter remains but the town no longer reads as if hostile
+  Clock Tower mobs are roaming the square

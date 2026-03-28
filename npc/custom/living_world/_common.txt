@@ -174,6 +174,82 @@ function	script	F_LW_SetAmbientActor	{
 	return .@gid;
 }
 
+function	script	F_LW_SetAmbientMobActor	{
+	.@name$ = getarg(0);
+	.@show = getarg(1);
+	.@mob_id = getarg(2);
+	.@seed = callfunc("F_LW_GetAmbientSeed", .@name$);
+	if (!.@seed)
+		return 0;
+	.@gid = getd("$LW_AmbientGid_" + .@seed);
+
+	hideonnpc .@name$;
+
+	if (!.@show) {
+		if (.@gid && unitexists(.@gid))
+			unitkill .@gid;
+		setd("$LW_AmbientGid_" + .@seed, 0);
+		return 0;
+	}
+
+	.@x = getarg(3);
+	.@y = getarg(4);
+	.@map$ = "";
+	.@ox = 0;
+	.@oy = 0;
+	getmapxy(.@map$, .@ox, .@oy, BL_NPC, .@name$);
+	if (.@map$ == "")
+		return 0;
+	.@packed = callfunc("F_LW_HPC_FindPassableAnchor", .@map$, .@x, .@y,
+		0, 0,
+		1, 0, -1, 0, 0, 1, 0, -1,
+		1, 1, -1, 1, 1, -1, -1, -1,
+		2, 0, -2, 0, 0, 2, 0, -2,
+		2, 1, 2, -1, -2, 1, -2, -1,
+		1, 2, -1, 2, 1, -2, -1, -2,
+		3, 0, -3, 0, 0, 3, 0, -3,
+		3, 1, 3, -1, -3, 1, -3, -1,
+		1, 3, -1, 3, 1, -3, -1, -3,
+		2, 2, 2, -2, -2, 2, -2, -2,
+		3, 2, 3, -2, -3, 2, -3, -2,
+		2, 3, -2, 3, 2, -3, -2, -3,
+		4, 0, -4, 0, 0, 4, 0, -4,
+		4, 1, 4, -1, -4, 1, -4, -1,
+		1, 4, -1, 4, 1, -4, -1, -4,
+		4, 2, 4, -2, -4, 2, -4, -2,
+		2, 4, -2, 4, 2, -4, -2, -4,
+		3, 3, 3, -3, -3, 3, -3, -3,
+		5, 0, -5, 0, 0, 5, 0, -5);
+	.@move_ok = (.@packed > 0);
+	if (.@move_ok) {
+		.@x = callfunc("F_LW_HPC_UnpackX", .@packed);
+		.@y = callfunc("F_LW_HPC_UnpackY", .@packed);
+	}
+	if (!.@move_ok)
+		return 0;
+
+	if (.@gid && unitexists(.@gid)) {
+		getunitdata .@gid, .@ud;
+		if (.@ud[UMOB_CLASS] != .@mob_id) {
+			unitkill .@gid;
+			.@gid = 0;
+		}
+	}
+
+	if (!.@gid || !unitexists(.@gid)) {
+		.@gid = callfunc("F_LW_SpawnMobActor", .@map$, .@x, .@y, .@name$, .@mob_id);
+		if (!.@gid)
+			return 0;
+		setunitdata .@gid, UMOB_MODE, MD_CANMOVE | MD_NORANDOMWALK;
+		setunitdata .@gid, UMOB_DMGIMMUNE, 1;
+		setd("$LW_AmbientGid_" + .@seed, .@gid);
+		return .@gid;
+	}
+
+	unitwarp .@gid, .@map$, .@x, .@y;
+	return .@gid;
+}
+
 function	script	F_LW_ActorTalk	{
 	.@name$ = getarg(0);
 	.@msg$ = getarg(1);
