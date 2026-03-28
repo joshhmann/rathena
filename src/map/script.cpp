@@ -217,6 +217,8 @@ static map_session_data* playerbot_online_session_by_key(const char* bot_key, ui
 	return sd;
 }
 
+static void playerbot_trace_interaction(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail);
+
 static void playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* action, t_itemid item_id, uint16 amount, const char* location, const char* result, const char* detail) {
 	char esc_detail[385];
 	const char* safe_action = action != nullptr ? action : "inventory_add";
@@ -233,6 +235,17 @@ static void playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_i
 		now, bot_id, char_id, account_id, safe_action, item_id, amount, safe_location, safe_result, esc_detail)) {
 		Sql_ShowDebug(mmysql_handle);
 	}
+
+	map_session_data* sd = char_id > 0 ? map_charid2sd(char_id) : nullptr;
+	const char* trace_action = strcmp(safe_result, "ok") == 0 ? "interaction.completed" : "interaction.failed";
+	const char* trace_reason =
+		(strcmp(safe_result, "invalid") == 0 || strcmp(safe_result, "missing") == 0 || strcmp(safe_result, "denied") == 0 || strcmp(safe_result, "overflow") == 0)
+			? "target.invalid"
+			: (strcmp(safe_result, "failed") == 0 ? "script.busy" : "none");
+	const char* trace_result =
+		strcmp(safe_result, "ok") == 0 ? "ok"
+			: ((strcmp(safe_result, "failed") == 0 || strcmp(safe_result, "overflow") == 0) ? "aborted" : "denied");
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, trace_action, safe_action, std::to_string(item_id).c_str(), trace_reason, trace_result, safe_action, safe_detail);
 }
 
 static void playerbot_trace_interaction(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail) {

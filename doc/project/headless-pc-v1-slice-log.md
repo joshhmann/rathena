@@ -4952,3 +4952,46 @@ Notes:
   reopened bot returns with no lingering storage ownership
 - trade recovery now proves rollback after staged negotiation rather than only
   the clean completion path
+
+## Slice: Participation Trace Bridge
+
+Date: 2026-03-27
+
+Summary:
+- folded the transactional item/storage audit lane into the structured
+  interaction trace timeline
+- kept `bot_item_audit` as the authoritative per-mutation ledger while also
+  emitting matching `bot_trace_event` rows for timeline/replay debugging
+
+Changed:
+- `src/map/script.cpp`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-item-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-item-smoke.sh check`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified item selftest still passes:
+  - `playerbot_item_selftest: ... result=1.`
+- verified participation selftest still passes:
+  - `playerbot_participation_selftest: ... result=1.`
+- verified recent `bot_trace_event` rows now include item/storage mutation
+  target types:
+  - `inventory_add`
+  - `inventory_remove`
+  - `equip`
+  - `unequip`
+  - `storage_deposit`
+  - `storage_withdraw`
+
+Notes:
+- this slice does not replace `bot_item_audit`; it makes the same mutations
+  visible in the broader structured timeline used for controller and mechanic
+  debugging
+- item/storage mutation traces currently reuse the existing `interaction` phase
+  because the trace schema is still on the first minimal event family set

@@ -1939,6 +1939,17 @@ Current limits:
   but still does not cover broader dual-sided negotiation policy or partial
   failure recovery after peer disconnect mid-commit
 
+Trace visibility:
+
+- transactional item/storage mutations now emit both:
+  - authoritative audit rows in `bot_item_audit`
+  - structured timeline rows in `bot_trace_event`
+- this makes it possible to correlate:
+  - item grants/removals
+  - equip/unequip
+  - storage deposits/withdrawals
+  with the broader participation/controller timeline in one place
+
 Important behavior:
 
 - native rAthena trade request and trade accept paths reject a participant that
