@@ -1703,6 +1703,80 @@ function	script	F_PB_OBS_BuildBotTimeline$	{
 	return .@summary$;
 }
 
+function	script	F_PB_OBS_BuildFailureSurface$	{
+	.@bot_key$ = getarg(0, "");
+	.@trace_limit = getarg(1, 6);
+	.@audit_limit = getarg(2, 6);
+	if (.@trace_limit < 1)
+		.@trace_limit = 1;
+	if (.@trace_limit > 10)
+		.@trace_limit = 10;
+	if (.@audit_limit < 1)
+		.@audit_limit = 1;
+	if (.@audit_limit > 10)
+		.@audit_limit = 10;
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Failure Surface: unknown bot key.";
+	.@summary$ = "Failure Surface: " + .@bot_key$ + ".";
+	.@summary$ += "\nLive: headless=" + headlesspc_status($@pbbot_char_id)
+		+ " npc=" + playerbot_npcactive(.@bot_key$)
+		+ " storage=" + playerbot_storageisopen(.@bot_key$)
+		+ " trade=" + playerbot_tradeactive(.@bot_key$)
+		+ " trade_lock=" + playerbot_tradelocked(.@bot_key$)
+		+ " trade_partner=" + playerbot_tradepartner(.@bot_key$) + ".";
+	.@summary$ += "\n" + callfunc("F_PB_RES_BuildHolderSummary$", .@bot_key$);
+
+	.@trace_rows = query_sql(
+		"SELECT `ts`, `phase`, `action`, `target_type`, `reason_code`, `result`, `error_code`, `error_detail` "
+		+ "FROM `bot_trace_event` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "AND (`phase` IN ('interaction','reconcile','reservation') "
+		+ "OR `result` NOT IN ('ok','noop')) "
+		+ "AND (`result` NOT IN ('ok','noop') "
+		+ "OR `reason_code` IN ('claim.lost','pool.denied','target.invalid','script.busy','restart.recovery')) "
+		+ "ORDER BY `id` DESC LIMIT " + .@trace_limit,
+		.@trace_ts, .@trace_phase$, .@trace_action$, .@trace_target$, .@trace_reason$, .@trace_result$, .@trace_error$, .@trace_detail$);
+	if (.@trace_rows < 1)
+		.@summary$ += "\nRecent failed traces: none.";
+	else {
+		.@summary$ += "\nRecent failed traces: " + .@trace_rows + ".";
+		.@now = gettimetick(2);
+		for (.@i = 0; .@i < .@trace_rows; ++.@i) {
+			.@summary$ += "\n- " + ((.@now - .@trace_ts[.@i]) * 1000) + "ms "
+				+ .@trace_phase$[.@i] + "/" + .@trace_action$[.@i]
+				+ " -> " + .@trace_result$[.@i];
+			if (.@trace_target$[.@i] != "")
+				.@summary$ += " target=" + .@trace_target$[.@i];
+			if (.@trace_reason$[.@i] != "" && .@trace_reason$[.@i] != "none")
+				.@summary$ += " reason=" + .@trace_reason$[.@i];
+			if (.@trace_error$[.@i] != "")
+				.@summary$ += " err=" + .@trace_error$[.@i];
+			if (.@trace_detail$[.@i] != "")
+				.@summary$ += " detail=" + .@trace_detail$[.@i];
+		}
+	}
+
+	.@audit_rows = query_sql(
+		"SELECT `ts`, `scope`, `action`, `result`, `detail` "
+		+ "FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "AND `scope` IN ('npc','storage','trade','participation','reservation','ownership') "
+		+ "ORDER BY `id` DESC LIMIT " + .@audit_limit,
+		.@audit_ts, .@audit_scope$, .@audit_action$, .@audit_result$, .@audit_detail$);
+	if (.@audit_rows < 1)
+		.@summary$ += "\nRecent recovery audits: none.";
+	else {
+		.@summary$ += "\nRecent recovery audits: " + .@audit_rows + ".";
+		.@now = gettimetick(2);
+		for (.@i = 0; .@i < .@audit_rows; ++.@i)
+			.@summary$ += "\n- " + ((.@now - .@audit_ts[.@i]) * 1000) + "ms "
+				+ .@audit_scope$[.@i] + "/" + .@audit_action$[.@i]
+				+ " -> " + .@audit_result$[.@i]
+				+ " detail=" + .@audit_detail$[.@i];
+	}
+	return .@summary$;
+}
+
 function	script	F_PB_PERC_SetMeta$	{
 	$@pbperc_value$ = getarg(0, "");
 	$@pbperc_observed_at = getarg(1, gettimetick(2));

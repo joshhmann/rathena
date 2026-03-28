@@ -2141,3 +2141,25 @@ Current limit:
 
 - this slice improves visibility and reacquire safety, but it does not yet add a
   dedicated forced `claim.denied` smoke harness
+
+Unified participation failure surface:
+
+- operator debugging for participation problems is no longer split only across:
+  - trace lab
+  - reservation lab
+  - recovery audit menus
+- `F_PB_OBS_BuildFailureSurface$` now merges:
+  - live participation state
+  - held reservations
+  - recent failed traces
+  - recent recovery audits
+
+Current surfaces:
+
+- `Playerbot Participation Lab -> Inspect failure surface`
+- `Playerbot Trace Lab -> Bot failure surface`
+
+Current limit:
+
+- failure surfaces are still recent-window summaries, not persistent incidents
+- they prioritize practical debugging over perfect causal grouping

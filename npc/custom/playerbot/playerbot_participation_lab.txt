@@ -3,7 +3,7 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 	mes "Drive the first NPC, storage, and trade participation hooks.";
 	next;
 
-	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Inspect recovery audit:Close")) {
+	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Inspect recovery audit:Inspect failure surface:Close")) {
 	case 1:
 		setd("$PBPST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotParticipationSelftest::OnManualStart";
@@ -46,6 +46,10 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 		mes "Latest recovery audit:";
 		mes "Scope / Action: " + .@scope$ + " / " + .@action$;
 		mes "Result / Detail: " + .@result$ + " / " + .@detail$;
+		close;
+	case 5:
+		mes "[Playerbot Participation Lab]";
+		mes callfunc("F_PB_OBS_BuildFailureSurface$", .bot_key$, 8, 8);
 		close;
 	}
 	close;

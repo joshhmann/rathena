@@ -5516,6 +5516,67 @@ This slice does not add:
 - epoch-token persistence outside the current controller/runtime layer
 - automatic reservation cleanup for every contested live-owner mismatch
 
+## Slice 60: Unified Failure Surfaces
+
+### Summary
+
+This slice adds one bot-focused failure surface that combines current
+participation state, held reservations, recent failed traces, and recent
+recovery audits. The goal is to shorten the operator path for answering "why is
+this bot stuck or failing right now?"
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `npc/custom/playerbot/playerbot_trace_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared helper:
+  - `F_PB_OBS_BuildFailureSurface$`
+- The new failure surface includes:
+  - current live participation flags:
+    - headless status
+    - NPC active
+    - storage open
+    - trade active
+    - trade lock
+    - trade partner
+  - held reservations
+  - recent failed or recovery-relevant trace rows
+  - recent recovery audits across:
+    - npc
+    - storage
+    - trade
+    - participation
+    - reservation
+    - ownership
+- Extended `Playerbot Participation Lab` with:
+  - `Inspect failure surface`
+- Extended `Playerbot Trace Lab` with:
+  - `Bot failure surface`
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified the participation selftest still passes on the integrated baseline
+- verified the new failure surface works for:
+  - `quick_part_open`
+
+### Deferrals
+
+This slice does not add:
+
+- a CLI failure-surface joiner
+- correlation ids between trace rows and audit rows
+- automatic grouping of related failures into one incident object
+
 ## Slice 60: Playerbot Pool Observability CLI Tool
 
 ### Summary
