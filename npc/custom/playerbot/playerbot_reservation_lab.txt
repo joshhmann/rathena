@@ -3,7 +3,7 @@ alberta,154,135,4	script	Playerbot Reservation Lab	4_F_KAFRA5,{
 	mes "Inspect and exercise the first playerbot reservation primitives.";
 	next;
 
-	switch(select("Quick anchor contention:Quick NPC lock contention:Quick social target contention:Quick merchant spot contention:Quick party role contention:Inspect resource:Inspect holder:Release quick lab reservations:Reap stale reservations:Close")) {
+	switch(select("Quick anchor contention:Quick NPC lock contention:Quick social target contention:Quick merchant spot contention:Quick party role contention:Inspect resource:Inspect holder:Inspect recent reservation recovery audits:Release quick lab reservations:Reap stale reservations:Close")) {
 	case 1:
 		callsub S_RunContention, "anchor", "social.alberta.browser.a", "quick_merc_alb", "botpc03", "ReservationLabAnchor";
 		close;
@@ -44,6 +44,11 @@ alberta,154,135,4	script	Playerbot Reservation Lab	4_F_KAFRA5,{
 		close;
 
 	case 8:
+		mes "[Playerbot Reservation Lab]";
+		mes callfunc("F_PB_RECOVERY_BuildRecentAudit$", "reservation", 6);
+		close;
+
+	case 9:
 		.@released = 0;
 		.@released += callfunc("F_PB_RES_Release", "anchor", "social.alberta.browser.a", "quick_merc_alb", "ReservationLabAnchor", "operator.stop");
 		.@released += callfunc("F_PB_RES_Release", "dialog_target", "npc:Playerbot Merchant Lab", "quick_merc_alb", "ReservationLabDialog", "operator.stop");
@@ -54,7 +59,7 @@ alberta,154,135,4	script	Playerbot Reservation Lab	4_F_KAFRA5,{
 		mes "Released " + .@released + " quick lab reservations.";
 		close;
 
-	case 9:
+	case 10:
 		.@reaped = callfunc("F_PB_RES_ReapExpired");
 		mes "[Playerbot Reservation Lab]";
 		mes "Reaped " + .@reaped + " stale reservation rows.";

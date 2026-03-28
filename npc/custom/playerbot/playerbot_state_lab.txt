@@ -71,7 +71,7 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 		close;
 
 	case 6:
-		switch(select("Latest audit for quick_merc_alb:Latest audit for quick_party_open:Latest storage/trade audits:Close")) {
+		switch(select("Latest audit for quick_merc_alb:Latest audit for quick_party_open:Latest storage/trade audits:Latest reservation audits:Close")) {
 		case 1:
 			.@bot_key$ = "quick_merc_alb";
 			break;
@@ -92,6 +92,10 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 			}
 			for (.@i = 0; .@i < getarraysize(.@scope$); ++.@i)
 				mes .@scope$[.@i] + " / " + .@action$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
+			close;
+		case 4:
+			mes "[Playerbot State Lab]";
+			mes callfunc("F_PB_RECOVERY_BuildRecentAudit$", "reservation", 6);
 			close;
 		default:
 			close;

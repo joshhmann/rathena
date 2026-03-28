@@ -5246,3 +5246,113 @@ SQL by hand.
 - this slice is intentionally repo-local CLI tooling only
 - it does not change runtime/controller semantics
 - replay and richer timeline reconstruction are still deferred
+
+
+## Slice 57: Playerbot Reservation Inspector
+
+### Goal
+
+Build repo-local reservation inspection tooling around `bot_reservation` so
+operators can answer:
+- What leases/locks are currently active?
+- Who holds them?
+- What is stale or expired?
+- Why is contention happening?
+- Which resources are hot?
+
+### Files Touched
+
+- `tools/ci/playerbot-reservations.sh` (new)
+- `doc/project/playerbot-reservation-inspector.md` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `tools/ci/playerbot-reservations.sh` CLI tool with commands:
+  - `active` - Show currently active reservations
+  - `recent` - Show recent reservation trace events
+  - `expired` - Show expired reservations
+  - `stale` - Show stale/orphan reservations
+  - `holder <id>` - Show reservations by bot/controller
+  - `resource <key>` - Show reservations for specific resource
+  - `hot [N]` - Show most contested resources
+  - `denied [N]` - Show recent reservation denials
+  - `why-denied <key>` - Explain why a resource was denied
+  - `stats` - Show reservation statistics
+
+- Added `doc/project/playerbot-reservation-inspector.md` documentation
+
+- Features:
+  - Filter by resource type (`-t anchor|dialog_target|...`)
+  - Filter by lock mode (`-m lease|hard_lock`)
+  - Time window filtering (`--since MINUTES`)
+  - Raw output for scripting (`--raw`)
+  - Colorized output (disabled with `--no-color`)
+  - DB defaults aligned with repo-local config
+
+### Validation
+
+- `bash tools/ci/playerbot-reservations.sh --help` - Help output works
+- `bash tools/ci/playerbot-reservations.sh --no-color active 5` - Active reservations query works
+- `bash tools/ci/playerbot-reservations.sh --no-color stats` - Statistics summary works
+- `bash tools/ci/playerbot-reservations.sh --no-color holder "ReservationAuditTest" 5` - Holder query works
+- `bash tools/ci/playerbot-reservations.sh --no-color hot 5` - Contention analysis works
+
+### Deferrals
+
+This slice does not add:
+
+- In-game reservation inspector NPC (separate from existing labs)
+- Real-time reservation monitoring
+- Automatic stale reservation cleanup
+- Reservation prediction or forecasting
+
+## Slice 58: Playerbot Reservation Recovery Audits
+
+### Goal
+
+Push reservation cleanup into the same recovery-audit platform already used by
+NPC, storage, trade, and mixed participation recovery so stale lease cleanup is
+inspectable instead of only implicit.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_reservation_lab.txt`
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared recovery-audit write helper:
+  - `F_PB_RECOVERY_Audit`
+- Extended `F_PB_RES_ReapExpired` so both cleanup paths now emit
+  `bot_recovery_audit` rows:
+  - expired leases -> `reservation.expired`
+  - stale holder identity -> `reservation.stale_holder`
+- Added shared summary helper:
+  - `F_PB_RECOVERY_BuildRecentAudit$`
+- Extended `Playerbot Reservation Lab` to show recent reservation recovery
+  audits.
+- Extended `Playerbot State Lab` so operator recovery views can show the latest
+  reservation-audit rows alongside storage/trade/participation audits.
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- seeded stale and expired reservation rows directly in `bot_reservation`
+- ran the repo-local participation smoke path so a real reservation acquire
+  forced `F_PB_RES_ReapExpired`
+- verified seeded rows were removed from `bot_reservation`
+- verified fresh `bot_recovery_audit` rows for:
+  - `reservation / reap / ok / reservation.expired`
+  - `reservation / reap / ok / reservation.stale_holder`
+
+### Deferrals
+
+This slice does not add:
+
+- automatic recovery-audit emission on every manual reservation release
+- reservation epoch conflict audits beyond stale/expired cleanup
+- replay/timeline stitching between recovery audits and trace events

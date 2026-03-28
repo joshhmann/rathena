@@ -2050,3 +2050,27 @@ Trade peer cleanup:
   boundary when the bot is one endpoint of the stale deal
 - this keeps partial cleanup from leaving the human-side session in a phantom
   trade state after the bot clears itself
+
+Reservation cleanup audits:
+
+- stale and expired reservation cleanup now writes authoritative
+  `bot_recovery_audit` rows instead of only trace rows
+- current recovery authority for this lane is:
+  - reservation table row existence
+  - lease expiry for timed-out holders
+  - holder identity existence for stale orphan cleanup
+- cleanup details currently distinguish:
+  - `reservation.expired`
+  - `reservation.stale_holder`
+
+Operator visibility:
+
+- `Playerbot Reservation Lab` can now show the recent reservation recovery
+  audits directly
+- `Playerbot State Lab` now includes reservation cleanup in its broader recovery
+  audit inspection path
+
+Current limit:
+
+- reservation recovery audits currently attach to reap/cleanup paths, not every
+  successful normal release

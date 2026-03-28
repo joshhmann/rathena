@@ -1746,6 +1746,40 @@ function	script	F_PB_RECOVERY_BuildAuthoritySummary$	{
 	return "Authority summary unavailable.";
 }
 
+function	script	F_PB_RECOVERY_Audit	{
+	.@authority$ = escape_sql(getarg(0, ""));
+	.@scope$ = escape_sql(getarg(1, ""));
+	.@action$ = escape_sql(getarg(2, ""));
+	.@bot_id = getarg(3, 0);
+	.@state_before$ = escape_sql(getarg(4, ""));
+	.@state_after$ = escape_sql(getarg(5, ""));
+	.@result$ = escape_sql(getarg(6, ""));
+	.@detail$ = escape_sql(getarg(7, ""));
+	.@char_id = 0;
+	.@account_id = 0;
+	if (.@bot_id > 0)
+		query_sql(
+			"SELECT IFNULL(`char_id`, 0), IFNULL(`account_id`, 0) "
+			+ "FROM `bot_identity_link` "
+			+ "WHERE `bot_id` = '" + .@bot_id + "' LIMIT 1",
+			.@char_id, .@account_id);
+	query_sql(
+		"INSERT INTO `bot_recovery_audit` "
+		+ "(`ts`,`bot_id`,`char_id`,`account_id`,`authority`,`scope`,`action`,`state_before`,`state_after`,`result`,`detail`) VALUES ("
+		+ "'" + gettimetick(2) + "', "
+		+ "'" + .@bot_id + "', "
+		+ "'" + .@char_id + "', "
+		+ "'" + .@account_id + "', "
+		+ "'" + .@authority$ + "', "
+		+ "'" + .@scope$ + "', "
+		+ "'" + .@action$ + "', "
+		+ "'" + .@state_before$ + "', "
+		+ "'" + .@state_after$ + "', "
+		+ "'" + .@result$ + "', "
+		+ "'" + .@detail$ + "')");
+	return 1;
+}
+
 function	script	F_PB_RECOVERY_BuildBotAudit$	{
 	.@bot_key$ = getarg(0, "");
 	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
@@ -1849,34 +1883,50 @@ function	script	F_PB_RES_DefaultLeaseMs	{
 function	script	F_PB_RES_ReapExpired	{
 	.@now = gettimetick(2);
 	.@expired_rows = query_sql(
-		"SELECT `reservation_id`, `type`, `resource_key`, `holder_bot_id`, `holder_controller_id` "
+		"SELECT `reservation_id`, `type`, `resource_key`, `holder_bot_id`, `holder_controller_id`, `lock_mode`, `epoch`, `priority`, `reason` "
 		+ "FROM `bot_reservation` "
 		+ "WHERE `lease_until` <= '" + .@now + "'",
-		.@expired_id, .@expired_type$, .@expired_key$, .@expired_bot_id, .@expired_controller$);
+		.@expired_id, .@expired_type$, .@expired_key$, .@expired_bot_id, .@expired_controller$, .@expired_mode$, .@expired_epoch, .@expired_priority, .@expired_reason$);
 	.@reaped = 0;
 	for (.@i = 0; .@i < .@expired_rows; ++.@i) {
+		.@before$ = "type=" + .@expired_type$[.@i]
+			+ ",resource=" + .@expired_key$[.@i]
+			+ ",controller=" + .@expired_controller$[.@i]
+			+ ",mode=" + .@expired_mode$[.@i]
+			+ ",epoch=" + .@expired_epoch[.@i]
+			+ ",priority=" + .@expired_priority[.@i]
+			+ ",reason=" + .@expired_reason$[.@i];
 		query_sql("DELETE FROM `bot_reservation` WHERE `reservation_id` = '" + .@expired_id[.@i] + "'");
 		callfunc "F_PB_DB_TraceEmit",
 			"reservation.released", "reservation", .@expired_bot_id[.@i], 0, 0, "", 0, 0,
 			.@expired_controller$[.@i], "reservation", .@expired_controller$[.@i],
 			.@expired_type$[.@i], .@expired_key$[.@i], "none", "cleanup=expired", "", .@expired_key$[.@i],
 			"ok", 0, "lease.expired", "", "";
+		callfunc "F_PB_RECOVERY_Audit", "reservation_table", "reservation", "reap", .@expired_bot_id[.@i], .@before$, "deleted", "ok", "reservation.expired";
 		.@reaped++;
 	}
 	.@stale_rows = query_sql(
-		"SELECT r.`reservation_id`, r.`type`, r.`resource_key`, r.`holder_bot_id`, r.`holder_controller_id` "
+		"SELECT r.`reservation_id`, r.`type`, r.`resource_key`, r.`holder_bot_id`, r.`holder_controller_id`, r.`lock_mode`, r.`epoch`, r.`priority`, r.`reason` "
 		+ "FROM `bot_reservation` r "
 		+ "LEFT JOIN `bot_profile` p ON p.`bot_id` = r.`holder_bot_id` "
 		+ "WHERE r.`lease_until` > '" + .@now + "' "
 		+ "AND p.`bot_id` IS NULL",
-		.@stale_id, .@stale_type$, .@stale_key$, .@stale_bot_id, .@stale_controller$);
+		.@stale_id, .@stale_type$, .@stale_key$, .@stale_bot_id, .@stale_controller$, .@stale_mode$, .@stale_epoch, .@stale_priority, .@stale_reason$);
 	for (.@i = 0; .@i < .@stale_rows; ++.@i) {
+		.@before$ = "type=" + .@stale_type$[.@i]
+			+ ",resource=" + .@stale_key$[.@i]
+			+ ",controller=" + .@stale_controller$[.@i]
+			+ ",mode=" + .@stale_mode$[.@i]
+			+ ",epoch=" + .@stale_epoch[.@i]
+			+ ",priority=" + .@stale_priority[.@i]
+			+ ",reason=" + .@stale_reason$[.@i];
 		query_sql("DELETE FROM `bot_reservation` WHERE `reservation_id` = '" + .@stale_id[.@i] + "'");
 		callfunc "F_PB_DB_TraceEmit",
 			"reservation.released", "reservation", .@stale_bot_id[.@i], 0, 0, "", 0, 0,
 			.@stale_controller$[.@i], "reservation", .@stale_controller$[.@i],
 			.@stale_type$[.@i], .@stale_key$[.@i], "none", "cleanup=stale_holder", "", .@stale_key$[.@i],
 			"ok", 0, "holder.offline", "", "";
+		callfunc "F_PB_RECOVERY_Audit", "reservation_table", "reservation", "reap", .@stale_bot_id[.@i], .@before$, "deleted", "ok", "reservation.stale_holder";
 		.@reaped++;
 	}
 	return .@reaped;
@@ -2074,6 +2124,24 @@ function	script	F_PB_RES_BuildHolderSummary$	{
 			+ " ttl=" + .@ttl + "s"
 			+ " controller=" + (.@controller$[.@i] == "" ? "<none>" : .@controller$[.@i]);
 	}
+	return .@summary$;
+}
+
+function	script	F_PB_RECOVERY_BuildRecentAudit$	{
+	.@scope_filter$ = escape_sql(getarg(0, ""));
+	.@limit = getarg(1, 5);
+	if (.@limit < 1)
+		.@limit = 5;
+	.@sql$ = "SELECT `scope`, `action`, `result`, `detail` FROM `bot_recovery_audit` ";
+	if (.@scope_filter$ != "")
+		.@sql$ += "WHERE `scope` = '" + .@scope_filter$ + "' ";
+	.@sql$ += "ORDER BY `id` DESC LIMIT " + .@limit;
+	.@rows = query_sql(.@sql$, .@scope$, .@action$, .@result$, .@detail$);
+	if (.@rows < 1)
+		return "Recovery audit: none.";
+	.@summary$ = "Recovery audit: " + .@rows + ".";
+	for (.@i = 0; .@i < .@rows; ++.@i)
+		.@summary$ += "\n- " + .@scope$[.@i] + " / " + .@action$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
 	return .@summary$;
 }
 
