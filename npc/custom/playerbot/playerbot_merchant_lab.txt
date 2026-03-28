@@ -120,25 +120,31 @@ OnInit:
 OnPCLoginEvent:
 	if (!.enabled)
 		end;
-	if (!.autorun)
-		end;
 	if (.ran)
+		end;
+	if (!.autorun && $PBMST_AUTORUN_AID != getcharid(3))
 		end;
 	if (getcharid(0) != .test_char_id)
 		end;
 	.ran = 1;
 	.aid = getcharid(3);
+	if ($PBMST_AUTORUN_AID == .aid)
+		setd("$PBMST_AUTORUN_AID", 0);
 	callsub S_Run;
 	end;
 
 OnInterIfInitOnce:
 	sleep 2500;
-	if (!.enabled || !.autorun || .ran)
+	if (!.enabled || .ran)
+		end;
+	if (!.autorun && $PBMST_AUTORUN_AID != .test_aid)
 		end;
 	for (.@i = 0; .@i < 10; ++.@i) {
 		if (isloggedin(.test_aid, .test_char_id)) {
 			.ran = 1;
 			.aid = .test_aid;
+			if ($PBMST_AUTORUN_AID == .aid)
+				setd("$PBMST_AUTORUN_AID", 0);
 			callsub S_Run;
 			end;
 		}

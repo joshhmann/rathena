@@ -5792,6 +5792,82 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Sequenced Foundation Smoke Runner
+
+### Summary
+
+Added a repo-local aggregate foundation smoke path that drives the current
+playerbot foundation selftests in sequence instead of arming them all on one
+login at once.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_foundation_lab.txt` (new)
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-foundation-smoke.sh` (new)
+- `doc/project/playerbot-foundation-smoke.md` (new)
+
+### What Changed
+
+- Added `PlayerbotFoundationSelftest` as the single sequencer for the current
+  integrated foundation pass.
+- The coordinator now dispatches these subsystem selftests in order:
+  - state
+  - guild
+  - item
+  - merchant
+  - participation
+- Added `Run foundation selftest` to `Playerbot State Lab`.
+- Added a canonical repo-local runner:
+  - `bash tools/ci/playerbot-foundation-smoke.sh arm`
+  - log in once with the `codex` OpenKore profile
+  - `bash tools/ci/playerbot-foundation-smoke.sh check`
+- The aggregate `check` path now prints:
+  - coordinator stage lines
+  - subsystem result lines
+  - compact recovery-audit summary
+  - compact trace summary
+
+### Validation
+
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh arm`
+- OpenKore login with the repo-local `codex` profile
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+
+Current integrated result on `master`:
+
+- coordinator sequencing now works and reaches:
+  - `stage=state`
+  - `stage=guild`
+  - `stage=item`
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=done`
+- passing subsystem lines:
+  - `playerbot_state_selftest ... result=1`
+  - `playerbot_guild_selftest ... result=1`
+  - `playerbot_item_selftest ... result=1`
+- remaining blockers surfaced by the sequenced pass:
+  - `PlayerbotMerchantSelftest` still hits `script:run_script_main: infinity loop !`
+  - `PlayerbotParticipationSelftest` still fails its dialog-reservation subpath
+    under integrated load:
+    - `dialog_quest_ok=0`
+    - `dialog_drift_ok=0`
+
+### Deferrals
+
+This slice intentionally does not claim a green all-foundation pass yet.
+
+It establishes the canonical integrated runner and leaves two concrete runtime
+defects as the next blockers:
+
+- merchant selftest infinity-loop path
+- participation dialog-reservation cleanup under integrated load
+
 ## Slice 60: Playerbot Pool Observability CLI Tool
 
 ### Summary

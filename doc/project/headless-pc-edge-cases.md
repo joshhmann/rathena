@@ -2215,3 +2215,29 @@ Current limit:
 - incident surfaces are still computed from live state plus recent rows
 - they do not persist grouped incident records
 - they do not correlate multiple bots into one shared incident
+
+Sequenced foundation smoke:
+
+- the current canonical integrated runner is:
+  - `bash tools/ci/playerbot-foundation-smoke.sh arm`
+  - one `codex` OpenKore login
+  - `bash tools/ci/playerbot-foundation-smoke.sh check`
+- this replaced the earlier “arm every subsystem autorun at once” approach,
+  which produced false contention between selftests sharing the same login and
+  player session
+
+Current integrated blockers surfaced by the sequenced pass:
+
+- merchant selftest still triggers:
+  - `script:run_script_main: infinity loop !`
+  - source: `PlayerbotMerchantSelftest`
+- participation selftest still has one integrated reservation/dialog cleanup gap:
+  - `dialog_quest_ok=0`
+  - `dialog_drift_ok=0`
+
+Interpretation:
+
+- the aggregate foundation runner itself is now behaving correctly
+- the remaining failures are no longer harness-order bugs
+- they are concrete subsystem defects to close before calling the current
+  foundation pass complete

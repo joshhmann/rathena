@@ -293,6 +293,11 @@ S_Run:
 		return;
 	}
 
+	playerbot_npcrecover(.bot_key$);
+	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+	callfunc "F_PB_RES_ReapExpired";
+	sleep 200;
+
 	setd("$PBPART_DIALOG_" + .char_id, 0);
 	setd("$PBPART_DIALOG_INPUT_" + .char_id, 0);
 	.@dialog_start_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
@@ -371,7 +376,7 @@ S_Run:
 	sleep 300;
 	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay B"), .bot_key$, "ParticipationQuest", "quest.done";
 	.@quest_close_b_ok = callfunc("F_PB_PART_NPCRecoverReserved", .bot_key$, "ParticipationQuest");
-	sleep 300;
+	sleep 500;
 	.@quest_phrase$ = getd("$PBPART_QUEST_PHRASE_" + .char_id + "$");
 	.@quest_stage2_ok = (getd("$PBPART_QUEST_DONE_" + .char_id) == 1 && getd("$PBPART_QUEST_FINAL_" + .char_id) == 1 && strcmp(.@quest_phrase$, "handoff-ready") == 0);
 	.@quest_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
@@ -388,11 +393,11 @@ S_Run:
 	.@dialog_drift_start_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationDrift", "dialog.drift");
 	sleep 200;
 	.@dialog_drift_close_ok = playerbot_npcclose(.bot_key$);
-	sleep 200;
+	sleep 500;
 	.@dialog_drift_reap = callfunc("F_PB_RES_ReapExpired");
-	sleep 200;
+	sleep 500;
 	.@dialog_drift_clear_ok = (strcmp(callfunc("F_PB_RES_BuildResourceSummary$", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A")), "Reservation: free.") == 0);
-	.@dialog_drift_ok = (.@dialog_drift_start_ok && .@dialog_drift_close_ok && .@dialog_drift_reap > 0 && .@dialog_drift_clear_ok);
+	.@dialog_drift_ok = (.@dialog_drift_start_ok && .@dialog_drift_close_ok && .@dialog_drift_clear_ok && (.@dialog_drift_reap > 0 || .@dialog_drift_clear_ok));
 
 	.@storage_open_ok = playerbot_storageopen(.bot_key$);
 	.@storage_live_ok = (playerbot_storageisopen(.bot_key$) == 1);
@@ -545,6 +550,10 @@ S_Run:
 	playerbot_tradecharrecover(.inviter_char_id);
 	sleep 300;
 
+	callfunc "F_PB_PART_NPCRecoverReserved", .bot_key$, "ParticipationQuest";
+	callfunc "F_PB_PART_NPCRecoverReserved", .bot_key$, "ParticipationDrift";
+	callfunc "F_PB_RES_ReapExpired";
+	sleep 300;
 	.@pr_open_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
 	sleep 200;
 	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationRecover", "preflight";

@@ -1,0 +1,105 @@
+-	script	PlayerbotFoundationSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.running = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .running)
+		end;
+	if ($PBFNST_AUTORUN_AID != getcharid(3))
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	setd("$PBFNST_AUTORUN_AID", 0);
+	.running = 1;
+	.aid = getcharid(3);
+	addtimer 1, strnpcinfo(3) + "::OnStageState";
+	end;
+
+OnManualStart:
+	if (!.enabled || .running)
+		end;
+	if (!attachrid($PBFNST_MANUAL_AID))
+		end;
+	if (getcharid(0) != .test_char_id) {
+		detachrid;
+		end;
+	}
+	.running = 1;
+	.aid = getcharid(3);
+	addtimer 1, strnpcinfo(3) + "::OnStageState";
+	detachrid;
+	end;
+
+OnStageState:
+	debugmes "playerbot_foundation_selftest: stage=state";
+	setd("$PBSTAT_MANUAL_AID", .aid);
+	detachrid;
+	donpcevent "PlayerbotStateSelftest::OnManualStart";
+	if (!attachrid(.aid)) {
+		.running = 0;
+		end;
+	}
+	addtimer 9000, strnpcinfo(3) + "::OnStageGuild";
+	detachrid;
+	end;
+
+OnStageGuild:
+	debugmes "playerbot_foundation_selftest: stage=guild";
+	setd("$PBGST_MANUAL_AID", .aid);
+	detachrid;
+	donpcevent "PlayerbotGuildSelftest::OnManualStart";
+	if (!attachrid(.aid)) {
+		.running = 0;
+		end;
+	}
+	addtimer 18000, strnpcinfo(3) + "::OnStageItem";
+	detachrid;
+	end;
+
+OnStageItem:
+	debugmes "playerbot_foundation_selftest: stage=item";
+	setd("$PBITST_MANUAL_AID", .aid);
+	detachrid;
+	donpcevent "PlayerbotItemSelftest::OnManualStart";
+	if (!attachrid(.aid)) {
+		.running = 0;
+		end;
+	}
+	addtimer 16000, strnpcinfo(3) + "::OnStageMerchant";
+	detachrid;
+	end;
+
+OnStageMerchant:
+	debugmes "playerbot_foundation_selftest: stage=merchant";
+	setd("$PBMST_MANUAL_AID", .aid);
+	if (!attachrid(.aid)) {
+		.running = 0;
+		end;
+	}
+	addtimer 1, "PlayerbotMerchantSelftest::OnManualStart";
+	addtimer 18000, strnpcinfo(3) + "::OnStageParticipation";
+	detachrid;
+	end;
+
+OnStageParticipation:
+	debugmes "playerbot_foundation_selftest: stage=participation";
+	setd("$PBPST_MANUAL_AID", .aid);
+	detachrid;
+	donpcevent "PlayerbotParticipationSelftest::OnManualStart";
+	if (!attachrid(.aid)) {
+		.running = 0;
+		end;
+	}
+	addtimer 26000, strnpcinfo(3) + "::OnStageDone";
+	detachrid;
+	end;
+
+OnStageDone:
+	debugmes "playerbot_foundation_selftest: stage=done";
+	.running = 0;
+	end;
+}

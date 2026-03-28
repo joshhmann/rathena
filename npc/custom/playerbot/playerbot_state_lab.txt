@@ -3,7 +3,7 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 	mes "Inspect the four-layer playerbot state model and recovery authorities.";
 	next;
 
-	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Inspect bot timeline:Inspect incident surface:Run ownership selftest:Write lab memory marker:Close")) {
+	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Inspect bot timeline:Inspect incident surface:Run ownership selftest:Run foundation selftest:Write lab memory marker:Close")) {
 	case 1:
 		mes "[Playerbot State Lab]";
 		mes callfunc("F_PB_STATE_BuildBotStateSummary$", "quick_merc_alb");
@@ -171,6 +171,14 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 		close;
 
 	case 10:
+		setd("$PBFNST_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotFoundationSelftest::OnManualStart";
+		mes "[Playerbot State Lab]";
+		mes "Foundation selftest started.";
+		mes "Check the map-server log for the subsystem result lines.";
+		close;
+
+	case 11:
 		callfunc "F_PB_MEM_Remember", "social", "alberta.lab_probe", 1, "state.lab", 30000, "state.lab";
 		mes "[Playerbot State Lab]";
 		mes "Wrote a 30s shared-memory probe marker.";
@@ -198,6 +206,12 @@ OnPCLoginEvent:
 OnRun:
 	.autorun = 1;
 	.aid = getcharid(3);
+	initnpctimer;
+	end;
+
+OnManualStart:
+	.autorun = 1;
+	.aid = $PBSTAT_MANUAL_AID;
 	initnpctimer;
 	end;
 
