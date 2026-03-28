@@ -4824,3 +4824,44 @@ Notes:
   offline persisted SQL counts
 - the hidden selftest path is the stable validation lane; the visible item lab
   remains for operator inspection and manual verbs
+
+## Slice: Participation Hooks V1
+
+Date: 2026-03-27
+
+Summary:
+- added the first direct NPC/dialog, storage-session, and trade start/cancel
+  participation hooks for live playerbots
+- added structured interaction traces for those mechanic paths
+- added a repeatable hidden participation selftest and repo-local smoke helper
+
+Changed:
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-participation-smoke.sh`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified final selftest line:
+  - `playerbot_participation_selftest: spawn_ok=1 dialog_ok=1 storage_basic_ok=1 storage_recover_ok=1 trade_ok=1 park_ok=1 trace_ok=1 result=1`
+- verified recent interaction traces in `bot_trace_event` for:
+  - `npc`
+  - `npc_menu`
+  - `npc_close`
+  - `storage`
+  - `trade`
+
+Notes:
+- the dialog probe was intentionally made multi-step so the selftest proves the
+  full `start -> next -> menu -> close` path instead of relying on immediate
+  script auto-close
+- storage recovery in this slice is still validated as session ownership reset
+  across despawn/respawn, not broader transactional storage rollback
+- trade support in this slice is intentionally narrow: request/open state and
+  cancel/clear integrity first, not full item exchange semantics

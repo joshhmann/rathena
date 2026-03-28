@@ -1,0 +1,216 @@
+alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
+	mes "[Playerbot Participation Lab]";
+	mes "Drive the first NPC, storage, and trade participation hooks.";
+	next;
+
+	switch(select("Run full participation selftest:Inspect quick participation bot:Close")) {
+	case 1:
+		setd("$PBPST_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotParticipationSelftest::OnManualStart";
+		mes "[Playerbot Participation Lab]";
+		mes "Participation selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	case 2:
+		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
+			mes "[Playerbot Participation Lab]";
+			mes "Quick participation bot not provisioned yet.";
+			close;
+		}
+		mes "[Playerbot Participation Lab]";
+		mes "Bot ID / Name: " + $@pbbot_bot_id + " / " + $@pbbot_name$;
+		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
+		mes "Headless status: " + headlesspc_status($@pbbot_char_id);
+		mes "NPC / Storage / Trade: " + playerbot_npcactive(.bot_key$) + " / " + playerbot_storageisopen(.bot_key$) + " / " + playerbot_tradeactive(.bot_key$);
+		close;
+	}
+	close;
+
+OnInit:
+	.bot_key$ = "quick_part_open";
+	end;
+}
+
+alberta,166,135,4	script	Playerbot Dialog Probe	4_M_01,{
+	mes "[Playerbot Dialog Probe]";
+	mes "This is a deterministic dialog probe.";
+	next;
+	.@choice = select("Alpha path:Beta path");
+	setd("$PBPART_DIALOG_" + getcharid(0), .@choice);
+	mes "[Playerbot Dialog Probe]";
+	mes "Recorded choice " + .@choice + ".";
+	close;
+}
+
+-	script	PlayerbotParticipationSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.autorun = 0;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if (!.autorun && $PBPST_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	if ($PBPST_AUTORUN_AID == .aid)
+		setd("$PBPST_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnInterIfInitOnce:
+	sleep 2500;
+	if (!.enabled || !.autorun || .ran)
+		end;
+	for (.@i = 0; .@i < 10; ++.@i) {
+		if (isloggedin(.test_aid, .test_char_id)) {
+			.ran = 1;
+			.aid = .test_aid;
+			callsub S_Run;
+			end;
+		}
+		sleep 1000;
+	}
+	end;
+
+OnManualStart:
+	.aid = $PBPST_MANUAL_AID;
+	callsub S_Run;
+	end;
+
+OnRun:
+	callsub S_Run;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.inviter_char_id = getcharid(0);
+	.inviter_aid = getcharid(3);
+	.bot_key$ = "quick_part_open";
+	.display_name$ = "QuickPartOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_participation_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.@summary_ok = ($@pbbot_found && .char_id > 0 && $@pbbot_account_id > 0);
+	if (!.@summary_ok) {
+		debugmes "playerbot_participation_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+
+	.@spawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 161, 136);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@spawn_ack && headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+	}
+	if (!.@spawn_ok) {
+		debugmes "playerbot_participation_selftest: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	setd("$PBPART_DIALOG_" + .char_id, 0);
+	.@dialog_start_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
+	sleep 200;
+	.@dialog_next_ok = playerbot_npcnext(.bot_key$);
+	sleep 200;
+	.@dialog_menu_ok = playerbot_npcmenu(.bot_key$, 2);
+	sleep 300;
+	.@dialog_close_ok = playerbot_npcclose(.bot_key$);
+	sleep 300;
+	.@dialog_mark = getd("$PBPART_DIALOG_" + .char_id);
+	.@dialog_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
+	.@dialog_ok = (.@dialog_start_ok && .@dialog_next_ok && .@dialog_menu_ok && .@dialog_close_ok && .@dialog_mark == 2 && .@dialog_idle_ok);
+
+	.@storage_open_ok = playerbot_storageopen(.bot_key$);
+	.@storage_live_ok = (playerbot_storageisopen(.bot_key$) == 1);
+	.@storage_close_ok = playerbot_storageclose(.bot_key$);
+	.@storage_closed_ok = (playerbot_storageisopen(.bot_key$) == 0);
+	.@storage_basic_ok = (.@storage_open_ok && .@storage_live_ok && .@storage_close_ok && .@storage_closed_ok);
+
+	.@storage_reopen_ok = playerbot_storageopen(.bot_key$);
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0)
+			break;
+	}
+	.@respawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 161, 136);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@respawn_ack && headlesspc_status(.char_id) == 2) {
+			.@respawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@respawn_ok = 1;
+			break;
+		}
+	}
+	.@storage_recover_ok = (.@storage_reopen_ok && .@respawn_ok && playerbot_storageisopen(.bot_key$) == 0);
+
+	.@trade_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+	sleep 200;
+	.@trade_partner_ok = (playerbot_tradepartner(.bot_key$) == .inviter_aid && playerbot_tradeactive(.bot_key$));
+	.@trade_cancel_ok = playerbot_tradecancel(.bot_key$);
+	sleep 200;
+	.@trade_clear_ok = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$));
+	.@trade_ok = (.@trade_request_ok && .@trade_partner_ok && .@trade_cancel_ok && .@trade_clear_ok);
+
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+
+	.@trace_rows = query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_trace_event` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' "
+		+ "AND `phase` = 'interaction' "
+		+ "AND `target_type` IN ('npc','npc_menu','npc_close','storage','trade') "
+		+ "AND `ts` >= UNIX_TIMESTAMP() - 300",
+		.@trace_count);
+	.@trace_ok = (.@trace_rows > 0 && .@trace_count[0] >= 8);
+
+	.@result = (.@dialog_ok && .@storage_basic_ok && .@storage_recover_ok && .@trade_ok && .@park_ok && .@trace_ok);
+	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_recover_ok=" + .@storage_recover_ok + " trade_ok=" + .@trade_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

@@ -1881,3 +1881,45 @@ Current limits:
   semantics are still later participation slices
 - item mutations are audited but not yet mirrored into the broader structured
   trace/event timeline
+
+## Participation Hooks V1
+
+- Playerbots now have the first direct participation hooks for:
+  - NPC/dialog start/next/menu/close
+  - storage open/close ownership
+  - trade request/cancel state
+
+Current support:
+
+- live bot-safe script verbs now exist for:
+  - `playerbot_npcstart`
+  - `playerbot_npcnext`
+  - `playerbot_npcmenu`
+  - `playerbot_npcclose`
+  - `playerbot_npcactive`
+  - `playerbot_storageopen`
+  - `playerbot_storageclose`
+  - `playerbot_storageisopen`
+  - `playerbot_traderequest`
+  - `playerbot_tradecancel`
+  - `playerbot_tradepartner`
+  - `playerbot_tradeactive`
+- a visible `Playerbot Participation Lab` plus hidden
+  `PlayerbotParticipationSelftest` now validate:
+  - full deterministic dialog flow
+  - storage open/close
+  - storage session reset after despawn/respawn
+  - trade request/cancel integrity
+  - interaction trace emission
+- interaction traces now cover the first participation actions in
+  `bot_trace_event` with `phase = interaction`
+
+Current limits:
+
+- the current dialog path proves direct script participation but does not yet
+  cover richer NPC flows like nested menus, item hand-ins, or quest state
+  mutation
+- storage support currently proves ownership/open-state cleanup, not full
+  rollback semantics for interrupted multi-step storage mutations
+- trade support currently stops at request/open/cancel state; item exchange,
+  accept/lock/commit, and failure recovery are still later slices

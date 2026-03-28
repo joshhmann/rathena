@@ -64,6 +64,7 @@
 #include "pet.hpp"
 #include "quest.hpp"
 #include "storage.hpp"
+#include "trade.hpp"
 
 using namespace rathena;
 
@@ -230,6 +231,44 @@ static void playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_i
 		"(`ts`, `bot_id`, `char_id`, `account_id`, `action`, `item_id`, `amount`, `location`, `result`, `detail`) "
 		"VALUES ('%u', '%u', '%u', '%u', '%s', '%u', '%u', '%s', '%s', '%s')",
 		now, bot_id, char_id, account_id, safe_action, item_id, amount, safe_location, safe_result, esc_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
+static void playerbot_trace_interaction(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail) {
+	char esc_trace_id[129];
+	char esc_target_id[129];
+	char esc_error_code[129];
+	char esc_error_detail[385];
+	char trace_id[96];
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	safesnprintf(trace_id, sizeof(trace_id), "pb-int-%u-%u-%u-%d", bot_id, char_id, now, rnd());
+	Sql_EscapeStringLen(mmysql_handle, esc_trace_id, trace_id, strnlen(trace_id, sizeof(trace_id) - 1));
+	Sql_EscapeStringLen(mmysql_handle, esc_target_id, target_id != nullptr ? target_id : "", strnlen(target_id != nullptr ? target_id : "", 64));
+	Sql_EscapeStringLen(mmysql_handle, esc_error_code, error_code != nullptr ? error_code : "", strnlen(error_code != nullptr ? error_code : "", 64));
+	Sql_EscapeStringLen(mmysql_handle, esc_error_detail, error_detail != nullptr ? error_detail : "", strnlen(error_detail != nullptr ? error_detail : "", 191));
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_trace_event` "
+		"(`ts`, `trace_id`, `bot_id`, `char_id`, `account_id`, `map_id`, `map_name`, `x`, `y`, `controller_id`, `controller_kind`, `owner_token`, `phase`, `action`, `target_type`, `target_id`, `reason_code`, `inputs`, `signals`, `reservation_refs`, `result`, `duration_ms`, `fallback`, `error_code`, `error_detail`) "
+		"VALUES ('%u', '%s', %s, %s, %s, '%d', '%s', '%d', '%d', '', '', '', 'interaction', '%s', '%s', '%s', '%s', NULL, NULL, NULL, '%s', '0', '', '%s', '%s')",
+		now,
+		esc_trace_id,
+		bot_id > 0 ? std::to_string(bot_id).c_str() : "NULL",
+		char_id > 0 ? std::to_string(char_id).c_str() : "NULL",
+		account_id > 0 ? std::to_string(account_id).c_str() : "NULL",
+		sd != nullptr ? sd->m : 0,
+		sd != nullptr ? mapindex_id2name(sd->mapindex) : "",
+		sd != nullptr ? sd->x : 0,
+		sd != nullptr ? sd->y : 0,
+		action != nullptr ? action : "interaction.failed",
+		target_type != nullptr ? target_type : "",
+		esc_target_id,
+		reason_code != nullptr ? reason_code : "none",
+		result != nullptr ? result : "ok",
+		esc_error_code,
+		esc_error_detail)) {
 		Sql_ShowDebug(mmysql_handle);
 	}
 }
@@ -12475,6 +12514,238 @@ BUILDIN_FUNC(playerbot_itemcount)
 	}
 
 	script_pushint(st, playerbot_db_item_amount(char_id, account_id, nameid, location));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Start one NPC/dialog interaction for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_npcstart)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* npc_name = script_getstr(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	npc_data* nd = npc_name2id(npc_name);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc", npc_name, "none", "ok", "", "");
+
+	if (sd == nullptr || nd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc", npc_name, "target.invalid", "denied", "npc.start", sd == nullptr ? "bot.offline" : "npc.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->npc_id != 0 || npc_click(sd, nd) != 0 || sd->npc_id != nd->id) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc", npc_name, sd->npc_id != 0 ? "script.busy" : "target.invalid", "denied", "npc.start", sd->npc_id != 0 ? "npc.busy" : "npc.click_failed");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "npc", npc_name, "none", "ok", "", "");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Continue one NPC/dialog interaction for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_npcnext)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc", std::to_string(sd != nullptr ? sd->npc_id : 0).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || sd->npc_id == 0 || sd->st == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc", "", "target.invalid", "denied", "npc.next", "npc.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool failed = npc_scriptcont(sd, sd->npc_id, false);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, failed ? "interaction.failed" : "interaction.completed", "npc", std::to_string(sd->npc_id).c_str(), failed ? "script.busy" : "none", failed ? "aborted" : "ok", failed ? "npc.next" : "", failed ? "npc.cont_failed" : "");
+	script_pushint(st, failed ? 0 : 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Submit one NPC menu choice for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_npcmenu)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 choice = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	uint8 max_menu = sd != nullptr ? sd->npc_menu : 0;
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc_menu", std::to_string(choice).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || sd->npc_id == 0 || sd->st == nullptr || choice < 1 || choice > max_menu) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc_menu", std::to_string(choice).c_str(), "target.invalid", "denied", "npc.menu", "menu.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	sd->npc_menu = static_cast<uint8>(choice);
+	bool failed = npc_scriptcont(sd, sd->npc_id, false);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, failed ? "interaction.failed" : "interaction.completed", "npc_menu", std::to_string(choice).c_str(), failed ? "script.busy" : "none", failed ? "aborted" : "ok", failed ? "npc.menu" : "", failed ? "menu.cont_failed" : "");
+	script_pushint(st, failed ? 0 : 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Close one NPC/dialog interaction for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_npcclose)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc_close", std::to_string(sd != nullptr ? sd->npc_id : 0).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || sd->npc_id == 0 || sd->st == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc_close", "", "target.invalid", "denied", "npc.close", "npc.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 npc_id = sd->npc_id;
+	bool failed = npc_scriptcont(sd, npc_id, true);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, failed ? "interaction.failed" : "interaction.completed", "npc_close", std::to_string(npc_id).c_str(), failed ? "script.busy" : "none", failed ? "aborted" : "ok", failed ? "npc.close" : "", failed ? "close.cont_failed" : "");
+	script_pushint(st, failed ? 0 : 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_npcactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->npc_id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_storageopen)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "storage", "personal", "none", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "storage", "personal", "target.invalid", "denied", "storage.open", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->state.storage_flag == 1) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "storage", "personal", "none", "noop", "", "already.open");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	bool ok = (storage_storageopen(sd) == 0 && sd->state.storage_flag == 1);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "storage", "personal", ok ? "none" : "script.busy", ok ? "ok" : "denied", ok ? "" : "storage.open", ok ? "" : "storage.open_failed");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_storageclose)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "storage", "personal", "none", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "storage", "personal", "target.invalid", "denied", "storage.close", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->state.storage_flag != 1) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "storage", "personal", "none", "noop", "", "already.closed");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	storage_storageclose(sd);
+	bool ok = (sd->state.storage_flag == 0);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "storage", "personal", ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "storage.close", ok ? "" : "storage.close_failed");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_storageisopen)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->state.storage_flag : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_traderequest)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 target_char_id = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	map_session_data* target_sd = map_charid2sd(target_char_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade", std::to_string(target_char_id).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || target_sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade", std::to_string(target_char_id).c_str(), "target.invalid", "denied", "trade.request", sd == nullptr ? "bot.offline" : "target.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_traderequest(sd, target_sd);
+	bool ok = (sd->trade_partner.id == target_sd->status.account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade", std::to_string(target_char_id).c_str(), ok ? "none" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "trade.request", ok ? "" : "trade.request_failed");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecancel)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade", std::to_string(sd != nullptr ? sd->trade_partner.id : 0).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade", "", "target.invalid", "denied", "trade.cancel", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->trade_partner.id == 0 && !sd->state.trading) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "trade", "", "none", "noop", "", "already.clear");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradecancel(sd);
+	bool ok = (sd->trade_partner.id == 0 && !sd->state.trading);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade", "", ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "trade.cancel", ok ? "" : "trade.cancel_failed");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradepartner)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->trade_partner.id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && (sd->trade_partner.id != 0 || sd->state.trading)) ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -29896,8 +30167,20 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),
+	BUILDIN_DEF(playerbot_npcstart,"ss"),
+	BUILDIN_DEF(playerbot_npcnext,"s"),
+	BUILDIN_DEF(playerbot_npcmenu,"si"),
+	BUILDIN_DEF(playerbot_npcclose,"s"),
+	BUILDIN_DEF(playerbot_npcactive,"s"),
 	BUILDIN_DEF(playerbot_storagedeposit,"sii"),
 	BUILDIN_DEF(playerbot_storagewithdraw,"sii"),
+	BUILDIN_DEF(playerbot_storageopen,"s"),
+	BUILDIN_DEF(playerbot_storageclose,"s"),
+	BUILDIN_DEF(playerbot_storageisopen,"s"),
+	BUILDIN_DEF(playerbot_traderequest,"si"),
+	BUILDIN_DEF(playerbot_tradecancel,"s"),
+	BUILDIN_DEF(playerbot_tradepartner,"s"),
+	BUILDIN_DEF(playerbot_tradeactive,"s"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),
