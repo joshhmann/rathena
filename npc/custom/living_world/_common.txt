@@ -2001,6 +2001,52 @@ function	script	F_PB_RES_BuildHolderSummary$	{
 	return .@summary$;
 }
 
+function	script	F_PB_PART_NPCResourceKey$	{
+	.@npc_name$ = getarg(0, "");
+	if (.@npc_name$ == "")
+		return "";
+	return "npc:" + .@npc_name$;
+}
+
+function	script	F_PB_PART_NPCStartReserved	{
+	.@bot_key$ = getarg(0, "");
+	.@npc_name$ = getarg(1, "");
+	.@controller$ = getarg(2, "");
+	.@reason$ = getarg(3, "npc.dialog");
+	.@resource_key$ = callfunc("F_PB_PART_NPCResourceKey$", .@npc_name$);
+	if (.@resource_key$ == "")
+		return 0;
+	.@reservation_id = callfunc("F_PB_RES_Acquire", "dialog_target", .@resource_key$, .@bot_key$, .@controller$, 30000, 50, .@reason$);
+	if (.@reservation_id < 1)
+		return 0;
+	if (!playerbot_npcstart(.@bot_key$, .@npc_name$)) {
+		callfunc "F_PB_RES_Release", "dialog_target", .@resource_key$, .@bot_key$, .@controller$, "npc.start_failed";
+		return 0;
+	}
+	return 1;
+}
+
+function	script	F_PB_PART_NPCCloseReserved	{
+	.@bot_key$ = getarg(0, "");
+	.@npc_name$ = getarg(1, "");
+	.@controller$ = getarg(2, "");
+	.@close_ok = 1;
+	if (playerbot_npcactive(.@bot_key$))
+		.@close_ok = playerbot_npcclose(.@bot_key$);
+	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", .@npc_name$), .@bot_key$, .@controller$, "npc.close";
+	return .@close_ok;
+}
+
+function	script	F_PB_PART_NPCRecoverReserved	{
+	.@bot_key$ = getarg(0, "");
+	.@controller$ = getarg(1, "");
+	.@released = callfunc("F_PB_RES_ReleaseByHolder", .@bot_key$, .@controller$);
+	.@closed = 1;
+	if (playerbot_npcactive(.@bot_key$))
+		.@closed = playerbot_npcclose(.@bot_key$);
+	return (.@released >= 0 && .@closed);
+}
+
 function	script	F_PB_PERC_LoadBotContext	{
 	.@bot_key$ = escape_sql(getarg(0, ""));
 	$@pbperc_found = 0;

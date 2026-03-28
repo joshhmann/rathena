@@ -1936,6 +1936,7 @@ Current limits:
   - staged zeny negotiation on the player side
   - lock/commit completion
   - cancel rollback after staged negotiation
+  - explicit forced recovery of stale bot/player trade state
   but still does not cover broader dual-sided negotiation policy or partial
   failure recovery after peer disconnect mid-commit
 
@@ -1958,3 +1959,44 @@ Important behavior:
   acceptance tests even when the underlying trade system is healthy
 - the participation selftest now uses char-id-targeted trade accept/ok/commit
   helpers so the trade proof runs outside that invalid NPC ownership state
+
+## Participation Hooks V4
+
+- participation now has an explicit reservation-backed dialog lane for contested
+  NPC targets
+- the shared helpers are:
+  - `F_PB_PART_NPCStartReserved`
+  - `F_PB_PART_NPCCloseReserved`
+  - `F_PB_PART_NPCRecoverReserved`
+- this keeps dialog-target contention in the same reservation platform used by
+  other shared resources instead of relying on ad hoc caller discipline
+
+Trade/session recovery:
+
+- `playerbot_traderecover(bot_key$)` now gives bots a direct stale-trade cleanup
+  verb
+- `playerbot_tradecharrecover(char_id)` does the same for the live player side
+  during repo-local participation smoke validation
+- current recovery semantics are:
+  - prefer normal `trade_tradecancel(...)` when the peer/session still exists
+  - if stale flags remain, force-clear the local trade state
+  - emit interaction traces for the recovery attempt
+
+Quest-style participation:
+
+- `Playerbot Participation Lab` now includes a two-NPC relay proof:
+  - `Playerbot Quest Relay A`
+  - `Playerbot Quest Relay B`
+- this covers:
+  - reservation denial while another holder owns the dialog target
+  - successful retry after release
+  - cross-NPC state carry
+  - string-input handling
+  - cleanup/recovery between relay steps
+
+Current limits:
+
+- reservation-backed dialog is still opt-in through shared helpers and is not
+  yet enforced automatically for every `playerbot_npcstart(...)` call
+- the quest-style proof validates participation legality and cleanup, not a
+  broad quest-framework abstraction
