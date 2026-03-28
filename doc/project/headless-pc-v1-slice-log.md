@@ -5515,3 +5515,111 @@ This slice does not add:
 - a forced live `claim.denied` smoke harness yet
 - epoch-token persistence outside the current controller/runtime layer
 - automatic reservation cleanup for every contested live-owner mismatch
+
+## Slice 60: Playerbot Pool Observability CLI Tool
+
+### Summary
+
+Added a repo-local CLI tool for inspecting pool state that accurately reflects
+what can be queried from SQL config tables versus what requires live runtime
+inspection.
+
+### Files
+
+- `tools/ci/playerbot-pool.sh` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `tools/ci/playerbot-pool.sh` with commands:
+  - `status` - Pool inventory with configured thresholds
+  - `pools [N]` - List all pools with supply counts  
+  - `constrained` - Pools where parked supply < configured threshold
+  - `supply` - Parked vs active bot supply breakdown
+  - `controller <name>` - Pool bindings for a controller
+  - `pool <name>` - Details for a specific pool
+  - `stats` - Pool statistics summary
+
+- Precise terminology:
+  - "Configured threshold" = `min_demand_users` from `bot_controller_slot`
+  - "Parked supply" = bots with `current_state='offline'`, `park_state='parked'`
+  - "Active supply" = bots with `current_state != 'offline'`
+  - Explicitly NOT labeled as "live demand" (which requires runtime scheduler state)
+
+- Clear limitations documented:
+  - Tool reads SQL config, NOT live scheduler runtime state
+  - Configured threshold != live requested demand
+  - For live truth, use in-game scheduler NPCs or trace inspection
+
+### Validation
+
+- `bash tools/ci/playerbot-pool.sh --help`
+- `bash tools/ci/playerbot-pool.sh --no-color status`
+- `bash tools/ci/playerbot-pool.sh --no-color pools 5`
+- `bash tools/ci/playerbot-pool.sh --no-color constrained`
+- `bash tools/ci/playerbot-pool.sh --no-color controller "social.prontera"`
+- `bash tools/ci/playerbot-pool.sh --no-color stats`
+- All commands exit 0 with clear labeling of what each value represents
+
+### Deferrals
+
+This slice does not add:
+
+- Live scheduler runtime state queries (would need script/runtime surface)
+- True "requested demand" visibility (runtime signal dependent)
+- Automatic pool rebalancing or controller recommendations
+- Pool shortage alerts or monitoring
+
+## Slice 60: Playerbot Pool Observability CLI Tool
+
+### Summary
+
+Added a repo-local CLI tool for inspecting pool state that accurately reflects
+what can be queried from SQL config tables versus what requires live runtime
+inspection.
+
+### Files
+
+- `tools/ci/playerbot-pool.sh` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `tools/ci/playerbot-pool.sh` with commands:
+  - `status` - Pool inventory with configured thresholds
+  - `pools [N]` - List all pools with supply counts  
+  - `constrained` - Pools where parked supply < configured threshold
+  - `supply` - Parked vs active bot supply breakdown
+  - `controller <name>` - Pool bindings for a controller
+  - `pool <name>` - Details for a specific pool
+  - `stats` - Pool statistics summary
+
+- Precise terminology:
+  - "Configured threshold" = `min_demand_users` from `bot_controller_slot`
+  - "Parked supply" = bots with `current_state='offline'`, `park_state='parked'`
+  - "Active supply" = bots with `current_state != 'offline'`
+  - Explicitly NOT labeled as "live demand" (which requires runtime scheduler state)
+
+- Clear limitations documented:
+  - Tool reads SQL config, NOT live scheduler runtime state
+  - Configured threshold != live requested demand
+  - For live truth, use in-game scheduler NPCs or trace inspection
+
+### Validation
+
+- `bash tools/ci/playerbot-pool.sh --help`
+- `bash tools/ci/playerbot-pool.sh --no-color status`
+- `bash tools/ci/playerbot-pool.sh --no-color pools 5`
+- `bash tools/ci/playerbot-pool.sh --no-color constrained`
+- `bash tools/ci/playerbot-pool.sh --no-color controller "social.prontera"`
+- `bash tools/ci/playerbot-pool.sh --no-color stats`
+- All commands exit 0 with clear labeling of what each value represents
+
+### Deferrals
+
+This slice does not add:
+
+- Live scheduler runtime state queries (would need script/runtime surface)
+- True "requested demand" visibility (runtime signal dependent)
+- Automatic pool rebalancing or controller recommendations
+- Pool shortage alerts or monitoring
