@@ -1777,6 +1777,39 @@ function	script	F_PB_OBS_BuildFailureSurface$	{
 	return .@summary$;
 }
 
+function	script	F_PB_OBS_BuildIncidentSurface$	{
+	.@bot_key$ = getarg(0, "");
+	.@limit = getarg(1, 6);
+	if (.@limit < 1)
+		.@limit = 1;
+	if (.@limit > 8)
+		.@limit = 8;
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Incident Surface: unknown bot key.";
+	.@summary$ = "Incident Surface: " + .@bot_key$ + ".";
+	.@summary$ += "\n" + callfunc("F_PB_RECOVERY_BuildBotAudit$", .@bot_key$);
+	.@summary$ += "\n" + callfunc("F_PB_OBS_BuildFailureSurface$", .@bot_key$, .@limit, .@limit);
+	.@dialog_rows = query_sql(
+		"SELECT `resource_key`, `holder_controller_id` "
+		+ "FROM `bot_reservation` "
+		+ "WHERE `holder_bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "AND `type` = 'dialog_target' "
+		+ "ORDER BY `reservation_id` DESC LIMIT 1",
+		.@dialog_resource$, .@dialog_controller$);
+	if (.@dialog_rows > 0)
+		.@summary$ += "\n" + callfunc(
+			"F_PB_OBS_BuildDialogConflictSurface$",
+			.@bot_key$,
+			replacestr(.@dialog_resource$[0], "npc:", ""),
+			.@dialog_controller$[0],
+			.@limit
+		);
+	else
+		.@summary$ += "\nDialog Conflict: none active.";
+	.@summary$ += "\n" + callfunc("F_PB_OBS_BuildBotTimeline$", .@bot_key$, .@limit + 2);
+	return .@summary$;
+}
+
 function	script	F_PB_PERC_SetMeta$	{
 	$@pbperc_value$ = getarg(0, "");
 	$@pbperc_observed_at = getarg(1, gettimetick(2));

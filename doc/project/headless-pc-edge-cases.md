@@ -2199,3 +2199,19 @@ Current limit:
 
 - only `dialog_target` reservations use the inactive-session cleanup rule
 - broader inactive-lock cleanup for other reservation types is still deferred
+
+Bot incident surfaces:
+
+- `F_PB_OBS_BuildIncidentSurface$` is the current combined operator view for:
+  - recovery authority summary
+  - current failure surface
+  - active dialog conflict surface
+  - recent mixed trace/audit timeline rows
+- the current goal is practical incident inspection, not perfect causal
+  reconstruction
+
+Current limit:
+
+- incident surfaces are still computed from live state plus recent rows
+- they do not persist grouped incident records
+- they do not correlate multiple bots into one shared incident

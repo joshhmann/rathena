@@ -5577,6 +5577,56 @@ This slice does not add:
 - correlation ids between trace rows and audit rows
 - automatic grouping of related failures into one incident object
 
+## Slice 63: Bot Incident Surfaces
+
+### Summary
+
+This slice consolidates the current recovery/debug primitives into one
+operator-facing incident surface per bot. The goal is to answer "what is wrong
+with this bot right now?" without jumping between separate state, failure,
+timeline, and dialog-conflict views.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `npc/custom/playerbot/playerbot_trace_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared helper:
+  - `F_PB_OBS_BuildIncidentSurface$`
+- The new incident surface now combines:
+  - current recovery authority summary
+  - current failure surface
+  - active dialog conflict surface when a dialog reservation is present
+  - recent mixed trace/audit timeline rows
+- Extended `Playerbot State Lab` with:
+  - `Inspect incident surface`
+- Extended `Playerbot Trace Lab` with:
+  - `Bot incident surface`
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash -n tools/ci/playerbot-state-smoke.sh`
+- `bash tools/ci/playerbot-state-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-state-smoke.sh check`
+- verified the integrated state smoke still passes:
+  - `playerbot_state_selftest: ... result=1`
+
+### Deferrals
+
+This slice does not add:
+
+- persistent incident records
+- automatic correlation ids between incident surfaces and raw rows
+- cross-bot incident clustering
+- CLI incident inspection outside the in-game lab surfaces
+
 ## Slice 62: Dialog Drift Recovery
 
 ### Summary
