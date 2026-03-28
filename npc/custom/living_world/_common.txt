@@ -3082,6 +3082,26 @@ function	script	F_PB_ITEM_BuildSummary$	{
 	return .@summary$;
 }
 
+function	script	F_PB_LOADOUT_BuildSummary$	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Loadout Summary: unknown bot key.";
+	.@rows = query_sql(
+		"SELECT `equip_location`, `item_id`, `required` "
+		+ "FROM `bot_equipment_loadout` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "ORDER BY `equip_location`",
+		.@loc, .@item_id, .@required);
+	.@summary$ = "Loadout Summary: " + .@rows + ".";
+	if (.@rows < 1)
+		return .@summary$ + "\n<none>";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@equipped = callfunc("F_PB_ITEM_Count", .@bot_key$, "equipped", .@item_id[.@i]);
+		.@summary$ += "\nloc " + .@loc[.@i] + " -> " + .@item_id[.@i] + " / required " + .@required[.@i] + " / equipped " + .@equipped;
+	}
+	return .@summary$;
+}
+
 function	script	F_PB_ITEM_BuildAuditSummary$	{
 	.@bot_key$ = escape_sql(getarg(0, ""));
 	.@limit = getarg(1, 6);

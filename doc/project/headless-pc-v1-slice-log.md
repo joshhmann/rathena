@@ -5792,6 +5792,92 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Loadout Continuity Baseline
+
+### Summary
+
+Added the first persistent intended-equipment authority for bots and wired
+legal re-equip reconciliation into spawn and respawn paths.
+
+### Files
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260328_playerbot_equipment_loadout.sql` (new)
+- `src/map/pc.hpp`
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-foundation-smoke.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/bot-state-schema.md`
+
+### What Changed
+
+- Added the new persistent table:
+  - `bot_equipment_loadout`
+- Added runtime reconcile support in `pc.cpp`:
+  - spawn-time intended loadout reconcile
+  - respawn-time intended loadout reconcile
+- Reconcile now emits:
+  - `bot_item_audit` rows for equip apply/missing/denied outcomes
+  - `bot_recovery_audit` rows with scope `loadout`
+  - `bot_trace_event` rows under `phase='reconcile'`
+- Added bot-facing loadout buildins:
+  - `playerbot_loadoutset(bot_key$, item_id)`
+  - `playerbot_loadoutclear(bot_key$[, item_id])`
+  - `playerbot_loadoutreconcile(bot_key$)`
+- Added shared loadout summary helper:
+  - `F_PB_LOADOUT_BuildSummary$`
+- Extended `Playerbot Item Lab` so the selftest now proves:
+  - intended loadout write
+  - spawn-time re-equip after despawn/respawn
+  - respawn-time re-equip after death
+  - recovery-audit coverage for loadout reconcile
+- Promoted `item-loadout-continuity` in the scenario runner from skeleton to
+  runbook-backed through:
+  - `bash tools/ci/playerbot-item-smoke.sh arm`
+  - one `codex` login
+  - `bash tools/ci/playerbot-item-smoke.sh check`
+- Folded loadout continuity into the aggregate foundation baseline docs and
+  acceptance story.
+
+### Validation
+
+- `mysql -u rathena -prathena_secure_2024 rathena < sql-files/upgrades/upgrade_20260328_playerbot_equipment_loadout.sql`
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash tools/ci/playerbot-item-smoke.sh arm`
+- OpenKore login with the repo-local `codex` profile
+- `bash tools/ci/playerbot-item-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_item_selftest ... loadout_set_ok=1 ... loadout_spawn_ok=1 ... loadout_respawn_ok=1 ... loadout_audit_ok=1 result=1`
+- aggregate foundation smoke stays green with:
+  - `stage=state`
+  - `stage=guild`
+  - `stage=item`
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=combat`
+  - `stage=done`
+- recent item-audit rows now include:
+  - `loadout.spawn.apply`
+  - `loadout.respawn.apply`
+
+### Deferrals
+
+This slice does not add:
+
+- loadout planning or build optimization
+- automatic gear acquisition
+- skill/combat AI that reacts to equipment
+- broader mechanic cleanup under combat pressure
+
 ## Slice 61: Stabilize Playerbot Foundation Smoke
 
 ### Summary

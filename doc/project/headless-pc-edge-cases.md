@@ -2273,10 +2273,23 @@ Current limit:
 - this still closes only the current participation/recovery/observability
   foundation wave
 - the next foundation frontier is still:
-  - combat participation hooks
-  - broader status/death/revive continuity
-  - deeper item/equipment continuity beyond the first transactional slice
+  - broader first-class mechanic cleanup under combat pressure
+  - deeper equipment/loadout policy beyond the first intended-loadout baseline
+  - richer combat/event participation beyond legal combat hooks
 
 The implementation-facing combat frontier contract is now documented in:
 
 - `doc/project/playerbot-combat-frontier-contract.md`
+
+Follow-on update:
+
+- combat/status/death/respawn participation is now integrated and green in the
+  aggregate foundation smoke
+- the first intended-equipment authority now exists in:
+  - `bot_equipment_loadout`
+- spawn and respawn now reconcile legal intended equipment for headless bots
+- item selftests now prove:
+  - loadout write
+  - despawn/spawn loadout continuity
+  - death/respawn loadout continuity
+  - loadout recovery-audit coverage

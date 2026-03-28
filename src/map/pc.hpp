@@ -1395,6 +1395,7 @@ void pc_setrestartvalue(map_session_data *sd, char type);
 void pc_makesavestatus(map_session_data *sd);
 void pc_respawn(map_session_data* sd, clr_type clrtype);
 void pc_force_respawn(map_session_data* sd, clr_type clrtype);
+bool pc_playerbot_reconcile_loadout(map_session_data* sd, const char* reason, int32* applied, int32* missing, int32* denied);
 void pc_setnewpc(map_session_data *sd, uint32 account_id, uint32 char_id, int32 login_id1, t_tick client_tick, int32 sex, int32 fd);
 bool pc_authok(map_session_data *sd, uint32 login_id2, time_t expiration_time, int32 group_id, struct mmo_charstatus *st, bool changing_mapservers);
 void pc_authfail(map_session_data *sd);

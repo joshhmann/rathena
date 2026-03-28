@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <map>
+#include <vector>
 
 #ifdef MAP_GENERATOR
 #include <fstream>
@@ -9797,6 +9798,20 @@ static bool pc_playerbot_lookup_identity(const map_session_data* sd, uint32* bot
 	return true;
 }
 
+static int16 pc_playerbot_find_inventory_index(const map_session_data* sd, t_itemid nameid, bool equipped_only = false)
+{
+	if (sd == nullptr)
+		return -1;
+	for (int16 i = 0; i < MAX_INVENTORY; ++i) {
+		if (sd->inventory.u.items_inventory[i].nameid != nameid)
+			continue;
+		if (equipped_only && sd->inventory.u.items_inventory[i].equip == 0)
+			continue;
+		return i;
+	}
+	return -1;
+}
+
 static void pc_playerbot_trace_event(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* phase, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail)
 {
 	char esc_trace_id[129];
@@ -9833,6 +9848,26 @@ static void pc_playerbot_trace_event(uint32 bot_id, uint32 char_id, uint32 accou
 	}
 }
 
+static void pc_playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* action, t_itemid item_id, uint16 amount, const char* location, const char* result, const char* detail)
+{
+	char esc_detail[385];
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	Sql_EscapeStringLen(mmysql_handle, esc_detail, detail != nullptr ? detail : "", strnlen(detail != nullptr ? detail : "", 191));
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_item_audit` "
+		"(`ts`, `bot_id`, `char_id`, `account_id`, `action`, `item_id`, `amount`, `location`, `result`, `detail`) "
+		"VALUES ('%u', '%u', '%u', '%u', '%s', '%u', '%u', '%s', '%s', '%s')",
+		now, bot_id, char_id, account_id,
+		action != nullptr ? action : "equip",
+		item_id, amount,
+		location != nullptr ? location : "equipped",
+		result != nullptr ? result : "ok",
+		esc_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
 static void pc_playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* authority, const char* scope, const char* action, const char* state_before, const char* state_after, const char* result, const char* detail)
 {
 	char esc_authority[65];
@@ -9859,6 +9894,33 @@ static void pc_playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 ac
 		now, bot_id, char_id, account_id, esc_authority, esc_scope, esc_action, esc_before, esc_after, esc_result, esc_detail)) {
 		Sql_ShowDebug(mmysql_handle);
 	}
+}
+
+static std::string pc_playerbot_loadout_state(const map_session_data* sd, uint32 bot_id)
+{
+	int32 loadout_rows = 0;
+	int32 equipped_rows = 0;
+	if (bot_id > 0) {
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"SELECT COUNT(*) FROM `bot_equipment_loadout` WHERE `bot_id` = '%u'",
+			bot_id)) {
+			Sql_ShowDebug(mmysql_handle);
+		} else {
+			char* data = nullptr;
+			if (SQL_SUCCESS == Sql_NextRow(mmysql_handle) && SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+				loadout_rows = atoi(data);
+			Sql_FreeResult(mmysql_handle);
+		}
+	}
+
+	if (sd != nullptr) {
+		for (int16 i = 0; i < MAX_INVENTORY; ++i) {
+			if (sd->inventory.u.items_inventory[i].nameid > 0 && sd->inventory.u.items_inventory[i].equip > 0)
+				++equipped_rows;
+		}
+	}
+
+	return "loadout_rows=" + std::to_string(loadout_rows) + ",equipped_rows=" + std::to_string(equipped_rows);
 }
 
 static std::string pc_playerbot_combat_state(const map_session_data* sd)
@@ -9983,6 +10045,107 @@ static int32 pc_playerbot_release_reservations(uint32 bot_id, uint32 char_id, ui
 	return released;
 }
 
+bool pc_playerbot_reconcile_loadout(map_session_data* sd, const char* reason, int32* applied, int32* missing, int32* denied)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	char* data = nullptr;
+	int32 local_applied = 0, local_missing = 0, local_denied = 0, rows = 0;
+	std::string reason_s = reason != nullptr ? reason : "manual";
+	struct s_loadout_row {
+		uint32 equip_location;
+		t_itemid item_id;
+		bool required;
+	};
+	std::vector<s_loadout_row> loadout_rows;
+
+	if (applied != nullptr)
+		*applied = 0;
+	if (missing != nullptr)
+		*missing = 0;
+	if (denied != nullptr)
+		*denied = 0;
+
+	if (sd == nullptr || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return false;
+
+	std::string before = pc_playerbot_loadout_state(sd, bot_id);
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT `equip_location`, `item_id`, `required` "
+		"FROM `bot_equipment_loadout` WHERE `bot_id` = '%u' ORDER BY `equip_location`",
+		bot_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "reconcile", before.c_str(), before.c_str(), "aborted", ("loadout." + reason_s + " query.failed").c_str());
+		pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.failed", "loadout", "", "restart.recovery", "aborted", "loadout.reconcile", "query.failed");
+		return false;
+	}
+
+	while (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		s_loadout_row row = {};
+		if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+			row.equip_location = static_cast<uint32>(strtoul(data, nullptr, 10));
+		if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 1, &data, nullptr) && data != nullptr)
+			row.item_id = static_cast<t_itemid>(strtoul(data, nullptr, 10));
+		if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 2, &data, nullptr) && data != nullptr)
+			row.required = atoi(data) != 0;
+		loadout_rows.push_back(row);
+	}
+	Sql_FreeResult(mmysql_handle);
+
+	rows = static_cast<int32>(loadout_rows.size());
+	for (const auto& row : loadout_rows) {
+		std::shared_ptr<item_data> id = item_db.find(row.item_id);
+		if (!row.required)
+			continue;
+		if (id == nullptr || row.equip_location == 0 || (id->equip & row.equip_location) == 0) {
+			++local_denied;
+			pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "invalid", ("loadout." + reason_s + ".invalid").c_str());
+			continue;
+		}
+
+		bool already_equipped = false;
+		for (int16 i = 0; i < MAX_INVENTORY; ++i) {
+			if (sd->inventory.u.items_inventory[i].nameid != row.item_id || sd->inventory.u.items_inventory[i].equip == 0)
+				continue;
+			if ((sd->inventory.u.items_inventory[i].equip & row.equip_location) != 0) {
+				already_equipped = true;
+				break;
+			}
+		}
+		if (already_equipped)
+			continue;
+
+		int16 idx = pc_playerbot_find_inventory_index(sd, row.item_id, false);
+		if (idx < 0) {
+			++local_missing;
+			pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "missing", ("loadout." + reason_s + ".missing").c_str());
+			continue;
+		}
+
+		if (!pc_equipitem(sd, idx, row.equip_location)) {
+			++local_denied;
+			pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "denied", ("loadout." + reason_s + ".denied").c_str());
+			continue;
+		}
+
+		++local_applied;
+		pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "ok", ("loadout." + reason_s + ".apply").c_str());
+	}
+
+	std::string after = pc_playerbot_loadout_state(sd, bot_id);
+	std::string detail = "loadout." + reason_s + " rows=" + std::to_string(rows) + " applied=" + std::to_string(local_applied) + " missing=" + std::to_string(local_missing) + " denied=" + std::to_string(local_denied);
+	const char* result = (local_missing == 0 && local_denied == 0) ? (local_applied > 0 ? "ok" : "noop") : "aborted";
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "reconcile", before.c_str(), after.c_str(), result, detail.c_str());
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", (local_missing == 0 && local_denied == 0) ? "reconcile.fixed" : "reconcile.failed", "loadout", "", "restart.recovery", result, (local_missing == 0 && local_denied == 0) ? "" : "loadout.reconcile", detail.c_str());
+
+	if (applied != nullptr)
+		*applied = local_applied;
+	if (missing != nullptr)
+		*missing = local_missing;
+	if (denied != nullptr)
+		*denied = local_denied;
+	return (local_missing == 0 && local_denied == 0);
+}
+
 static void pc_playerbot_handle_death_cleanup(map_session_data* sd)
 {
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
@@ -10008,6 +10171,7 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 	unit_stop_attack(sd);
 	pc_playerbot_cleanup_participation(sd);
 	pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat.respawn");
+	pc_playerbot_reconcile_loadout(sd, "respawn", nullptr, nullptr, nullptr);
 	std::string after = pc_playerbot_combat_state(sd);
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "combat", "respawn", before.c_str(), after.c_str(), "ok", "combat.respawn_reconciled");
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "respawn.completed", "respawn", "", "restart.recovery", "ok", "", "combat.respawn_reconciled");
@@ -15045,6 +15209,7 @@ void pc_scdata_received(map_session_data *sd) {
 
 	if (sd->state.headless_bot) {
 		clif_headless_pc_load(sd);
+		pc_playerbot_reconcile_loadout(sd, "spawn", nullptr, nullptr, nullptr);
 	} else if (sd->state.connect_new == 0 && sd->fd) { // Character already loaded map! Gotta trigger LoadEndAck manually.
 		sd->state.connect_new = 1;
 		clif_parse_LoadEndAck(sd->fd, sd);

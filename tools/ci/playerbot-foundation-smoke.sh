@@ -116,7 +116,7 @@ check() {
 SELECT \`scope\`, \`action\`, \`result\`, \`detail\`, COUNT(*)
 FROM \`bot_recovery_audit\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
-  AND \`scope\` IN ('combat','npc','storage','trade','participation','reservation','ownership')
+  AND \`scope\` IN ('combat','loadout','npc','storage','trade','participation','reservation','ownership')
 GROUP BY \`scope\`, \`action\`, \`result\`, \`detail\`
 ORDER BY MAX(\`id\`) DESC
 LIMIT 16;

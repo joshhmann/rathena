@@ -7,7 +7,7 @@ Use it when you want one login pass to exercise the integrated selftests for:
 
 - combat/status/death/respawn participation
 - guild participation
-- transactional item layer
+- transactional item and loadout layer
 - merchant runtime
 - broader participation hooks
 - ownership / state recovery
@@ -78,6 +78,7 @@ The combined `check` output reports:
 - recent `playerbot_*_selftest` lines from the map-server pane
 - recent recovery-audit summaries across:
   - `combat`
+  - `loadout`
   - `npc`
   - `storage`
   - `trade`
@@ -90,6 +91,13 @@ The combined `check` output reports:
   - `reservation`
   - `reconcile`
 
+The item stage now also proves intended loadout continuity:
+
+- persistent intended equipment rows exist in `bot_equipment_loadout`
+- spawn-time reconcile can re-equip legal intended items
+- respawn-time reconcile can re-equip legal intended items
+- loadout reconcile emits item audits, recovery audits, and traces
+
 ## Current Limits
 
 - this is still a smoke runner, not a scenario orchestrator
@@ -99,6 +107,7 @@ The combined `check` output reports:
 - it does not yet cover:
   - fully generalized scenario fixtures
 - the next frontier after this smoke is:
-  - deeper equipment/loadout continuity
   - broader first-class mechanic cleanup under combat pressure
   - richer combat/event participation beyond the current legal hooks
+  - deeper equipment/loadout policy and continuity beyond the first intended
+    loadout baseline

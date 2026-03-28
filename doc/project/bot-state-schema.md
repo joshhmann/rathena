@@ -351,6 +351,35 @@ Status:
 
 - deferred
 
+### 10a. `bot_equipment_loadout`
+
+One or more intended-equipment rows per bot profile.
+
+Committed fields:
+
+- `bot_id`
+  - foreign key
+- `equip_location`
+  - intended equipment location bitmask
+- `item_id`
+- `required`
+  - `0` optional, `1` required
+- `updated_at`
+
+Purpose:
+
+- records durable intended equipment separately from transient live equip state
+- gives spawn and respawn recovery one persistent authority for legal re-equip
+  reconciliation
+- supports the first loadout continuity baseline without pretending the bot has
+  a full progression/build planner yet
+
+Status:
+
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260328_playerbot_equipment_loadout.sql`
+
 ### 11. `bot_guild_state`
 
 One row per bot profile.

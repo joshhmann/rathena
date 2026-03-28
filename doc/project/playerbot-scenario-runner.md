@@ -60,15 +60,17 @@ These split into two groups:
   - `combat-baseline`
   - `status-continuity`
   - `death-respawn`
-- skeleton-only for the next frontier:
   - `item-loadout-continuity`
+- skeleton-only for the next frontier:
   - `mechanic-cleanup`
 
 The runbook-backed scenarios use:
 
 - `tools/ci/playerbot-combat-smoke.sh`
+- `tools/ci/playerbot-item-smoke.sh`
 
-The skeleton scenarios remain future-facing until those runtime hooks land.
+The remaining skeleton scenario stays future-facing until those runtime hooks
+land.
 
 ## CLI Contract
 

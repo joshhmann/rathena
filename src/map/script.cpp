@@ -12595,6 +12595,119 @@ BUILDIN_FUNC(playerbot_itemunequip)
 }
 
 /*==========================================
+ * Persist one intended equipment item for a playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_loadoutset)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	std::shared_ptr<item_data> id = item_db.find(nameid);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "loadout", std::to_string(nameid).c_str(), "operator.start", "ok", "", "");
+
+	if (!playerbot_identity_lookup_by_key(bot_key, &bot_id, &char_id, &account_id) || id == nullptr || id->equip == 0) {
+		playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "set", "", "", "invalid", id == nullptr ? "item.invalid" : "loadout.invalid");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", std::to_string(nameid).c_str(), "target.invalid", "denied", "loadout.set", id == nullptr ? "item.invalid" : "loadout.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"REPLACE INTO `bot_equipment_loadout` (`bot_id`, `equip_location`, `item_id`, `required`) "
+		"VALUES ('%u', '%u', '%u', '1')",
+		bot_id, static_cast<uint32>(id->equip), static_cast<uint32>(nameid))) {
+		Sql_ShowDebug(mmysql_handle);
+		playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "set", "", "", "aborted", "sql.failed");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", std::to_string(nameid).c_str(), "script.busy", "aborted", "loadout.set", "sql.failed");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "set", "", "", "ok", ("loadout.slot=" + std::to_string(id->equip)).c_str());
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "loadout", std::to_string(nameid).c_str(), "operator.start", "ok", "", "loadout.set");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Clear intended equipment rows for a playerbot.
+ * Optional item id clears one slot; otherwise clears all.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_loadoutclear)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_hasdata(st, 3) ? script_getnum(st, 3) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "loadout", std::to_string(nameid).c_str(), "operator.stop", "ok", "", "");
+
+	if (!playerbot_identity_lookup_by_key(bot_key, &bot_id, &char_id, &account_id)) {
+		playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "clear", "", "", "invalid", "bot.unknown");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", std::to_string(nameid).c_str(), "target.invalid", "denied", "loadout.clear", "bot.unknown");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (nameid > 0) {
+		std::shared_ptr<item_data> id = item_db.find(nameid);
+		if (id == nullptr || id->equip == 0) {
+			playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "clear", "", "", "invalid", "item.invalid");
+			playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", std::to_string(nameid).c_str(), "target.invalid", "denied", "loadout.clear", "item.invalid");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"DELETE FROM `bot_equipment_loadout` WHERE `bot_id` = '%u' AND `equip_location` = '%u'",
+			bot_id, static_cast<uint32>(id->equip))) {
+			Sql_ShowDebug(mmysql_handle);
+			playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "clear", "", "", "aborted", "sql.failed");
+			playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", std::to_string(nameid).c_str(), "script.busy", "aborted", "loadout.clear", "sql.failed");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+	} else {
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"DELETE FROM `bot_equipment_loadout` WHERE `bot_id` = '%u'",
+			bot_id)) {
+			Sql_ShowDebug(mmysql_handle);
+			playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "clear", "", "", "aborted", "sql.failed");
+			playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", "", "script.busy", "aborted", "loadout.clear", "sql.failed");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+	}
+
+	playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "clear", "", "", "ok", nameid > 0 ? "loadout.slot.cleared" : "loadout.all.cleared");
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "loadout", std::to_string(nameid).c_str(), "operator.stop", "ok", "", nameid > 0 ? "loadout.slot.cleared" : "loadout.all.cleared");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Reconcile intended equipment for one live playerbot now.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_loadoutreconcile)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "loadout", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "loadout", "", "target.invalid", "denied", "loadout.reconcile", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 applied = 0, missing = 0, denied = 0;
+	bool ok = pc_playerbot_reconcile_loadout(sd, "manual", &applied, &missing, &denied);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "loadout", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "loadout.reconcile", ("applied=" + std::to_string(applied) + " missing=" + std::to_string(missing) + " denied=" + std::to_string(denied)).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Deposit one item amount from a live playerbot inventory into storage.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_storagedeposit)
@@ -31114,6 +31227,9 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),
+	BUILDIN_DEF(playerbot_loadoutset,"si"),
+	BUILDIN_DEF(playerbot_loadoutclear,"s?"),
+	BUILDIN_DEF(playerbot_loadoutreconcile,"s"),
 	BUILDIN_DEF(playerbot_attack,"si"),
 	BUILDIN_DEF(playerbot_attackstop,"s"),
 	BUILDIN_DEF(playerbot_target,"s"),

@@ -36,7 +36,10 @@ playerbot_scenario_kind() {
 		combat-baseline|status-continuity|death-respawn)
 			printf '%s\n' 'runbook'
 			;;
-		item-loadout-continuity|mechanic-cleanup)
+		item-loadout-continuity)
+			printf '%s\n' 'runbook'
+			;;
+		mechanic-cleanup)
 			printf '%s\n' 'skeleton'
 			;;
 		*)
@@ -190,7 +193,15 @@ This scenario now has a repo-local smoke helper through
 runbook layer, while the smoke helper is the concrete launcher/check surface.
 EOF
 			;;
-		item-loadout-continuity|mechanic-cleanup)
+		item-loadout-continuity)
+			cat <<'EOF'
+This scenario now has a repo-local smoke helper through
+`tools/ci/playerbot-item-smoke.sh`. The scenario runner remains the canonical
+runbook layer, while the item smoke helper is the concrete launcher/check
+surface.
+EOF
+			;;
+		mechanic-cleanup)
 			cat <<'EOF'
 This scenario is intentionally a skeleton definition. It is a stable contract
 for future automation, not a claim that the runtime hook is implemented yet.
@@ -207,7 +218,10 @@ playerbot_scenario_launcher() {
 		combat-baseline|status-continuity|death-respawn)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
 			;;
-		item-loadout-continuity|mechanic-cleanup)
+		item-loadout-continuity)
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check'
+			;;
+		mechanic-cleanup)
 			printf '%s\n' ''
 			;;
 		*)
