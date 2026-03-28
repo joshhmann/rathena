@@ -5409,4 +5409,62 @@ This slice does not add:
 
 - full epoch-token persistence outside the current controller/runtime layer
 - automatic repair of every pool-owner drift case across every controller family
-- merged trace+audit timeline tooling in the state lab itself
+- broader contested handoff recovery across every controller family
+
+## Slice 58: Unified Bot Timeline Surfaces
+
+### Summary
+
+This slice adds a unified per-bot observability timeline that merges
+`bot_trace_event` and `bot_recovery_audit` into one operator-facing view. The
+goal is to answer "what just happened to this bot?" without hopping between
+trace and recovery menus.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_trace_lab.txt`
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared helper:
+  - `F_PB_OBS_BuildBotTimeline$`
+- The new timeline builder:
+  - resolves a bot key through the current bot summary path
+  - reads both trace rows and recovery audits
+  - sorts them into one descending timeline
+  - surfaces:
+    - trace or audit kind
+    - scope/phase
+    - action
+    - result
+    - controller or authority
+    - reason / fallback / error / detail when present
+- Extended `Playerbot Trace Lab` with:
+  - `Bot timeline`
+- Extended `Playerbot State Lab` with:
+  - `Inspect bot timeline`
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- OpenKore login with the `codex` profile
+- verified `Playerbot Trace Lab -> Bot timeline` works for:
+  - `quick_merc_alb`
+- verified `Playerbot State Lab -> Inspect bot timeline` works for:
+  - `quick_merc_alb`
+  - `quick_party_open`
+- verified the timeline includes mixed rows from:
+  - `bot_trace_event`
+  - `bot_recovery_audit`
+
+### Deferrals
+
+This slice does not add:
+
+- a dedicated CLI timeline joiner on top of the new lab view
+- replay/snapshot semantics
+- automatic correlation IDs between trace and recovery rows

@@ -2103,3 +2103,20 @@ Operator coverage:
 - repo-local smoke helper:
   - `bash tools/ci/playerbot-state-smoke.sh arm`
   - `bash tools/ci/playerbot-state-smoke.sh check`
+
+Unified bot timeline:
+
+- trace inspection and recovery inspection are no longer fully separate operator
+  tasks for per-bot debugging
+- `F_PB_OBS_BuildBotTimeline$` now merges:
+  - `bot_trace_event`
+  - `bot_recovery_audit`
+- current surfaces:
+  - `Playerbot Trace Lab -> Bot timeline`
+  - `Playerbot State Lab -> Inspect bot timeline`
+
+Current limit:
+
+- the merged timeline is script-first and read-only
+- it does not yet use shared correlation ids across trace/audit rows
+- it is optimized for recent operator debugging, not long-range replay

@@ -3,7 +3,7 @@ prontera,152,179,4	script	Playerbot Trace Lab	4_F_KAFRA5,{
 	mes "Inspect recent structured playerbot traces.";
 	next;
 
-	switch(select("Recent traces:Recent failures:By controller:By bot key:By map:Close")) {
+	switch(select("Recent traces:Recent failures:By controller:By bot key:Bot timeline:By map:Close")) {
 	case 1:
 		mes "[Playerbot Trace Lab]";
 		mes callfunc("F_PB_DB_BuildRecentTraceSummary$", "", "", "", 0, 8);
@@ -32,6 +32,14 @@ prontera,152,179,4	script	Playerbot Trace Lab	4_F_KAFRA5,{
 		close;
 
 	case 5:
+		input .@bot_key$;
+		if (.@bot_key$ == "")
+			close;
+		mes "[Playerbot Trace Lab]";
+		mes callfunc("F_PB_OBS_BuildBotTimeline$", .@bot_key$, 10);
+		close;
+
+	case 6:
 		input .@map_name$;
 		if (.@map_name$ == "")
 			close;

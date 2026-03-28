@@ -1644,6 +1644,54 @@ function	script	F_PB_DB_BuildRecentTraceSummary$	{
 	return .@summary$;
 }
 
+function	script	F_PB_OBS_BuildBotTimeline$	{
+	.@bot_key$ = getarg(0, "");
+	.@limit = getarg(1, 10);
+	if (.@limit < 1)
+		.@limit = 1;
+	if (.@limit > 12)
+		.@limit = 12;
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Timeline: unknown bot key.";
+	.@rows = query_sql(
+		"SELECT * FROM ("
+		+ "SELECT e.`ts` AS `ts`, 'trace' AS `kind`, e.`phase` AS `scope`, e.`action` AS `action`, e.`result` AS `result`, "
+		+ "e.`reason_code` AS `reason_code`, e.`controller_id` AS `controller_id`, IFNULL(e.`fallback`, '') AS `fallback`, "
+		+ "IFNULL(e.`error_code`, '') AS `error_code`, IFNULL(e.`error_detail`, '') AS `detail`, '' AS `authority` "
+		+ "FROM `bot_trace_event` e WHERE e.`bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "UNION ALL "
+		+ "SELECT a.`ts` AS `ts`, 'audit' AS `kind`, a.`scope` AS `scope`, a.`action` AS `action`, a.`result` AS `result`, "
+		+ "'' AS `reason_code`, '' AS `controller_id`, '' AS `fallback`, '' AS `error_code`, IFNULL(a.`detail`, '') AS `detail`, "
+		+ "IFNULL(a.`authority`, '') AS `authority` "
+		+ "FROM `bot_recovery_audit` a WHERE a.`bot_id` = '" + $@pbbot_bot_id + "'"
+		+ ") z ORDER BY z.`ts` DESC, z.`kind` ASC LIMIT " + .@limit,
+		.@ts, .@kind$, .@scope$, .@action$, .@result$, .@reason$, .@controller$, .@fallback$, .@error$, .@detail$, .@authority$);
+	if (.@rows < 1)
+		return "Timeline: no trace or audit rows for " + .@bot_key$ + ".";
+	.@now = gettimetick(2);
+	.@summary$ = "Timeline: " + .@bot_key$ + " (" + .@rows + ").";
+	for (.@i = 0; .@i < .@rows; ++.@i) {
+		.@summary$ += "\n" + (.@i + 1) + ". "
+			+ ((.@now - .@ts[.@i]) * 1000) + "ms "
+			+ .@kind$[.@i] + " "
+			+ .@scope$[.@i] + "/" + .@action$[.@i]
+			+ " -> " + .@result$[.@i];
+		if (.@controller$[.@i] != "")
+			.@summary$ += " [" + .@controller$[.@i] + "]";
+		if (.@authority$[.@i] != "")
+			.@summary$ += " auth=" + .@authority$[.@i];
+		if (.@reason$[.@i] != "" && .@reason$[.@i] != "none")
+			.@summary$ += " reason=" + .@reason$[.@i];
+		if (.@fallback$[.@i] != "")
+			.@summary$ += " fallback=" + .@fallback$[.@i];
+		if (.@error$[.@i] != "")
+			.@summary$ += " err=" + .@error$[.@i];
+		if (.@detail$[.@i] != "")
+			.@summary$ += " detail=" + .@detail$[.@i];
+	}
+	return .@summary$;
+}
+
 function	script	F_PB_PERC_SetMeta$	{
 	$@pbperc_value$ = getarg(0, "");
 	$@pbperc_observed_at = getarg(1, gettimetick(2));
@@ -1855,6 +1903,7 @@ function	script	F_PB_STATE_BuildBotStateSummary$	{
 	.@summary$ += "\n" + callfunc("F_PB_MEM_BuildSummary$", "", .@shared_key$, 4);
 	.@summary$ += "\n" + callfunc("F_PB_RES_BuildHolderSummary$", .@bot_key$);
 	.@summary$ += "\n" + callfunc("F_PB_RECOVERY_BuildBotAudit$", .@bot_key$);
+	.@summary$ += "\n" + callfunc("F_PB_OBS_BuildBotTimeline$", .@bot_key$, 6);
 	return .@summary$;
 }
 

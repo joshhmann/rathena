@@ -3,7 +3,7 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 	mes "Inspect the four-layer playerbot state model and recovery authorities.";
 	next;
 
-	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Run ownership selftest:Write lab memory marker:Close")) {
+	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Inspect bot timeline:Run ownership selftest:Write lab memory marker:Close")) {
 	case 1:
 		mes "[Playerbot State Lab]";
 		mes callfunc("F_PB_STATE_BuildBotStateSummary$", "quick_merc_alb");
@@ -125,12 +125,32 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 		close;
 
 	case 7:
+		switch(select("Timeline for quick_merc_alb:Timeline for quick_party_open:Timeline by bot key:Close")) {
+		case 1:
+			.@bot_key$ = "quick_merc_alb";
+			break;
+		case 2:
+			.@bot_key$ = "quick_party_open";
+			break;
+		case 3:
+			input .@bot_key$;
+			if (.@bot_key$ == "")
+				close;
+			break;
+		default:
+			close;
+		}
+		mes "[Playerbot State Lab]";
+		mes callfunc("F_PB_OBS_BuildBotTimeline$", .@bot_key$, 10);
+		close;
+
+	case 8:
 		donpcevent "PlayerbotStateSelftest::OnRun";
 		mes "[Playerbot State Lab]";
 		mes "Ownership selftest started.";
 		close;
 
-	case 8:
+	case 9:
 		callfunc "F_PB_MEM_Remember", "social", "alberta.lab_probe", 1, "state.lab", 30000, "state.lab";
 		mes "[Playerbot State Lab]";
 		mes "Wrote a 30s shared-memory probe marker.";
