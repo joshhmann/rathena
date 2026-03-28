@@ -5149,3 +5149,48 @@ an authoritative audit trail and can be cleared through explicit recovery verbs.
   - mixed-state setup
   - successful authoritative recovery
   - both bot and live peer trade state ending clear
+
+
+## Slice 55: Storage And Trade Recovery Audit Expansion
+
+### Goal
+
+Push the recovery contract deeper so storage and trade recovery are audited as
+first-class recovery scopes, not only as part of the broader participation
+wrapper.
+
+### Files Touched
+
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- `playerbot_storagerecover(bot_key$)` now writes authoritative recovery audit
+  rows for scope `storage`
+- `playerbot_traderecover(bot_key$)` now writes authoritative recovery audit
+  rows for scope `trade`
+- trade recovery now also force-clears the live peer when stale trade flags
+  remain on that side
+- `Playerbot State Lab` can now inspect:
+  - latest recovery audit for `quick_merc_alb`
+  - latest recovery audit for `quick_party_open`
+  - latest recent storage/trade/participation audits across bots
+
+### Validation
+
+- rebuilt `map-server`
+- restarted with `bash tools/dev/playerbot-dev.sh restart`
+- re-ran the repo-local participation smoke:
+  - `bash tools/ci/playerbot-participation-smoke.sh arm`
+  - OpenKore login with the `codex` profile
+  - `bash tools/ci/playerbot-participation-smoke.sh check`
+- final selftest result stayed green:
+  - `playerbot_participation_selftest: ... result=1.`
+- verified recent `bot_recovery_audit` rows for:
+  - `storage / recover / ok / storage.cleared`
+  - `trade / recover / ok / trade.cleared`
+  - `trade / recover / noop / already.clear`
+  - `participation / recover / ok / participation.cleared`

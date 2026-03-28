@@ -2034,3 +2034,19 @@ Important detail:
   while the bot is still concurrently inside NPC/storage state
 - that mixed state is intentionally hostile; the proof only requires the
   recovery pass to leave all participation surfaces clear and audited
+
+Storage/trade audit coverage:
+
+- `playerbot_storagerecover(bot_key$)` now records scope-specific recovery rows
+  in `bot_recovery_audit`
+- `playerbot_traderecover(bot_key$)` now records scope-specific recovery rows
+  in `bot_recovery_audit`
+- the state lab can inspect those recovery rows without dropping straight into
+  SQL
+
+Trade peer cleanup:
+
+- stale trade recovery now treats the live peer as part of the same recovery
+  boundary when the bot is one endpoint of the stale deal
+- this keeps partial cleanup from leaving the human-side session in a phantom
+  trade state after the bot clears itself

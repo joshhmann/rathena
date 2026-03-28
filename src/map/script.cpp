@@ -12883,7 +12883,9 @@ BUILDIN_FUNC(playerbot_storagerecover)
 		return SCRIPT_CMD_SUCCESS;
 	}
 
+	std::string before = playerbot_participation_state(sd);
 	if (sd->state.storage_flag == 0) {
+		playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "storage", "recover", before.c_str(), before.c_str(), "noop", "already.clear");
 		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "storage", "recover", "restart.recovery", "noop", "", "already.clear");
 		script_pushint(st, 1);
 		return SCRIPT_CMD_SUCCESS;
@@ -12907,6 +12909,8 @@ BUILDIN_FUNC(playerbot_storagerecover)
 	}
 
 	bool ok = (sd->state.storage_flag == 0);
+	std::string after = playerbot_participation_state(sd);
+	playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "storage", "recover", before.c_str(), after.c_str(), ok ? "ok" : "aborted", ok ? "storage.cleared" : "storage.still_open");
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "storage", "recover", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "storage.recover", ok ? "" : "storage.still_open");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
@@ -13090,8 +13094,13 @@ BUILDIN_FUNC(playerbot_traderecover)
 		return SCRIPT_CMD_SUCCESS;
 	}
 
+	std::string before = playerbot_participation_state(sd);
+	map_session_data* trade_partner_sd = nullptr;
+	if (sd->trade_partner.id != 0)
+		trade_partner_sd = map_id2sd(sd->trade_partner.id);
 	bool had_state = (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd));
 	if (!had_state) {
+		playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "trade", "recover", before.c_str(), before.c_str(), "noop", "already.clear");
 		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "trade_recover", "", "restart.recovery", "noop", "", "already.clear");
 		script_pushint(st, 1);
 		return SCRIPT_CMD_SUCCESS;
@@ -13101,8 +13110,16 @@ BUILDIN_FUNC(playerbot_traderecover)
 		trade_tradecancel(sd);
 	if (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd))
 		playerbot_trade_force_clear(sd);
+	if (trade_partner_sd != nullptr && (trade_partner_sd->trade_partner.id == account_id || trade_partner_sd->state.trading || trade_partner_sd->state.deal_locked != 0 || playerbot_trade_has_staged(trade_partner_sd))) {
+		if (trade_partner_sd->trade_partner.id != 0 || trade_partner_sd->state.trading)
+			trade_tradecancel(trade_partner_sd);
+		if (trade_partner_sd->trade_partner.id != 0 || trade_partner_sd->state.trading || trade_partner_sd->state.deal_locked != 0 || playerbot_trade_has_staged(trade_partner_sd))
+			playerbot_trade_force_clear(trade_partner_sd);
+	}
 
 	bool ok = (sd->trade_partner.id == 0 && !sd->state.trading && sd->state.deal_locked == 0 && !playerbot_trade_has_staged(sd));
+	std::string after = playerbot_participation_state(sd);
+	playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "trade", "recover", before.c_str(), after.c_str(), ok ? "ok" : "aborted", ok ? "trade.cleared" : "trade.still_active");
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade_recover", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "trade.recover", ok ? "" : "trade.still_active");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;

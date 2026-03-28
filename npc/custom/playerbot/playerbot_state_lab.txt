@@ -3,7 +3,7 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 	mes "Inspect the four-layer playerbot state model and recovery authorities.";
 	next;
 
-	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Write lab memory marker:Close")) {
+	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Write lab memory marker:Close")) {
 	case 1:
 		mes "[Playerbot State Lab]";
 		mes callfunc("F_PB_STATE_BuildBotStateSummary$", "quick_merc_alb");
@@ -71,6 +71,52 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 		close;
 
 	case 6:
+		switch(select("Latest audit for quick_merc_alb:Latest audit for quick_party_open:Latest storage/trade audits:Close")) {
+		case 1:
+			.@bot_key$ = "quick_merc_alb";
+			break;
+		case 2:
+			.@bot_key$ = "quick_party_open";
+			break;
+		case 3:
+			query_sql(
+				"SELECT `scope`,`action`,`result`,`detail` "
+				+ "FROM `bot_recovery_audit` "
+				+ "WHERE `scope` IN ('storage','trade','participation') "
+				+ "ORDER BY `id` DESC LIMIT 5",
+				.@scope$[0], .@action$[0], .@result$[0], .@detail$[0]);
+			mes "[Playerbot State Lab]";
+			if (!getarraysize(.@scope$)) {
+				mes "No recent storage/trade recovery audits.";
+				close;
+			}
+			for (.@i = 0; .@i < getarraysize(.@scope$); ++.@i)
+				mes .@scope$[.@i] + " / " + .@action$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
+			close;
+		default:
+			close;
+		}
+		callfunc "F_PB_DB_LoadBotSummary", .@bot_key$;
+		mes "[Playerbot State Lab]";
+		if (!$@pbbot_found) {
+			mes "Bot not found.";
+			close;
+		}
+		query_sql(
+			"SELECT `scope`,`action`,`result`,`detail` "
+			+ "FROM `bot_recovery_audit` "
+			+ "WHERE `bot_id` = " + $@pbbot_bot_id + " "
+			+ "ORDER BY `id` DESC LIMIT 1",
+			.@scope$, .@action$, .@result$, .@detail$);
+		if (.@scope$ == "") {
+			mes "No recovery audit rows for " + .@bot_key$ + ".";
+			close;
+		}
+		mes .@bot_key$ + ":";
+		mes .@scope$ + " / " + .@action$ + " / " + .@result$ + " / " + .@detail$;
+		close;
+
+	case 7:
 		callfunc "F_PB_MEM_Remember", "social", "alberta.lab_probe", 1, "state.lab", 30000, "state.lab";
 		mes "[Playerbot State Lab]";
 		mes "Wrote a 30s shared-memory probe marker.";
