@@ -21,7 +21,7 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 		mes "Bot ID / Name: " + $@pbbot_bot_id + " / " + $@pbbot_name$;
 		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
 		mes "Headless status: " + headlesspc_status($@pbbot_char_id);
-		mes "NPC / Storage / Trade: " + playerbot_npcactive(.bot_key$) + " / " + playerbot_storageisopen(.bot_key$) + " / " + playerbot_tradeactive(.bot_key$);
+		mes "NPC / Storage / Trade: " + playerbot_npcactive(.bot_key$) + " / " + playerbot_storageisopen(.bot_key$) + " / " + playerbot_tradeactive(.bot_key$) + " / lock " + playerbot_tradelocked(.bot_key$);
 		close;
 	}
 	close;
@@ -35,7 +35,12 @@ alberta,166,135,4	script	Playerbot Dialog Probe	4_M_01,{
 	mes "[Playerbot Dialog Probe]";
 	mes "This is a deterministic dialog probe.";
 	next;
+	input .@amount;
+	mes "[Playerbot Dialog Probe]";
+	mes "Recorded amount " + .@amount + ".";
+	next;
 	.@choice = select("Alpha path:Beta path");
+	setd("$PBPART_DIALOG_INPUT_" + getcharid(0), .@amount);
 	setd("$PBPART_DIALOG_" + getcharid(0), .@choice);
 	mes "[Playerbot Dialog Probe]";
 	mes "Recorded choice " + .@choice + ".";
@@ -94,6 +99,7 @@ S_Run:
 		return;
 	.inviter_char_id = getcharid(0);
 	.inviter_aid = getcharid(3);
+	.inviter_name$ = strcharinfo(0);
 	.bot_key$ = "quick_part_open";
 	.display_name$ = "QuickPartOpen";
 	.bot_id = playerbot_profile(.bot_key$);
@@ -142,23 +148,34 @@ S_Run:
 	}
 
 	setd("$PBPART_DIALOG_" + .char_id, 0);
+	setd("$PBPART_DIALOG_INPUT_" + .char_id, 0);
 	.@dialog_start_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
 	sleep 200;
 	.@dialog_next_ok = playerbot_npcnext(.bot_key$);
+	sleep 200;
+	.@dialog_input_ok = playerbot_npcnumber(.bot_key$, 42);
+	sleep 200;
+	.@dialog_next2_ok = playerbot_npcnext(.bot_key$);
 	sleep 200;
 	.@dialog_menu_ok = playerbot_npcmenu(.bot_key$, 2);
 	sleep 300;
 	.@dialog_close_ok = playerbot_npcclose(.bot_key$);
 	sleep 300;
 	.@dialog_mark = getd("$PBPART_DIALOG_" + .char_id);
+	.@dialog_input = getd("$PBPART_DIALOG_INPUT_" + .char_id);
 	.@dialog_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
-	.@dialog_ok = (.@dialog_start_ok && .@dialog_next_ok && .@dialog_menu_ok && .@dialog_close_ok && .@dialog_mark == 2 && .@dialog_idle_ok);
+	.@dialog_ok = (.@dialog_start_ok && .@dialog_next_ok && .@dialog_input_ok && .@dialog_next2_ok && .@dialog_menu_ok && .@dialog_close_ok && .@dialog_input == 42 && .@dialog_mark == 2 && .@dialog_idle_ok);
 
 	.@storage_open_ok = playerbot_storageopen(.bot_key$);
 	.@storage_live_ok = (playerbot_storageisopen(.bot_key$) == 1);
 	.@storage_close_ok = playerbot_storageclose(.bot_key$);
 	.@storage_closed_ok = (playerbot_storageisopen(.bot_key$) == 0);
 	.@storage_basic_ok = (.@storage_open_ok && .@storage_live_ok && .@storage_close_ok && .@storage_closed_ok);
+
+	.@stor_rec_open_ok = playerbot_storageopen(.bot_key$);
+	.@stor_rec_manual_ok = playerbot_storagerecover(.bot_key$);
+	.@stor_rec_clear_ok = (playerbot_storageisopen(.bot_key$) == 0);
+	.@storage_manual_ok = (.@stor_rec_open_ok && .@stor_rec_manual_ok && .@stor_rec_clear_ok);
 
 	.@storage_reopen_ok = playerbot_storageopen(.bot_key$);
 	headlesspc_remove(.char_id);
@@ -182,13 +199,29 @@ S_Run:
 	}
 	.@storage_recover_ok = (.@storage_reopen_ok && .@respawn_ok && playerbot_storageisopen(.bot_key$) == 0);
 
+	if (playerbot_tradeactive(.bot_key$))
+		playerbot_tradecancel(.bot_key$);
+	.@trade_player_clear_ok = playerbot_tradecharcancel(.inviter_char_id);
+	sleep 300;
+	.@trade_bot_before = playerbot_itemcount(.bot_key$, "inventory", 601);
+	playerbot_itemgrant(.bot_key$, 601, 1);
 	.@trade_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
 	sleep 200;
-	.@trade_partner_ok = (playerbot_tradepartner(.bot_key$) == .inviter_aid && playerbot_tradeactive(.bot_key$));
-	.@trade_cancel_ok = playerbot_tradecancel(.bot_key$);
+	.@trade_player_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
 	sleep 200;
-	.@trade_clear_ok = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$));
-	.@trade_ok = (.@trade_request_ok && .@trade_partner_ok && .@trade_cancel_ok && .@trade_clear_ok);
+	.@trade_partner_ok = (playerbot_tradepartner(.bot_key$) == .inviter_aid && playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == $@pbbot_account_id && playerbot_tradecharactive(.inviter_char_id));
+	.@trade_add_item_ok = playerbot_tradeadditem(.bot_key$, 601, 1);
+	.@trade_bot_ok = playerbot_tradeok(.bot_key$);
+	.@trade_player_ok = playerbot_tradecharok(.inviter_char_id);
+	sleep 200;
+	.@trade_lock_ok = (playerbot_tradelocked(.bot_key$) >= 1);
+	.@trade_bot_commit_ok = playerbot_tradecommit(.bot_key$);
+	.@trade_player_commit_ok = playerbot_tradecharcommit(.inviter_char_id);
+	sleep 200;
+	.@trade_clear_ok = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
+	.@trade_bot_after = playerbot_itemcount(.bot_key$, "inventory", 601);
+	.@trade_item_ok = (.@trade_bot_after < .@trade_bot_before + 1);
+	.@trade_ok = (.@trade_request_ok && .@trade_player_ack_ok && .@trade_partner_ok && .@trade_add_item_ok && .@trade_bot_ok && .@trade_player_ok && .@trade_lock_ok && .@trade_bot_commit_ok && .@trade_player_commit_ok && .@trade_clear_ok && .@trade_item_ok);
 
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
@@ -204,13 +237,13 @@ S_Run:
 		+ "FROM `bot_trace_event` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' "
 		+ "AND `phase` = 'interaction' "
-		+ "AND `target_type` IN ('npc','npc_menu','npc_close','storage','trade') "
+		+ "AND `target_type` IN ('npc','npc_input','npc_menu','npc_close','storage','trade','trade_item','trade_ok','trade_commit') "
 		+ "AND `ts` >= UNIX_TIMESTAMP() - 300",
 		.@trace_count);
-	.@trace_ok = (.@trace_rows > 0 && .@trace_count[0] >= 8);
+	.@trace_ok = (.@trace_rows > 0 && .@trace_count[0] >= 14);
 
-	.@result = (.@dialog_ok && .@storage_basic_ok && .@storage_recover_ok && .@trade_ok && .@park_ok && .@trace_ok);
-	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_recover_ok=" + .@storage_recover_ok + " trade_ok=" + .@trade_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
+	.@result = (.@dialog_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@trade_ok && .@park_ok && .@trace_ok);
+	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " trade_ok=" + .@trade_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

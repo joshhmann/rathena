@@ -367,6 +367,23 @@ static int16 playerbot_find_storage_index(const map_session_data* sd, t_itemid n
 	return -1;
 }
 
+static int32 playerbot_trade_window_amount(const map_session_data* sd, t_itemid nameid) {
+	if (sd == nullptr)
+		return 0;
+	int32 total = 0;
+	for (int32 i = 0; i < 10; ++i) {
+		if (sd->deal.item[i].amount <= 0)
+			continue;
+		int16 index = sd->deal.item[i].index;
+		if (index < 0 || index >= MAX_INVENTORY)
+			continue;
+		if (sd->inventory.u.items_inventory[index].nameid != nameid)
+			continue;
+		total += sd->deal.item[i].amount;
+	}
+	return total;
+}
+
 static void playerbot_cleanup_provisioned(uint32 account_id, uint32 char_id, uint32 bot_id) {
 	if (bot_id != 0) {
 		Sql_Query(mmysql_handle, "DELETE FROM `bot_guild_state` WHERE `bot_id` = '%u'", bot_id);
@@ -12596,6 +12613,31 @@ BUILDIN_FUNC(playerbot_npcmenu)
 }
 
 /*==========================================
+ * Submit one numeric NPC input for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_npcnumber)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 amount = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc_input", std::to_string(amount).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || sd->npc_id == 0 || sd->st == nullptr || !sd->state.menu_or_input) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc_input", std::to_string(amount).c_str(), "target.invalid", "denied", "npc.input", "input.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	sd->npc_amount = amount;
+	bool failed = npc_scriptcont(sd, sd->npc_id, false);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, failed ? "interaction.failed" : "interaction.completed", "npc_input", std::to_string(amount).c_str(), failed ? "script.busy" : "none", failed ? "aborted" : "ok", failed ? "npc.input" : "", failed ? "input.cont_failed" : "");
+	script_pushint(st, failed ? 0 : 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Close one NPC/dialog interaction for a live playerbot.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_npcclose)
@@ -12684,6 +12726,48 @@ BUILDIN_FUNC(playerbot_storageisopen)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_storagerecover)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "storage", "recover", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "storage", "recover", "target.invalid", "denied", "storage.recover", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->state.storage_flag == 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "storage", "recover", "restart.recovery", "noop", "", "already.clear");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	switch (sd->state.storage_flag) {
+	case 1:
+		storage_storageclose(sd);
+		break;
+	case 2:
+		storage_guild_storage_quit(sd, 0);
+		sd->state.storage_flag = 0;
+		break;
+	case 3:
+		storage_premiumStorage_quit(sd);
+		sd->state.storage_flag = 0;
+		break;
+	default:
+		sd->state.storage_flag = 0;
+		break;
+	}
+
+	bool ok = (sd->state.storage_flag == 0);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "storage", "recover", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "storage.recover", ok ? "" : "storage.still_open");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_traderequest)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -12731,6 +12815,97 @@ BUILDIN_FUNC(playerbot_tradecancel)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_tradeadditem)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 amount = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade_item", std::to_string(nameid).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || !sd->state.trading || amount <= 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade_item", std::to_string(nameid).c_str(), "target.invalid", "denied", "trade.additem", sd == nullptr ? "bot.offline" : "trade.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 index = playerbot_find_inventory_index(sd, nameid, false);
+	if (index < 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade_item", std::to_string(nameid).c_str(), "target.invalid", "denied", "trade.additem", "item.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradeadditem(sd, index, amount);
+	bool ok = (playerbot_trade_window_amount(sd, nameid) >= amount);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade_item", std::to_string(nameid).c_str(), ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "trade.additem", ok ? "" : "trade.item_not_staged");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeaddzeny)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 amount = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade_zeny", std::to_string(amount).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || !sd->state.trading || amount < 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade_zeny", std::to_string(amount).c_str(), "target.invalid", "denied", "trade.addzeny", sd == nullptr ? "bot.offline" : "trade.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradeaddzeny(sd, amount);
+	bool ok = (sd->deal.zeny == amount);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade_zeny", std::to_string(amount).c_str(), ok ? "none" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "trade.addzeny", ok ? "" : "trade.zeny_not_staged");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeok)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade_ok", "", "none", "ok", "", "");
+
+	if (sd == nullptr || !sd->state.trading) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade_ok", "", "target.invalid", "denied", "trade.ok", sd == nullptr ? "bot.offline" : "trade.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradeok(sd);
+	bool ok = (sd->state.deal_locked >= 1);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade_ok", "", ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "trade.ok", ok ? "" : "trade.not_locked");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecommit)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "trade_commit", "", "none", "ok", "", "");
+
+	if (sd == nullptr || !sd->state.trading || sd->state.deal_locked == 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "trade_commit", "", "target.invalid", "denied", "trade.commit", sd == nullptr ? "bot.offline" : "trade.not_ready");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	trade_tradecommit(sd);
+	bool ok = (!sd->state.trading && sd->trade_partner.id == 0) || (sd->state.trading && sd->state.deal_locked >= 2 && sd->trade_partner.id != 0);
+	bool pending = (sd->state.trading && sd->state.deal_locked >= 2 && sd->trade_partner.id != 0);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "trade_commit", "", ok ? "none" : "script.busy", ok ? (pending ? "retry" : "ok") : "aborted", ok && pending ? "trade.commit" : "", ok && pending ? "trade.pending_other_side" : "");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_tradepartner)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -12746,6 +12921,159 @@ BUILDIN_FUNC(playerbot_tradeactive)
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
 	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
 	script_pushint(st, (sd != nullptr && (sd->trade_partner.id != 0 || sd->state.trading)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradelocked)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->state.deal_locked : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeplayerack)
+{
+	map_session_data* sd = nullptr;
+	int32 type = script_getnum(st, 2);
+	if (!script_rid2sd(sd) || !sd->trade_partner.id) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradeack(sd, type);
+	bool ok = (type == 4) ? (sd->trade_partner.id == 0) : (sd->state.trading == 1);
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeplayerok)
+{
+	map_session_data* sd = nullptr;
+	if (!script_rid2sd(sd) || !sd->state.trading) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradeok(sd);
+	script_pushint(st, sd->state.deal_locked >= 1 ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeplayercancel)
+{
+	map_session_data* sd = nullptr;
+	if (!script_rid2sd(sd)) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->trade_partner.id == 0 && !sd->state.trading) {
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradecancel(sd);
+	script_pushint(st, (sd->trade_partner.id == 0 && !sd->state.trading) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeplayercommit)
+{
+	map_session_data* sd = nullptr;
+	if (!script_rid2sd(sd) || !sd->state.trading || sd->state.deal_locked == 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradecommit(sd);
+	script_pushint(st, ((!sd->state.trading && sd->trade_partner.id == 0) || (sd->state.trading && sd->state.deal_locked >= 2 && sd->trade_partner.id != 0)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeplayeractive)
+{
+	map_session_data* sd = nullptr;
+	script_rid2sd(sd);
+	script_pushint(st, (sd != nullptr && (sd->trade_partner.id != 0 || sd->state.trading)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradeplayerpartner)
+{
+	map_session_data* sd = nullptr;
+	script_rid2sd(sd);
+	script_pushint(st, sd != nullptr ? sd->trade_partner.id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharack)
+{
+	int32 char_id = script_getnum(st, 2);
+	int32 type = script_getnum(st, 3);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->trade_partner.id) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradeack(sd, type);
+	bool ok = (type == 4) ? (sd->trade_partner.id == 0) : (sd->state.trading == 1);
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharok)
+{
+	int32 char_id = script_getnum(st, 2);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.trading) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradeok(sd);
+	script_pushint(st, sd->state.deal_locked >= 1 ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharcancel)
+{
+	int32 char_id = script_getnum(st, 2);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (sd->trade_partner.id == 0 && !sd->state.trading) {
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradecancel(sd);
+	script_pushint(st, (sd->trade_partner.id == 0 && !sd->state.trading) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharcommit)
+{
+	int32 char_id = script_getnum(st, 2);
+	map_session_data* sd = map_charid2sd(char_id);
+	if (sd == nullptr || !sd->state.trading || sd->state.deal_locked == 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	trade_tradecommit(sd);
+	script_pushint(st, ((!sd->state.trading && sd->trade_partner.id == 0) || (sd->state.trading && sd->state.deal_locked >= 2 && sd->trade_partner.id != 0)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharactive)
+{
+	int32 char_id = script_getnum(st, 2);
+	map_session_data* sd = map_charid2sd(char_id);
+	script_pushint(st, (sd != nullptr && (sd->trade_partner.id != 0 || sd->state.trading)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_tradecharpartner)
+{
+	int32 char_id = script_getnum(st, 2);
+	map_session_data* sd = map_charid2sd(char_id);
+	script_pushint(st, sd != nullptr ? sd->trade_partner.id : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -30170,6 +30498,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_npcstart,"ss"),
 	BUILDIN_DEF(playerbot_npcnext,"s"),
 	BUILDIN_DEF(playerbot_npcmenu,"si"),
+	BUILDIN_DEF(playerbot_npcnumber,"si"),
 	BUILDIN_DEF(playerbot_npcclose,"s"),
 	BUILDIN_DEF(playerbot_npcactive,"s"),
 	BUILDIN_DEF(playerbot_storagedeposit,"sii"),
@@ -30177,10 +30506,28 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_storageopen,"s"),
 	BUILDIN_DEF(playerbot_storageclose,"s"),
 	BUILDIN_DEF(playerbot_storageisopen,"s"),
+	BUILDIN_DEF(playerbot_storagerecover,"s"),
 	BUILDIN_DEF(playerbot_traderequest,"si"),
 	BUILDIN_DEF(playerbot_tradecancel,"s"),
+	BUILDIN_DEF(playerbot_tradeadditem,"sii"),
+	BUILDIN_DEF(playerbot_tradeaddzeny,"si"),
+	BUILDIN_DEF(playerbot_tradeok,"s"),
+	BUILDIN_DEF(playerbot_tradecommit,"s"),
 	BUILDIN_DEF(playerbot_tradepartner,"s"),
 	BUILDIN_DEF(playerbot_tradeactive,"s"),
+	BUILDIN_DEF(playerbot_tradelocked,"s"),
+	BUILDIN_DEF(playerbot_tradeplayerack,"i"),
+	BUILDIN_DEF(playerbot_tradeplayerok,""),
+	BUILDIN_DEF(playerbot_tradeplayercancel,""),
+	BUILDIN_DEF(playerbot_tradeplayercommit,""),
+	BUILDIN_DEF(playerbot_tradeplayeractive,""),
+	BUILDIN_DEF(playerbot_tradeplayerpartner,""),
+	BUILDIN_DEF(playerbot_tradecharack,"ii"),
+	BUILDIN_DEF(playerbot_tradecharok,"i"),
+	BUILDIN_DEF(playerbot_tradecharcancel,"i"),
+	BUILDIN_DEF(playerbot_tradecharcommit,"i"),
+	BUILDIN_DEF(playerbot_tradecharactive,"i"),
+	BUILDIN_DEF(playerbot_tradecharpartner,"i"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),

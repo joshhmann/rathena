@@ -4865,3 +4865,47 @@ Notes:
   across despawn/respawn, not broader transactional storage rollback
 - trade support in this slice is intentionally narrow: request/open state and
   cancel/clear integrity first, not full item exchange semantics
+
+## Slice: Participation Hooks V2
+
+Date: 2026-03-27
+
+Summary:
+- deepened the participation layer to cover numeric NPC input, explicit storage
+  recovery, and full trade accept/lock/commit integrity
+- added char-id-targeted trade helpers so the validation lane no longer depends
+  on attached-player NPC ownership
+- extended the hidden participation selftest into a full end-to-end mechanic
+  proof for dialog, storage recovery, and trade completion
+
+Changed:
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+Validation:
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified final selftest line:
+  - `playerbot_participation_selftest: spawn_ok=1 dialog_ok=1 storage_basic_ok=1 storage_manual_ok=1 storage_recover_ok=1 trade_ok=1 park_ok=1 trace_ok=1 result=1.`
+- verified live trade completion in the OpenKore client:
+  - `Engaged Deal with QuickPartOpen`
+  - `Deal Complete`
+- verified recent interaction traces for:
+  - `npc_input`
+  - `trade_item`
+  - `trade_ok`
+  - `trade_commit`
+
+Notes:
+- native rAthena trade request and trade accept paths reject a target that is
+  still attached to an NPC script (`npc_id != 0`)
+- the selftest now avoids that invalid harness state by running the player-side
+  trade accept/lock/commit path through char-id-targeted helpers instead of
+  attached-player NPC calls
+- `playerbot_tradecommit` now treats `deal_locked >= 2` as local commit success
+  even before the peer-side commit clears the trade, while the selftest still
+  separately proves final trade clearance

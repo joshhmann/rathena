@@ -1921,5 +1921,15 @@ Current limits:
   mutation
 - storage support currently proves ownership/open-state cleanup, not full
   rollback semantics for interrupted multi-step storage mutations
-- trade support currently stops at request/open/cancel state; item exchange,
-  accept/lock/commit, and failure recovery are still later slices
+- trade support now covers full request/accept/lock/commit completion in the
+  repo-local selftest path, but deeper trade semantics like dual-sided item and
+  zeny negotiation recovery are still later slices
+
+Important behavior:
+
+- native rAthena trade request and trade accept paths reject a participant that
+  is still inside an NPC script session (`npc_id != 0`)
+- that means attached-player NPC harness calls are invalid for end-to-end trade
+  acceptance tests even when the underlying trade system is healthy
+- the participation selftest now uses char-id-targeted trade accept/ok/commit
+  helpers so the trade proof runs outside that invalid NPC ownership state
