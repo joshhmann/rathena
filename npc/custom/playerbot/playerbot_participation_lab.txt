@@ -3,7 +3,7 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 	mes "Drive the first NPC, storage, and trade participation hooks.";
 	next;
 
-	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Close")) {
+	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Inspect recovery audit:Close")) {
 	case 1:
 		setd("$PBPST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotParticipationSelftest::OnManualStart";
@@ -29,6 +29,23 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 		next;
 		mes "[Playerbot Participation Lab]";
 		mes callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", "Playerbot Quest Relay A");
+		close;
+	case 4:
+		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
+			mes "[Playerbot Participation Lab]";
+			mes "Quick participation bot not provisioned yet.";
+			close;
+		}
+		query_sql(
+			"SELECT `scope`, `action`, `result`, `detail` "
+			+ "FROM `bot_recovery_audit` "
+			+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+			+ "ORDER BY `id` DESC LIMIT 1",
+			.@scope$, .@action$, .@result$, .@detail$);
+		mes "[Playerbot Participation Lab]";
+		mes "Latest recovery audit:";
+		mes "Scope / Action: " + .@scope$ + " / " + .@action$;
+		mes "Result / Detail: " + .@result$ + " / " + .@detail$;
 		close;
 	}
 	close;
@@ -318,6 +335,13 @@ S_Run:
 	.@quest_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
 	.@dialog_quest_ok = (.@quest_blocked_ok && .@quest_start_a_ok && .@quest_next_a_ok && .@quest_menu_a_ok && .@quest_close_a_ok && .@quest_stage1_ok && .@quest_start_b_ok && .@quest_next_b1_ok && .@quest_input_b_ok && .@quest_next_b2_ok && .@quest_menu_b_ok && .@quest_close_b_ok && .@quest_stage2_ok && .@quest_idle_ok);
 
+	.@npc_recover_start_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
+	sleep 200;
+	.@npc_recover_clear_ok = playerbot_npcrecover(.bot_key$);
+	sleep 200;
+	.@npc_recover_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
+	.@npc_recover_ok = (.@npc_recover_start_ok && .@npc_recover_clear_ok && .@npc_recover_idle_ok);
+
 	.@storage_open_ok = playerbot_storageopen(.bot_key$);
 	.@storage_live_ok = (playerbot_storageisopen(.bot_key$) == 1);
 	.@storage_close_ok = playerbot_storageclose(.bot_key$);
@@ -465,6 +489,22 @@ S_Run:
 	detachrid;
 	.@trba = playerbot_itemcount(.bot_key$, "inventory", 601);
 	.@trade_force_clear_ok = (.@trade_player_clear3_ok && .@tr_request_ok && .@tr_ack_ok && .@tr_bot_item_ok && .@tr_player_item_ok && .@tr_player_zeny_ok && .@tr_bot_recover_ok && .@tr_player_recover_ok && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id) && .@trba == .@trbb + 1 && .@trsa == .@trsb && .@trza == .@trzb);
+	playerbot_traderecover(.bot_key$);
+	playerbot_tradecharrecover(.inviter_char_id);
+	sleep 300;
+
+	.@pr_open_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
+	sleep 200;
+	.@pr_storage_ok = playerbot_storageopen(.bot_key$);
+	sleep 200;
+	.@pr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+	sleep 200;
+	.@pr_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	sleep 200;
+	.@pr_recover_ok = playerbot_participationrecover(.bot_key$);
+	sleep 200;
+	.@pr_all_clear_ok = (playerbot_npcactive(.bot_key$) == 0 && playerbot_storageisopen(.bot_key$) == 0 && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
+	.@participation_recover_ok = (.@pr_open_ok && .@pr_storage_ok && .@pr_request_ok && .@pr_recover_ok && .@pr_all_clear_ok);
 
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
@@ -480,13 +520,22 @@ S_Run:
 		+ "FROM `bot_trace_event` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' "
 		+ "AND `phase` = 'interaction' "
-		+ "AND `target_type` IN ('npc','npc_input','npc_inputstr','npc_menu','npc_close','storage','trade','trade_item','trade_zeny','trade_ok','trade_commit','trade_recover') "
+		+ "AND `target_type` IN ('npc','npc_input','npc_inputstr','npc_menu','npc_close','npc_recover','storage','trade','trade_item','trade_zeny','trade_ok','trade_commit','trade_recover','participation_recover') "
 		+ "AND `ts` >= UNIX_TIMESTAMP() - 300",
 		.@trace_count);
 	.@trace_ok = (.@trace_rows > 0 && .@trace_count[0] >= 30);
 
-	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@park_ok && .@trace_ok);
-	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
+	.@recovery_rows = query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' "
+		+ "AND `scope` IN ('npc','participation') "
+		+ "AND `ts` >= UNIX_TIMESTAMP() - 300",
+		.@recovery_count);
+	.@recovery_audit_ok = (.@recovery_rows > 0 && .@recovery_count[0] >= 2);
+
+	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@npc_recover_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@participation_recover_ok && .@park_ok && .@trace_ok && .@recovery_audit_ok);
+	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " npc_recover_ok=" + .@npc_recover_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " participation_recover_ok=" + .@participation_recover_ok + " pr_open_ok=" + .@pr_open_ok + " pr_storage_ok=" + .@pr_storage_ok + " pr_request_ok=" + .@pr_request_ok + " pr_ack_ok=" + .@pr_ack_ok + " pr_recover_ok=" + .@pr_recover_ok + " pr_all_clear_ok=" + .@pr_all_clear_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " recovery_audit_ok=" + .@recovery_audit_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

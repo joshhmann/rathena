@@ -5092,3 +5092,60 @@ play and GM/OpenKore mob inspection.
 - restarted with `bash tools/dev/playerbot-dev.sh restart`
 - logged in with the repo-local `testgm` OpenKore profile
 - verified `@mobsearch Alarm` in Prontera returns no results after the change
+
+## Slice 54: Playerbot Participation Recovery Audits
+
+### Goal
+
+Deepen the participation recovery lane so mixed NPC/storage/trade failures leave
+an authoritative audit trail and can be cleared through explicit recovery verbs.
+
+### Files Touched
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260327_playerbot_recovery_audit.sql` (new)
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- added `bot_recovery_audit` as an append-only recovery ledger
+- added:
+  - `playerbot_npcrecover(bot_key$)`
+  - `playerbot_participationrecover(bot_key$)`
+- participation recovery now clears:
+  - active NPC/dialog state
+  - open storage state
+  - stale trade state
+- when the recovering bot is one endpoint of a trade, the recovery pass also
+  force-clears the live peer if stale trade flags remain on that side
+- extended `Playerbot Participation Lab` to inspect the latest recovery audit
+  row and to prove:
+  - explicit NPC recovery
+  - composite participation recovery under mixed NPC/storage/trade pressure
+
+### Validation
+
+- applied `upgrade_20260327_playerbot_recovery_audit.sql`
+- rebuilt `map-server`
+- restarted with `bash tools/dev/playerbot-dev.sh restart`
+- armed and ran the repo-local participation smoke:
+  - `bash tools/ci/playerbot-participation-smoke.sh arm`
+  - OpenKore login with the `codex` profile
+  - `bash tools/ci/playerbot-participation-smoke.sh check`
+- final selftest result:
+  - `playerbot_participation_selftest: ... npc_recover_ok=1 ... participation_recover_ok=1 ... recovery_audit_ok=1 result=1.`
+- verified `bot_recovery_audit` rows for:
+  - `npc / recover / ok / npc.cleared`
+  - `participation / recover / ok / participation.cleared`
+
+### Notes
+
+- the composite participation proof intentionally does not require trade accept
+  to complete while the bot is simultaneously inside NPC/storage state
+- the proof only requires:
+  - mixed-state setup
+  - successful authoritative recovery
+  - both bot and live peer trade state ending clear

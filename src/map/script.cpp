@@ -217,7 +217,9 @@ static map_session_data* playerbot_online_session_by_key(const char* bot_key, ui
 	return sd;
 }
 
+static bool playerbot_trade_has_staged(const map_session_data* sd);
 static void playerbot_trace_interaction(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail);
+static void playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* authority, const char* scope, const char* action, const char* state_before, const char* state_after, const char* result, const char* detail);
 
 static void playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* action, t_itemid item_id, uint16 amount, const char* location, const char* result, const char* detail) {
 	char esc_detail[385];
@@ -284,6 +286,62 @@ static void playerbot_trace_interaction(uint32 bot_id, uint32 char_id, uint32 ac
 		esc_error_detail)) {
 		Sql_ShowDebug(mmysql_handle);
 	}
+}
+
+static void playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* authority, const char* scope, const char* action, const char* state_before, const char* state_after, const char* result, const char* detail) {
+	char esc_authority[65];
+	char esc_scope[65];
+	char esc_action[65];
+	char esc_before[385];
+	char esc_after[385];
+	char esc_result[33];
+	char esc_detail[385];
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	Sql_EscapeStringLen(mmysql_handle, esc_authority, authority != nullptr ? authority : "", strnlen(authority != nullptr ? authority : "", 32));
+	Sql_EscapeStringLen(mmysql_handle, esc_scope, scope != nullptr ? scope : "", strnlen(scope != nullptr ? scope : "", 32));
+	Sql_EscapeStringLen(mmysql_handle, esc_action, action != nullptr ? action : "", strnlen(action != nullptr ? action : "", 32));
+	Sql_EscapeStringLen(mmysql_handle, esc_before, state_before != nullptr ? state_before : "", strnlen(state_before != nullptr ? state_before : "", 191));
+	Sql_EscapeStringLen(mmysql_handle, esc_after, state_after != nullptr ? state_after : "", strnlen(state_after != nullptr ? state_after : "", 191));
+	Sql_EscapeStringLen(mmysql_handle, esc_result, result != nullptr ? result : "", strnlen(result != nullptr ? result : "", 16));
+	Sql_EscapeStringLen(mmysql_handle, esc_detail, detail != nullptr ? detail : "", strnlen(detail != nullptr ? detail : "", 191));
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_recovery_audit` "
+		"(`ts`, `bot_id`, `char_id`, `account_id`, `authority`, `scope`, `action`, `state_before`, `state_after`, `result`, `detail`) "
+		"VALUES ('%u', '%u', '%u', '%u', '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
+		now, bot_id, char_id, account_id, esc_authority, esc_scope, esc_action, esc_before, esc_after, esc_result, esc_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
+static std::string playerbot_participation_state(const map_session_data* sd) {
+	if (sd == nullptr)
+		return "offline";
+
+	return "npc=" + std::to_string(sd->npc_id)
+		+ ",menu=" + std::to_string(sd->state.menu_or_input)
+		+ ",storage=" + std::to_string(sd->state.storage_flag)
+		+ ",trade=" + std::to_string(sd->state.trading ? 1 : 0)
+		+ ",partner=" + std::to_string(sd->trade_partner.id)
+		+ ",locked=" + std::to_string(sd->state.deal_locked)
+		+ ",staged=" + std::to_string(playerbot_trade_has_staged(sd) ? 1 : 0);
+}
+
+static bool playerbot_npc_force_recover(map_session_data* sd) {
+	if (sd == nullptr)
+		return false;
+	if (sd->npc_id == 0 && sd->st == nullptr && !sd->state.menu_or_input)
+		return true;
+
+	pc_close_npc(sd, 2);
+	npc_event_dequeue(sd, true);
+	sd->state.menu_or_input = 0;
+	sd->npc_menu = 0;
+	sd->npc_amount = 0;
+	sd->npc_str[0] = '\0';
+
+	return (sd->npc_id == 0 && sd->st == nullptr && !sd->state.menu_or_input);
 }
 
 static int32 playerbot_inventory_amount(const map_session_data* sd, t_itemid nameid, bool equipped_only = false) {
@@ -12733,6 +12791,29 @@ BUILDIN_FUNC(playerbot_npcactive)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_npcrecover)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "npc_recover", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "npc_recover", "", "target.invalid", "denied", "npc.recover", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::string before = playerbot_participation_state(sd);
+	bool had_state = (sd->npc_id != 0 || sd->st != nullptr || sd->state.menu_or_input);
+	bool ok = playerbot_npc_force_recover(sd);
+	std::string after = playerbot_participation_state(sd);
+	playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "npc", "recover", before.c_str(), after.c_str(), ok ? (had_state ? "ok" : "noop") : "aborted", ok ? (had_state ? "npc.cleared" : "already.clear") : "npc.still_active");
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "npc_recover", "", "restart.recovery", ok ? (had_state ? "ok" : "noop") : "aborted", ok ? "" : "npc.recover", ok ? (had_state ? "" : "already.clear") : "npc.still_active");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_storageopen)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -13234,6 +13315,64 @@ BUILDIN_FUNC(playerbot_tradecharpartner)
 	int32 char_id = script_getnum(st, 2);
 	map_session_data* sd = map_charid2sd(char_id);
 	script_pushint(st, sd != nullptr ? sd->trade_partner.id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_participationrecover)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "participation_recover", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "participation_recover", "", "target.invalid", "denied", "participation.recover", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::string before = playerbot_participation_state(sd);
+	map_session_data* trade_partner_sd = nullptr;
+	if (sd->trade_partner.id != 0)
+		trade_partner_sd = map_id2sd(sd->trade_partner.id);
+	bool had_state = (sd->npc_id != 0 || sd->st != nullptr || sd->state.menu_or_input || sd->state.storage_flag != 0 || sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd));
+	bool npc_ok = playerbot_npc_force_recover(sd);
+
+	if (sd->state.storage_flag != 0) {
+		switch (sd->state.storage_flag) {
+		case 1:
+			storage_storageclose(sd);
+			break;
+		case 2:
+			storage_guild_storage_quit(sd, 0);
+			sd->state.storage_flag = 0;
+			break;
+		case 3:
+			storage_premiumStorage_quit(sd);
+			sd->state.storage_flag = 0;
+			break;
+		default:
+			sd->state.storage_flag = 0;
+			break;
+		}
+	}
+
+	if (sd->trade_partner.id != 0 || sd->state.trading)
+		trade_tradecancel(sd);
+	if (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0 || playerbot_trade_has_staged(sd))
+		playerbot_trade_force_clear(sd);
+	if (trade_partner_sd != nullptr && (trade_partner_sd->trade_partner.id == account_id || trade_partner_sd->state.trading || trade_partner_sd->state.deal_locked != 0 || playerbot_trade_has_staged(trade_partner_sd))) {
+		if (trade_partner_sd->trade_partner.id != 0 || trade_partner_sd->state.trading)
+			trade_tradecancel(trade_partner_sd);
+		if (trade_partner_sd->trade_partner.id != 0 || trade_partner_sd->state.trading || trade_partner_sd->state.deal_locked != 0 || playerbot_trade_has_staged(trade_partner_sd))
+			playerbot_trade_force_clear(trade_partner_sd);
+	}
+
+	bool ok = (npc_ok && sd->state.storage_flag == 0 && sd->trade_partner.id == 0 && !sd->state.trading && sd->state.deal_locked == 0 && !playerbot_trade_has_staged(sd) && sd->npc_id == 0 && sd->st == nullptr && !sd->state.menu_or_input);
+	std::string after = playerbot_participation_state(sd);
+	playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "participation", "recover", before.c_str(), after.c_str(), ok ? (had_state ? "ok" : "noop") : "aborted", ok ? (had_state ? "participation.cleared" : "already.clear") : "participation.still_active");
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "participation_recover", "", "restart.recovery", ok ? (had_state ? "ok" : "noop") : "aborted", ok ? "" : "participation.recover", ok ? (had_state ? "" : "already.clear") : "participation.still_active");
+	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -30662,6 +30801,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_npcinputstr,"ss"),
 	BUILDIN_DEF(playerbot_npcclose,"s"),
 	BUILDIN_DEF(playerbot_npcactive,"s"),
+	BUILDIN_DEF(playerbot_npcrecover,"s"),
 	BUILDIN_DEF(playerbot_storagedeposit,"sii"),
 	BUILDIN_DEF(playerbot_storagewithdraw,"sii"),
 	BUILDIN_DEF(playerbot_storageopen,"s"),
@@ -30694,6 +30834,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_tradecharactive,"i"),
 	BUILDIN_DEF(playerbot_tradecharrecover,"i"),
 	BUILDIN_DEF(playerbot_tradecharpartner,"i"),
+	BUILDIN_DEF(playerbot_participationrecover,"s"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
 	BUILDIN_DEF(headlesspc_remove,"i"),

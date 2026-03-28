@@ -2008,3 +2008,29 @@ Current limits:
 - the Prontera ambient lane now uses harmless low-level mob-backed fillers
   instead, so ambient chatter remains but the town no longer reads as if hostile
   Clock Tower mobs are roaming the square
+
+## Participation Recovery Audits
+
+- participation recovery now has an explicit authoritative audit ledger in
+  `bot_recovery_audit`
+- recovery authority for this slice is:
+  - live actor/session state first
+  - then forced cleanup of stale local flags
+  - then forced cleanup of the live trade peer when the recovering bot is one
+    endpoint of the stale deal
+
+Current semantics:
+
+- `playerbot_npcrecover(bot_key$)` is the narrow dialog/session cleanup verb
+- `playerbot_participationrecover(bot_key$)` is the broader mixed-state cleanup
+  verb for:
+  - NPC/dialog
+  - storage
+  - trade
+
+Important detail:
+
+- the composite recovery proof does not require trade acceptance to succeed
+  while the bot is still concurrently inside NPC/storage state
+- that mixed state is intentionally hostile; the proof only requires the
+  recovery pass to leave all participation surfaces clear and audited
