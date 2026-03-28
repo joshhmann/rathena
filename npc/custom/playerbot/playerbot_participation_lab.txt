@@ -3,7 +3,7 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 	mes "Drive the first NPC, storage, and trade participation hooks.";
 	next;
 
-	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Inspect recovery audit:Inspect failure surface:Run recover-all probe:Close")) {
+	switch(select("Run full participation selftest:Inspect quick participation bot:Inspect dialog reservation state:Inspect recovery audit:Inspect failure surface:Run recover-all probe:Run dialog drift probe:Close")) {
 	case 1:
 		setd("$PBPST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotParticipationSelftest::OnManualStart";
@@ -29,6 +29,9 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 		next;
 		mes "[Playerbot Participation Lab]";
 		mes callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", "Playerbot Quest Relay A");
+		next;
+		mes "[Playerbot Participation Lab]";
+		mes callfunc("F_PB_OBS_BuildDialogConflictSurface$", .bot_key$, "Playerbot Quest Relay A", "ParticipationQuest", 6);
 		close;
 	case 4:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
@@ -71,6 +74,20 @@ alberta,163,135,4	script	Playerbot Participation Lab	4_M_02,{
 		mes "Start/reserve/storage/trade/ack: " + .@probe_start_ok + " / " + .@probe_reserve_ok + " / " + .@probe_storage_ok + " / " + .@probe_trade_ok + " / " + .@probe_ack_ok;
 		mes "Recover / clear: " + .@probe_recover_ok + " / " + .@probe_clear_ok;
 		mes callfunc("F_PB_RES_BuildHolderSummary$", .bot_key$);
+		close;
+	case 7:
+		callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), .bot_key$, "ParticipationDrift", "preflight";
+		.@drift_start_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationDrift", "dialog.drift");
+		sleep 200;
+		.@drift_close_ok = playerbot_npcclose(.bot_key$);
+		sleep 200;
+		.@drift_reap = callfunc("F_PB_RES_ReapExpired");
+		sleep 200;
+		.@drift_clear_ok = (strcmp(callfunc("F_PB_RES_BuildResourceSummary$", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A")), "Reservation: free.") == 0);
+		mes "[Playerbot Participation Lab]";
+		mes "Dialog drift probe:";
+		mes "Start / close / reap / clear: " + .@drift_start_ok + " / " + .@drift_close_ok + " / " + .@drift_reap + " / " + .@drift_clear_ok;
+		mes callfunc("F_PB_OBS_BuildDialogConflictSurface$", .bot_key$, "Playerbot Quest Relay A", "ParticipationDrift", 6);
 		close;
 	}
 	close;
@@ -367,6 +384,16 @@ S_Run:
 	.@npc_recover_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
 	.@npc_recover_ok = (.@npc_recover_start_ok && .@npc_recover_clear_ok && .@npc_recover_idle_ok);
 
+	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), .bot_key$, "ParticipationDrift", "preflight";
+	.@dialog_drift_start_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationDrift", "dialog.drift");
+	sleep 200;
+	.@dialog_drift_close_ok = playerbot_npcclose(.bot_key$);
+	sleep 200;
+	.@dialog_drift_reap = callfunc("F_PB_RES_ReapExpired");
+	sleep 200;
+	.@dialog_drift_clear_ok = (strcmp(callfunc("F_PB_RES_BuildResourceSummary$", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A")), "Reservation: free.") == 0);
+	.@dialog_drift_ok = (.@dialog_drift_start_ok && .@dialog_drift_close_ok && .@dialog_drift_reap > 0 && .@dialog_drift_clear_ok);
+
 	.@storage_open_ok = playerbot_storageopen(.bot_key$);
 	.@storage_live_ok = (playerbot_storageisopen(.bot_key$) == 1);
 	.@storage_close_ok = playerbot_storageclose(.bot_key$);
@@ -563,8 +590,8 @@ S_Run:
 		.@recovery_count);
 	.@recovery_audit_ok = (.@recovery_rows > 0 && .@recovery_count[0] >= 2);
 
-	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@npc_recover_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@participation_recover_ok && .@park_ok && .@trace_ok && .@recovery_audit_ok);
-	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " npc_recover_ok=" + .@npc_recover_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " participation_recover_ok=" + .@participation_recover_ok + " pr_open_ok=" + .@pr_open_ok + " pr_reserved_ok=" + .@pr_reserved_ok + " pr_storage_ok=" + .@pr_storage_ok + " pr_request_ok=" + .@pr_request_ok + " pr_ack_ok=" + .@pr_ack_ok + " pr_recover_ok=" + .@pr_recover_ok + " pr_res_clear_ok=" + .@pr_res_clear_ok + " pr_all_clear_ok=" + .@pr_all_clear_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " recovery_audit_ok=" + .@recovery_audit_ok + " result=" + .@result + ".";
+	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@npc_recover_ok && .@dialog_drift_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@participation_recover_ok && .@park_ok && .@trace_ok && .@recovery_audit_ok);
+	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " npc_recover_ok=" + .@npc_recover_ok + " dialog_drift_ok=" + .@dialog_drift_ok + " dialog_drift_start_ok=" + .@dialog_drift_start_ok + " dialog_drift_close_ok=" + .@dialog_drift_close_ok + " dialog_drift_reap=" + .@dialog_drift_reap + " dialog_drift_clear_ok=" + .@dialog_drift_clear_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " participation_recover_ok=" + .@participation_recover_ok + " pr_open_ok=" + .@pr_open_ok + " pr_reserved_ok=" + .@pr_reserved_ok + " pr_storage_ok=" + .@pr_storage_ok + " pr_request_ok=" + .@pr_request_ok + " pr_ack_ok=" + .@pr_ack_ok + " pr_recover_ok=" + .@pr_recover_ok + " pr_res_clear_ok=" + .@pr_res_clear_ok + " pr_all_clear_ok=" + .@pr_all_clear_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " recovery_audit_ok=" + .@recovery_audit_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

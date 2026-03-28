@@ -1874,6 +1874,8 @@ function	script	F_PB_RECOVERY_BuildAuthoritySummary$	{
 		return "Authority: live shop/world presence plus merchant state policy. Recovery: reconcile closes stale open state or rebuilds the proxy.";
 	if (.@case$ == "path_owner_split")
 		return "Authority: newest owner/controller epoch token. Recovery: old owner releases and route state is invalidated.";
+	if (.@case$ == "dialog_inactive_reservation")
+		return "Authority: live actor + script validity. Recovery: reap dialog_target locks when the holder has no active NPC session.";
 	if (.@case$ == "stale_runtime_location")
 		return "Authority: live map actor state when present; otherwise persisted runtime ledger. Recovery: prefer live coordinates, then reconcile runtime cache.";
 	return "Authority summary unavailable.";
@@ -1932,12 +1934,19 @@ function	script	F_PB_RECOVERY_BuildBotAudit$	{
 		+ "FROM `bot_reservation` "
 		+ "WHERE `holder_bot_id` = '" + $@pbbot_bot_id + "'",
 		.@held_count);
+	query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_reservation` "
+		+ "WHERE `holder_bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "AND `type` = 'dialog_target'",
+		.@dialog_lock_count);
 	.@summary$ = "Recovery Audit: " + .@bot_key$ + ".";
 	.@summary$ += "\nAuthority inputs: world="
 		+ (.@live_status == 2 ? .@live_map$ + "(" + .@live_x + "," + .@live_y + ")" : "<offline>")
 		+ ", runtime="
 		+ (.@runtime_rows > 0 ? .@runtime_state$[0] + "/" + .@park_state$[0] + "@" + .@runtime_map$[0] + "(" + .@runtime_x[0] + "," + .@runtime_y[0] + ")" : "<none>")
 		+ ", reservations=" + .@held_count[0]
+		+ ", dialog_locks=" + .@dialog_lock_count[0]
 		+ ", owner=" + (.@owner$ == "" ? "<none>" : .@owner$) + ".";
 	if (.@runtime_rows > 0 && .@runtime_state$[0] == "active" && .@live_status != 2) {
 		.@summary$ += "\nIssue: controller/runtime thinks actor should be active but no live actor exists.";
@@ -1952,6 +1961,11 @@ function	script	F_PB_RECOVERY_BuildBotAudit$	{
 	if (.@held_count[0] > 0 && .@live_status != 2) {
 		.@summary$ += "\nIssue: stale reservations remain without a live holder.";
 		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "stale_reservation");
+		return .@summary$;
+	}
+	if (.@dialog_lock_count[0] > 0 && !playerbot_npcactive(.@bot_key$)) {
+		.@summary$ += "\nIssue: dialog reservations remain without an active NPC session.";
+		.@summary$ += "\nAction: " + callfunc("F_PB_RECOVERY_BuildAuthoritySummary$", "dialog_inactive_reservation");
 		return .@summary$;
 	}
 	if ($@pbbot_merchant_enabled && $@pbbot_open_state$ == "open" && .@live_status != 2) {
@@ -2061,6 +2075,33 @@ function	script	F_PB_RES_ReapExpired	{
 			.@stale_type$[.@i], .@stale_key$[.@i], "none", "cleanup=stale_holder", "", .@stale_key$[.@i],
 			"ok", 0, "holder.offline", "", "";
 		callfunc "F_PB_RECOVERY_Audit", "reservation_table", "reservation", "reap", .@stale_bot_id[.@i], .@before$, "deleted", "ok", "reservation.stale_holder";
+		.@reaped++;
+	}
+	.@inactive_dialog_rows = query_sql(
+		"SELECT r.`reservation_id`, r.`resource_key`, r.`holder_bot_id`, r.`holder_controller_id`, r.`lock_mode`, r.`epoch`, r.`priority`, r.`reason`, p.`bot_key` "
+		+ "FROM `bot_reservation` r "
+		+ "JOIN `bot_profile` p ON p.`bot_id` = r.`holder_bot_id` "
+		+ "WHERE r.`type` = 'dialog_target' "
+		+ "AND r.`lease_until` > '" + .@now + "'",
+		.@dialog_id, .@dialog_key$, .@dialog_bot_id, .@dialog_controller$, .@dialog_mode$, .@dialog_epoch, .@dialog_priority, .@dialog_reason$, .@dialog_bot_key$);
+	for (.@i = 0; .@i < .@inactive_dialog_rows; ++.@i) {
+		if (playerbot_npcactive(.@dialog_bot_key$))
+			continue;
+		.@before$ = "type=dialog_target"
+			+ ",resource=" + .@dialog_key$[.@i]
+			+ ",controller=" + .@dialog_controller$[.@i]
+			+ ",mode=" + .@dialog_mode$[.@i]
+			+ ",epoch=" + .@dialog_epoch[.@i]
+			+ ",priority=" + .@dialog_priority[.@i]
+			+ ",reason=" + .@dialog_reason$[.@i]
+			+ ",bot_key=" + .@dialog_bot_key$[.@i];
+		query_sql("DELETE FROM `bot_reservation` WHERE `reservation_id` = '" + .@dialog_id[.@i] + "'");
+		callfunc "F_PB_DB_TraceEmit",
+			"reservation.released", "reservation", .@dialog_bot_id[.@i], 0, 0, "", 0, 0,
+			.@dialog_controller$[.@i], "reservation", .@dialog_controller$[.@i],
+			"dialog_target", .@dialog_key$[.@i], "restart.recovery", "cleanup=dialog_inactive", "", .@dialog_key$[.@i],
+			"ok", 0, "dialog.inactive", "", "";
+		callfunc "F_PB_RECOVERY_Audit", "live_world_actor_state", "reservation", "reap", .@dialog_bot_id[.@i], .@before$, "deleted", "ok", "reservation.dialog_inactive";
 		.@reaped++;
 	}
 	return .@reaped;
@@ -2375,6 +2416,77 @@ function	script	F_PB_PART_RecoverAll	{
 		(.@after_count[0] == 0 ? "" : "reservation.recover"),
 		(.@after_count[0] == 0 ? "" : "reservation.remaining");
 	return (.@part_ok && .@after_count[0] == 0);
+}
+
+function	script	F_PB_OBS_BuildDialogConflictSurface$	{
+	.@bot_key$ = getarg(0, "");
+	.@npc_name$ = getarg(1, "");
+	.@controller$ = getarg(2, "");
+	.@limit = getarg(3, 6);
+	if (.@limit < 1)
+		.@limit = 1;
+	if (.@limit > 10)
+		.@limit = 10;
+	if (.@bot_key$ == "" || .@npc_name$ == "")
+		return "Dialog Conflict: missing bot or NPC.";
+	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Dialog Conflict: unknown bot key.";
+	.@resource_key$ = callfunc("F_PB_PART_NPCResourceKey$", .@npc_name$);
+	.@summary$ = "Dialog Conflict: " + .@bot_key$ + " -> " + .@npc_name$ + ".";
+	.@summary$ += "\nLive: npc=" + playerbot_npcactive(.@bot_key$)
+		+ " storage=" + playerbot_storageisopen(.@bot_key$)
+		+ " trade=" + playerbot_tradeactive(.@bot_key$)
+		+ " trade_lock=" + playerbot_tradelocked(.@bot_key$) + ".";
+	.@summary$ += "\n" + callfunc("F_PB_PERC_GetInteractionTargetState$", "npc", .@npc_name$);
+	.@summary$ += "\n" + callfunc("F_PB_RES_BuildResourceSummary$", "dialog_target", .@resource_key$);
+	.@trace_rows = query_sql(
+		"SELECT `ts`, `phase`, `action`, `target_type`, `target_id`, `reason_code`, `result`, `error_code`, `error_detail` "
+		+ "FROM `bot_trace_event` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "AND ("
+			+ "(`phase` = 'reservation' AND `target_type` = 'dialog_target' AND `target_id` = '" + escape_sql(.@resource_key$) + "') "
+			+ "OR (`phase` = 'interaction' AND `target_type` IN ('npc','npc_close','npc_recover','participation_recover') "
+				+ "AND (`target_id` = '" + escape_sql(.@npc_name$) + "' OR `target_id` = '" + escape_sql(.@controller$) + "' OR `target_id` = '' ))"
+		+ ") "
+		+ "ORDER BY `id` DESC LIMIT " + .@limit,
+		.@trace_ts, .@trace_phase$, .@trace_action$, .@trace_target_type$, .@trace_target_id$, .@trace_reason$, .@trace_result$, .@trace_error$, .@trace_detail$);
+	if (.@trace_rows < 1)
+		.@summary$ += "\nRecent dialog traces: none.";
+	else {
+		.@summary$ += "\nRecent dialog traces: " + .@trace_rows + ".";
+		.@now = gettimetick(2);
+		for (.@i = 0; .@i < .@trace_rows; ++.@i) {
+			.@summary$ += "\n- " + ((.@now - .@trace_ts[.@i]) * 1000) + "ms "
+				+ .@trace_phase$[.@i] + "/" + .@trace_action$[.@i]
+				+ " -> " + .@trace_result$[.@i]
+				+ " target=" + .@trace_target_type$[.@i] + ":" + (.@trace_target_id$[.@i] == "" ? "<none>" : .@trace_target_id$[.@i]);
+			if (.@trace_reason$[.@i] != "" && .@trace_reason$[.@i] != "none")
+				.@summary$ += " reason=" + .@trace_reason$[.@i];
+			if (.@trace_error$[.@i] != "")
+				.@summary$ += " err=" + .@trace_error$[.@i];
+			if (.@trace_detail$[.@i] != "")
+				.@summary$ += " detail=" + .@trace_detail$[.@i];
+		}
+	}
+	.@audit_rows = query_sql(
+		"SELECT `ts`, `scope`, `action`, `result`, `detail` "
+		+ "FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' "
+		+ "AND `scope` IN ('npc','participation','reservation') "
+		+ "ORDER BY `id` DESC LIMIT " + .@limit,
+		.@audit_ts, .@audit_scope$, .@audit_action$, .@audit_result$, .@audit_detail$);
+	if (.@audit_rows < 1)
+		.@summary$ += "\nRecent dialog audits: none.";
+	else {
+		.@summary$ += "\nRecent dialog audits: " + .@audit_rows + ".";
+		.@now = gettimetick(2);
+		for (.@i = 0; .@i < .@audit_rows; ++.@i)
+			.@summary$ += "\n- " + ((.@now - .@audit_ts[.@i]) * 1000) + "ms "
+				+ .@audit_scope$[.@i] + "/" + .@audit_action$[.@i]
+				+ " -> " + .@audit_result$[.@i]
+				+ " detail=" + .@audit_detail$[.@i];
+	}
+	return .@summary$;
 }
 
 function	script	F_PB_PERC_LoadBotContext	{

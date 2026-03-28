@@ -2178,3 +2178,24 @@ Current limit:
 - recover-all currently clears only reservations held by the recovering bot
 - it does not attempt cross-bot cleanup beyond the existing trade peer cleanup
   already handled in C++
+
+Dialog drift recovery:
+
+- `dialog_target` reservations are now treated as stale when the holder bot no
+  longer has an active NPC session
+- `F_PB_RES_ReapExpired` is the current recovery point for that drift
+- the reaper now records:
+  - recovery audit detail `reservation.dialog_inactive`
+  - matching `reservation.released` trace rows with
+    `reason_code=restart.recovery`
+- `F_PB_OBS_BuildDialogConflictSurface$` is the current operator/debug view for
+  the combined:
+  - NPC target state
+  - reservation holder state
+  - recent dialog traces
+  - recent reservation/participation audits
+
+Current limit:
+
+- only `dialog_target` reservations use the inactive-session cleanup rule
+- broader inactive-lock cleanup for other reservation types is still deferred

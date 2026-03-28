@@ -5577,6 +5577,66 @@ This slice does not add:
 - correlation ids between trace rows and audit rows
 - automatic grouping of related failures into one incident object
 
+## Slice 62: Dialog Drift Recovery
+
+### Summary
+
+This slice formalizes one more partial-failure authority rule: a
+`dialog_target` reservation is stale if the holder no longer has an active NPC
+session. The reaper now clears that drift automatically, audits it, and exposes
+the conflict through the participation lab.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Extended recovery authority summaries with:
+  - `dialog_inactive_reservation`
+- Extended bot recovery audit summaries so they now flag:
+  - held dialog locks with no active NPC session
+- Extended `F_PB_RES_ReapExpired` so it also reaps:
+  - live `dialog_target` reservations whose holder bot is not inside an active
+    NPC session
+- That dialog-drift cleanup now writes:
+  - `bot_recovery_audit` detail `reservation.dialog_inactive`
+  - matching `reservation.released` trace rows with
+    `reason_code=restart.recovery`
+- Added shared operator helper:
+  - `F_PB_OBS_BuildDialogConflictSurface$`
+- Extended `Playerbot Participation Lab` with:
+  - richer dialog conflict inspection
+  - `Run dialog drift probe`
+- Updated the participation selftest so it now proves:
+  - reserved quest-relay dialog
+  - raw dialog close without reserved release
+  - one reaper pass clears the stale dialog lock
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified recovery audit rows for:
+  - `reservation / reap / ok / reservation.dialog_inactive`
+- verified matching trace rows for:
+  - `reservation.released / dialog_target / npc:Playerbot Quest Relay A /
+    restart.recovery`
+
+### Deferrals
+
+This slice does not add:
+
+- generic inactive-lock cleanup for non-dialog reservation types
+- cross-bot dialog arbitration beyond the existing reservation winner
+- automatic incident grouping between dialog drift, ownership drift, and
+  participation recover-all
+
 ## Slice 61: Participation Recover-All
 
 ### Summary
