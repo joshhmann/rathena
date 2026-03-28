@@ -2163,3 +2163,18 @@ Current limit:
 
 - failure surfaces are still recent-window summaries, not persistent incidents
 - they prioritize practical debugging over perfect causal grouping
+
+Participation recover-all:
+
+- overlapping participation cleanup now includes bot-held reservations, not only
+  NPC/storage/trade runtime state
+- `F_PB_PART_RecoverAll` is the current script-side integration point for:
+  - `playerbot_participationrecover(...)`
+  - `F_PB_RES_ReleaseByHolder(...)`
+  - reservation recovery audit + matching interaction trace
+
+Current limit:
+
+- recover-all currently clears only reservations held by the recovering bot
+- it does not attempt cross-bot cleanup beyond the existing trade peer cleanup
+  already handled in C++

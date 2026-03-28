@@ -2325,6 +2325,58 @@ function	script	F_PB_PART_NPCRecoverReserved	{
 	return (.@released >= 0 && .@closed);
 }
 
+function	script	F_PB_PART_RecoverAll	{
+	.@bot_key$ = getarg(0, "");
+	.@controller$ = getarg(1, "");
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return 0;
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_reservation` "
+		+ "WHERE `holder_bot_id` = '" + $@pbbot_bot_id + "' "
+		+ (.@controller$ != "" ? "AND `holder_controller_id` = '" + escape_sql(.@controller$) + "' " : ""),
+		.@before_count);
+	.@part_ok = playerbot_participationrecover(.@bot_key$);
+	.@released = callfunc("F_PB_RES_ReleaseByHolder", .@bot_key$, .@controller$);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_reservation` "
+		+ "WHERE `holder_bot_id` = '" + $@pbbot_bot_id + "' "
+		+ (.@controller$ != "" ? "AND `holder_controller_id` = '" + escape_sql(.@controller$) + "' " : ""),
+		.@after_count);
+	.@before$ = "reservations=" + .@before_count[0]
+		+ ",controller=" + (.@controller$ == "" ? "<all>" : .@controller$);
+	.@after$ = "reservations=" + .@after_count[0]
+		+ ",released=" + .@released;
+	.@detail$ = "already.clear";
+	.@result$ = "noop";
+	if (.@before_count[0] > 0 || .@released > 0) {
+		.@detail$ = (.@after_count[0] == 0 ? "participation.release_all" : "participation.reservation_remaining");
+		.@result$ = (.@after_count[0] == 0 ? "ok" : "aborted");
+	}
+	callfunc "F_PB_RECOVERY_Audit", "reservation_table", "reservation", "recover", $@pbbot_bot_id, .@before$, .@after$, .@result$, .@detail$;
+	callfunc "F_PB_DB_TraceEmitByBotKey",
+		(.@after_count[0] == 0 ? "interaction.completed" : "interaction.failed"),
+		"interaction",
+		.@bot_key$,
+		"",
+		0,
+		0,
+		(.@controller$ == "" ? "ParticipationRecoverAll" : .@controller$),
+		"participation",
+		"",
+		"participation_recover",
+		(.@controller$ == "" ? "<all>" : .@controller$),
+		"restart.recovery",
+		"released=" + .@released,
+		"",
+		"",
+		(.@after_count[0] == 0 ? .@result$ : "aborted"),
+		0,
+		"",
+		(.@after_count[0] == 0 ? "" : "reservation.recover"),
+		(.@after_count[0] == 0 ? "" : "reservation.remaining");
+	return (.@part_ok && .@after_count[0] == 0);
+}
+
 function	script	F_PB_PERC_LoadBotContext	{
 	.@bot_key$ = escape_sql(getarg(0, ""));
 	$@pbperc_found = 0;

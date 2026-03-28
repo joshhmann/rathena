@@ -5577,6 +5577,57 @@ This slice does not add:
 - correlation ids between trace rows and audit rows
 - automatic grouping of related failures into one incident object
 
+## Slice 61: Participation Recover-All
+
+### Summary
+
+This slice widens participation recovery so overlapping interaction state and
+bot-held dialog reservations recover together. The goal is to treat
+participation cleanup as one incident instead of separate NPC/storage/trade and
+reservation chores.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared helper:
+  - `F_PB_PART_RecoverAll`
+- The new helper now:
+  - runs `playerbot_participationrecover(...)`
+  - releases all held reservations for the bot, optionally scoped by controller
+  - writes reservation recovery audits
+  - emits a matching interaction trace row for the reservation cleanup leg
+- Extended `Playerbot Participation Lab` with:
+  - `Run recover-all probe`
+- Updated the participation selftest so the overlapping-recovery lane now proves:
+  - active NPC state
+  - held dialog reservation
+  - storage open
+  - trade request/ack
+  - one recover-all pass clears the entire stack
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-participation-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+- verified the participation selftest still passes on the integrated baseline
+- verified reservation cleanup is included in the overlapping recovery path
+
+### Deferrals
+
+This slice does not add:
+
+- per-reservation correlation ids on recover-all traces
+- automatic recovery of reservations held on behalf of other bots/controllers
+- a dedicated CLI recover-all inspector
+
 ## Slice 60: Playerbot Pool Observability CLI Tool
 
 ### Summary
