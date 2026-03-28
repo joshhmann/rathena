@@ -2074,3 +2074,32 @@ Current limit:
 
 - reservation recovery audits currently attach to reap/cleanup paths, not every
   successful normal release
+
+Ownership drift recovery:
+
+- pooled controller slots now treat ownership drift as an explicit recovery
+  boundary instead of silently clearing the slot
+- current detail codes are:
+  - `owner.split`
+  - `path.owner_split`
+  - `slot.owner_missing`
+  - plus profile/role drift when the assigned pooled identity no longer matches
+    the slot contract
+
+Release semantics:
+
+- `F_LW_HPC_DefReleaseActor` no longer emits a normal `controller.released`
+  trace when the pool owner has already drifted away
+- in that case the local controller slot is cleared as a recovery step and the
+  event is recorded as:
+  - recovery audit in `bot_recovery_audit`
+  - `reconcile.fixed` trace with `claim.lost`
+
+Operator coverage:
+
+- `Playerbot State Lab` now has:
+  - manual ownership selftest
+  - latest ownership-audit inspection
+- repo-local smoke helper:
+  - `bash tools/ci/playerbot-state-smoke.sh arm`
+  - `bash tools/ci/playerbot-state-smoke.sh check`

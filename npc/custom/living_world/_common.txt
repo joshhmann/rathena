@@ -3735,10 +3735,40 @@ function	script	F_LW_HPC_DefResolveActor	{
 	if (.@pool$ == "")
 		return callfunc("F_LW_HPC_DefActorCharId", .@controller$, .@i);
 	if (.@assigned > 0) {
-		if (callfunc("F_PB_POOL_Owner", .@assigned) == .@owner$
-			&& (.@want_profile$ == "" || callfunc("F_PB_POOL_Profile", .@pool$, .@assigned) == .@want_profile$)
-			&& (.@want_role$ == "" || callfunc("F_PB_POOL_Role", .@pool$, .@assigned) == .@want_role$))
+		.@current_owner$ = callfunc("F_PB_POOL_Owner", .@assigned);
+		.@current_profile$ = callfunc("F_PB_POOL_Profile", .@pool$, .@assigned);
+		.@current_role$ = callfunc("F_PB_POOL_Role", .@pool$, .@assigned);
+		query_sql("SELECT `bot_id` FROM `bot_identity_link` WHERE `char_id` = '" + .@assigned + "' LIMIT 1", .@audit_bot_id);
+		.@live_status = headlesspc_status(.@assigned);
+		.@live_owner$ = (.@live_status == 2 ? headlesspc_owner(.@assigned) : "");
+		if (.@current_owner$ == .@owner$
+			&& (.@want_profile$ == "" || .@current_profile$ == .@want_profile$)
+			&& (.@want_role$ == "" || .@current_role$ == .@want_role$))
 			return .@assigned;
+		.@detail$ = "slot.owner_missing";
+		.@reason$ = "claim.lost";
+		if (.@current_owner$ != "" && .@current_owner$ != .@owner$) {
+			.@detail$ = "owner.split";
+			.@reason$ = "claim.lost";
+		} else if (.@want_profile$ != "" && .@current_profile$ != .@want_profile$) {
+			.@detail$ = "profile.drift";
+			.@reason$ = "target.invalid";
+		} else if (.@want_role$ != "" && .@current_role$ != .@want_role$) {
+			.@detail$ = "role.drift";
+			.@reason$ = "target.invalid";
+		}
+		if (.@live_owner$ != "" && .@current_owner$ != "" && .@live_owner$ != .@current_owner$) {
+			.@detail$ = "path.owner_split";
+			.@reason$ = "claim.lost";
+		}
+		.@before$ = "slot=" + .@i
+			+ ",pool=" + .@pool$
+			+ ",owner=" + (.@current_owner$ == "" ? "<none>" : .@current_owner$)
+			+ ",live_owner=" + (.@live_owner$ == "" ? "<none>" : .@live_owner$)
+			+ ",profile=" + (.@current_profile$ == "" ? "<none>" : .@current_profile$)
+			+ ",role=" + (.@current_role$ == "" ? "<none>" : .@current_role$);
+		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "repair", .@audit_bot_id[0], .@before$, "slot.cleared", "ok", .@detail$;
+		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, .@reason$, .@before$, "", .@pool$, "ok", 0, "slot.clear", "", .@detail$;
 		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
 	}
 	.@assigned = callfunc("F_PB_POOL_Claim", .@pool$, .@owner$, .@want_profile$, .@want_role$);
@@ -3758,6 +3788,16 @@ function	script	F_LW_HPC_DefReleaseActor	{
 	.@assigned = getd("$LWHD" + .@seed + "_RA[" + .@i + "]");
 	if (.@pool$ == "" || .@assigned < 1)
 		return 0;
+	.@current_owner$ = callfunc("F_PB_POOL_Owner", .@assigned);
+	query_sql("SELECT `bot_id` FROM `bot_identity_link` WHERE `char_id` = '" + .@assigned + "' LIMIT 1", .@audit_bot_id);
+	.@before$ = "slot=" + .@i + ",pool=" + .@pool$ + ",owner=" + (.@current_owner$ == "" ? "<none>" : .@current_owner$);
+	if (.@current_owner$ != .@owner$) {
+		.@detail$ = (.@current_owner$ == "" ? "slot.owner_missing" : "owner.split");
+		callfunc "F_PB_RECOVERY_Audit", "controller_epoch", "ownership", "release", .@audit_bot_id[0], .@before$, "slot.cleared", "ok", .@detail$;
+		callfunc "F_PB_DB_TraceEmitByChar", "reconcile.fixed", "reconcile", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "claim.lost", .@before$, "", .@pool$, "ok", 0, "slot.clear", "", .@detail$;
+		setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);
+		return 1;
+	}
 	callfunc "F_PB_DB_TraceEmitByChar", "controller.released", "controller", .@assigned, "", 0, 0, .@controller$, "controller", .@owner$, "slot", .@i, "none", "pool=" + .@pool$, "", .@pool$, "ok", 0, "", "", "";
 	callfunc "F_PB_POOL_Release", .@assigned, .@owner$;
 	setd("$LWHD" + .@seed + "_RA[" + .@i + "]", 0);

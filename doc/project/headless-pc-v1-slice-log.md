@@ -5356,3 +5356,57 @@ This slice does not add:
 - automatic recovery-audit emission on every manual reservation release
 - reservation epoch conflict audits beyond stale/expired cleanup
 - replay/timeline stitching between recovery audits and trace events
+
+## Slice 59: Playerbot Ownership Recovery Audits
+
+### Goal
+
+Make controller-slot ownership drift explainable and recoverable so pooled actor
+handoff conflicts stop looking like silent controller flakiness.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `tools/ci/playerbot-state-smoke.sh` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Hardened `F_LW_HPC_DefResolveActor` so stale pooled-slot assignments now emit:
+  - ownership recovery audits in `bot_recovery_audit`
+  - `reconcile.fixed` traces with `claim.lost`
+- Hardened `F_LW_HPC_DefReleaseActor` so release no longer blindly pretends a
+  normal release happened when the pool owner already drifted.
+- Added ownership recovery detail codes:
+  - `owner.split`
+  - `path.owner_split`
+  - `slot.owner_missing`
+  - plus existing profile/role drift handling during slot repair
+- Extended `Playerbot State Lab`:
+  - manual `Run ownership selftest`
+  - latest ownership-audit inspection
+- Added repeatable repo-local smoke helper:
+  - `bash tools/ci/playerbot-state-smoke.sh arm`
+  - `bash tools/ci/playerbot-state-smoke.sh check`
+
+### Validation
+
+- `bash -n tools/ci/playerbot-state-smoke.sh`
+- `bash tools/ci/playerbot-state-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-state-smoke.sh check`
+- final selftest passed on the live baseline:
+  - `playerbot_state_selftest: claim_ok=1 drift_ok=1 audit_ok=1 trace_ok=1 release_ok=1 result=1.`
+- verified fresh rows in:
+  - `bot_recovery_audit` -> `ownership / repair / ok / owner.split`
+  - `bot_trace_event` -> `reconcile.fixed / claim.lost / owner.split`
+
+### Deferrals
+
+This slice does not add:
+
+- full epoch-token persistence outside the current controller/runtime layer
+- automatic repair of every pool-owner drift case across every controller family
+- merged trace+audit timeline tooling in the state lab itself

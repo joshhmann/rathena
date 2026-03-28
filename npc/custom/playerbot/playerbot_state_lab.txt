@@ -3,7 +3,7 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 	mes "Inspect the four-layer playerbot state model and recovery authorities.";
 	next;
 
-	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Write lab memory marker:Close")) {
+	switch(select("Quick merchant state:Quick party state:Inspect bot key:Inspect shared memory:Recovery authority summary:Inspect recovery audit:Run ownership selftest:Write lab memory marker:Close")) {
 	case 1:
 		mes "[Playerbot State Lab]";
 		mes callfunc("F_PB_STATE_BuildBotStateSummary$", "quick_merc_alb");
@@ -71,7 +71,7 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 		close;
 
 	case 6:
-		switch(select("Latest audit for quick_merc_alb:Latest audit for quick_party_open:Latest storage/trade audits:Latest reservation audits:Close")) {
+		switch(select("Latest audit for quick_merc_alb:Latest audit for quick_party_open:Latest storage/trade audits:Latest reservation audits:Latest ownership audits:Close")) {
 		case 1:
 			.@bot_key$ = "quick_merc_alb";
 			break;
@@ -97,6 +97,10 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 			mes "[Playerbot State Lab]";
 			mes callfunc("F_PB_RECOVERY_BuildRecentAudit$", "reservation", 6);
 			close;
+		case 5:
+			mes "[Playerbot State Lab]";
+			mes callfunc("F_PB_RECOVERY_BuildRecentAudit$", "ownership", 6);
+			close;
 		default:
 			close;
 		}
@@ -121,6 +125,12 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 		close;
 
 	case 7:
+		donpcevent "PlayerbotStateSelftest::OnRun";
+		mes "[Playerbot State Lab]";
+		mes "Ownership selftest started.";
+		close;
+
+	case 8:
 		callfunc "F_PB_MEM_Remember", "social", "alberta.lab_probe", 1, "state.lab", 30000, "state.lab";
 		mes "[Playerbot State Lab]";
 		mes "Wrote a 30s shared-memory probe marker.";
@@ -129,4 +139,76 @@ alberta,157,135,4	script	Playerbot State Lab	4_M_02,{
 	}
 
 	close;
+}
+
+-	script	PlayerbotStateSelftest	FAKE_NPC,{
+OnInit:
+	.autorun = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.autorun && $PBSTAT_AUTORUN_AID != getcharid(3))
+		end;
+	.aid = getcharid(3);
+	if ($PBSTAT_AUTORUN_AID == .aid)
+		setd("$PBSTAT_AUTORUN_AID", 0);
+	initnpctimer;
+	end;
+
+OnRun:
+	.autorun = 1;
+	.aid = getcharid(3);
+	initnpctimer;
+	end;
+
+OnTimer250:
+	stopnpctimer;
+	.autorun = 0;
+	.@controller$ = "HeadlessAlbertaSocialController";
+	.@owner$ = .@controller$;
+	.@slot = 0;
+	.@char_id = 0;
+	.@claim_ok = 0;
+	.@drift_ok = 0;
+	.@audit_ok = 0;
+	.@trace_ok = 0;
+	.@release_ok = 0;
+	callfunc "F_PB_DB_LoadAllPools";
+	donpcevent .@controller$ + "::OnPrime";
+	.@char_id = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@slot);
+	.@claim_ok = (.@char_id > 0);
+	if (.@claim_ok) {
+		.@original_owner$ = callfunc("F_PB_POOL_Owner", .@char_id);
+		.@original_source$ = callfunc("F_PB_POOL_Source", .@char_id);
+		setd("$PBPOOL_OWN$" + .@char_id + "$", "InjectedOtherOwner");
+		if (.@original_source$ == "")
+			setd("$PBPOOL_SRC$" + .@char_id + "$", "pool.social.alberta");
+		.@resolved2 = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@slot);
+		.@drift_ok = (getd("$LWHD" + getnpcid(0, .@controller$) + "_RA[" + .@slot + "]") != .@char_id);
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_recovery_audit` "
+			+ "WHERE `scope` = 'ownership' "
+			+ "AND `char_id` = '" + .@char_id + "' "
+			+ "AND `detail` IN ('owner.split','path.owner_split') "
+			+ "AND `ts` >= '" + (gettimetick(2) - 60) + "'",
+			.@audit_count);
+		.@audit_ok = (.@audit_count[0] > 0);
+		query_sql(
+			"SELECT COUNT(*) "
+			+ "FROM `bot_trace_event` "
+			+ "WHERE `phase` = 'reconcile' "
+			+ "AND `action` = 'reconcile.fixed' "
+			+ "AND `char_id` = '" + .@char_id + "' "
+			+ "AND `reason_code` = 'claim.lost' "
+			+ "AND `ts` >= '" + (gettimetick(2) - 60) + "'",
+			.@trace_count);
+		.@trace_ok = (.@trace_count[0] > 0);
+		.@release_ok = callfunc("F_LW_HPC_DefReleaseActor", .@controller$, .@owner$, .@slot);
+		setd("$PBPOOL_OWN$" + .@char_id + "$", "");
+		setd("$PBPOOL_SRC$" + .@char_id + "$", "");
+	}
+	.@result = (.@claim_ok && .@drift_ok && .@audit_ok && .@trace_ok && .@release_ok);
+	debugmes "playerbot_state_selftest: claim_ok=" + .@claim_ok + " drift_ok=" + .@drift_ok + " audit_ok=" + .@audit_ok + " trace_ok=" + .@trace_ok + " release_ok=" + .@release_ok + " result=" + .@result + ".";
+	end;
 }
