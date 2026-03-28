@@ -127,4 +127,7 @@ perl /root/testing/openkore/openkore.pl \
 - use [openkore-smoke-scenarios.md](/root/dev/rathena/doc/project/openkore-smoke-scenarios.md) as the canonical repeatable scenario list
 - use `tools/ci/openkore-smoke.sh` as the local scenario launcher/checklist helper
 - use `tools/ci/playerbot-guild-smoke.sh` to arm/check the hidden guild selftest from a clean repo-managed restart path
+- use [playerbot-scenario-runner.md](/root/dev/rathena/doc/project/playerbot-scenario-runner.md)
+  and `tools/ci/playerbot-scenario.sh` as the combat/status/death/respawn
+  frontier runbook
 - later, add scripted interaction checks for key Prontera NPCs

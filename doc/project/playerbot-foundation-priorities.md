@@ -279,6 +279,29 @@ The goal is not rich AI yet.
 The goal is making bots legal participants in the same server systems real
 players already use.
 
+## 8. Combat Participation And Mechanic Completeness
+
+The next frontier after the current foundation wave is combat participation and
+the remaining player-system gaps that become visible under combat pressure.
+
+Implementation-facing contract:
+
+- `doc/project/playerbot-combat-frontier-contract.md`
+
+The immediate focus should be:
+
+- combat target / attack intent
+- status continuity across death and respawn
+- death / revive cleanup and recovery truth
+- map-change cleanup of stale combat ownership
+- the remaining participation gaps for first-class mechanics when combat
+  interrupts them
+
+The goal is still not full combat AI.
+
+The goal is making combat, death, respawn, and nearby mechanic transitions
+behave like first-class server events with one clear recovery authority.
+
 ## Supporting Tooling
 
 The top operator / authoring tools to add next are:

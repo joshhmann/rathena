@@ -96,7 +96,20 @@ OnStageParticipation:
 		.running = 0;
 		end;
 	}
-	addtimer 26000, strnpcinfo(3) + "::OnStageDone";
+	addtimer 26000, strnpcinfo(3) + "::OnStageCombat";
+	detachrid;
+	end;
+
+OnStageCombat:
+	debugmes "playerbot_foundation_selftest: stage=combat";
+	setd("$PBCST_MANUAL_AID", .aid);
+	detachrid;
+	donpcevent "PlayerbotCombatSelftest::OnManualStart";
+	if (!attachrid(.aid)) {
+		.running = 0;
+		end;
+	}
+	addtimer 18000, strnpcinfo(3) + "::OnStageDone";
 	detachrid;
 	end;
 

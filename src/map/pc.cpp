@@ -61,6 +61,7 @@
 #include "searchstore.hpp"  // struct s_search_store_info
 #include "status.hpp" // OPTION_*, struct weapon_atk
 #include "storage.hpp"
+#include "trade.hpp"
 #include "unit.hpp" // unit_stop_attack(), unit_stop_walking()
 #include "vending.hpp" // struct s_vending
 
@@ -9620,6 +9621,9 @@ int32 pc_skillheal2_bonus(map_session_data *sd, uint16 skill_id) {
 	return bonus;
 }
 
+static TIMER_FUNC(pc_respawn_timer);
+static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd);
+
 void pc_respawn(map_session_data* sd, clr_type clrtype)
 {
 	if( !pc_isdead(sd) )
@@ -9632,6 +9636,18 @@ void pc_respawn(map_session_data* sd, clr_type clrtype)
 	if( pc_setpos( sd, mapindex_name2id( sd->status.save_point.map ), sd->status.save_point.x, sd->status.save_point.y, clrtype ) != SETPOS_OK ){
 		clif_resurrection( *sd ); //If warping fails, send a normal stand up packet.
 	}
+	pc_playerbot_handle_respawn_cleanup(sd);
+}
+
+void pc_force_respawn(map_session_data* sd, clr_type clrtype)
+{
+	if (sd == nullptr || !pc_isdead(sd))
+		return;
+	if (sd->respawn_tid != INVALID_TIMER) {
+		delete_timer(sd->respawn_tid, pc_respawn_timer);
+		sd->respawn_tid = INVALID_TIMER;
+	}
+	pc_respawn(sd, clrtype);
 }
 
 static TIMER_FUNC(pc_respawn_timer){
@@ -9733,6 +9749,268 @@ void pc_close_npc(map_session_data *sd,int32 flag)
 			}
 		}
 	}
+}
+
+static bool pc_playerbot_lookup_identity(const map_session_data* sd, uint32* bot_id, uint32* char_id, uint32* account_id)
+{
+	char* data = nullptr;
+
+	if (bot_id != nullptr)
+		*bot_id = 0;
+	if (char_id != nullptr)
+		*char_id = 0;
+	if (account_id != nullptr)
+		*account_id = 0;
+
+	if (sd == nullptr || !sd->state.headless_bot)
+		return false;
+
+	uint32 resolved_char_id = sd->status.char_id;
+	uint32 resolved_account_id = sd->status.account_id;
+	uint32 resolved_bot_id = 0;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT `bot_id` FROM `bot_identity_link` WHERE `char_id` = '%u' LIMIT 1",
+		resolved_char_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		return false;
+	}
+
+	if (Sql_NextRow(mmysql_handle) != SQL_SUCCESS) {
+		Sql_FreeResult(mmysql_handle);
+		return false;
+	}
+
+	if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+		resolved_bot_id = static_cast<uint32>(atoi(data));
+	Sql_FreeResult(mmysql_handle);
+
+	if (resolved_bot_id == 0)
+		return false;
+
+	if (bot_id != nullptr)
+		*bot_id = resolved_bot_id;
+	if (char_id != nullptr)
+		*char_id = resolved_char_id;
+	if (account_id != nullptr)
+		*account_id = resolved_account_id;
+	return true;
+}
+
+static void pc_playerbot_trace_event(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* phase, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail)
+{
+	char esc_trace_id[129];
+	char esc_target_id[193];
+	char esc_error_code[129];
+	char esc_error_detail[385];
+	char trace_id[96];
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	safesnprintf(trace_id, sizeof(trace_id), "pb-pc-%u-%u-%u-%d", bot_id, char_id, now, rnd());
+	Sql_EscapeStringLen(mmysql_handle, esc_trace_id, trace_id, strnlen(trace_id, sizeof(trace_id) - 1));
+	Sql_EscapeStringLen(mmysql_handle, esc_target_id, target_id != nullptr ? target_id : "", strnlen(target_id != nullptr ? target_id : "", 96));
+	Sql_EscapeStringLen(mmysql_handle, esc_error_code, error_code != nullptr ? error_code : "", strnlen(error_code != nullptr ? error_code : "", 64));
+	Sql_EscapeStringLen(mmysql_handle, esc_error_detail, error_detail != nullptr ? error_detail : "", strnlen(error_detail != nullptr ? error_detail : "", 191));
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_trace_event` "
+		"(`ts`, `trace_id`, `bot_id`, `char_id`, `account_id`, `map_id`, `map_name`, `x`, `y`, `controller_id`, `controller_kind`, `owner_token`, `phase`, `action`, `target_type`, `target_id`, `reason_code`, `inputs`, `signals`, `reservation_refs`, `result`, `duration_ms`, `fallback`, `error_code`, `error_detail`) "
+		"VALUES ('%u', '%s', '%u', '%u', '%u', '%d', '%s', '%d', '%d', '', '', '', '%s', '%s', '%s', '%s', '%s', NULL, NULL, NULL, '%s', '0', '', '%s', '%s')",
+		now, esc_trace_id, bot_id, char_id, account_id,
+		sd != nullptr ? sd->m : 0,
+		sd != nullptr ? mapindex_id2name(sd->mapindex) : "",
+		sd != nullptr ? sd->x : 0,
+		sd != nullptr ? sd->y : 0,
+		phase != nullptr ? phase : "reconcile",
+		action != nullptr ? action : "reconcile.fixed",
+		target_type != nullptr ? target_type : "",
+		esc_target_id,
+		reason_code != nullptr ? reason_code : "restart.recovery",
+		result != nullptr ? result : "ok",
+		esc_error_code,
+		esc_error_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
+static void pc_playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* authority, const char* scope, const char* action, const char* state_before, const char* state_after, const char* result, const char* detail)
+{
+	char esc_authority[65];
+	char esc_scope[65];
+	char esc_action[65];
+	char esc_before[385];
+	char esc_after[385];
+	char esc_result[33];
+	char esc_detail[385];
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	Sql_EscapeStringLen(mmysql_handle, esc_authority, authority != nullptr ? authority : "", strnlen(authority != nullptr ? authority : "", 32));
+	Sql_EscapeStringLen(mmysql_handle, esc_scope, scope != nullptr ? scope : "", strnlen(scope != nullptr ? scope : "", 32));
+	Sql_EscapeStringLen(mmysql_handle, esc_action, action != nullptr ? action : "", strnlen(action != nullptr ? action : "", 32));
+	Sql_EscapeStringLen(mmysql_handle, esc_before, state_before != nullptr ? state_before : "", strnlen(state_before != nullptr ? state_before : "", 191));
+	Sql_EscapeStringLen(mmysql_handle, esc_after, state_after != nullptr ? state_after : "", strnlen(state_after != nullptr ? state_after : "", 191));
+	Sql_EscapeStringLen(mmysql_handle, esc_result, result != nullptr ? result : "", strnlen(result != nullptr ? result : "", 16));
+	Sql_EscapeStringLen(mmysql_handle, esc_detail, detail != nullptr ? detail : "", strnlen(detail != nullptr ? detail : "", 191));
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_recovery_audit` "
+		"(`ts`, `bot_id`, `char_id`, `account_id`, `authority`, `scope`, `action`, `state_before`, `state_after`, `result`, `detail`) "
+		"VALUES ('%u', '%u', '%u', '%u', '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
+		now, bot_id, char_id, account_id, esc_authority, esc_scope, esc_action, esc_before, esc_after, esc_result, esc_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
+static std::string pc_playerbot_combat_state(const map_session_data* sd)
+{
+	if (sd == nullptr)
+		return "offline";
+
+	const unit_data* ud = unit_bl2ud(sd);
+	return "dead=" + std::to_string(pc_isdead(sd) ? 1 : 0)
+		+ ",respawn=" + std::to_string(sd->respawn_tid != INVALID_TIMER ? 1 : 0)
+		+ ",target=" + std::to_string(ud != nullptr ? ud->target : 0)
+		+ ",npc=" + std::to_string(sd->npc_id != 0 ? 1 : 0)
+		+ ",storage=" + std::to_string(sd->state.storage_flag != 0 ? 1 : 0)
+		+ ",trade=" + std::to_string((sd->trade_partner.id != 0 || sd->state.trading) ? 1 : 0);
+}
+
+static bool pc_playerbot_force_recover_npc(map_session_data* sd)
+{
+	if (sd == nullptr)
+		return false;
+	if (sd->npc_id == 0 && sd->st == nullptr && !sd->state.menu_or_input)
+		return true;
+
+	pc_close_npc(sd, 2);
+	npc_event_dequeue(sd, true);
+	sd->state.menu_or_input = 0;
+	sd->npc_menu = 0;
+	sd->npc_amount = 0;
+	sd->npc_str[0] = '\0';
+	return (sd->npc_id == 0 && sd->st == nullptr && !sd->state.menu_or_input);
+}
+
+static void pc_playerbot_force_clear_trade(map_session_data* sd)
+{
+	if (sd == nullptr)
+		return;
+	sd->deal.zeny = 0;
+	for (int32 i = 0; i < 10; ++i) {
+		sd->deal.item[i].index = 0;
+		sd->deal.item[i].amount = 0;
+	}
+	sd->state.deal_locked = 0;
+	sd->state.trading = 0;
+	sd->state.isBoundTrading = 0;
+	sd->trade_partner = { 0, 0 };
+}
+
+static void pc_playerbot_cleanup_participation(map_session_data* sd)
+{
+	if (sd == nullptr)
+		return;
+
+	pc_playerbot_force_recover_npc(sd);
+
+	if (sd->state.storage_flag != 0) {
+		switch (sd->state.storage_flag) {
+		case 1:
+			storage_storageclose(sd);
+			break;
+		case 2:
+			storage_guild_storage_quit(sd, 0);
+			sd->state.storage_flag = 0;
+			break;
+		case 3:
+			storage_premiumStorage_quit(sd);
+			sd->state.storage_flag = 0;
+			break;
+		default:
+			sd->state.storage_flag = 0;
+			break;
+		}
+	}
+
+	if (sd->trade_partner.id != 0 || sd->state.trading)
+		trade_tradecancel(sd);
+	if (sd->trade_partner.id != 0 || sd->state.trading || sd->state.deal_locked != 0)
+		pc_playerbot_force_clear_trade(sd);
+}
+
+static int32 pc_playerbot_release_reservations(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* detail)
+{
+	char type[32];
+	char resource_key[97];
+	uint64 reservation_id = 0;
+	int32 released = 0;
+
+	if (bot_id == 0)
+		return 0;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT `reservation_id`, `type`, `resource_key` FROM `bot_reservation` WHERE `holder_bot_id` = '%u'",
+		bot_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		return 0;
+	}
+
+	while (Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		char* data = nullptr;
+		memset(type, 0, sizeof(type));
+		memset(resource_key, 0, sizeof(resource_key));
+		if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+			reservation_id = static_cast<uint64>(strtoull(data, nullptr, 10));
+		if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 1, &data, nullptr) && data != nullptr)
+			safestrncpy(type, data, sizeof(type));
+		if (SQL_SUCCESS == Sql_GetData(mmysql_handle, 2, &data, nullptr) && data != nullptr)
+			safestrncpy(resource_key, data, sizeof(resource_key));
+
+		if (reservation_id == 0)
+			continue;
+
+		if (SQL_ERROR == Sql_Query(mmysql_handle,
+			"DELETE FROM `bot_reservation` WHERE `reservation_id` = '%llu'",
+			static_cast<unsigned long long>(reservation_id))) {
+			Sql_ShowDebug(mmysql_handle);
+			continue;
+		}
+
+		pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "reservation.released", type, resource_key, "restart.recovery", "ok", "", detail != nullptr ? detail : "combat.death");
+		++released;
+	}
+	Sql_FreeResult(mmysql_handle);
+	return released;
+}
+
+static void pc_playerbot_handle_death_cleanup(map_session_data* sd)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	if (sd == nullptr || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return;
+
+	std::string before = pc_playerbot_combat_state(sd);
+	unit_stop_attack(sd);
+	pc_playerbot_cleanup_participation(sd);
+	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat.death");
+	std::string after = pc_playerbot_combat_state(sd);
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "combat", "death", before.c_str(), after.c_str(), "ok", released > 0 ? "combat.cleared.reservations" : "combat.cleared");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "death.observed", "death", "", "restart.recovery", "ok", "", released > 0 ? "combat.cleared.reservations" : "combat.cleared");
+}
+
+static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	if (sd == nullptr || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return;
+
+	std::string before = pc_playerbot_combat_state(sd);
+	unit_stop_attack(sd);
+	pc_playerbot_cleanup_participation(sd);
+	pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat.respawn");
+	std::string after = pc_playerbot_combat_state(sd);
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "combat", "respawn", before.c_str(), after.c_str(), "ok", "combat.respawn_reconciled");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "respawn.completed", "respawn", "", "restart.recovery", "ok", "", "combat.respawn_reconciled");
 }
 
 /*==========================================
@@ -9846,6 +10124,7 @@ int32 pc_dead(map_session_data *sd,block_list *src)
 	}
 
 	pc_setdead(sd);
+	pc_playerbot_handle_death_cleanup(sd);
 
 	clif_party_dead( *sd );
 

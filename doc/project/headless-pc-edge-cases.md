@@ -218,6 +218,23 @@ Preferred upcoming handling:
 - use a short grace window so actors can finish a visible beat and avoid harsh
   world popping
 - after grace expires, release or park actors cleanly through the scheduler
+
+### 15. Combat frontier scenario coverage
+
+Current handling:
+
+- scenario coverage for combat/status/death/respawn is now expressed as a
+  repo-local runner in:
+  - [playerbot-scenario-runner.md](/root/dev/rathena/doc/project/playerbot-scenario-runner.md)
+  - `tools/ci/playerbot-scenario.sh`
+  - `tools/ci/playerbot-combat-smoke.sh`
+
+Preferred upcoming handling:
+
+- expand the skeleton catalog into real runtime-backed scenarios as combat and
+  status hooks land
+- keep the current combat smoke helper aligned with the scenario runner entries
+- keep the runner CLI stable while the scenario definitions grow
 - do not treat grace expiry as identity deletion
 
 Why:
@@ -2259,3 +2276,7 @@ Current limit:
   - combat participation hooks
   - broader status/death/revive continuity
   - deeper item/equipment continuity beyond the first transactional slice
+
+The implementation-facing combat frontier contract is now documented in:
+
+- `doc/project/playerbot-combat-frontier-contract.md`

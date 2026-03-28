@@ -5944,6 +5944,157 @@ defects as the next blockers:
 - merchant selftest infinity-loop path
 - participation dialog-reservation cleanup under integrated load
 
+## Slice 62: Playerbot Scenario Runner Foundation
+
+### Summary
+
+Added a repo-local scenario runner foundation for the combat/status/death
+/respawn frontier. The new runner started as tooling-only and now serves as the
+canonical runbook layer for the first combat smoke path.
+
+### Files
+
+- `tools/ci/playerbot-scenario.sh` (new)
+- `tools/ci/playerbot-scenario-catalog.sh` (new)
+- `doc/project/playerbot-scenario-runner.md` (new)
+- `doc/project/openkore-smoke-scenarios.md`
+- `doc/project/openkore-test-harness.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added a CLI entrypoint with scenario catalog commands:
+  - `list`
+  - `show <scenario>`
+  - `describe <scenario>`
+  - `checklist <scenario>`
+  - `template [name]`
+  - `run <scenario>`
+- Added a safe scenario catalog for:
+  - `combat-baseline`
+  - `status-continuity`
+  - `death-respawn`
+  - `item-loadout-continuity`
+  - `mechanic-cleanup`
+- Added a scenario definition flow via `tools/ci/playerbot-scenario-catalog.sh`
+  so future scenarios can be extended without changing the CLI contract.
+- The first three scenarios now expose the repo-local combat smoke helper as
+  the concrete launcher/check surface:
+  - `bash tools/ci/playerbot-combat-smoke.sh arm`
+  - log in with `codex`
+  - `bash tools/ci/playerbot-combat-smoke.sh check`
+- Updated docs to point the combat frontier at the scenario runner plus the
+  combat smoke helper instead of overloading the generic OpenKore smoke helper.
+
+### Validation
+
+- `bash tools/ci/playerbot-scenario.sh --help`
+- `bash tools/ci/playerbot-scenario.sh list`
+- `bash tools/ci/playerbot-scenario.sh show combat-baseline`
+- `bash tools/ci/playerbot-scenario.sh checklist death-respawn`
+- `bash tools/ci/playerbot-scenario.sh describe item-loadout-continuity`
+- `bash tools/ci/playerbot-scenario.sh template mechanic-cleanup`
+- `bash tools/ci/playerbot-scenario.sh run combat-baseline`
+
+### Deferrals
+
+This slice does not try to automate every scenario. Item/loadout continuity and
+broader mechanic cleanup remain skeleton-only until those runtime hooks land.
+
+## Slice 63: Playerbot Combat Participation Baseline
+
+### Summary
+
+Added the first legal combat/status/death/respawn playerbot participation slice
+and folded it into the integrated foundation smoke baseline.
+
+### Files
+
+- `src/map/script.cpp`
+- `src/map/pc.cpp`
+- `src/map/pc.hpp`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260328_playerbot_combat_trace_events.sql` (new)
+- `npc/custom/playerbot/playerbot_combat_lab.txt` (new)
+- `npc/custom/playerbot/playerbot_foundation_lab.txt`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-combat-smoke.sh` (new)
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `tools/ci/playerbot-scenario.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-combat-frontier-contract.md`
+- `doc/project/playerbot-foundation-smoke.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added bot-facing combat buildins:
+  - `playerbot_attack`
+  - `playerbot_attackstop`
+  - `playerbot_target`
+  - `playerbot_targetvalid`
+  - `playerbot_isdead`
+  - `playerbot_isrespawning`
+  - `playerbot_statusactive`
+  - `playerbot_statusstart`
+  - `playerbot_statusclear`
+  - `playerbot_combatstate`
+  - `playerbot_respawn`
+  - `playerbot_kill`
+- Extended structured traces with:
+  - `phase='combat'`
+  - combat/death/respawn actions
+- Added combat recovery handling in the runtime:
+  - death clears combat target, stale reservations, and invalid participation
+    state
+  - respawn reconciles combat and participation state before resuming
+- Added the visible `Playerbot Combat Lab` and hidden
+  `PlayerbotCombatSelftest`.
+- Added the repo-local combat smoke helper:
+  - `bash tools/ci/playerbot-combat-smoke.sh arm`
+  - log in with `codex`
+  - `bash tools/ci/playerbot-combat-smoke.sh check`
+- Folded combat into the aggregate foundation coordinator and smoke path.
+- Updated the scenario runner so:
+  - `combat-baseline`
+  - `status-continuity`
+  - `death-respawn`
+  now point at the combat smoke helper as the concrete runbook launcher.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash -n tools/ci/playerbot-combat-smoke.sh`
+- `bash tools/ci/playerbot-combat-smoke.sh arm`
+- OpenKore login with the repo-local `codex` profile
+- `bash tools/ci/playerbot-combat-smoke.sh check`
+- `bash tools/ci/playerbot-scenario.sh --no-color run combat-baseline`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... result=1`
+- aggregate sequenced stages now reach:
+  - `stage=state`
+  - `stage=guild`
+  - `stage=item`
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=combat`
+  - `stage=done`
+- aggregate foundation smoke now passes with combat included
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- skill-cast combat logic
+- support/heal combat AI
+- loot-routing behavior
+- loadout continuity across death/respawn
+- deeper mechanic cleanup beyond the current legal combat/death/respawn hooks
+
 ## Slice 60: Playerbot Pool Observability CLI Tool
 
 ### Summary

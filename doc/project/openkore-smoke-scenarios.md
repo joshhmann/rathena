@@ -10,6 +10,7 @@ Use it with:
 - [OpenKore Test Harness](/root/dev/rathena/doc/project/openkore-test-harness.md)
 - `tools/ci/openkore-smoke.sh`
 - `tools/ci/playerbot-guild-smoke.sh`
+- [Playerbot Scenario Runner](/root/dev/rathena/doc/project/playerbot-scenario-runner.md)
 
 ## Current Baseline
 
@@ -132,6 +133,9 @@ Expected signals:
 - If a scenario needs a second observer, note that in the validation log.
 - If a controller menu changes, update this document and the launcher script in
   the same slice.
+- Combat/status/death/respawn frontier work should use the scenario runner
+  catalog in [playerbot-scenario-runner.md](/root/dev/rathena/doc/project/playerbot-scenario-runner.md)
+  and `tools/ci/playerbot-scenario.sh` as the canonical runbook layer.
 
 ## Scenario 5: Guild Invite Proof
 

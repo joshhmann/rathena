@@ -29,6 +29,16 @@ The primary foundation order is:
 5. transactional inventory / equipment / storage foundation
 6. broader player-system participation hooks
 
+The next foundation frontier after that wave is defined in:
+
+- `doc/project/playerbot-combat-frontier-contract.md`
+
+It covers:
+
+- combat participation contracts
+- death / respawn recovery truth
+- the remaining first-class mechanic participation matrix
+
 ## Phase 1: Observability And Replayability
 
 Primary lane:
@@ -120,6 +130,30 @@ Safe side lanes:
 - scenario runner growth
 - operator diagnostics for failures and stale reservations
 - docs for participation contract and invariants
+
+## Phase 4: Combat Participation And Continuity
+
+Primary lane:
+
+- define the first combat-capable playerbot participation boundary
+- add bot-facing combat intent and combat-state reads
+- make death / respawn clear stale combat and participation claims
+- add trace and recovery audit coverage for combat lifecycle transitions
+
+The implementation-facing contract for this frontier is:
+
+- `doc/project/playerbot-combat-frontier-contract.md`
+
+Safe side lanes:
+
+- combat contract notes
+- scenario coverage for combat/death/respawn recovery
+- mechanic participation matrix updates
+
+Do not parallelize:
+
+- combat runtime hotspots with any other active runtime lane
+- new combat intent semantics with unrelated scheduler or participation schema changes
 
 ## Acceptance Gate Before Behavior Expansion
 

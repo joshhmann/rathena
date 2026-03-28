@@ -1,0 +1,261 @@
+alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
+	mes "[Playerbot Combat Lab]";
+	mes "Drive the combat/status/death/respawn foundation hooks.";
+	next;
+
+	switch(select("Run combat selftest:Inspect quick combat bot:Inspect combat trace summary:Inspect combat audit summary:Close")) {
+	case 1:
+		setd("$PBCST_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotCombatSelftest::OnManualStart";
+		mes "[Playerbot Combat Lab]";
+		mes "Combat selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	case 2:
+		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
+			mes "[Playerbot Combat Lab]";
+			mes "Quick combat bot not provisioned yet.";
+			close;
+		}
+		mes "[Playerbot Combat Lab]";
+		mes "Bot ID / Name: " + $@pbbot_bot_id + " / " + $@pbbot_name$;
+		mes "Char ID / Account ID: " + $@pbbot_char_id + " / " + $@pbbot_account_id;
+		mes "Headless status: " + headlesspc_status($@pbbot_char_id);
+		mes "Combat: " + playerbot_combatstate(.bot_key$);
+		mes "Dead / Respawning: " + playerbot_isdead(.bot_key$) + " / " + playerbot_isrespawning(.bot_key$);
+		mes "Blessing active: " + playerbot_statusactive(.bot_key$, SC_BLESSING);
+		close;
+	case 3:
+		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
+			mes "[Playerbot Combat Lab]";
+			mes "Quick combat bot not provisioned yet.";
+			close;
+		}
+		query_sql(
+			"SELECT `action`, `target_type`, `reason_code`, `result`, `error_detail` "
+			+ "FROM `bot_trace_event` "
+			+ "WHERE `char_id` = '" + $@pbbot_char_id + "' AND `phase` = 'combat' "
+			+ "ORDER BY `id` DESC LIMIT 8",
+			.@action$[0], .@target_type$[0], .@reason$[0], .@result$[0], .@detail$[0]);
+		mes "[Playerbot Combat Lab]";
+		if (!getarraysize(.@action$)) {
+			mes "No recent combat traces.";
+			close;
+		}
+		for (.@i = 0; .@i < getarraysize(.@action$); ++.@i)
+			mes .@action$[.@i] + " / " + .@target_type$[.@i] + " / " + .@reason$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
+		close;
+	case 4:
+		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
+			mes "[Playerbot Combat Lab]";
+			mes "Quick combat bot not provisioned yet.";
+			close;
+		}
+		query_sql(
+			"SELECT `scope`, `action`, `result`, `detail` "
+			+ "FROM `bot_recovery_audit` "
+			+ "WHERE `bot_id` = '" + $@pbbot_bot_id + "' AND `scope` = 'combat' "
+			+ "ORDER BY `id` DESC LIMIT 6",
+			.@scope$[0], .@action$[0], .@result$[0], .@detail$[0]);
+		mes "[Playerbot Combat Lab]";
+		if (!getarraysize(.@scope$)) {
+			mes "No recent combat audits.";
+			close;
+		}
+		for (.@i = 0; .@i < getarraysize(.@scope$); ++.@i)
+			mes .@scope$[.@i] + " / " + .@action$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
+		close;
+	}
+	close;
+
+OnInit:
+	.bot_key$ = "quick_combat_open";
+	end;
+}
+
+-	script	PlayerbotCombatSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.autorun = 0;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if (!.autorun && $PBCST_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	if ($PBCST_AUTORUN_AID == .aid)
+		setd("$PBCST_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnInterIfInitOnce:
+	sleep 2500;
+	if (!.enabled || !.autorun || .ran)
+		end;
+	for (.@i = 0; .@i < 10; ++.@i) {
+		if (isloggedin(.test_aid, .test_char_id)) {
+			.ran = 1;
+			.aid = .test_aid;
+			callsub S_Run;
+			end;
+		}
+		sleep 1000;
+	}
+	end;
+
+OnManualStart:
+	.aid = $PBCST_MANUAL_AID;
+	callsub S_Run;
+	end;
+
+OnRun:
+	callsub S_Run;
+	end;
+
+OnDummyDead:
+	.dummy_dead++;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_combat_open";
+	.display_name$ = "QuickCombatOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_combat_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.account_id = $@pbbot_account_id;
+	.@summary_ok = ($@pbbot_found && .char_id > 0 && .account_id > 0);
+	if (!.@summary_ok) {
+		debugmes "playerbot_combat_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+
+	.@spawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 182, 144);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@spawn_ack && headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+	}
+	if (!.@spawn_ok) {
+		debugmes "playerbot_combat_selftest: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+	playerbot_attackstop(.bot_key$);
+	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
+	sleep 200;
+	playerbot_itemgrant(.bot_key$, 1201, 1);
+	playerbot_itemequip(.bot_key$, 1201);
+	.dummy_dead = 0;
+	monster "alberta", 184, 144, "Combat Poring", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
+	sleep 600;
+	.@mob_gid = $@mobid[0];
+	.@target_ok = (.@mob_gid > 0 && playerbot_targetvalid(.bot_key$, .@mob_gid));
+	.@attack_ok = (.@target_ok && playerbot_attack(.bot_key$, .@mob_gid));
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 200;
+		if (playerbot_target(.bot_key$) == .@mob_gid) {
+			.@engaged_ok = 1;
+			break;
+		}
+	}
+	.@stop_ok = playerbot_attackstop(.bot_key$);
+	sleep 200;
+	.@target_clear_ok = (playerbot_target(.bot_key$) == 0);
+
+	.@status_apply_ok = playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000);
+	sleep 200;
+	.@status_ok = playerbot_statusactive(.bot_key$, SC_BLESSING);
+	.@status_clear_req_ok = playerbot_statusclear(.bot_key$, SC_BLESSING);
+	sleep 200;
+	.@status_clear_ok = (!playerbot_statusactive(.bot_key$, SC_BLESSING));
+
+	.@reserve_id = callfunc("F_PB_RES_Acquire", "anchor", "lab:combat:quick", .bot_key$, "CombatSelftest", 60000, 50, "combat.predeath");
+	.@reserve_ok = (.@reserve_id > 0);
+	.@kill_ok = playerbot_kill(.bot_key$);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@dead_ok = 1;
+			break;
+		}
+	}
+	query_sql("SELECT COUNT(*) FROM `bot_reservation` WHERE `holder_bot_id` = '" + .bot_id + "'", .@held_after_death);
+	.@death_clear_ok = (.@dead_ok && playerbot_target(.bot_key$) == 0 && .@held_after_death == 0 && playerbot_npcactive(.bot_key$) == 0 && playerbot_storageisopen(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$));
+	.@respawn_req_ok = (.@dead_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && headlesspc_status(.char_id) == 2) {
+			.@respawn_ok = 1;
+			break;
+		}
+	}
+	.@combat_state$ = playerbot_combatstate(.bot_key$);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `action` IN ('combat.completed','death.observed','respawn.completed','reservation.released')",
+		.@trace_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'combat' AND `action` IN ('death','respawn')",
+		.@audit_count);
+	.@trace_ok = (.@trace_count >= 3);
+	.@audit_ok = (.@audit_count >= 2);
+
+	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
+	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+	playerbot_attackstop(.bot_key$);
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+
+	.@result = (.@summary_ok && .@spawn_ok && .@target_ok && .@attack_ok && .@engaged_ok
+		&& .@stop_ok && .@target_clear_ok && .@status_ok && .@status_clear_ok
+		&& .@reserve_ok && .@kill_ok && .@death_clear_ok && .@respawn_req_ok
+		&& .@respawn_ok && .@trace_ok && .@audit_ok && .@park_ok);
+	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

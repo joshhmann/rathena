@@ -5,12 +5,18 @@
 Lay out the first combat-capable playerbot runtime/design boundary without
 trying to finish full combat AI in one jump.
 
+The implementation-facing source of truth for this frontier is:
+
+- `doc/project/playerbot-combat-frontier-contract.md`
+
 ## Scope
 
 - define combat-core subsystem boundary
 - identify reuse points for future expanded condition logic
 - specify goals/controller/combat separation
 - runtime feasibility notes for support/heal/assist roles
+- record death / respawn recovery truth for combat ownership
+- keep the first mechanic participation matrix aligned with current baseline
 
 ## Preferred Files
 
@@ -26,7 +32,8 @@ trying to finish full combat AI in one jump.
 
 ## Acceptance
 
-- repo has a concrete combat-core design note with clear non-goals and future integration points
+- repo has a concrete combat frontier contract with clear non-goals, recovery
+  truth, and mechanic participation matrix entries
 
 ## Codex Prompt
 
@@ -45,6 +52,8 @@ Do:
 
 - define the first combat-capable playerbot boundary
 - keep goals/controller/combat separation explicit
+- document death / respawn recovery truth for combat ownership
+- keep the mechanic participation matrix concrete and current
 - prefer docs/spec unless a very narrow runtime proof is justified
 - update repo-local slice docs before committing
 

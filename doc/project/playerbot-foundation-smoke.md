@@ -5,6 +5,7 @@ foundation baseline.
 
 Use it when you want one login pass to exercise the integrated selftests for:
 
+- combat/status/death/respawn participation
 - guild participation
 - transactional item layer
 - merchant runtime
@@ -47,6 +48,7 @@ manual-start hooks:
 - item
 - merchant
 - participation
+- combat
 
 The runner also clears stale subsystem autorun/manual mapregs before restart so
 the integrated pass has one authority.
@@ -75,6 +77,7 @@ The combined `check` output reports:
   pane
 - recent `playerbot_*_selftest` lines from the map-server pane
 - recent recovery-audit summaries across:
+  - `combat`
   - `npc`
   - `storage`
   - `trade`
@@ -82,6 +85,7 @@ The combined `check` output reports:
   - `reservation`
   - `ownership`
 - recent structured trace summaries across:
+  - `combat`
   - `interaction`
   - `reservation`
   - `reconcile`
@@ -93,6 +97,8 @@ The combined `check` output reports:
 - the sequenced pass is intentionally serialized because the subsystem
   selftests contend on the same login/session if they all autorun at once
 - it does not yet cover:
-  - combat-participation foundations
-  - broader status/death/revive hooks
   - fully generalized scenario fixtures
+- the next frontier after this smoke is:
+  - deeper equipment/loadout continuity
+  - broader first-class mechanic cleanup under combat pressure
+  - richer combat/event participation beyond the current legal hooks

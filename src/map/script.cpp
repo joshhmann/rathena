@@ -220,6 +220,7 @@ static map_session_data* playerbot_online_session_by_key(const char* bot_key, ui
 static bool playerbot_trade_has_staged(const map_session_data* sd);
 static void playerbot_trace_interaction(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail);
 static void playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* authority, const char* scope, const char* action, const char* state_before, const char* state_after, const char* result, const char* detail);
+static void playerbot_trace_combat(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail);
 
 static void playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* action, t_itemid item_id, uint16 amount, const char* location, const char* result, const char* detail) {
 	char esc_detail[385];
@@ -313,6 +314,69 @@ static void playerbot_recovery_audit(uint32 bot_id, uint32 char_id, uint32 accou
 		now, bot_id, char_id, account_id, esc_authority, esc_scope, esc_action, esc_before, esc_after, esc_result, esc_detail)) {
 		Sql_ShowDebug(mmysql_handle);
 	}
+}
+
+static void playerbot_trace_combat(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* action, const char* target_type, const char* target_id, const char* reason_code, const char* result, const char* error_code, const char* error_detail) {
+	char esc_trace_id[129];
+	char esc_target_id[129];
+	char esc_error_code[129];
+	char esc_error_detail[385];
+	char trace_id[96];
+	uint32 now = static_cast<uint32>(time(nullptr));
+
+	safesnprintf(trace_id, sizeof(trace_id), "pb-cmb-%u-%u-%u-%d", bot_id, char_id, now, rnd());
+	Sql_EscapeStringLen(mmysql_handle, esc_trace_id, trace_id, strnlen(trace_id, sizeof(trace_id) - 1));
+	Sql_EscapeStringLen(mmysql_handle, esc_target_id, target_id != nullptr ? target_id : "", strnlen(target_id != nullptr ? target_id : "", 64));
+	Sql_EscapeStringLen(mmysql_handle, esc_error_code, error_code != nullptr ? error_code : "", strnlen(error_code != nullptr ? error_code : "", 64));
+	Sql_EscapeStringLen(mmysql_handle, esc_error_detail, error_detail != nullptr ? error_detail : "", strnlen(error_detail != nullptr ? error_detail : "", 191));
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"INSERT INTO `bot_trace_event` "
+		"(`ts`, `trace_id`, `bot_id`, `char_id`, `account_id`, `map_id`, `map_name`, `x`, `y`, `controller_id`, `controller_kind`, `owner_token`, `phase`, `action`, `target_type`, `target_id`, `reason_code`, `inputs`, `signals`, `reservation_refs`, `result`, `duration_ms`, `fallback`, `error_code`, `error_detail`) "
+		"VALUES ('%u', '%s', %s, %s, %s, '%d', '%s', '%d', '%d', '', '', '', 'combat', '%s', '%s', '%s', '%s', NULL, NULL, NULL, '%s', '0', '', '%s', '%s')",
+		now,
+		esc_trace_id,
+		bot_id > 0 ? std::to_string(bot_id).c_str() : "NULL",
+		char_id > 0 ? std::to_string(char_id).c_str() : "NULL",
+		account_id > 0 ? std::to_string(account_id).c_str() : "NULL",
+		sd != nullptr ? sd->m : 0,
+		sd != nullptr ? mapindex_id2name(sd->mapindex) : "",
+		sd != nullptr ? sd->x : 0,
+		sd != nullptr ? sd->y : 0,
+		action != nullptr ? action : "combat.failed",
+		target_type != nullptr ? target_type : "",
+		esc_target_id,
+		reason_code != nullptr ? reason_code : "none",
+		result != nullptr ? result : "ok",
+		esc_error_code,
+		esc_error_detail)) {
+		Sql_ShowDebug(mmysql_handle);
+	}
+}
+
+static bool playerbot_combat_target_valid(const map_session_data* sd, const block_list* target) {
+	if (sd == nullptr || target == nullptr)
+		return false;
+	if (sd->m != target->m)
+		return false;
+	if (status_isdead(*sd) || status_isdead(*target))
+		return false;
+	if (target->type == BL_NPC)
+		return false;
+	return (battle_check_target(sd, target, BCT_ENEMY) > 0 && status_check_skilluse(sd, target, 0, 0));
+}
+
+static std::string playerbot_combat_state(const map_session_data* sd) {
+	if (sd == nullptr)
+		return "offline";
+
+	const unit_data* ud = unit_bl2ud(sd);
+	return "dead=" + std::to_string(pc_isdead(sd) ? 1 : 0)
+		+ ",respawn=" + std::to_string(sd->respawn_tid != INVALID_TIMER ? 1 : 0)
+		+ ",target=" + std::to_string(ud != nullptr ? ud->target : 0)
+		+ ",npc=" + std::to_string(sd->npc_id != 0 ? 1 : 0)
+		+ ",storage=" + std::to_string(sd->state.storage_flag != 0 ? 1 : 0)
+		+ ",trade=" + std::to_string((sd->trade_partner.id != 0 || sd->state.trading) ? 1 : 0);
 }
 
 static std::string playerbot_participation_state(const map_session_data* sd) {
@@ -13424,6 +13488,209 @@ BUILDIN_FUNC(playerbot_participationrecover)
 	std::string after = playerbot_participation_state(sd);
 	playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "participation", "recover", before.c_str(), after.c_str(), ok ? (had_state ? "ok" : "noop") : "aborted", ok ? (had_state ? "participation.cleared" : "already.clear") : "participation.still_active");
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "participation_recover", "", "restart.recovery", ok ? (had_state ? "ok" : "noop") : "aborted", ok ? "" : "participation.recover", ok ? (had_state ? "" : "already.clear") : "participation.still_active");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_attack)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 target_id = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	block_list* target = map_id2bl(target_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "combat_target", std::to_string(target_id).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || target == nullptr) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "combat_target", std::to_string(target_id).c_str(), "target.invalid", "denied", "combat.attack", sd == nullptr ? "bot.offline" : "target.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (!playerbot_combat_target_valid(sd, target)) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "combat_target", std::to_string(target_id).c_str(), "target.invalid", "denied", "combat.attack", "target.not_attackable");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	unit_attack(sd, target_id, 1);
+	const unit_data* ud = unit_bl2ud(sd);
+	bool ok = (ud != nullptr && ud->target == target_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "combat_target", std::to_string(target_id).c_str(), ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "combat.attack", ok ? "" : "target.not_set");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_attackstop)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "combat_clear", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "combat_clear", "", "target.invalid", "denied", "combat.stop", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	unit_stop_attack(sd);
+	const unit_data* ud = unit_bl2ud(sd);
+	bool ok = (ud == nullptr || ud->target == 0);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "combat_clear", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.stop", ok ? "" : "target.still_set");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_target)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	const unit_data* ud = sd != nullptr ? unit_bl2ud(sd) : nullptr;
+	script_pushint(st, ud != nullptr ? ud->target : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_targetvalid)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 target_id = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	block_list* target = map_id2bl(target_id);
+	script_pushint(st, playerbot_combat_target_valid(sd, target) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_isdead)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && pc_isdead(sd)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_isrespawning)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && sd->respawn_tid != INVALID_TIMER) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_statusactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 type = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || type < SC_NONE || type >= SC_MAX) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	script_pushint(st, sd->sc.getSCE(static_cast<sc_type>(type)) != nullptr ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_statusstart)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 type = script_getnum(st, 3);
+	int32 val1 = script_getnum(st, 4);
+	int32 tick = script_getnum(st, 5);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || type < SC_NONE || type >= SC_MAX) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "status", std::to_string(type).c_str(), "target.invalid", "denied", "combat.statusstart", sd == nullptr ? "bot.offline" : "status.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	sc_start(sd, sd, static_cast<sc_type>(type), 100, val1, tick > 0 ? tick : 1000);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", std::to_string(type).c_str(), "restart.recovery", "ok", "", "status.applied");
+	script_pushint(st, sd->sc.getSCE(static_cast<sc_type>(type)) != nullptr ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_statusclear)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 type = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || type < SC_NONE || type >= SC_MAX) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "status", std::to_string(type).c_str(), "target.invalid", "denied", "combat.statusclear", sd == nullptr ? "bot.offline" : "status.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	status_change_end(sd, static_cast<sc_type>(type));
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", std::to_string(type).c_str(), "restart.recovery", "ok", "", "status.cleared");
+	script_pushint(st, sd->sc.getSCE(static_cast<sc_type>(type)) == nullptr ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_combatstate)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushstrcopy(st, playerbot_combat_state(sd).c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_respawn)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "respawn.requested", "respawn", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "respawn.failed", "respawn", "", "target.invalid", "denied", "combat.respawn", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (!pc_isdead(sd)) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "respawn.completed", "respawn", "", "restart.recovery", "noop", "", "already.alive");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	pc_force_respawn(sd, CLR_OUTSIGHT);
+	bool ok = !pc_isdead(sd);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "respawn.completed" : "respawn.failed", "respawn", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.respawn", ok ? "" : "respawn.still_dead");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_kill)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "death.requested", "death", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "death.failed", "death", "", "target.invalid", "denied", "combat.kill", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (pc_isdead(sd)) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "death.completed", "death", "", "restart.recovery", "noop", "", "already.dead");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	status_kill(sd);
+	bool ok = pc_isdead(sd);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "death.completed" : "death.failed", "death", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.kill", ok ? "" : "kill.not_dead");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -30847,6 +31114,18 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),
+	BUILDIN_DEF(playerbot_attack,"si"),
+	BUILDIN_DEF(playerbot_attackstop,"s"),
+	BUILDIN_DEF(playerbot_target,"s"),
+	BUILDIN_DEF(playerbot_targetvalid,"si"),
+	BUILDIN_DEF(playerbot_isdead,"s"),
+	BUILDIN_DEF(playerbot_isrespawning,"s"),
+	BUILDIN_DEF(playerbot_statusactive,"si"),
+	BUILDIN_DEF(playerbot_statusstart,"siii"),
+	BUILDIN_DEF(playerbot_statusclear,"si"),
+	BUILDIN_DEF(playerbot_combatstate,"s"),
+	BUILDIN_DEF(playerbot_respawn,"s"),
+	BUILDIN_DEF(playerbot_kill,"s"),
 	BUILDIN_DEF(playerbot_npcstart,"ss"),
 	BUILDIN_DEF(playerbot_npcnext,"s"),
 	BUILDIN_DEF(playerbot_npcmenu,"si"),

@@ -44,11 +44,13 @@ arm() {
 REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
 ('\$PBFNST_AUTORUN_AID', 0, '$TEST_AID'),
 ('\$PBFNST_ACTIVE', 0, '0'),
+('\$PBCST_AUTORUN_AID', 0, '0'),
 ('\$PBGST_AUTORUN_AID', 0, '0'),
 ('\$PBITST_AUTORUN_AID', 0, '0'),
 ('\$PBMST_AUTORUN_AID', 0, '0'),
 ('\$PBPST_AUTORUN_AID', 0, '0'),
 ('\$PBSTAT_AUTORUN_AID', 0, '0'),
+('\$PBCST_MANUAL_AID', 0, '0'),
 ('\$PBFNST_MANUAL_AID', 0, '0'),
 ('\$PBGST_MANUAL_AID', 0, '0'),
 ('\$PBITST_MANUAL_AID', 0, '0'),
@@ -89,14 +91,15 @@ check() {
 		[merchant]='playerbot_merchant_selftest:'
 		[participation]='playerbot_participation_selftest:'
 		[state]='playerbot_state_selftest:'
+		[combat]='playerbot_combat_selftest:'
 	)
 	local pane lines line key failures=0
 	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -600 \; save-buffer - 2>/dev/null | tail -n 600 || true)"
 	printf '%s\n' "$pane" | grep 'playerbot_foundation_selftest:' | tail -n 12 || true
 	printf '\n'
-	lines="$(printf '%s\n' "$pane" | grep -E 'playerbot_(guild|item|merchant|participation|state)_selftest' || true)"
+	lines="$(printf '%s\n' "$pane" | grep -E 'playerbot_(guild|item|merchant|participation|state|combat)_selftest' || true)"
 	printf '%s\n' "$lines"
-	for key in guild item merchant participation state; do
+	for key in guild item merchant participation state combat; do
 		line="$(printf '%s\n' "$lines" | grep "${patterns[$key]}" | tail -n 1 || true)"
 		if [[ -z "$line" ]]; then
 			printf '[playerbot-foundation-smoke] missing %s selftest line\n' "$key" >&2
@@ -113,7 +116,7 @@ check() {
 SELECT \`scope\`, \`action\`, \`result\`, \`detail\`, COUNT(*)
 FROM \`bot_recovery_audit\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
-  AND \`scope\` IN ('npc','storage','trade','participation','reservation','ownership')
+  AND \`scope\` IN ('combat','npc','storage','trade','participation','reservation','ownership')
 GROUP BY \`scope\`, \`action\`, \`result\`, \`detail\`
 ORDER BY MAX(\`id\`) DESC
 LIMIT 16;
@@ -123,7 +126,7 @@ EOF
 SELECT \`action\`, \`target_type\`, \`reason_code\`, \`result\`, COUNT(*)
 FROM \`bot_trace_event\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
-  AND \`phase\` IN ('interaction','reservation','reconcile')
+  AND \`phase\` IN ('interaction','reservation','reconcile','combat')
 GROUP BY \`action\`, \`target_type\`, \`reason_code\`, \`result\`
 ORDER BY MAX(\`id\`) DESC
 LIMIT 20;
