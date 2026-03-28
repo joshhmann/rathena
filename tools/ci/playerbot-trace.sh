@@ -8,8 +8,8 @@ set -euo pipefail
 
 DB_HOST=${DB_HOST:-localhost}
 DB_NAME=${DB_NAME:-rathena}
-DB_USER=${DB_USER:-ragnarok}
-DB_PASS=${DB_PASS:-ragnarok}
+DB_USER=${DB_USER:-rathena}
+DB_PASS=${DB_PASS:-rathena_secure_2024}
 
 # Default limits
 DEFAULT_LIMIT=20
@@ -142,6 +142,7 @@ if [[ "$no_color" -eq 0 && -t 1 ]]; then
 	C_RESET='\033[0m'
 	C_BOLD='\033[1m'
 	C_DIM='\033[2m'
+	C_UNDERLINE='\033[4m'
 	C_RED='\033[31m'
 	C_GREEN='\033[32m'
 	C_YELLOW='\033[33m'
@@ -152,6 +153,7 @@ else
 	C_RESET=''
 	C_BOLD=''
 	C_DIM=''
+	C_UNDERLINE=''
 	C_RED=''
 	C_GREEN=''
 	C_YELLOW=''

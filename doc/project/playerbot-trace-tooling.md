@@ -160,8 +160,8 @@ tools/ci/playerbot-trace.sh stats
 |----------|---------|-------------|
 | `DB_HOST` | localhost | Database host |
 | `DB_NAME` | rathena | Database name |
-| `DB_USER` | ragnarok | Database user |
-| `DB_PASS` | ragnarok | Database password |
+| `DB_USER` | rathena | Database user |
+| `DB_PASS` | rathena_secure_2024 | Database password |
 
 ## Examples
 

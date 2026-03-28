@@ -4996,121 +4996,6 @@ Notes:
 - item/storage mutation traces currently reuse the existing `interaction` phase
   because the trace schema is still on the first minimal event family set
 
-## Slice 52: Playerbot Trace Event Infrastructure
-
-### Goal
-
-Add the first structured, append-only trace event model that makes controller,
-scheduler, movement, interaction, reservation, and reconcile behavior explainable
-after the fact.
-
-### Files Touched
-
-- `sql-files/main.sql`
-- `sql-files/upgrades/upgrade_20260326_playerbot_trace_events.sql`
-- `src/map/script.cpp`
-- `npc/custom/living_world/_common.txt`
-- `npc/custom/playerbot/playerbot_trace_lab.txt`
-- `doc/project/bot-state-schema.md`
-- `doc/project/playerbot-observability-contract.md`
-- `doc/project/headless-pc-v1-slice-log.md`
-
-### Runtime Path Changes
-
-- Added SQL table:
-  - `bot_trace_event`
-- Added runtime trace helper in `script.cpp`:
-  - `playerbot_trace_interaction()`
-- Added shared SQL query helpers in `_common.txt`:
-  - `F_PB_DB_TraceEvent(...)` - insert trace events
-  - `F_PB_DB_BuildRecentTraceSummary$()` - build trace summaries
-  - `F_PB_DB_ControllerMenu$()` - controller selection menu
-- Added visible dev harness:
-  - `Playerbot Trace Lab`
-- Trace events are emitted for:
-  - `interaction.requested` / `completed` / `failed`
-  - NPC start/next/close flows
-  - Storage open/close flows
-
-### Validation
-
-- applied `upgrade_20260326_playerbot_trace_events.sql`
-- restarted the stack cleanly
-- verified the trace lab NPC loads in Prontera
-- verified trace events are written to `bot_trace_event` during interaction flows
-
-### Deferrals
-
-This slice does not yet add:
-
-- trace events for all controller/scheduler/move/reservation/reconcile families
-- trace viewer or operator analytics
-- trace replay or timeline reconstruction
-
-## Slice 53: Playerbot Trace Tooling
-
-### Goal
-
-Build repo-local CLI tooling around `bot_trace_event` so operators can answer:
-- Why was a bot assigned?
-- Why did an interaction fail?
-- Why was a reservation denied?
-- Why was a bot parked or reconciled?
-
-### Files Touched
-
-- `tools/ci/playerbot-trace.sh` (new)
-- `doc/project/playerbot-trace-tooling.md` (new)
-- `doc/project/headless-pc-v1-slice-log.md`
-
-### Tooling Features
-
-The trace tool (`tools/ci/playerbot-trace.sh`) provides:
-
-**Query Commands:**
-- `recent [N]` - Show N most recent traces
-- `failures [N]` - Show recent failures only
-- `bot <id> [N]` - Timeline for specific bot (by bot_id or char_id)
-- `controller <id> [N]` - Timeline for specific controller
-- `map <name> [N]` - Traces for specific map
-- `action <name> [N]` - Filter by action type
-- `stats` - Aggregate statistics
-
-**Diagnostic Commands:**
-- `why-assigned <bot_id>` - Explain assignment decisions
-- `why-failed <bot_id>` - Explain recent failures
-- `why-parked <bot_id>` - Explain parking decisions
-
-**Filtering Options:**
-- `-l, --limit N` - Limit results (max 200)
-- `-s, --since MINUTES` - Time window filter
-- `-r, --reason CODE` - Filter by reason_code
-- `--result RESULT` - Filter by result
-- `--raw` - Tab-separated output for scripting
-- `--no-color` - Disable colorized output
-
-**Environment:**
-- `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` for DB connection
-
-### Validation
-
-- Tool runs without errors: `./tools/ci/playerbot-trace.sh --help`
-- Tool queries DB successfully (requires sudo for local dev):
-  ```bash
-  sudo ./tools/ci/playerbot-trace.sh recent -l 5
-  sudo ./tools/ci/playerbot-trace.sh stats
-  ```
-- Documentation is complete: `doc/project/playerbot-trace-tooling.md`
-
-### Deferrals
-
-This slice does not yet add:
-
-- In-game trace viewer (separate from Trace Lab NPC)
-- Trace replay or timeline reconstruction
-- Integration with OpenKore smoke scenarios
-- Real-time trace streaming
-
 ## Participation Hooks V4
 
 ### Summary
@@ -5174,3 +5059,105 @@ New shared script helpers:
   legality, not quest-content complexity
 - reservation-backed dialog starts are still opt-in through shared helpers; the
   generic `playerbot_npcstart` verb itself remains unchanged
+
+## Prontera Ambient Filler Cleanup
+
+### Summary
+
+Replaced Prontera's ambient roaming filler actors with harmless low-level
+mob-backed fillers so the town no longer surfaces Alarm actors during normal
+play and GM/OpenKore mob inspection.
+
+### Files Touched
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/living_world/prontera_ambient.txt`
+
+### Behavior
+
+- added `F_LW_SetAmbientMobActor(...)` as a shared ambient helper for harmless
+  mob-backed fillers
+- moved the Prontera ambient lane onto low-level mobs like:
+  - `Poring`
+  - `Fabre`
+  - `Drops`
+  - `Lunatic`
+  - `Chonchon`
+  - `Pupa`
+- this keeps the existing Prontera ambient hotspot rotation and chatter, but
+  removes the misleading Alarm mob presentation in town
+
+### Validation
+
+- restarted with `bash tools/dev/playerbot-dev.sh restart`
+- logged in with the repo-local `testgm` OpenKore profile
+- verified `@mobsearch Alarm` in Prontera returns no results after the change
+
+
+## Slice 53: Playerbot Trace Tooling
+
+### Goal
+
+Build repo-local CLI tooling around `bot_trace_event` so operators can answer:
+- Why was a bot assigned?
+- Why did an interaction fail?
+- Why was a reservation denied?
+- Why was a bot parked or reconciled?
+
+### Files Touched
+
+- `tools/ci/playerbot-trace.sh` (new)
+- `doc/project/playerbot-trace-tooling.md` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### Tooling Features
+
+The trace tool (`tools/ci/playerbot-trace.sh`) provides:
+
+**Query Commands:**
+- `recent [N]` - Show N most recent traces
+- `failures [N]` - Show recent failures only
+- `bot <id> [N]` - Timeline for specific bot (by bot_id or char_id)
+- `controller <id> [N]` - Timeline for specific controller
+- `map <name> [N]` - Traces for specific map
+- `action <name> [N]` - Filter by action type
+- `stats` - Aggregate statistics
+
+**Diagnostic Commands:**
+- `why-assigned <bot_id>` - Explain assignment decisions
+- `why-failed <bot_id>` - Explain recent failures
+- `why-parked <bot_id>` - Explain parking decisions
+
+**Filtering Options:**
+- `-l, --limit N` - Limit results (max 200)
+- `-s, --since MINUTES` - Time window filter
+- `-r, --reason CODE` - Filter by reason_code
+- `--result RESULT` - Filter by result
+- `--raw` - Tab-separated output for scripting
+- `--no-color` - Disable colorized output
+
+**Environment:**
+- `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` for DB connection
+- Defaults aligned with repo-local dev config:
+  - User: `rathena`
+  - Password: `rathena_secure_2024`
+  - Database: `rathena`
+
+### Validation
+
+- Tool runs without errors: `bash tools/ci/playerbot-trace.sh --help`
+- Tool queries DB successfully:
+  - `bash tools/ci/playerbot-trace.sh --no-color recent 5`
+  - `bash tools/ci/playerbot-trace.sh --no-color stats`
+- Tool supports bot/controller-specific queries against live DB
+- Documentation is complete: `doc/project/playerbot-trace-tooling.md`
+
+### Deferrals
+
+This slice does not yet add:
+
+- In-game trace viewer (separate from Trace Lab NPC)
+- Trace replay or timeline reconstruction
+- Integration with OpenKore smoke scenarios
+- Real-time trace streaming
+
