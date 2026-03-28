@@ -2385,6 +2385,8 @@ function	script	F_PB_PART_NPCCloseReserved	{
 	.@close_ok = 1;
 	if (playerbot_npcactive(.@bot_key$))
 		.@close_ok = playerbot_npcclose(.@bot_key$);
+	if (playerbot_npcactive(.@bot_key$))
+		.@close_ok = playerbot_npcrecover(.@bot_key$) && .@close_ok;
 	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", .@npc_name$), .@bot_key$, .@controller$, "npc.close";
 	return .@close_ok;
 }
@@ -2392,10 +2394,10 @@ function	script	F_PB_PART_NPCCloseReserved	{
 function	script	F_PB_PART_NPCRecoverReserved	{
 	.@bot_key$ = getarg(0, "");
 	.@controller$ = getarg(1, "");
-	.@released = callfunc("F_PB_RES_ReleaseByHolder", .@bot_key$, .@controller$);
 	.@closed = 1;
 	if (playerbot_npcactive(.@bot_key$))
-		.@closed = playerbot_npcclose(.@bot_key$);
+		.@closed = playerbot_npcrecover(.@bot_key$);
+	.@released = callfunc("F_PB_RES_ReleaseByHolder", .@bot_key$, .@controller$);
 	return (.@released >= 0 && .@closed);
 }
 

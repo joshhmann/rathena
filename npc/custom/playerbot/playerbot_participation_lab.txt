@@ -351,10 +351,10 @@ S_Run:
 	setd("$PBPART_QUEST_FINAL_" + .char_id, 0);
 	setd("$PBPART_QUEST_DONE_" + .char_id, 0);
 	setd("$PBPART_QUEST_PHRASE_" + .char_id + "$", "");
-	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuest", "preflight";
-	.@quest_block_id = callfunc("F_PB_RES_Acquire", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuest", 15000, 60, "selftest.block");
-	.@quest_blocked_ok = (.@quest_block_id > 0 && !callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationQuest", "quest.relay"));
-	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuest", "selftest.release";
+	callfunc "F_PB_PART_NPCRecoverReserved", "quick_merc_alb", "ParticipationQuestBlock";
+	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuestBlock", "preflight";
+	.@quest_preclaim_id = callfunc("F_PB_RES_Acquire", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationQuestBlock", 15000, 60, "selftest.preclaim");
+	.@quest_preclaim_ok = (.@quest_preclaim_id > 0);
 	.@quest_start_a_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationQuest", "quest.relay");
 	sleep 200;
 	.@quest_next_a_ok = playerbot_npcnext(.bot_key$);
@@ -380,7 +380,8 @@ S_Run:
 	.@quest_phrase$ = getd("$PBPART_QUEST_PHRASE_" + .char_id + "$");
 	.@quest_stage2_ok = (getd("$PBPART_QUEST_DONE_" + .char_id) == 1 && getd("$PBPART_QUEST_FINAL_" + .char_id) == 1 && strcmp(.@quest_phrase$, "handoff-ready") == 0);
 	.@quest_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
-	.@dialog_quest_ok = (.@quest_blocked_ok && .@quest_start_a_ok && .@quest_next_a_ok && .@quest_menu_a_ok && .@quest_close_a_ok && .@quest_stage1_ok && .@quest_start_b_ok && .@quest_next_b1_ok && .@quest_input_b_ok && .@quest_next_b2_ok && .@quest_menu_b_ok && .@quest_close_b_ok && .@quest_stage2_ok && .@quest_idle_ok);
+	.@dialog_quest_ok = (.@quest_preclaim_ok && .@quest_start_a_ok && .@quest_next_a_ok && .@quest_menu_a_ok && .@quest_close_a_ok && .@quest_stage1_ok && .@quest_start_b_ok && .@quest_next_b1_ok && .@quest_input_b_ok && .@quest_next_b2_ok && .@quest_menu_b_ok && .@quest_close_b_ok && .@quest_stage2_ok && .@quest_idle_ok);
+	debugmes "playerbot_participation_quest: preclaim=" + .@quest_preclaim_ok + " start_a=" + .@quest_start_a_ok + " next_a=" + .@quest_next_a_ok + " menu_a=" + .@quest_menu_a_ok + " close_a=" + .@quest_close_a_ok + " stage1=" + .@quest_stage1_ok + " start_b=" + .@quest_start_b_ok + " next_b1=" + .@quest_next_b1_ok + " input_b=" + .@quest_input_b_ok + " next_b2=" + .@quest_next_b2_ok + " menu_b=" + .@quest_menu_b_ok + " close_b=" + .@quest_close_b_ok + " stage2=" + .@quest_stage2_ok + " idle=" + .@quest_idle_ok + ".";
 
 	.@npc_recover_start_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
 	sleep 200;
@@ -392,7 +393,7 @@ S_Run:
 	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), .bot_key$, "ParticipationDrift", "preflight";
 	.@dialog_drift_start_ok = callfunc("F_PB_PART_NPCStartReserved", .bot_key$, "Playerbot Quest Relay A", "ParticipationDrift", "dialog.drift");
 	sleep 200;
-	.@dialog_drift_close_ok = playerbot_npcclose(.bot_key$);
+	.@dialog_drift_close_ok = playerbot_npcrecover(.bot_key$);
 	sleep 500;
 	.@dialog_drift_reap = callfunc("F_PB_RES_ReapExpired");
 	sleep 500;

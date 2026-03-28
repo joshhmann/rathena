@@ -2219,25 +2219,43 @@ Current limit:
 Sequenced foundation smoke:
 
 - the current canonical integrated runner is:
+  - `bash tools/ci/playerbot-foundation-smoke.sh run`
+- manual split mode still exists when needed:
   - `bash tools/ci/playerbot-foundation-smoke.sh arm`
   - one `codex` OpenKore login
   - `bash tools/ci/playerbot-foundation-smoke.sh check`
+- the runner now waits for map-server readiness and launches OpenKore in tmux
+  session `playerbot-foundation-kore`
 - this replaced the earlier “arm every subsystem autorun at once” approach,
   which produced false contention between selftests sharing the same login and
   player session
 
-Current integrated blockers surfaced by the sequenced pass:
+Integrated sequenced-pass fixes now covered:
 
-- merchant selftest still triggers:
-  - `script:run_script_main: infinity loop !`
-  - source: `PlayerbotMerchantSelftest`
-- participation selftest still has one integrated reservation/dialog cleanup gap:
-  - `dialog_quest_ok=0`
-  - `dialog_drift_ok=0`
+- merchant selftest no longer forces a nested control-plane reload from inside
+  the aggregate run
+- participation quest/dialog cleanup now matches the current reservation
+  contract:
+  - stale dialog preclaims are allowed to be reaped
+  - drift cleanup uses authoritative NPC recovery
+- guild selftest now prunes old temporary members before invite so the dev guild
+  stays reusable instead of filling permanently
 
-Interpretation:
+Current status:
 
-- the aggregate foundation runner itself is now behaving correctly
-- the remaining failures are no longer harness-order bugs
-- they are concrete subsystem defects to close before calling the current
-  foundation pass complete
+- the sequenced foundation smoke is green on the integrated baseline
+- all current subsystem result lines now pass in one deterministic run:
+  - state
+  - guild
+  - item
+  - merchant
+  - participation
+
+Current limit:
+
+- this still closes only the current participation/recovery/observability
+  foundation wave
+- the next foundation frontier is still:
+  - combat participation hooks
+  - broader status/death/revive continuity
+  - deeper item/equipment continuity beyond the first transactional slice

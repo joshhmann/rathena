@@ -14,6 +14,7 @@ OnPCLoginEvent:
 	if (getcharid(0) != .test_char_id)
 		end;
 	setd("$PBFNST_AUTORUN_AID", 0);
+	setd("$PBFNST_ACTIVE", 1);
 	.running = 1;
 	.aid = getcharid(3);
 	addtimer 1, strnpcinfo(3) + "::OnStageState";
@@ -30,6 +31,7 @@ OnManualStart:
 	}
 	.running = 1;
 	.aid = getcharid(3);
+	setd("$PBFNST_ACTIVE", 1);
 	addtimer 1, strnpcinfo(3) + "::OnStageState";
 	detachrid;
 	end;
@@ -100,6 +102,7 @@ OnStageParticipation:
 
 OnStageDone:
 	debugmes "playerbot_foundation_selftest: stage=done";
+	setd("$PBFNST_ACTIVE", 0);
 	.running = 0;
 	end;
 }

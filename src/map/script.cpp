@@ -12298,6 +12298,41 @@ BUILDIN_FUNC(playerbot_guildinvite)
 }
 
 /*==========================================
+ * Expel one guild member by char_id from the attached player's guild.
+ * Supports offline headless/playerbot cleanup for repeatable dev selftests.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_guildexpel)
+{
+	map_session_data* sd = nullptr;
+	uint32 char_id = script_getnum(st, 2);
+	char mes[CHAT_SIZE_MAX];
+	uint32 account_id = 0;
+	char* data = nullptr;
+
+	if (!script_rid2sd(sd))
+		return SCRIPT_CMD_FAILURE;
+
+	safestrncpy(mes, script_hasdata(st, 3) ? script_getstr(st, 3) : "playerbot cleanup", sizeof(mes));
+
+	if (char_id == 0 || sd->status.guild_id == 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	TBL_PC* tsd = map_charid2sd(char_id);
+	if (tsd != nullptr) {
+		account_id = tsd->status.account_id;
+	} else if (SQL_SUCCESS == Sql_Query(mmysql_handle, "SELECT `account_id` FROM `char` WHERE `char_id` = '%u' LIMIT 1", char_id) && Sql_NextRow(mmysql_handle) == SQL_SUCCESS) {
+		Sql_GetData(mmysql_handle, 0, &data, nullptr);
+		account_id = static_cast<uint32>(atoi(data));
+	}
+	Sql_FreeResult(mmysql_handle);
+
+	script_pushint(st, (account_id > 0 && guild_expulsion(*sd, sd->status.guild_id, account_id, char_id, mes)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Read the local guild_id for one active playerbot/headless target.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_guildid)
@@ -30803,6 +30838,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_partyinvite,"i"),
 	BUILDIN_DEF(playerbot_partyid,"i"),
 	BUILDIN_DEF(playerbot_guildinvite,"i"),
+	BUILDIN_DEF(playerbot_guildexpel,"i?"),
 	BUILDIN_DEF(playerbot_guildid,"i"),
 	BUILDIN_DEF(playerbot_guildcreate,"s"),
 	BUILDIN_DEF(playerbot_guildnotice,"ss"),

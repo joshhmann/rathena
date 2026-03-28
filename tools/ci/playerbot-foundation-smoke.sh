@@ -9,11 +9,13 @@ TEST_AID="${TEST_AID:-2000004}"
 
 usage() {
 	cat <<EOF
-Usage: bash tools/ci/playerbot-foundation-smoke.sh [arm|check]
+Usage: bash tools/ci/playerbot-foundation-smoke.sh [arm|run|check]
 
 Commands:
   arm    arm the sequenced foundation selftest for the next test-account login,
          then restart the repo stack
+  run    arm the selftest, launch the codex OpenKore harness in tmux, wait for
+         the sequenced pass to finish, then run check
   check  print recent foundation stage lines plus selftest results and a compact
          foundation audit summary
 
@@ -24,10 +26,24 @@ Workflow:
 EOF
 }
 
+wait_for_stage_done() {
+	local timeout_s="${1:-150}" elapsed=0 pane
+	while (( elapsed < timeout_s )); do
+		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -200 2>/dev/null || true)"
+		if printf '%s\n' "$pane" | grep -q 'playerbot_foundation_selftest: stage=done'; then
+			return 0
+		fi
+		sleep 1
+		elapsed=$((elapsed + 1))
+	done
+	return 1
+}
+
 arm() {
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
 REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
 ('\$PBFNST_AUTORUN_AID', 0, '$TEST_AID'),
+('\$PBFNST_ACTIVE', 0, '0'),
 ('\$PBGST_AUTORUN_AID', 0, '0'),
 ('\$PBITST_AUTORUN_AID', 0, '0'),
 ('\$PBMST_AUTORUN_AID', 0, '0'),
@@ -43,8 +59,27 @@ EOF
 
 	cd "$REPO_ROOT"
 	bash tools/dev/playerbot-dev.sh restart
+	for _ in $(seq 1 20); do
+		if tmux capture-pane -J -pt rathena-dev-map-server -S -80 2>/dev/null | grep -q "Map Server is now online."; then
+			break
+		fi
+		sleep 1
+	done
 	printf '\n[playerbot-foundation-smoke] Armed foundation selftests for account %s.\n' "$TEST_AID"
 	printf '[playerbot-foundation-smoke] Next step: log in once with the codex OpenKore profile, then run this script with check.\n'
+}
+
+run() {
+	arm
+	tmux kill-session -t playerbot-foundation-kore 2>/dev/null || true
+	tmux new-session -d -s playerbot-foundation-kore 'cd /root/testing/openkore && perl openkore.pl --control=/root/testing/openkore-control-codex'
+	printf '[playerbot-foundation-smoke] Launched OpenKore in tmux session playerbot-foundation-kore.\n'
+	if ! wait_for_stage_done 150; then
+		printf '[playerbot-foundation-smoke] foundation pass did not reach stage=done within timeout.\n' >&2
+		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
+		return 1
+	fi
+	check
 }
 
 check() {
@@ -103,6 +138,7 @@ EOF
 main() {
 	case "${1:-arm}" in
 		arm) arm ;;
+		run) run ;;
 		check) check ;;
 		-h|--help|help) usage ;;
 		*)

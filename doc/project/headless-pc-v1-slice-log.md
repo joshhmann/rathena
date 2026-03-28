@@ -5792,6 +5792,82 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Stabilize Playerbot Foundation Smoke
+
+### Summary
+
+Closed the remaining blockers in the current sequenced foundation pass and
+added a deterministic repo-local `run` path so the aggregate smoke no longer
+depends on a fragile interactive OpenKore session surviving by luck.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_foundation_lab.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `src/map/guild.cpp`
+- `src/map/script.cpp`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/playerbot-foundation-smoke.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Hardened the aggregate coordinator:
+  - tracks `$PBFNST_ACTIVE`
+  - new `run` mode in `tools/ci/playerbot-foundation-smoke.sh`
+  - waits for map-server readiness
+  - launches the `codex` OpenKore profile in tmux session
+    `playerbot-foundation-kore`
+  - waits for `stage=done` before the final integrated check
+- Fixed the merchant integrated blocker by stopping the merchant selftest from
+  forcing a nested control-plane reload inside the aggregate run.
+- Fixed the participation integrated blocker by aligning the quest/dialog probe
+  with the current reservation contract:
+  - stale dialog preclaims are allowed to be reaped
+  - drift cleanup now uses authoritative NPC recovery
+  - reserved-dialog helpers now recover live NPC state before releasing locks
+- Added guild cleanup/repeatability support:
+  - new buildin `playerbot_guildexpel(...)`
+  - guild member withdrawal now syncs playerbot guild state even for offline
+    headless members
+  - guild selftest now prunes old temporary `PG150001_*` members before inviting
+    a fresh bot
+  - guild invite and activity checks now poll long enough to survive sequenced
+    integrated load
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Final integrated result:
+
+- `playerbot_state_selftest ... result=1`
+- `playerbot_guild_selftest ... result=1`
+- `playerbot_item_selftest ... result=1`
+- `playerbot_merchant_selftest ... result=1`
+- `playerbot_participation_selftest ... result=1`
+- `[playerbot-foundation-smoke] foundation pass ok.`
+
+### Outcome
+
+This closes the current integrated participation/recovery/observability
+foundation wave on a deterministic repo-local smoke path.
+
+### Deferrals
+
+This slice still does not cover the next foundation frontier:
+
+- combat participation hooks
+- broader status/death/revive continuity
+- deeper equipment/loadout continuity
+- richer scenario-runner coverage beyond the current aggregate smoke
+
 ## Slice 61: Sequenced Foundation Smoke Runner
 
 ### Summary

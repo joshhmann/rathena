@@ -158,6 +158,15 @@ static void guild_playerbot_sync_state(map_session_data* sd) {
 		sd->status.char_id);
 }
 
+static void guild_playerbot_sync_state_by_char(uint32 char_id) {
+	Sql_Query(mmysql_handle,
+		"UPDATE `bot_guild_state` g "
+		"JOIN `bot_identity_link` l ON l.`bot_id` = g.`bot_id` "
+		"SET g.`guild_member_state` = 'unguilded' "
+		"WHERE l.`char_id` = '%u'",
+		char_id);
+}
+
 struct s_guild_skill_requirement{
 	uint16 id;
 	uint16 lv;
@@ -1422,6 +1431,7 @@ int32 guild_member_withdraw(int32 guild_id, uint32 account_id, uint32 char_id, i
 		// Send emblem update to self and people around
 		clif_guild_emblem_area(sd);
 	}
+	guild_playerbot_sync_state_by_char(char_id);
 	return 0;
 }
 

@@ -13,7 +13,13 @@ Use it when you want one login pass to exercise the integrated selftests for:
 
 ## Canonical Flow
 
-From the repo root:
+Recommended end-to-end path from the repo root:
+
+```bash
+bash tools/ci/playerbot-foundation-smoke.sh run
+```
+
+Manual split path:
 
 ```bash
 bash tools/ci/playerbot-foundation-smoke.sh arm
@@ -51,6 +57,16 @@ and then restarts the repo-local stack through:
 bash tools/dev/playerbot-dev.sh restart
 ```
 
+The new `run` mode owns the full path:
+
+- arms the sequenced pass
+- restarts the repo-local stack
+- waits for map-server readiness
+- launches the `codex` OpenKore profile in tmux session
+  `playerbot-foundation-kore`
+- waits for `playerbot_foundation_selftest: stage=done`
+- runs the final integrated `check`
+
 ## What It Checks
 
 The combined `check` output reports:
@@ -73,7 +89,7 @@ The combined `check` output reports:
 ## Current Limits
 
 - this is still a smoke runner, not a scenario orchestrator
-- it depends on one test login path through the `codex` OpenKore profile
+- it still depends on one test login path through the `codex` OpenKore profile
 - the sequenced pass is intentionally serialized because the subsystem
   selftests contend on the same login/session if they all autorun at once
 - it does not yet cover:
