@@ -5246,3 +5246,64 @@ SQL by hand.
 - this slice is intentionally repo-local CLI tooling only
 - it does not change runtime/controller semantics
 - replay and richer timeline reconstruction are still deferred
+
+
+## Slice 57: Playerbot Reservation Inspector
+
+### Goal
+
+Build repo-local reservation inspection tooling around `bot_reservation` so
+operators can answer:
+- What leases/locks are currently active?
+- Who holds them?
+- What is stale or expired?
+- Why is contention happening?
+- Which resources are hot?
+
+### Files Touched
+
+- `tools/ci/playerbot-reservations.sh` (new)
+- `doc/project/playerbot-reservation-inspector.md` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `tools/ci/playerbot-reservations.sh` CLI tool with commands:
+  - `active` - Show currently active reservations
+  - `recent` - Show recent reservation trace events
+  - `expired` - Show expired reservations
+  - `stale` - Show stale/orphan reservations
+  - `holder <id>` - Show reservations by bot/controller
+  - `resource <key>` - Show reservations for specific resource
+  - `hot [N]` - Show most contested resources
+  - `denied [N]` - Show recent reservation denials
+  - `why-denied <key>` - Explain why a resource was denied
+  - `stats` - Show reservation statistics
+
+- Added `doc/project/playerbot-reservation-inspector.md` documentation
+
+- Features:
+  - Filter by resource type (`-t anchor|dialog_target|...`)
+  - Filter by lock mode (`-m lease|hard_lock`)
+  - Time window filtering (`--since MINUTES`)
+  - Raw output for scripting (`--raw`)
+  - Colorized output (disabled with `--no-color`)
+  - DB defaults aligned with repo-local config
+
+### Validation
+
+- `bash tools/ci/playerbot-reservations.sh --help` - Help output works
+- `bash tools/ci/playerbot-reservations.sh --no-color active 5` - Active reservations query works
+- `bash tools/ci/playerbot-reservations.sh --no-color stats` - Statistics summary works
+- `bash tools/ci/playerbot-reservations.sh --no-color holder "ReservationAuditTest" 5` - Holder query works
+- `bash tools/ci/playerbot-reservations.sh --no-color hot 5` - Contention analysis works
+
+### Deferrals
+
+This slice does not add:
+
+- In-game reservation inspector NPC (separate from existing labs)
+- Real-time reservation monitoring
+- Automatic stale reservation cleanup
+- Reservation prediction or forecasting
+
