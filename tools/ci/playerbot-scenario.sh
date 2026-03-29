@@ -68,6 +68,7 @@ Current catalog:
   combat-baseline
   status-continuity
   death-respawn
+  status-recovery-integrity
   item-loadout-continuity
   mechanic-cleanup
 EOF

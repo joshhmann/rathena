@@ -59,6 +59,7 @@ An audit row must be created if a status is cleared as part of a death-cleanup o
 | `status-death-cleanup` | Prove buffs clear on bot death. | `count=0` (or reduced) and `blessing=0` after death. |
 | `status-map-continuity` | Prove buffs persist across `setpos`. | `Status Summary String` remains identical after a map change. |
 | `status-respawn-reconcile`| Prove "fresh" state after respawn. | No stale ailments or buffs from previous life remain. |
+| `status-recovery-integrity` | Prove participation recovery does not mutate live status. | `Status Summary String` is unchanged before and after the recovery event. |
 
 ## Explicit Non-Goals
 

@@ -7,6 +7,7 @@ playerbot_scenario_ids() {
 		'status-death-cleanup' \
 		'status-map-continuity' \
 		'status-respawn-reconcile' \
+		'status-recovery-integrity' \
 		'death-respawn' \
 		'item-loadout-continuity' \
 		'mechanic-cleanup'
@@ -19,6 +20,7 @@ playerbot_scenario_title() {
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
 		status-respawn-reconcile) printf '%s\n' 'Status Respawn Reconcile' ;;
+		status-recovery-integrity) printf '%s\n' 'Status Recovery Integrity' ;;
 		death-respawn) printf '%s\n' 'Death / Respawn Continuity' ;;
 		item-loadout-continuity) printf '%s\n' 'Item / Loadout Continuity' ;;
 		mechanic-cleanup) printf '%s\n' 'Mechanic Cleanup' ;;
@@ -29,7 +31,7 @@ playerbot_scenario_title() {
 playerbot_scenario_phase() {
 	case "${1:-}" in
 		combat-baseline) printf '%s\n' 'combat' ;;
-		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile) printf '%s\n' 'status' ;;
+		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup) printf '%s\n' 'participation' ;;
@@ -39,7 +41,7 @@ playerbot_scenario_phase() {
 
 playerbot_scenario_kind() {
 	case "${1:-}" in
-		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
+		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
 			printf '%s\n' 'runbook'
 			;;
 		item-loadout-continuity)
@@ -81,6 +83,11 @@ EOF
 Validate that the bot returns to a clean status state after respawning.
 EOF
 			;;
+		status-recovery-integrity)
+			cat <<'EOF'
+Validate that participation recovery does not mutate live status continuity.
+EOF
+			;;
 		death-respawn)
 			cat <<'EOF'
 Validate death, respawn, and stale-state cleanup without leaving split-brain runtime state.
@@ -104,7 +111,7 @@ EOF
 
 playerbot_scenario_prereqs() {
 	case "${1:-}" in
-		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn|item-loadout-continuity|mechanic-cleanup)
+		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|mechanic-cleanup)
 			cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
@@ -161,6 +168,14 @@ EOF
 - check for status reconcile audit rows
 EOF
 			;;
+		status-recovery-integrity)
+			cat <<'EOF'
+- trigger a participation recovery event while status effects are active
+- verify that the recovery path does not clear or invent status state
+- confirm the status summary before and after recovery is unchanged
+- check that the recovery audit records the recovery without a status mutation
+EOF
+			;;
 		death-respawn)
 			cat <<'EOF'
 - trigger a death event in a controlled scenario
@@ -200,7 +215,7 @@ playerbot_scenario_expected() {
 - no stale claim remains after the intent is cleared
 EOF
 			;;
-		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile)
+		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity)
 			cat <<'EOF'
 - status summary reflects the live effect
 - recovery or cleanup rows reflect the transition
@@ -232,7 +247,7 @@ EOF
 
 playerbot_scenario_notes() {
 	case "${1:-}" in
-		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
+		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
 			cat <<'EOF'
 This scenario now has a repo-local smoke helper through
 `tools/ci/playerbot-combat-smoke.sh`. The scenario runner remains the canonical
@@ -262,6 +277,9 @@ EOF
 playerbot_scenario_launcher() {
 	case "${1:-}" in
 		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
+			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
+			;;
+		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
 			;;
 		item-loadout-continuity)

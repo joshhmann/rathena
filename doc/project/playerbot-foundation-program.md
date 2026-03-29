@@ -32,12 +32,15 @@ The primary foundation order is:
 The next foundation frontier after that wave is defined in:
 
 - `doc/project/playerbot-combat-frontier-contract.md`
+- `doc/project/playerbot-mechanic-gap-audit.md`
 
 It covers:
 
 - combat participation contracts
 - death / respawn recovery truth
 - the remaining first-class mechanic participation matrix
+- the unresolved mechanic-participation gaps after combat, loadout, and
+  status continuity
 
 ## Phase 1: Observability And Replayability
 
@@ -150,11 +153,18 @@ Safe side lanes:
 - combat contract notes
 - scenario coverage for combat/death/respawn recovery
 - mechanic participation matrix updates
+- docs-only gap audits for the next unresolved mechanic-participation work
 
 Do not parallelize:
 
 - combat runtime hotspots with any other active runtime lane
 - new combat intent semantics with unrelated scheduler or participation schema changes
+
+## Remaining Mechanic Participation Gaps
+
+See `doc/project/playerbot-mechanic-gap-audit.md` for the next unresolved
+mechanic-participation gaps after combat, loadout, and status continuity.
+That audit is the authoritative list for the next non-runtime foundation slice.
 
 ## Acceptance Gate Before Behavior Expansion
 

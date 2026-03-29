@@ -45,6 +45,7 @@ The initial frontier catalog contains:
 - `status-death-cleanup`
 - `status-map-continuity`
 - `status-respawn-reconcile`
+- `status-recovery-integrity`
 - `death-respawn`
 - `item-loadout-continuity`
 - `mechanic-cleanup`
@@ -65,10 +66,15 @@ These split into two groups:
   - `status-death-cleanup`
   - `status-map-continuity`
   - `status-respawn-reconcile`
+  - `status-recovery-integrity`
   - `death-respawn`
   - `item-loadout-continuity`
 - skeleton-only for the next frontier:
   - `mechanic-cleanup`
+
+The unresolved mechanic-cleanup gaps are summarized in:
+
+- `doc/project/playerbot-mechanic-gap-audit.md`
 
 The runbook-backed scenarios use:
 
@@ -77,6 +83,14 @@ The runbook-backed scenarios use:
 
 The remaining skeleton scenario stays future-facing until those runtime hooks
 land.
+
+Highest-value missing additions after this update are:
+
+- richer mechanic-cleanup coverage for interrupted NPC, trade, and storage flows
+- a narrower combat-interrupt scenario that isolates death/respawn cleanup from
+  broader status continuity
+- scenario coverage for later combat/status edges such as status persistence
+  across repeated handoffs or multiple sequential deaths
 
 ## CLI Contract
 
@@ -132,3 +146,11 @@ definition, the minimum validation should cover:
 - `show <scenario>`
 - `describe <scenario>`
 - `checklist <scenario>`
+
+For the next mechanic-participation frontier, the scenario catalog should
+expand in the same order as the gap audit:
+
+- map-change / warp cleanup
+- trade / storage / dialog interruption under combat pressure
+- equip / use / consume continuity
+- broader combat-event participation
