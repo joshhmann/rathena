@@ -36,6 +36,10 @@ Then check:
 - `git log --oneline -n 5`
 - `git status --short`
 
+For the current remaining foundation frontier, also read:
+
+- `doc/project/playerbot-foundation-handoff.md`
+
 Assume `master` is the only trustworthy integrated baseline unless explicitly
 assigned otherwise.
 
@@ -175,5 +179,9 @@ When assigning a branch to another session, provide:
 
 ## Current Best Use Of This Brief
 
-Use this brief for Kimi-style parallel lanes while the main thread continues the
-core playerbot foundation work on `master`.
+Use this brief together with:
+
+- `doc/project/playerbot-foundation-handoff.md`
+
+when assigning Claude/Gemini/Kimi-style parallel lanes while the main thread
+continues the core playerbot foundation work on `master`.

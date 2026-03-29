@@ -13,6 +13,7 @@ Use it when:
 Also read:
 
 - `doc/project/playerbot-collaborator-brief.md`
+- `doc/project/playerbot-foundation-handoff.md`
 
 ## Current Rule
 
@@ -121,12 +122,12 @@ Unsafe side lanes:
 
 Best next assignments:
 
-1. `feature/playerbot-pool-observability`
-   - low-risk, high-value scheduler visibility work
-2. `feature/playerbot-provisioning-schema`
-   - schema/docs lane, safe in parallel with script work
-3. `test/openkore-smoke-scenarios`
-   - validation lane, safe in parallel with almost everything
+1. `test/playerbot-scenario-expansion`
+   - scenario-runner and runbook lane
+2. `doc/playerbot-foundation-gap-audit`
+   - docs/contracts lane for the remaining frontier
+3. tooling or diagnostics branches that stay out of runtime hotspots
+   - only when their write scope is clearly disjoint from the primary lane
 
 If a branch needs to touch `_common.txt`, it should usually be the primary branch
 for that round.
