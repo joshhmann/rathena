@@ -572,6 +572,16 @@ S_Run:
 	.@pr_all_clear_ok = (playerbot_npcactive(.bot_key$) == 0 && playerbot_storageisopen(.bot_key$) == 0 && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
 	.@participation_recover_ok = (.@pr_open_ok && .@pr_reserved_ok && .@pr_storage_ok && .@pr_request_ok && .@pr_recover_ok && .@pr_all_clear_ok && .@pr_res_clear_ok);
 
+	.@quit_npc_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
+	sleep 200;
+	.@quit_storage_ok = playerbot_storageopen(.bot_key$);
+	sleep 200;
+	.@quit_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+	sleep 200;
+	.@quit_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	sleep 200;
+	.@quit_reserve_id = callfunc("F_PB_RES_Acquire", "anchor", "lab:quit:" + .bot_key$, .bot_key$, "ParticipationQuit", 30000, 70, "quit.test");
+	sleep 200;
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
 		sleep 300;
@@ -580,6 +590,31 @@ S_Run:
 			break;
 		}
 	}
+	.@quit_trade_clear_ok = (playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
+	.@quit_res_rows = query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_reservation` "
+		+ "WHERE `holder_bot_id` = '" + .bot_id + "'",
+		.@quit_res_count);
+	.@quit_res_clear_ok = (.@quit_res_rows > 0 && .@quit_res_count[0] == 0);
+	.@quit_audit_rows = query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' "
+		+ "AND `ts` >= UNIX_TIMESTAMP() - 300 "
+		+ "AND ((`scope` IN ('npc','storage','trade') AND `action` = 'interrupt' AND `detail` = 'quit.interrupt') "
+		+ "OR (`scope` = 'quit' AND `action` = 'interrupt'))",
+		.@quit_audit_count);
+	.@quit_audit_ok = (.@quit_audit_rows > 0 && .@quit_audit_count[0] >= 4);
+	.@quit_trace_rows = query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_trace_event` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' "
+		+ "AND `ts` >= UNIX_TIMESTAMP() - 300 "
+		+ "AND ((`phase` = 'reconcile' AND `action` = 'reconcile.fixed' AND `target_type` IN ('npc','storage','trade','quit') AND `reason_code` = 'operator.stop') "
+		+ "OR (`phase` = 'reconcile' AND `action` = 'reservation.released' AND `reason_code` = 'operator.stop'))",
+		.@quit_trace_count);
+	.@quit_trace_ok = (.@quit_trace_rows > 0 && .@quit_trace_count[0] >= 4);
 
 	.@trace_rows = query_sql(
 		"SELECT COUNT(*) "
@@ -600,8 +635,8 @@ S_Run:
 		.@recovery_count);
 	.@recovery_audit_ok = (.@recovery_rows > 0 && .@recovery_count[0] >= 2);
 
-	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@npc_recover_ok && .@dialog_drift_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@participation_recover_ok && .@park_ok && .@trace_ok && .@recovery_audit_ok);
-	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " npc_recover_ok=" + .@npc_recover_ok + " dialog_drift_ok=" + .@dialog_drift_ok + " dialog_drift_start_ok=" + .@dialog_drift_start_ok + " dialog_drift_close_ok=" + .@dialog_drift_close_ok + " dialog_drift_reap=" + .@dialog_drift_reap + " dialog_drift_clear_ok=" + .@dialog_drift_clear_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " participation_recover_ok=" + .@participation_recover_ok + " pr_open_ok=" + .@pr_open_ok + " pr_reserved_ok=" + .@pr_reserved_ok + " pr_storage_ok=" + .@pr_storage_ok + " pr_request_ok=" + .@pr_request_ok + " pr_ack_ok=" + .@pr_ack_ok + " pr_recover_ok=" + .@pr_recover_ok + " pr_res_clear_ok=" + .@pr_res_clear_ok + " pr_all_clear_ok=" + .@pr_all_clear_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " recovery_audit_ok=" + .@recovery_audit_ok + " result=" + .@result + ".";
+	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@npc_recover_ok && .@dialog_drift_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@participation_recover_ok && .@quit_npc_ok && .@quit_storage_ok && .@quit_request_ok && .@quit_reserve_id > 0 && .@quit_trade_clear_ok && .@quit_res_clear_ok && .@quit_audit_ok && .@quit_trace_ok && .@park_ok && .@trace_ok && .@recovery_audit_ok);
+	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " npc_recover_ok=" + .@npc_recover_ok + " dialog_drift_ok=" + .@dialog_drift_ok + " dialog_drift_start_ok=" + .@dialog_drift_start_ok + " dialog_drift_close_ok=" + .@dialog_drift_close_ok + " dialog_drift_reap=" + .@dialog_drift_reap + " dialog_drift_clear_ok=" + .@dialog_drift_clear_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " participation_recover_ok=" + .@participation_recover_ok + " pr_open_ok=" + .@pr_open_ok + " pr_reserved_ok=" + .@pr_reserved_ok + " pr_storage_ok=" + .@pr_storage_ok + " pr_request_ok=" + .@pr_request_ok + " pr_ack_ok=" + .@pr_ack_ok + " pr_recover_ok=" + .@pr_recover_ok + " pr_res_clear_ok=" + .@pr_res_clear_ok + " pr_all_clear_ok=" + .@pr_all_clear_ok + " quit_npc_ok=" + .@quit_npc_ok + " quit_storage_ok=" + .@quit_storage_ok + " quit_request_ok=" + .@quit_request_ok + " quit_ack_ok=" + .@quit_ack_ok + " quit_reserved_ok=" + (.@quit_reserve_id > 0) + " quit_trade_clear_ok=" + .@quit_trade_clear_ok + " quit_res_clear_ok=" + .@quit_res_clear_ok + " quit_audit_ok=" + .@quit_audit_ok + " quit_trace_ok=" + .@quit_trace_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " recovery_audit_ok=" + .@recovery_audit_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

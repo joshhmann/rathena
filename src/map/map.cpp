@@ -2238,6 +2238,8 @@ int32 map_quit(map_session_data *sd) {
 		return 0;
 	}
 
+	pc_playerbot_handle_quit_cleanup(sd);
+
 	if (sd->expiration_tid != INVALID_TIMER)
 		delete_timer(sd->expiration_tid, pc_expiration_timer);
 

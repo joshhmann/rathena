@@ -6899,6 +6899,7 @@ bool pc_steal_item(map_session_data *sd,block_list *bl, uint16 skill_lv)
  *			SETPOS_NO_MAPSERVER	Map not in this map-server, and failed to locate alternate map-server.
  *			SETPOS_AUTOTRADE	Player is in autotrade state
  *------------------------------------------*/
+void pc_playerbot_handle_quit_cleanup(map_session_data* sd);
 static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd);
 
 enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y, clr_type clrtype)
@@ -10307,6 +10308,31 @@ static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
 	}
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "mapchange", "interrupt", before.c_str(), after.c_str(), "ok", detail.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.fixed", "mapchange", "", "map.changed", "ok", "", detail.c_str());
+}
+
+void pc_playerbot_handle_quit_cleanup(map_session_data* sd)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	if (sd == nullptr || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return;
+
+	std::string before = pc_playerbot_combat_state(sd);
+	unit_stop_attack(sd);
+	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "operator.stop", "quit.interrupt");
+	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "operator.stop", "quit.interrupt");
+	std::string after = pc_playerbot_combat_state(sd);
+
+	if (before == after && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+		return;
+
+	std::string detail = released > 0 ? "quit.cleared.reservations" : "quit.cleared";
+	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
+		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
+		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
+		detail += " trade=" + std::to_string(cleanup.trade_had ? (cleanup.trade_ok ? 1 : -1) : 0);
+	}
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "quit", "interrupt", before.c_str(), after.c_str(), "ok", detail.c_str());
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.fixed", "quit", "", "operator.stop", "ok", "", detail.c_str());
 }
 
 /*==========================================

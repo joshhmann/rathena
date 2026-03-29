@@ -5851,6 +5851,65 @@ This slice does not add:
 - vendor/shop buy-use loops
 - richer consumable policy beyond the first legal participation hook
 
+## Slice 62: Playerbot Quit/Park Interrupt Cleanup
+
+### Summary
+
+Extended the same audited cleanup contract used by death, respawn, and warp
+into the normal player quit path so parking or removing a live playerbot does
+not leave stale NPC, storage, trade, combat, or reservation state behind.
+
+### Files
+
+- `src/map/map.cpp`
+- `src/map/pc.cpp`
+- `src/map/pc.hpp`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added a public runtime helper:
+  - `pc_playerbot_handle_quit_cleanup(map_session_data* sd)`
+- Hooked it into `map_quit(...)` so live playerbots now clear:
+  - combat intent
+  - NPC/dialog state
+  - storage state
+  - trade state
+  - held reservations
+  before the normal quit/save path runs
+- Quit cleanup now emits:
+  - per-scope recovery audits for `npc`, `storage`, and `trade`
+  - reservation release traces with `reason_code = 'operator.stop'`
+  - one aggregate `quit / interrupt` recovery audit
+  - one aggregate `reconcile.fixed` quit trace
+- Extended the participation selftest so the final park path now proves:
+  - active dialog state during remove
+  - active storage state during remove
+  - pending trade state during remove
+  - held reservation release during remove
+  - player-side trade cleanup after the bot is parked
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_participation_selftest ... quit_audit_ok=1 quit_trace_ok=1 ... result=1`
+- aggregate foundation smoke remains green after quit/park continuity is added
+
+### Deferrals
+
+This slice does not add:
+
+- a generalized logout/instance-transition framework for non-playerbot actors
+- cross-map claim transfer instead of release-on-quit
+- richer event-instance policy beyond the current quit/park cleanup contract
+
 ## Slice 66: Playerbot Map-Change Mechanic Continuity
 
 ### Summary

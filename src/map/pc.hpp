@@ -1721,6 +1721,7 @@ enum e_BANKING_DEPOSIT_ACK pc_bank_deposit(map_session_data *sd, int32 money);
 enum e_BANKING_WITHDRAW_ACK pc_bank_withdraw(map_session_data *sd, int32 money);
 
 void pc_crimson_marker_clear(map_session_data *sd);
+void pc_playerbot_handle_quit_cleanup(map_session_data* sd);
 
 void pc_show_version(map_session_data *sd);
 

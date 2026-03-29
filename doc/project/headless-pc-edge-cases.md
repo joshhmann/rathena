@@ -2384,3 +2384,29 @@ Current limit:
 - this is still self-use participation, not generalized item-targeting or
   combat consumable policy
 - richer item continuity under combat/event pressure remains deferred
+
+Quit/park mechanic continuity now covered:
+
+- normal playerbot quit/remove now forces the same cleanup class as
+  death/respawn/map-change for:
+  - NPC/dialog state
+  - storage state
+  - trade state
+  - held reservations
+  - combat intent
+- the runtime emits:
+  - `quit / interrupt` recovery audits
+  - `reconcile.fixed` trace rows with `reason_code = 'operator.stop'`
+  - `reservation.released` trace rows with `reason_code = 'operator.stop'`
+- the participation selftest now proves:
+  - dialog cleanup on park/remove
+  - storage cleanup on park/remove
+  - pending trade cleanup on park/remove
+  - reservation release on park/remove
+  - player-side trade partner cleanup after the bot is removed
+
+Current limit:
+
+- this is a playerbot-specific quit/park cleanup layer, not a generalized
+  session-transition policy for all actors
+- broader event-instance cleanup and cross-map claim transfer remain deferred
