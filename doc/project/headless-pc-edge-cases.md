@@ -2285,6 +2285,9 @@ Follow-on update:
 
 - combat/status/death/respawn participation is now integrated and green in the
   aggregate foundation smoke
+- aggregate smoke now waits for the combat selftest line after `stage=done`
+  instead of assuming the coordinator and the final combat debug line land at
+  the same time
 - the first intended-equipment authority now exists in:
   - `bot_equipment_loadout`
 - spawn and respawn now reconcile legal intended equipment for headless bots
@@ -2293,3 +2296,15 @@ Follow-on update:
   - despawn/spawn loadout continuity
   - death/respawn loadout continuity
   - loadout recovery-audit coverage
+
+Combat-pressure mechanic cleanup now covered:
+
+- death/respawn cleanup emits per-scope interrupt audits and traces for:
+  - `npc`
+  - `storage`
+  - `trade`
+- current combat selftest acceptance now proves:
+  - NPC interrupt cleanup on death
+  - storage interrupt cleanup on death
+- current trade interrupt state is still observable in the combat selftest debug
+  line, but it is not yet part of the acceptance gate

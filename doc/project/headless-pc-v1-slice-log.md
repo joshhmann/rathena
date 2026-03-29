@@ -5792,6 +5792,76 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Combat-Pressure Mechanic Cleanup
+
+### Summary
+
+Extended the combat foundation so death and respawn now prove deterministic
+interrupt cleanup for active NPC and storage state, with aggregate smoke timing
+fixed to wait for the combat selftest line instead of racing the coordinator.
+
+### Files
+
+- `src/map/pc.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Extended runtime combat cleanup in `pc.cpp`:
+  - death/respawn participation cleanup now emits per-scope interrupt audits for:
+    - `npc`
+    - `storage`
+    - `trade`
+  - matching combat-phase traces now show scope-specific interrupt cleanup
+- Deepened `Playerbot Combat Lab`:
+  - selftest now proves:
+    - combat pre-clear before attack intent
+    - NPC-on-death interrupt cleanup
+    - storage-on-death interrupt cleanup
+  - trade-on-death remains observable in debug output but is not yet part of the
+    slice acceptance gate
+- Extended `playerbot-combat-smoke.sh` to show interrupt-scope audits alongside
+  combat audits.
+- Hardened `playerbot-foundation-smoke.sh`:
+  - after `stage=done`, the runner now waits for the combat selftest line before
+    checking results
+  - this removes the earlier race where the coordinator finished before the
+    combat selftest emitted its final result line
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `git diff --check`
+- `bash tools/ci/playerbot-combat-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... result=1`
+- aggregate foundation smoke remains green with:
+  - `stage=state`
+  - `stage=guild`
+  - `stage=item`
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=combat`
+  - `stage=done`
+- recent recovery/audit rows now include:
+  - `npc / interrupt / ok / combat.death.interrupt`
+  - `storage / interrupt / ok / combat.death.interrupt`
+
+### Deferrals
+
+This slice does not yet claim:
+
+- stable trade-on-death interrupt participation as part of the acceptance gate
+- broader mechanic cleanup beyond the current NPC/storage combat-pressure cases
+- richer event or combat behavior on top of the legal cleanup hooks
+
 ## Slice 61: Playerbot Loadout Continuity Baseline
 
 ### Summary

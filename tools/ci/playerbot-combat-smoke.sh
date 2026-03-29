@@ -40,9 +40,9 @@ LIMIT 16;
 
 SELECT \`scope\`, \`action\`, \`result\`, \`detail\`
 FROM \`bot_recovery_audit\`
-WHERE \`scope\` = 'combat'
+WHERE \`scope\` IN ('combat','npc','storage','trade')
 ORDER BY \`id\` DESC
-LIMIT 8;
+LIMIT 16;
 EOF
 }
 

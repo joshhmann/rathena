@@ -39,6 +39,19 @@ wait_for_stage_done() {
 	return 1
 }
 
+wait_for_selftest_line() {
+	local pattern="${1:?pattern required}" timeout_s="${2:-60}" elapsed=0 pane
+	while (( elapsed < timeout_s )); do
+		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -800 2>/dev/null || true)"
+		if printf '%s\n' "$pane" | grep -q "$pattern"; then
+			return 0
+		fi
+		sleep 1
+		elapsed=$((elapsed + 1))
+	done
+	return 1
+}
+
 arm() {
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
 REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
@@ -81,6 +94,7 @@ run() {
 		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
 		return 1
 	fi
+	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
 	check
 }
 

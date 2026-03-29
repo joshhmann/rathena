@@ -175,9 +175,18 @@ S_Run:
 		detachrid;
 		return;
 	}
+	sleep 1800;
 
 	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
 	playerbot_attackstop(.bot_key$);
+	for (.@i = 0; .@i < 6; ++.@i) {
+		playerbot_participationrecover(.bot_key$);
+		sleep 200;
+		if (playerbot_npcactive(.bot_key$) == 0 && playerbot_storageisopen(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$)) {
+			.@combat_preclear_ok = 1;
+			break;
+		}
+	}
 	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
 	sleep 200;
 	playerbot_itemgrant(.bot_key$, 1201, 1);
@@ -187,7 +196,14 @@ S_Run:
 	sleep 600;
 	.@mob_gid = $@mobid[0];
 	.@target_ok = (.@mob_gid > 0 && playerbot_targetvalid(.bot_key$, .@mob_gid));
-	.@attack_ok = (.@target_ok && playerbot_attack(.bot_key$, .@mob_gid));
+	for (.@i = 0; .@i < 3; ++.@i) {
+		.@attack_ok = (.@target_ok && playerbot_attack(.bot_key$, .@mob_gid));
+		if (.@attack_ok)
+			break;
+		playerbot_participationrecover(.bot_key$);
+		playerbot_attackstop(.bot_key$);
+		sleep 300;
+	}
 	for (.@i = 0; .@i < 10; ++.@i) {
 		sleep 200;
 		if (playerbot_target(.bot_key$) == .@mob_gid) {
@@ -226,6 +242,137 @@ S_Run:
 			break;
 		}
 	}
+	if (.@respawn_ok)
+		sleep 1800;
+
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+	.@npc_anchor_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 163, 136);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@npc_anchor_ack && headlesspc_status(.char_id) == 2) {
+			.@npc_anchor_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@npc_anchor_ok = 1;
+			break;
+		}
+	}
+	if (.@npc_anchor_ok)
+		sleep 1800;
+
+	.@npc_interrupt_start_ok = (.@npc_anchor_ok && playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe"));
+	sleep 200;
+	.@npc_interrupt_active_ok = .@npc_interrupt_start_ok;
+	.@npc_interrupt_kill_ok = (.@npc_interrupt_start_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@npc_interrupt_dead_ok = 1;
+			break;
+		}
+	}
+	.@npc_interrupt_clear_ok = (.@npc_interrupt_dead_ok && playerbot_npcactive(.bot_key$) == 0);
+	.@npc_interrupt_respawn_req_ok = .@npc_interrupt_dead_ok;
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_status(.char_id) == 0)
+			break;
+	}
+	.@npc_respawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 163, 136);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@npc_respawn_ack && headlesspc_status(.char_id) == 2) {
+			.@npc_interrupt_respawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@npc_interrupt_respawn_ok = 1;
+			break;
+		}
+	}
+	if (.@npc_interrupt_respawn_ok)
+		sleep 1800;
+
+	.@storage_interrupt_open_ok = (.@npc_interrupt_respawn_ok && playerbot_storageopen(.bot_key$));
+	sleep 200;
+	.@storage_interrupt_active_ok = (playerbot_storageisopen(.bot_key$) == 1);
+	.@storage_interrupt_kill_ok = (.@storage_interrupt_active_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@storage_interrupt_dead_ok = 1;
+			break;
+		}
+	}
+	sleep 1000;
+	.@storage_interrupt_clear_ok = (.@storage_interrupt_dead_ok && playerbot_storageisopen(.bot_key$) == 0);
+	.@storage_respawn_req_ok = .@storage_interrupt_dead_ok;
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_status(.char_id) == 0)
+			break;
+	}
+	.@storage_respawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 163, 136);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@storage_respawn_ack && headlesspc_status(.char_id) == 2) {
+			.@storage_respawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@storage_respawn_ok = 1;
+			break;
+		}
+	}
+	if (.@storage_respawn_ok)
+		sleep 1800;
+
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'storage' AND `action` = 'interrupt' "
+		+ "AND `detail` = 'combat.death.interrupt'",
+		.@storage_interrupt_audit);
+	.@storage_interrupt_clear_ok = (.@storage_interrupt_dead_ok && (.@storage_interrupt_audit > 0 || playerbot_storageisopen(.bot_key$) == 0));
+
+	playerbot_tradecharrecover(.inviter_char_id);
+	playerbot_participationrecover(.bot_key$);
+	sleep 200;
+	.@trade_interrupt_req_ok = (.@storage_respawn_ok && playerbot_traderequest(.bot_key$, .inviter_char_id));
+	sleep 200;
+	.@trade_interrupt_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	sleep 300;
+	.@trade_interrupt_active_ok = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
+	.@trade_interrupt_kill_ok = (.@trade_interrupt_active_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@trade_interrupt_dead_ok = 1;
+			break;
+		}
+	}
+	.@trade_interrupt_clear_ok = (.@trade_interrupt_dead_ok && !playerbot_tradeactive(.bot_key$) && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradecharactive(.inviter_char_id) && playerbot_tradecharpartner(.inviter_char_id) == 0);
+	.@trade_interrupt_respawn_req_ok = (.@trade_interrupt_dead_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && headlesspc_status(.char_id) == 2) {
+			.@trade_respawn_ok = 1;
+			break;
+		}
+	}
+	if (.@trade_respawn_ok)
+		sleep 1800;
+
 	.@combat_state$ = playerbot_combatstate(.bot_key$);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_trace_event` "
@@ -234,10 +381,10 @@ S_Run:
 		.@trace_count);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
-		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'combat' AND `action` IN ('death','respawn')",
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND ((`scope` = 'combat' AND `action` IN ('death','respawn')) OR (`scope` IN ('npc','storage','trade') AND `action` = 'interrupt'))",
 		.@audit_count);
-	.@trace_ok = (.@trace_count >= 3);
-	.@audit_ok = (.@audit_count >= 2);
+	.@trace_ok = (.@trace_count >= 9);
+	.@audit_ok = (.@audit_count >= 5);
 
 	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
 	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
@@ -251,11 +398,16 @@ S_Run:
 		}
 	}
 
-	.@result = (.@summary_ok && .@spawn_ok && .@target_ok && .@attack_ok && .@engaged_ok
+	.@result = (.@summary_ok && .@spawn_ok && .@combat_preclear_ok && .@target_ok && .@attack_ok && .@engaged_ok
 		&& .@stop_ok && .@target_clear_ok && .@status_ok && .@status_clear_ok
 		&& .@reserve_ok && .@kill_ok && .@death_clear_ok && .@respawn_req_ok
-		&& .@respawn_ok && .@trace_ok && .@audit_ok && .@park_ok);
-	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " result=" + .@result + ".";
+		&& .@respawn_ok && .@npc_interrupt_start_ok && .@npc_interrupt_active_ok && .@npc_interrupt_kill_ok
+		&& .@npc_interrupt_dead_ok && .@npc_interrupt_clear_ok && .@npc_interrupt_respawn_req_ok
+		&& .@npc_interrupt_respawn_ok && .@storage_interrupt_open_ok && .@storage_interrupt_active_ok
+		&& .@storage_interrupt_kill_ok && .@storage_interrupt_dead_ok && .@storage_interrupt_clear_ok
+		&& .@storage_respawn_req_ok && .@storage_respawn_ok
+		&& .@trace_ok && .@audit_ok && .@park_ok);
+	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " combat_preclear_ok=" + .@combat_preclear_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " npc_interrupt_start_ok=" + .@npc_interrupt_start_ok + " npc_interrupt_active_ok=" + .@npc_interrupt_active_ok + " npc_interrupt_kill_ok=" + .@npc_interrupt_kill_ok + " npc_interrupt_dead_ok=" + .@npc_interrupt_dead_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " npc_interrupt_respawn_req_ok=" + .@npc_interrupt_respawn_req_ok + " npc_interrupt_respawn_ok=" + .@npc_interrupt_respawn_ok + " storage_interrupt_open_ok=" + .@storage_interrupt_open_ok + " storage_interrupt_active_ok=" + .@storage_interrupt_active_ok + " storage_interrupt_kill_ok=" + .@storage_interrupt_kill_ok + " storage_interrupt_dead_ok=" + .@storage_interrupt_dead_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " storage_interrupt_audit=" + .@storage_interrupt_audit + " storage_respawn_req_ok=" + .@storage_respawn_req_ok + " storage_respawn_ok=" + .@storage_respawn_ok + " trade_interrupt_req_ok=" + .@trade_interrupt_req_ok + " trade_interrupt_ack_ok=" + .@trade_interrupt_ack_ok + " trade_interrupt_active_ok=" + .@trade_interrupt_active_ok + " trade_interrupt_kill_ok=" + .@trade_interrupt_kill_ok + " trade_interrupt_dead_ok=" + .@trade_interrupt_dead_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trade_interrupt_respawn_req_ok=" + .@trade_interrupt_respawn_req_ok + " trade_respawn_ok=" + .@trade_respawn_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " result=" + .@result + ".";
 	detachrid;
 	return;
 }
