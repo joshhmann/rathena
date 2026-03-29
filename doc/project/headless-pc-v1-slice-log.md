@@ -5792,6 +5792,49 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 68: Playerbot Mechanic Cleanup Scenario Promotion
+
+### Goal
+
+Promote the remaining `mechanic-cleanup` scenario from a future-facing skeleton
+to a runbook-backed gate using the existing participation smoke baseline.
+
+### Files Touched
+
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Reclassified `mechanic-cleanup` as a `runbook` scenario.
+- Wired the scenario launcher to:
+  - `bash tools/ci/playerbot-participation-smoke.sh arm`
+  - `bash tools/ci/playerbot-participation-smoke.sh check`
+- Updated the scenario contract so it now explicitly covers interrupted:
+  - dialog
+  - storage
+  - trade
+  - reservation cleanup
+  - quit/remove cleanup
+- Updated the scenario-runner docs so the participation smoke helper is part of
+  the accepted runbook-backed catalog instead of a future frontier placeholder.
+
+### Validation
+
+- `bash tools/ci/playerbot-scenario.sh list`
+- `bash tools/ci/playerbot-scenario.sh show mechanic-cleanup`
+- `bash tools/ci/playerbot-scenario.sh run mechanic-cleanup`
+- `bash tools/ci/playerbot-participation-smoke.sh check`
+
+### Deferrals
+
+This scenario promotion does not add:
+
+- new runtime mechanics
+- deeper market/session continuity beyond the current participation proof lane
+- richer combat/event automation inside the aggregate foundation gate
+
 ## Slice 65: Playerbot Skillunit Participation Probe
 
 ### Summary

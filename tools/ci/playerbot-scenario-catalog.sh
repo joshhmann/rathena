@@ -54,7 +54,7 @@ playerbot_scenario_kind() {
 			printf '%s\n' 'runbook'
 			;;
 		mechanic-cleanup)
-			printf '%s\n' 'skeleton'
+			printf '%s\n' 'runbook'
 			;;
 		*)
 			return 1
@@ -244,10 +244,10 @@ EOF
 			;;
 		mechanic-cleanup)
 			cat <<'EOF'
-- interrupt an NPC/dialog flow during active participation
-- interrupt a trade or storage flow during active participation
-- warp the bot while a participation session is still active
-- verify the cleanup path releases claims and clears runtime state for each case
+- arm the participation smoke helper
+- log in once with the `codex` OpenKore profile
+- verify the selftest drives interrupted NPC/dialog, storage, trade, and reservation flows
+- confirm the cleanup path releases claims and clears runtime state for each case
 - confirm the recovery surface records each interruption cleanly
 EOF
 			;;
@@ -294,8 +294,10 @@ EOF
 			;;
 		mechanic-cleanup)
 			cat <<'EOF'
-- interrupted dialog, trade, storage, and warp flows leave a clean recovery/audit trail
+- `playerbot_participation_selftest ... result=1` is present
+- interrupted dialog, storage, trade, reservation, and quit flows leave a clean recovery/audit trail
 - claims and runtime state are released for each interrupted session
+- recent `interaction` trace rows show the participation targets completing or failing cleanly
 EOF
 			;;
 		*)
@@ -333,8 +335,11 @@ EOF
 			;;
 		mechanic-cleanup)
 			cat <<'EOF'
-This scenario is intentionally a skeleton definition. It is a stable contract
-for future automation, not a claim that the runtime hook is implemented yet.
+This scenario is now backed by the participation smoke helper:
+`tools/ci/playerbot-participation-smoke.sh`.
+
+It is the accepted runbook for interrupted participation cleanup across dialog,
+storage, trade, reservations, and quit/remove cleanup on the current baseline.
 EOF
 			;;
 		*)
@@ -358,7 +363,7 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check'
 			;;
 		mechanic-cleanup)
-			printf '%s\n' ''
+			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
 			;;
 		*)
 			return 1

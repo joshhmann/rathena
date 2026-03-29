@@ -75,28 +75,21 @@ These split into two groups:
   - `status-recovery-integrity`
   - `death-respawn`
   - `item-loadout-continuity`
-- skeleton-only for the next frontier:
   - `mechanic-cleanup`
-
-The unresolved mechanic-cleanup gaps are summarized in:
-
-- `doc/project/playerbot-mechanic-gap-audit.md`
 
 The runbook-backed scenarios use:
 
 - `tools/ci/playerbot-combat-smoke.sh`
 - `tools/ci/playerbot-combat-skillunit-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
-
-The remaining skeleton scenario stays future-facing until those runtime hooks
-land.
+- `tools/ci/playerbot-participation-smoke.sh`
 
 Highest-value missing additions after this update are:
 
-- richer mechanic-cleanup coverage for interrupted NPC, trade, storage, and
-  warp flows
 - scenario coverage for later combat/status edges such as status persistence
   across repeated handoffs or multiple sequential deaths
+- scenario coverage for later market/session continuity beyond the current
+  participation smoke baseline
 
 ## CLI Contract
 
@@ -157,7 +150,6 @@ definition, the minimum validation should cover:
 For the next mechanic-participation frontier, the scenario catalog should
 expand in the same order as the gap audit:
 
-- map-change / warp cleanup
-- trade / storage / dialog interruption under combat pressure
 - equip / use / consume continuity
 - broader combat-event participation
+- later market/session continuity beyond the current participation smoke lane

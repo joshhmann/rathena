@@ -2766,3 +2766,19 @@ is:
 
 - aggregate combat gate for the stable baseline
 - separate skillunit probe for the richer ground-skill and persistent-unit path
+
+Mechanic cleanup is no longer a future-only scenario stub:
+
+- `mechanic-cleanup` is now runbook-backed through:
+  - `bash tools/ci/playerbot-participation-smoke.sh arm`
+  - `bash tools/ci/playerbot-participation-smoke.sh check`
+- the accepted proof on the current baseline covers interrupted:
+  - dialog
+  - storage
+  - trade
+  - reservation cleanup
+  - quit/remove cleanup
+- the remaining open frontier is no longer "prove interrupted participation
+  cleanup exists"
+- it is now "extend scenario coverage beyond that baseline into deeper
+  market/session and richer combat-event paths"
