@@ -50,7 +50,7 @@ An audit row must be created if a status is cleared as part of a death-cleanup o
 - `scope`: `status`.
 - `action`: `cleanup` or `reconcile`.
 - `state_before` / `state_after`: The **Status Summary String** before and after the transition.
-- `detail`: `death.cleanup`, `death.nochange`, or `respawn.reconciled`.
+- `detail`: `death.cleanup`, `death.nochange`, or `respawn.reconcile`.
 
 ## Scenario Coverage Matrix
 
