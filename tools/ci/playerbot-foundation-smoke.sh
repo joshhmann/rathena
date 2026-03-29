@@ -55,7 +55,7 @@ wait_for_selftest_line() {
 wait_for_all_selftests() {
 	local timeout_s="${1:-120}" elapsed=0 pane
 	while (( elapsed < timeout_s )); do
-		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -1200 2>/dev/null || true)"
+		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 2>/dev/null || true)"
 		if printf '%s\n' "$pane" | grep -q 'playerbot_state_selftest:' \
 			&& printf '%s\n' "$pane" | grep -q 'playerbot_guild_selftest:' \
 			&& printf '%s\n' "$pane" | grep -q 'playerbot_item_selftest:' \
@@ -127,7 +127,7 @@ check() {
 	)
 	local pane lines line key failures=0
 	wait_for_all_selftests 120 || true
-	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -600 \; save-buffer - 2>/dev/null | tail -n 600 || true)"
+	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 \; save-buffer - 2>/dev/null | tail -n 2400 || true)"
 	printf '%s\n' "$pane" | grep 'playerbot_foundation_selftest:' | tail -n 12 || true
 	printf '\n'
 	lines="$(printf '%s\n' "$pane" | grep -E 'playerbot_(guild|item|merchant|participation|state|combat)_selftest' || true)"

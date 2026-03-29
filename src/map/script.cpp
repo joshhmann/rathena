@@ -13070,6 +13070,76 @@ BUILDIN_FUNC(playerbot_loadoutreconcile)
 }
 
 /*==========================================
+ * Return the current intended loadout row count for one playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_loadoutcount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+
+	if (!playerbot_identity_lookup_by_key(bot_key, &bot_id, &char_id, &account_id) || bot_id == 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT COUNT(*) FROM `bot_equipment_loadout` WHERE `bot_id` = '%u'",
+		bot_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	char* data = nullptr;
+	int32 rows = 0;
+	if (SQL_SUCCESS == Sql_NextRow(mmysql_handle) && SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+		rows = atoi(data);
+	Sql_FreeResult(mmysql_handle);
+	script_pushint(st, rows);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
+ * Return the current loadout/equipped summary for one playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_loadoutsummary)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+
+	if (!playerbot_identity_lookup_by_key(bot_key, &bot_id, &char_id, &account_id) || char_id == 0) {
+		script_pushconststr(st, "loadout_rows=0,equipped_rows=0");
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	map_session_data* sd = map_charid2sd(char_id);
+	int32 loadout_rows = 0;
+	int32 equipped_rows = 0;
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT COUNT(*) FROM `bot_equipment_loadout` WHERE `bot_id` = '%u'",
+		bot_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		script_pushconststr(st, "loadout_rows=0,equipped_rows=0");
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	char* data = nullptr;
+	if (SQL_SUCCESS == Sql_NextRow(mmysql_handle) && SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+		loadout_rows = atoi(data);
+	Sql_FreeResult(mmysql_handle);
+
+	if (sd != nullptr) {
+		for (int16 i = 0; i < MAX_INVENTORY; ++i) {
+			if (sd->inventory.u.items_inventory[i].nameid > 0 && sd->inventory.u.items_inventory[i].equip > 0)
+				++equipped_rows;
+		}
+	}
+
+	script_pushstrcopy(st, ("loadout_rows=" + std::to_string(loadout_rows) + ",equipped_rows=" + std::to_string(equipped_rows)).c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Deposit one item amount from a live playerbot inventory into storage.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_storagedeposit)
@@ -32416,6 +32486,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_loadoutset,"si"),
 	BUILDIN_DEF(playerbot_loadoutclear,"s?"),
 	BUILDIN_DEF(playerbot_loadoutreconcile,"s"),
+	BUILDIN_DEF(playerbot_loadoutcount,"s"),
+	BUILDIN_DEF(playerbot_loadoutsummary,"s"),
 	BUILDIN_DEF(playerbot_attack,"si"),
 	BUILDIN_DEF(playerbot_attackstop,"s"),
 	BUILDIN_DEF(playerbot_skillgrant,"sii"),

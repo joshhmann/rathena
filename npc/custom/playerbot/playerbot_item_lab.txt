@@ -53,6 +53,7 @@ alberta,160,135,4	script	Playerbot Item Lab	4_M_02,{
 		mes "Reconcile loadout -> " + playerbot_loadoutreconcile(.bot_key$) + ".";
 		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
 		mes callfunc("F_PB_LOADOUT_BuildSummary$", .bot_key$);
+		mes playerbot_loadoutsummary(.bot_key$);
 		close;
 	case 9:
 		callsub S_EnsureQuickItemBot;
@@ -70,6 +71,7 @@ alberta,160,135,4	script	Playerbot Item Lab	4_M_02,{
 		mes "[Playerbot Item Lab]";
 		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
 		mes callfunc("F_PB_LOADOUT_BuildSummary$", .bot_key$);
+		mes playerbot_loadoutsummary(.bot_key$);
 		mes callfunc("F_PB_ITEM_BuildAuditSummary$", .bot_key$, 8);
 		close;
 	case 12:
@@ -236,7 +238,16 @@ S_Run:
 	.@remove_ok = playerbot_itemremove(.bot_key$, 501, 1);
 	.@regrant_ok = playerbot_itemgrant(.bot_key$, 501, 1);
 	.@loadout_set_ok = playerbot_loadoutset(.bot_key$, 1201);
+	.@loadout_rows_ok = (playerbot_loadoutcount(.bot_key$) == 1 && countstr(playerbot_loadoutsummary(.bot_key$), "loadout_rows=1") > 0);
 	playerbot_itemunequip(.bot_key$, 1201);
+	.@knife_removed_ok = playerbot_itemremove(.bot_key$, 1201, 1);
+	.@loadout_missing_ok = (playerbot_loadoutreconcile(.bot_key$) == 0);
+	.@knife_regrant_ok = playerbot_itemgrant(.bot_key$, 1201, 1);
+	.@denied_grant_ok = playerbot_itemgrant(.bot_key$, 1701, 1);
+	.@loadout_denied_set_ok = playerbot_loadoutset(.bot_key$, 1701);
+	.@loadout_denied_ok = (playerbot_loadoutreconcile(.bot_key$) == 0);
+	.@loadout_recover_clear_ok = playerbot_loadoutclear(.bot_key$, 1701);
+	.@loadout_recover_ok = (playerbot_loadoutreconcile(.bot_key$) == 1);
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
 		sleep 300;
@@ -280,19 +291,54 @@ S_Run:
 	.@knife_eq = callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201);
 	.@pot_inv = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501);
 	.@pot_storage = callfunc("F_PB_ITEM_Count", .bot_key$, "storage", 501);
-	.@audit$ = callfunc("F_PB_ITEM_BuildAuditSummary$", .bot_key$, 12);
-	.@audit_ok = (countstr(.@audit$, "inventory_add") > 0
-		&& countstr(.@audit$, "inventory_remove") > 0
-		&& countstr(.@audit$, "consume") > 0
-		&& countstr(.@audit$, "equip") > 0
-		&& countstr(.@audit$, "unequip") > 0
-		&& countstr(.@audit$, "storage_deposit") > 0
-		&& countstr(.@audit$, "storage_withdraw") > 0);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'inventory_add'",
+		.@audit_inventory_add);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'inventory_remove'",
+		.@audit_inventory_remove);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'consume'",
+		.@audit_consume);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'equip'",
+		.@audit_equip);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'unequip'",
+		.@audit_unequip);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'storage_deposit'",
+		.@audit_storage_deposit);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'storage_withdraw'",
+		.@audit_storage_withdraw);
+	.@audit_ok = (.@audit_inventory_add >= 1
+		&& .@audit_inventory_remove >= 1
+		&& .@audit_consume >= 1
+		&& .@audit_equip >= 1
+		&& .@audit_unequip >= 1
+		&& .@audit_storage_deposit >= 1
+		&& .@audit_storage_withdraw >= 1);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'loadout' AND `action` = 'reconcile'",
 		.@loadout_audits);
-	.@loadout_audit_ok = (.@loadout_audits >= 2);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'equip' AND `detail` = 'loadout.manual.missing'",
+		.@loadout_missing_audits);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `action` = 'equip' AND `detail` = 'loadout.manual.denied'",
+		.@loadout_denied_audits);
+	.@loadout_audit_ok = (.@loadout_audits >= 5 && .@loadout_missing_audits >= 1 && .@loadout_denied_audits >= 1);
 
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
@@ -305,10 +351,12 @@ S_Run:
 
 	.@result = (.@grant_ok && .@equip_ok && .@unequip_ok && .@reequip_ok && .@consume_ok
 		&& .@deposit_ok && .@withdraw_ok && .@remove_ok && .@regrant_ok
-		&& .@loadout_set_ok && .@despawn_ok && .@respawn_spawn_ok && .@loadout_spawn_ok
+		&& .@loadout_set_ok && .@loadout_rows_ok && .@knife_removed_ok && .@loadout_missing_ok
+		&& .@knife_regrant_ok && .@denied_grant_ok && .@loadout_denied_set_ok && .@loadout_denied_ok
+		&& .@loadout_recover_clear_ok && .@loadout_recover_ok && .@despawn_ok && .@respawn_spawn_ok && .@loadout_spawn_ok
 		&& .@kill_ok && .@dead_ok && .@respawn_req_ok && .@respawn_ok && .@loadout_respawn_ok
 		&& .@knife_eq >= 1 && .@pot_inv == 1 && .@pot_storage == 1 && .@audit_ok && .@loadout_audit_ok && .@park_ok);
-	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " consume_ok=" + .@consume_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " consume_ok=" + .@consume_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " loadout_rows_ok=" + .@loadout_rows_ok + " knife_removed_ok=" + .@knife_removed_ok + " loadout_missing_ok=" + .@loadout_missing_ok + " knife_regrant_ok=" + .@knife_regrant_ok + " denied_grant_ok=" + .@denied_grant_ok + " loadout_denied_set_ok=" + .@loadout_denied_set_ok + " loadout_denied_ok=" + .@loadout_denied_ok + " loadout_recover_clear_ok=" + .@loadout_recover_clear_ok + " loadout_recover_ok=" + .@loadout_recover_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	playerbot_loadoutclear(.bot_key$);
 	detachrid;
 	return;

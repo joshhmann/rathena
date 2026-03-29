@@ -2636,3 +2636,23 @@ Current limit:
   rather than this harness-repair part
 - older merchant bootstrap noise still exists in logs even though the required
   merchant selftest result is green
+
+Loadout continuity now has explicit failure semantics on the current baseline:
+
+- playerbots expose the current intended loadout row count and a compact runtime
+  summary through script-facing helper verbs
+- manual reconcile now has a deterministic proof for:
+  - missing intended equipment
+  - present-but-denied intended equipment
+  - recovery back to the intended valid loadout
+- the current item selftest proves the denied branch with a novice-ineligible
+  bow row and the missing branch by removing the intended knife before
+  reconcile
+- the aggregate smoke uses direct audit counts for the transactional item lane,
+  so deeper loadout checks no longer create false negatives by pushing older
+  item actions out of a short recency summary
+
+Current limit:
+
+- the current intended-loadout model is still one row per equip location
+- multi-slot/full-build policy and richer equipment sourcing remain deferred

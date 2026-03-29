@@ -5792,6 +5792,59 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Loadout Failure Semantics
+
+### Summary
+
+Deepened the equipment/item continuity lane by making loadout failure states
+operator-visible and proving them in the live item selftest.
+
+### Files
+
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added script-facing loadout inspection buildins:
+  - `playerbot_loadoutcount`
+  - `playerbot_loadoutsummary`
+- Extended the item selftest to prove:
+  - intended loadout row visibility
+  - manual reconcile failure when the intended item is missing
+  - manual reconcile failure when the intended item is present but equip-denied
+  - successful recovery back to the intended knife loadout after clearing the
+    denied row
+- Switched the transactional item audit gate from a short recency summary to
+  direct SQL counts so the deeper loadout path remains deterministic.
+- Widened the aggregate foundation smoke tmux capture window so the longer
+  item/combat logs do not hide the final combat selftest line from the checker.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+
+Integrated result:
+
+- `playerbot_item_selftest ... loadout_missing_ok=1 ... loadout_denied_ok=1 ... loadout_recover_ok=1 ... result=1`
+- aggregate foundation smoke passes again with all current subsystem selftests
+  present
+
+### Deferrals
+
+This slice does not add:
+
+- multi-slot intended loadout planning
+- richer loadout policy by class/build
+- market-aware equipment sourcing
+- deeper combat-side equipment mutation during active skill use
+
 ## Slice 61: Playerbot Foundation Harness Repair
 
 ### Summary
