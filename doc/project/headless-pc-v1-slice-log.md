@@ -5792,6 +5792,69 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 65: Playerbot Status Continuity Baseline
+
+### Summary
+
+Implemented the first runtime status continuity layer on top of the combat
+frontier so status behavior is now proven across death, respawn, map change,
+and participation recovery.
+
+### Files
+
+- `src/map/script.cpp`
+- `src/map/pc.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added shared playerbot status-state helpers in `script.cpp`:
+  - `playerbot_statuscount(bot_key$)`
+  - `playerbot_statussummary(bot_key$)`
+- Added runtime status-state helpers in `pc.cpp` so death/respawn cleanup can
+  audit tracked status continuity for headless bots.
+- Added status recovery audits:
+  - `status / cleanup`
+  - `status / reconcile`
+- Expanded the combat selftest so it now proves:
+  - direct status apply/clear
+  - status persistence across map change
+  - participation recovery does not mutate active status
+  - buff/ailment cleanup on death
+  - fresh status state after respawn
+- Tightened the combat acceptance gate so the new status continuity checks are
+  part of the real aggregate foundation pass.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- aggregate foundation smoke is green again
+- combat selftest now proves:
+  - `status_map_cont_ok=1`
+  - `status_recover_ok=1`
+  - `status_death_clear_ok=1`
+  - `status_respawn_fresh_ok=1`
+  - `status_trace_ok=1`
+  - `status_audit_ok=1`
+- recent recovery audits now include:
+  - `status / cleanup / ok`
+  - `status / reconcile / ok`
+
+### Deferrals
+
+This slice still does not add:
+
+- skill-cast status logic
+- broader map-change trace coverage outside the current selftest proof
+- persistent status memory
+- event-specific status continuity beyond the current combat/death/respawn lane
+
 ## Slice 64: Combat Trade-Interrupt Proof
 
 ### Summary

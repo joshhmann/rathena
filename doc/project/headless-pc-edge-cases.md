@@ -2318,3 +2318,25 @@ Trade interrupt proof update:
   the participation harness
 - aggregate foundation smoke is green with trade interrupt now included in the
   combat acceptance proof
+
+Status continuity baseline now covered:
+
+- combat selftest now proves status behavior across:
+  - direct apply/clear
+  - map change continuity
+  - participation recovery integrity
+  - death cleanup
+  - respawn freshness
+- status continuity is now surfaced through:
+  - `playerbot_statuscount(bot_key$)`
+  - `playerbot_statussummary(bot_key$)`
+- recovery audits now include:
+  - `status / cleanup`
+  - `status / reconcile`
+
+Current limit:
+
+- the authoritative proof currently rides through the combat selftest and the
+  aggregate foundation smoke
+- broader map-change/event-specific status trace coverage is still deferred
+- this is the first continuity baseline, not a full status-system planner

@@ -392,6 +392,29 @@ static std::string playerbot_participation_state(const map_session_data* sd) {
 		+ ",staged=" + std::to_string(playerbot_trade_has_staged(sd) ? 1 : 0);
 }
 
+static int32 playerbot_status_count(const map_session_data* sd) {
+	if (sd == nullptr)
+		return 0;
+
+	int32 count = 0;
+	for (int32 i = SC_NONE + 1; i < SC_MAX; ++i) {
+		if (sd->sc.getSCE(static_cast<sc_type>(i)) != nullptr)
+			++count;
+	}
+	return count;
+}
+
+static std::string playerbot_status_state(const map_session_data* sd) {
+	if (sd == nullptr)
+		return "offline";
+
+	return "count=" + std::to_string(playerbot_status_count(sd))
+		+ ",blessing=" + std::to_string(sd->sc.getSCE(SC_BLESSING) != nullptr ? 1 : 0)
+		+ ",incagi=" + std::to_string(sd->sc.getSCE(SC_INCREASEAGI) != nullptr ? 1 : 0)
+		+ ",poison=" + std::to_string(sd->sc.getSCE(SC_POISON) != nullptr ? 1 : 0)
+		+ ",stun=" + std::to_string(sd->sc.getSCE(SC_STUN) != nullptr ? 1 : 0);
+}
+
 static bool playerbot_npc_force_recover(map_session_data* sd) {
 	if (sd == nullptr)
 		return false;
@@ -13709,6 +13732,24 @@ BUILDIN_FUNC(playerbot_statusactive)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_statuscount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, playerbot_status_count(sd));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_statussummary)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushstrcopy(st, playerbot_status_state(sd).c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_statusstart)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -13763,6 +13804,7 @@ BUILDIN_FUNC(playerbot_respawn)
 	const char* bot_key = script_getstr(st, 2);
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
 	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	std::string status_before = playerbot_status_state(sd);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, "respawn.requested", "respawn", "", "restart.recovery", "ok", "", "");
 
 	if (sd == nullptr) {
@@ -13778,7 +13820,10 @@ BUILDIN_FUNC(playerbot_respawn)
 
 	pc_force_respawn(sd, CLR_OUTSIGHT);
 	bool ok = !pc_isdead(sd);
+	std::string status_after = playerbot_status_state(sd);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "respawn.completed" : "respawn.failed", "respawn", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.respawn", ok ? "" : "respawn.still_dead");
+	if (ok)
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", "", "respawn.reconcile", "ok", "", strcmp(status_before.c_str(), status_after.c_str()) == 0 ? "status.reconciled" : "status.changed");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -13788,6 +13833,7 @@ BUILDIN_FUNC(playerbot_kill)
 	const char* bot_key = script_getstr(st, 2);
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
 	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	std::string status_before = playerbot_status_state(sd);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, "death.requested", "death", "", "restart.recovery", "ok", "", "");
 
 	if (sd == nullptr) {
@@ -13803,7 +13849,10 @@ BUILDIN_FUNC(playerbot_kill)
 
 	status_kill(sd);
 	bool ok = pc_isdead(sd);
+	std::string status_after = playerbot_status_state(sd);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "death.completed" : "death.failed", "death", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.kill", ok ? "" : "kill.not_dead");
+	if (ok)
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", "", "death.cleanup", "ok", "", strcmp(status_before.c_str(), status_after.c_str()) == 0 ? "status.unchanged" : "status.cleared");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -31237,6 +31286,8 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_isdead,"s"),
 	BUILDIN_DEF(playerbot_isrespawning,"s"),
 	BUILDIN_DEF(playerbot_statusactive,"si"),
+	BUILDIN_DEF(playerbot_statuscount,"s"),
+	BUILDIN_DEF(playerbot_statussummary,"s"),
 	BUILDIN_DEF(playerbot_statusstart,"siii"),
 	BUILDIN_DEF(playerbot_statusclear,"si"),
 	BUILDIN_DEF(playerbot_combatstate,"s"),

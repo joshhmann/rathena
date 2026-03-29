@@ -9848,6 +9848,31 @@ static void pc_playerbot_trace_event(uint32 bot_id, uint32 char_id, uint32 accou
 	}
 }
 
+static int32 pc_playerbot_status_count(const map_session_data* sd)
+{
+	if (sd == nullptr)
+		return 0;
+
+	int32 count = 0;
+	for (int32 i = SC_NONE + 1; i < SC_MAX; ++i) {
+		if (sd->sc.getSCE(static_cast<sc_type>(i)) != nullptr)
+			++count;
+	}
+	return count;
+}
+
+static std::string pc_playerbot_status_state(const map_session_data* sd)
+{
+	if (sd == nullptr)
+		return "offline";
+
+	return "count=" + std::to_string(pc_playerbot_status_count(sd))
+		+ ",blessing=" + std::to_string(sd->sc.getSCE(SC_BLESSING) != nullptr ? 1 : 0)
+		+ ",incagi=" + std::to_string(sd->sc.getSCE(SC_INCREASEAGI) != nullptr ? 1 : 0)
+		+ ",poison=" + std::to_string(sd->sc.getSCE(SC_POISON) != nullptr ? 1 : 0)
+		+ ",stun=" + std::to_string(sd->sc.getSCE(SC_STUN) != nullptr ? 1 : 0);
+}
+
 static void pc_playerbot_item_audit(uint32 bot_id, uint32 char_id, uint32 account_id, const char* action, t_itemid item_id, uint16 amount, const char* location, const char* result, const char* detail)
 {
 	char esc_detail[385];
@@ -10205,6 +10230,18 @@ static void pc_playerbot_handle_death_cleanup(map_session_data* sd)
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "death.observed", "death", "", "restart.recovery", "ok", "", detail.c_str());
 }
 
+static void pc_playerbot_finalize_death_status(map_session_data* sd, const char* status_before)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	if (sd == nullptr || status_before == nullptr || *status_before == '\0' || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return;
+
+	std::string status_after = pc_playerbot_status_state(sd);
+	const char* status_detail = (strcmp(status_before, status_after.c_str()) == 0) ? "death.nochange" : "death.cleanup";
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "cleanup", status_before, status_after.c_str(), "ok", status_detail);
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "death.cleanup", "ok", "", strcmp(status_before, status_after.c_str()) == 0 ? "status.unchanged" : "status.cleared");
+}
+
 static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 {
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
@@ -10225,6 +10262,11 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 	}
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "combat", "respawn", before.c_str(), after.c_str(), "ok", detail.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "respawn.completed", "respawn", "", "restart.recovery", "ok", "", detail.c_str());
+
+	std::string status_before = pc_playerbot_status_state(sd);
+	std::string status_after = pc_playerbot_status_state(sd);
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "reconcile", status_before.c_str(), status_after.c_str(), "ok", "respawn.reconcile");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "respawn.reconcile", "ok", "", "status.reconciled");
 }
 
 /*==========================================
@@ -10235,6 +10277,10 @@ int32 pc_dead(map_session_data *sd,block_list *src)
 	int32 i=0,k=0;
 	t_tick tick = gettick();
 	struct map_data *mapdata = map_getmapdata(sd->m);
+	std::string playerbot_status_before_death;
+	bool playerbot_track_status = pc_playerbot_lookup_identity(sd, nullptr, nullptr, nullptr);
+	if (playerbot_track_status)
+		playerbot_status_before_death = pc_playerbot_status_state(sd);
 
 	// Activate Steel body if a super novice dies at 99+% exp [celest]
 	// Super Novices have no kill or die functions attached when saved by their angel
@@ -10576,12 +10622,14 @@ int32 pc_dead(map_session_data *sd,block_list *src)
 			ssd->pvp_won++;
 		}
 		if( sd->pvp_point < 0 ) {
+			pc_playerbot_finalize_death_status(sd, playerbot_track_status ? playerbot_status_before_death.c_str() : nullptr);
 			sd->respawn_tid = add_timer(tick+1000, pc_respawn_timer,sd->id,0);
 			return 1|8;
 		}
 	}
 	//GvG
 	if( mapdata_flag_gvg2(mapdata) ) {
+		pc_playerbot_finalize_death_status(sd, playerbot_track_status ? playerbot_status_before_death.c_str() : nullptr);
 		sd->respawn_tid = add_timer(tick+1000, pc_respawn_timer, sd->id, 0);
 		return 1|8;
 	}
@@ -10590,6 +10638,7 @@ int32 pc_dead(map_session_data *sd,block_list *src)
 
 		if (bg) {
 			if (bg->cemetery.map > 0) { // Respawn by BG
+				pc_playerbot_finalize_death_status(sd, playerbot_track_status ? playerbot_status_before_death.c_str() : nullptr);
 				sd->respawn_tid = add_timer(tick + 1000, pc_respawn_timer, sd->id, 0);
 				return 1|8;
 			}
@@ -10599,6 +10648,7 @@ int32 pc_dead(map_session_data *sd,block_list *src)
 	//Reset "can log out" tick.
 	if( battle_config.prevent_logout )
 		sd->canlog_tick = gettick() - battle_config.prevent_logout;
+	pc_playerbot_finalize_death_status(sd, playerbot_track_status ? playerbot_status_before_death.c_str() : nullptr);
 	return 1;
 }
 
