@@ -5852,6 +5852,58 @@ This part still does not add:
 - market purchase/commit semantics
 - deterministic denied-warp preservation proof specifically for vendlist state
 
+## Slice: Market Buyingstore Participation
+
+### What Changed
+
+- Added first-class buyingstore buildins in `src/map/script.cpp`:
+  - `playerbot_buyingstoreopen`
+  - `playerbot_buyingstoreclose`
+  - `playerbot_buyingstoreactive`
+  - `playerbot_buyingstoresummary`
+- Wired those buildins to the real engine path:
+  - setup through `buyingstore_setup`
+  - creation through `buyingstore_create`
+  - close through `buyingstore_close`
+- Extended playerbot session summaries/counts in both runtime and script surfaces
+  so `buyingstore` now appears as a first-class active market session state.
+- Deepened `PlayerbotMerchantSelftest` so it now proves seller-side buyingstore
+  continuity on the Alberta merchant baseline:
+  - authoritative item seed via `playerbot_itemgrant`
+  - zeny seed on the live seller actor
+  - buyingstore open
+  - successful map-change cleanup
+  - reopen
+  - explicit close
+  - trace coverage for `target_type = 'buyingstore'`
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- Verified recent `bot_trace_event` rows on the integrated run:
+  - `buyingstore / interaction.requested / ok`
+  - `buyingstore / interaction.completed / ok`
+  - `buyingstore / interaction.completed / noop`
+- Verified combined recent market trace coverage:
+  - `buyingstore`
+  - `vending`
+  - `vendlist`
+- Verified the sequenced foundation run still reached:
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=combat`
+  - `stage=done`
+
+### Deferrals
+
+This part still does not add:
+
+- buyer-side buyingstore browse/trade flows
+- buyingstore purchase commit semantics
+- deterministic denied-warp preservation proof specifically for seller-side
+  buyingstore state
+
 ## Slice 61: Playerbot Session Helper Verbs
 
 ### Summary

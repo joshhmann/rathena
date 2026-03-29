@@ -186,6 +186,15 @@ S_Run:
 	.@vendlist_return_ok = 0;
 	.@vending_close_ok = 0;
 	.@vending_closed_ok = 0;
+	.@buying_seed_ok = 0;
+	.@buying_open_ok = 0;
+	.@buying_active_ok = 0;
+	.@buying_move_ok = 0;
+	.@buying_clear_ok = 0;
+	.@buying_return_ok = 0;
+	.@buying_reopen_ok = 0;
+	.@buying_close_ok = 0;
+	.@buying_closed_ok = 0;
 	.@market_trace_ok = 0;
 	debugmes "playerbot_merchant_selftest: step=summary found=" + .@found + " char_id=" + $@pbbot_char_id + ".";
 	if (.@found && $@pbbot_char_id > 0) {
@@ -288,13 +297,34 @@ S_Run:
 							sleep 600;
 						.@vending_close_ok = playerbot_vendingclose(.bot_key$);
 						.@vending_closed_ok = (.@vending_close_ok && !playerbot_vendingactive(.bot_key$));
+						playerbot_itemgrant(.bot_key$, 909, 1);
+						if (attachrid(.@seller_account_id)) {
+							if (Zeny < 500)
+								set Zeny, 500;
+							.@buying_seed_ok = (playerbot_itemcount(.bot_key$, 909) >= 1 && Zeny >= 500);
+							detachrid;
+						}
+						if (.@buying_seed_ok) {
+							.@buying_open_ok = playerbot_buyingstoreopen(.bot_key$, "PB Buying Test", 909, 1, 50, 500);
+							.@buying_active_ok = (.@buying_open_ok && playerbot_buyingstoreactive(.bot_key$));
+							.@buying_move_ok = (.@buying_active_ok && headlesspc_setpos(.@seller_char_id, "izlude", 128, 146));
+							if (.@buying_move_ok)
+								sleep 600;
+							.@buying_clear_ok = (.@buying_move_ok && !playerbot_buyingstoreactive(.bot_key$));
+							.@buying_return_ok = (.@buying_clear_ok && headlesspc_setpos(.@seller_char_id, .@seller_market_map$, .@seller_market_x, .@seller_market_y));
+							if (.@buying_return_ok)
+								sleep 600;
+							.@buying_reopen_ok = (.@buying_return_ok && playerbot_buyingstoreopen(.bot_key$, "PB Buying Test", 909, 1, 50, 500));
+							.@buying_close_ok = (.@buying_reopen_ok && playerbot_buyingstoreclose(.bot_key$));
+							.@buying_closed_ok = (.@buying_close_ok && !playerbot_buyingstoreactive(.bot_key$));
+						}
 						.@market_trace_rows = query_sql(
 							"SELECT COUNT(*) "
 							+ "FROM `bot_trace_event` "
 							+ "WHERE `char_id` IN ('" + .@seller_char_id + "','" + .@viewer_char_id + "') "
-							+ "AND `target_type` IN ('vending','vendlist')",
+							+ "AND `target_type` IN ('vending','vendlist','buyingstore')",
 							.@market_trace_count);
-						.@market_trace_ok = (.@market_trace_rows > 0 && .@market_trace_count[0] >= 4);
+						.@market_trace_ok = (.@market_trace_rows > 0 && .@market_trace_count[0] >= 8);
 					}
 				}
 			}
@@ -323,7 +353,7 @@ S_Run:
 	// The aggregate foundation pass now runs its own top-level orchestration.
 	// Avoid forcing a full control-plane reload from inside the merchant selftest.
 	.@reload_ok = 1;
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " market_trace_ok=" + .@market_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@market_trace_ok && .@park_ok && .@reload_ok) + ".";
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " buying_seed_ok=" + .@buying_seed_ok + " buying_open_ok=" + .@buying_open_ok + " buying_active_ok=" + .@buying_active_ok + " buying_move_ok=" + .@buying_move_ok + " buying_clear_ok=" + .@buying_clear_ok + " buying_return_ok=" + .@buying_return_ok + " buying_reopen_ok=" + .@buying_reopen_ok + " buying_close_ok=" + .@buying_close_ok + " buying_closed_ok=" + .@buying_closed_ok + " market_trace_ok=" + .@market_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@buying_seed_ok && .@buying_open_ok && .@buying_active_ok && .@buying_move_ok && .@buying_clear_ok && .@buying_return_ok && .@buying_reopen_ok && .@buying_close_ok && .@buying_closed_ok && .@market_trace_ok && .@park_ok && .@reload_ok) + ".";
 	return;
 }
 

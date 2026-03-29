@@ -2567,3 +2567,23 @@ Current limit:
 - buyingstore remains the next real market-session gap
 - purchase flows, seller stock mutation under purchases, and richer market
   continuity are still deferred
+
+Buyingstore participation is now first-class enough for the current seller-side
+foundation bar:
+
+- playerbots can open and close a real buyingstore through dedicated buildins
+  instead of relying on raw script toggles
+- the active playerbot session surface now reports `buyingstore=1` when seller
+  state is live
+- successful transition cleanup clears seller-side buyingstore state through the
+  same engine-owned map-change / quit / death continuity path already used by
+  normal players
+- traces now expose those interactions under:
+  - `target_type = 'buyingstore'`
+
+Current limit:
+
+- this is still seller-side continuity, not buyer-side browse/trade behavior
+- buyingstore purchase flows are still deferred
+- the next real market-session gap after this is buyer-side buyingstore browse
+  and trade semantics

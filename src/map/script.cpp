@@ -36,6 +36,7 @@
 #include "achievement.hpp"
 #include "atcommand.hpp"
 #include "battle.hpp"
+#include "buyingstore.hpp"
 #include "battleground.hpp"
 #include "cashshop.hpp"
 #include "channel.hpp"
@@ -58,6 +59,7 @@
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
+#include "packets_struct.hpp"
 #include "path.hpp"
 #include "pc.hpp"
 #include "pc_groups.hpp"
@@ -427,6 +429,7 @@ static int32 playerbot_session_count(const map_session_data* sd) {
 		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
 		+ (sd->searchstore.open ? 1 : 0)
 		+ (sd->vended_id != 0 ? 1 : 0)
+		+ (sd->state.buyingstore ? 1 : 0)
 		+ (sd->state.mail_writing ? 1 : 0)
 		+ (sd->state.roulette_open ? 1 : 0)
 		+ (sd->state.enchantgrade_open ? 1 : 0)
@@ -452,6 +455,7 @@ static std::string playerbot_session_state(const map_session_data* sd) {
 		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
 		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
 		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
+		+ ",buyingstore=" + std::to_string(sd->state.buyingstore ? 1 : 0)
 		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
 		+ ",roulette=" + std::to_string(sd->state.roulette_open ? 1 : 0)
 		+ ",enchantgrade=" + std::to_string(sd->state.enchantgrade_open ? 1 : 0)
@@ -477,6 +481,16 @@ static std::string playerbot_search_state(const map_session_data* sd) {
 		+ ",pages=" + std::to_string(sd->searchstore.pages)
 		+ ",results=" + std::to_string(sd->searchstore.items.size())
 		+ ",remote=" + std::to_string(sd->searchstore.remote_id != 0 ? 1 : 0);
+}
+
+static std::string playerbot_buyingstore_state(const map_session_data* sd) {
+	if (sd == nullptr)
+		return "offline";
+
+	return "open=" + std::to_string(sd->state.buyingstore ? 1 : 0)
+		+ ",buyer_id=" + std::to_string(sd->buyer_id)
+		+ ",slots=" + std::to_string(sd->buyingstore.slots)
+		+ ",limit=" + std::to_string(sd->buyingstore.zenylimit);
 }
 
 static int32 playerbot_find_cart_index(const map_session_data* sd, t_itemid nameid, int16 min_amount) {
@@ -14441,6 +14455,92 @@ BUILDIN_FUNC(playerbot_vendlistsummary)
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
 	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
 	script_pushstrcopy(st, playerbot_vendlist_state(sd).c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_buyingstoreopen)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* title = script_getstr(st, 3);
+	t_itemid nameid = static_cast<t_itemid>(script_getnum(st, 4));
+	int32 amount = script_getnum(st, 5);
+	int32 price = script_getnum(st, 6);
+	int32 zenylimit = script_getnum(st, 7);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "buyingstore", title, "operator.start", "ok", "", "");
+
+	if (sd == nullptr || nameid == 0 || amount <= 0 || price <= 0 || zenylimit <= 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingstore", title, "target.invalid", "denied", "buyingstore.open", sd == nullptr ? "bot.offline" : "buyingstore.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->state.buyingstore) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "buyingstore", title, "operator.start", "noop", "", "already.open");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int8 setup = buyingstore_setup(sd, 1);
+	if (setup != 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingstore", title, "target.invalid", "denied", "buyingstore.open", ("setup=" + std::to_string(setup)).c_str());
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	PACKET_CZ_REQ_OPEN_BUYING_STORE_sub item = {};
+	item.itemId = static_cast<uint32>(nameid);
+	item.amount = static_cast<uint16>(amount);
+	item.price = static_cast<uint32>(price);
+	int8 result = buyingstore_create(sd, zenylimit, 1, title, &item, 1, nullptr);
+	bool ok = (result == 0 && sd->state.buyingstore && sd->buyer_id != 0);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "buyingstore", title, ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "buyingstore.open", ok ? playerbot_buyingstore_state(sd).c_str() : ("result=" + std::to_string(result)).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_buyingstoreclose)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "buyingstore", "close", "operator.stop", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingstore", "close", "target.invalid", "denied", "buyingstore.close", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!sd->state.buyingstore) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "buyingstore", "close", "operator.stop", "noop", "", "already.closed");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	buyingstore_close(sd);
+	bool ok = !sd->state.buyingstore;
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "buyingstore", "close", ok ? "operator.stop" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "buyingstore.close", playerbot_buyingstore_state(sd).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_buyingstoreactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && sd->state.buyingstore) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_buyingstoresummary)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushstrcopy(st, playerbot_buyingstore_state(sd).c_str());
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -32183,6 +32283,10 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_vendlistclose,"s"),
 	BUILDIN_DEF(playerbot_vendlistactive,"s"),
 	BUILDIN_DEF(playerbot_vendlistsummary,"s"),
+	BUILDIN_DEF(playerbot_buyingstoreopen,"ssiiii"),
+	BUILDIN_DEF(playerbot_buyingstoreclose,"s"),
+	BUILDIN_DEF(playerbot_buyingstoreactive,"s"),
+	BUILDIN_DEF(playerbot_buyingstoresummary,"s"),
 	BUILDIN_DEF(playerbot_bankopen,"s"),
 	BUILDIN_DEF(playerbot_bankclose,"s"),
 	BUILDIN_DEF(playerbot_bankactive,"s"),
