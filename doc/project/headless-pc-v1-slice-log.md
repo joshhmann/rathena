@@ -5858,6 +5858,65 @@ This slice intentionally does not resolve:
 - repeated `buildin_cartgetitem` warnings during merchant bootstrap
 - richer active skill-cast acceptance in the aggregate combat gate
 
+## Slice 62: Playerbot Buyer-Side Buyingstore Participation
+
+### Summary
+
+Extended market participation from seller-side buyingstore ownership into
+buyer-side browse and sell semantics through the real buyingstore runtime.
+
+### Files
+
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added buyer-browse playerbot buildins:
+  - `playerbot_buyinglistopen`
+  - `playerbot_buyinglistclose`
+  - `playerbot_buyinglistactive`
+  - `playerbot_buyinglistsummary`
+- Added seller-side commit buildin:
+  - `playerbot_buyingstoresell`
+- Buyer browsing now uses the real remote-buyingstore path:
+  - `searchstore_open(..., SEARCHSTORE_EFFECT_REMOTE, ...)`
+  - `buyingstore_open(...)`
+- Seller commit now uses the real engine trade path:
+  - `buyingstore_trade(...)`
+- Expanded merchant selftest to prove:
+  - buyer store open
+  - seller browse of that buyingstore
+  - one real item sale into the buyingstore
+  - buyer auto-close after the requested amount is satisfied
+  - seller browse-state clear after the sale
+  - trace coverage for:
+    - `buyinglist`
+    - `buyingtrade`
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- confirmed live merchant line:
+  - `playerbot_merchant_selftest ... buyinglist_open_ok=1 buyinglist_active_ok=1 buying_sell_ok=1 buying_buyer_close_ok=1 buyinglist_clear_ok=1 result=1`
+- confirmed aggregate completion still reaches:
+  - `playerbot_participation_selftest ... result=1`
+  - `playerbot_combat_selftest ... result=1`
+  - `playerbot_foundation_selftest: stage=done`
+
+### Deferrals
+
+This slice still does not add:
+
+- buyer-side buyingstore purchase selection beyond the one-item proof path
+- richer multi-item buyingstore negotiations
+- full market purchase/commit economics beyond the current continuity/legal
+  participation surface
+
 ## Slice: Market Vendlist Participation
 
 ### What Changed

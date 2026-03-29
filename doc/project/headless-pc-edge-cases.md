@@ -2588,6 +2588,26 @@ Current limit:
 - the next real market-session gap after this is buyer-side buyingstore browse
   and trade semantics
 
+Buyer-side buyingstore participation is now covered for the current foundation
+bar:
+
+- a seller-side playerbot can open a live buyingstore list against a real buyer
+  actor through the engine's remote-buyingstore path
+- a seller-side playerbot can then complete one real item sale through the
+  normal `buyingstore_trade(...)` runtime
+- the buyer auto-closes correctly when the requested quantity is satisfied
+- seller browse state clears after the successful sale
+- traces now expose those interactions under:
+  - `target_type = 'buyinglist'`
+  - `target_type = 'buyingtrade'`
+
+Current limit:
+
+- the current proof is a one-item browse-and-sell path, not richer purchase UI
+  behavior
+- multi-item seller negotiation and deeper market purchase semantics remain
+  deferred
+
 Integrated foundation harness status is repaired on the current baseline:
 
 - the sequenced coordinator now completes through:
