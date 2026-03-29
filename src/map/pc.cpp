@@ -6901,6 +6901,9 @@ bool pc_steal_item(map_session_data *sd,block_list *bl, uint16 skill_lv)
  *------------------------------------------*/
 void pc_playerbot_handle_quit_cleanup(map_session_data* sd);
 static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd);
+static void pc_playerbot_finalize_mapchange_status(map_session_data* sd, const char* status_before);
+static bool pc_playerbot_lookup_identity(const map_session_data* sd, uint32* bot_id, uint32* char_id, uint32* account_id);
+static std::string pc_playerbot_status_state(const map_session_data* sd);
 
 enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y, clr_type clrtype)
 {
@@ -6926,21 +6929,13 @@ enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y,
 	sd->state.changemap = (sd->mapindex != mapindex);
 	sd->state.warping = 1;
 	sd->state.workinprogress = WIP_DISABLE_NONE;
-	sd->state.mail_writing = false;
-	sd->state.refineui_open = false;
-	sd->state.stylist_open = false;
-	sd->state.inventory_expansion_confirmation = 0;
-	sd->state.barter_open = false;
-	sd->state.barter_extended_open = false;
-	sd->state.laphine_synthesis = 0;
-	sd->state.laphine_upgrade = 0;
-	sd->state.roulette_open = false;
-	sd->state.enchantgrade_open = false;
-	sd->state.item_reform = 0;
-	sd->state.item_enchant_index = 0;
 
 	if( sd->state.changemap ) { // Misc map-changing settings
 		int32 curr_map_instance_id = map_getmapdata(sd->m)->instance_id, new_map_instance_id = (mapdata ? mapdata->instance_id : 0);
+		std::string playerbot_status_before_mapchange;
+		std::string playerbot_session_before_mapchange;
+		uint32 playerbot_mapchange_bot_id = 0, playerbot_mapchange_char_id = 0, playerbot_mapchange_account_id = 0;
+		bool playerbot_track_mapchange_status = false;
 
 		if (curr_map_instance_id != new_map_instance_id) {
 			if (curr_map_instance_id > 0) { // Update instance timer for the map on leave
@@ -6956,11 +6951,27 @@ enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y,
 			bg_team_leave(sd, false, true);
 
 		sd->state.pmap = sd->m;
-		if (sd->prev != nullptr || sd->state.active)
-			pc_playerbot_handle_mapchange_cleanup(sd);
+		if (pc_playerbot_lookup_identity(sd, &playerbot_mapchange_bot_id, &playerbot_mapchange_char_id, &playerbot_mapchange_account_id)) {
+			playerbot_track_mapchange_status = true;
+			playerbot_status_before_mapchange = pc_playerbot_status_state(sd);
+			playerbot_session_before_mapchange = pc_playerbot_session_state(sd);
+		}
 		if (sc != nullptr && !sc->empty()) { // Cancel some map related stuff.
 			if (sc->cant.warp)
 				return SETPOS_MAPINDEX; // You may not get out!
+
+			sd->state.mail_writing = false;
+			sd->state.refineui_open = false;
+			sd->state.stylist_open = false;
+			sd->state.inventory_expansion_confirmation = 0;
+			sd->state.barter_open = false;
+			sd->state.barter_extended_open = false;
+			sd->state.laphine_synthesis = 0;
+			sd->state.laphine_upgrade = 0;
+			sd->state.roulette_open = false;
+			sd->state.enchantgrade_open = false;
+			sd->state.item_reform = 0;
+			sd->state.item_enchant_index = 0;
 
 			for (const auto &it : status_db) {
 				if (sc->getSCE(it.first)) {
@@ -6976,14 +6987,46 @@ enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y,
 					}
 				}
 			}
+		} else {
+			sd->state.mail_writing = false;
+			sd->state.refineui_open = false;
+			sd->state.stylist_open = false;
+			sd->state.inventory_expansion_confirmation = 0;
+			sd->state.barter_open = false;
+			sd->state.barter_extended_open = false;
+			sd->state.laphine_synthesis = 0;
+			sd->state.laphine_upgrade = 0;
+			sd->state.roulette_open = false;
+			sd->state.enchantgrade_open = false;
+			sd->state.item_reform = 0;
+			sd->state.item_enchant_index = 0;
 		}
+		if (sd->prev != nullptr || sd->state.active)
+			pc_playerbot_handle_mapchange_cleanup(sd);
+		if (playerbot_track_mapchange_status)
+			pc_playerbot_cleanup_session_state(sd, playerbot_mapchange_bot_id, playerbot_mapchange_char_id, playerbot_mapchange_account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.session", playerbot_session_before_mapchange.c_str());
+		pc_playerbot_finalize_mapchange_status(sd, playerbot_track_mapchange_status ? playerbot_status_before_mapchange.c_str() : nullptr);
 		for(int32 i = 0; i < EQI_MAX; i++ ) {
 			if( sd->equip_index[i] >= 0 )
 				if( pc_isequip( sd, sd->equip_index[i] ) != ITEM_EQUIP_ACK_OK ){
 					pc_unequipitem(sd,sd->equip_index[i],2);
 				}
 		}
-		if (battle_config.clear_unit_onwarp&BL_PC)
+	} else {
+		sd->state.mail_writing = false;
+		sd->state.refineui_open = false;
+		sd->state.stylist_open = false;
+		sd->state.inventory_expansion_confirmation = 0;
+		sd->state.barter_open = false;
+		sd->state.barter_extended_open = false;
+		sd->state.laphine_synthesis = 0;
+		sd->state.laphine_upgrade = 0;
+		sd->state.roulette_open = false;
+		sd->state.enchantgrade_open = false;
+		sd->state.item_reform = 0;
+		sd->state.item_enchant_index = 0;
+	}
+	if (battle_config.clear_unit_onwarp&BL_PC)
 			skill_clear_unitgroup(sd);
 		if( battle_config.loose_ap_on_map && mapdata_flag_vs( mapdata ) ){
 			status_percent_damage( nullptr, sd, 0, 0, 100, 0 );
@@ -9969,6 +10012,53 @@ static std::string pc_playerbot_combat_state(const map_session_data* sd)
 		+ ",trade=" + std::to_string((sd->trade_partner.id != 0 || sd->state.trading) ? 1 : 0);
 }
 
+static int32 pc_playerbot_session_count(const map_session_data* sd)
+{
+	if (sd == nullptr)
+		return 0;
+
+	return (sd->progressbar.npc_id != 0 ? 1 : 0)
+		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
+		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ (sd->state.mail_writing ? 1 : 0)
+		+ (sd->state.roulette_open ? 1 : 0)
+		+ (sd->state.enchantgrade_open ? 1 : 0)
+		+ (sd->state.item_reform != 0 ? 1 : 0)
+		+ (sd->state.item_enchant_index != 0 ? 1 : 0)
+		+ (sd->state.refineui_open ? 1 : 0)
+		+ (sd->state.stylist_open ? 1 : 0)
+		+ (sd->state.inventory_expansion_confirmation != 0 ? 1 : 0)
+		+ (sd->state.barter_open ? 1 : 0)
+		+ (sd->state.barter_extended_open ? 1 : 0)
+		+ (sd->state.laphine_synthesis != 0 ? 1 : 0)
+		+ (sd->state.laphine_upgrade != 0 ? 1 : 0)
+		+ (sd->state.banking ? 1 : 0);
+}
+
+static std::string pc_playerbot_session_state(const map_session_data* sd)
+{
+	if (sd == nullptr)
+		return "offline";
+
+	return "count=" + std::to_string(pc_playerbot_session_count(sd))
+		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
+		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
+		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
+		+ ",roulette=" + std::to_string(sd->state.roulette_open ? 1 : 0)
+		+ ",enchantgrade=" + std::to_string(sd->state.enchantgrade_open ? 1 : 0)
+		+ ",reform=" + std::to_string(sd->state.item_reform != 0 ? 1 : 0)
+		+ ",itemenchant=" + std::to_string(sd->state.item_enchant_index != 0 ? 1 : 0)
+		+ ",refine=" + std::to_string(sd->state.refineui_open ? 1 : 0)
+		+ ",stylist=" + std::to_string(sd->state.stylist_open ? 1 : 0)
+		+ ",expand=" + std::to_string(sd->state.inventory_expansion_confirmation != 0 ? 1 : 0)
+		+ ",barter=" + std::to_string(sd->state.barter_open ? 1 : 0)
+		+ ",barterx=" + std::to_string(sd->state.barter_extended_open ? 1 : 0)
+		+ ",laphsyn=" + std::to_string(sd->state.laphine_synthesis != 0 ? 1 : 0)
+		+ ",laphup=" + std::to_string(sd->state.laphine_upgrade != 0 ? 1 : 0)
+		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0);
+}
+
 static bool pc_playerbot_force_recover_npc(map_session_data* sd)
 {
 	if (sd == nullptr)
@@ -10015,6 +10105,12 @@ struct s_playerbot_skillcast_cleanup {
 	uint16 skill_id = 0;
 };
 
+struct s_playerbot_session_cleanup {
+	bool had = false;
+	bool ok = true;
+	int32 count = 0;
+};
+
 static const char* pc_playerbot_interrupt_failure_suffix(const char* scope)
 {
 	if (scope != nullptr && strcmp(scope, "storage") == 0)
@@ -10031,6 +10127,32 @@ static void pc_playerbot_trace_interrupt(uint32 bot_id, uint32 char_id, uint32 a
 	if (!ok)
 		detail_s += pc_playerbot_interrupt_failure_suffix(scope);
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, ok ? action : "reconcile.failed", scope, "", reason_code, ok ? "ok" : "aborted", ok ? "" : "interrupt.cleanup", detail_s.c_str());
+}
+
+static void pc_playerbot_force_clear_session(map_session_data* sd)
+{
+	if (sd == nullptr)
+		return;
+
+	if (sd->progressbar.npc_id)
+		clif_progressbar_abort(sd);
+	if (sd->skillitem != 0)
+		sd->skillitem = sd->skillitemlv = 0;
+	if (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0)
+		clif_menuskill_clear(sd);
+	sd->state.mail_writing = false;
+	sd->state.refineui_open = false;
+	sd->state.stylist_open = false;
+	sd->state.inventory_expansion_confirmation = 0;
+	sd->state.barter_open = false;
+	sd->state.barter_extended_open = false;
+	sd->state.laphine_synthesis = 0;
+	sd->state.laphine_upgrade = 0;
+	sd->state.roulette_open = false;
+	sd->state.enchantgrade_open = false;
+	sd->state.item_reform = 0;
+	sd->state.item_enchant_index = 0;
+	sd->state.banking = false;
 }
 
 static s_playerbot_skillcast_cleanup pc_playerbot_cleanup_skillcast(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* phase, const char* action, const char* reason_code, const char* detail)
@@ -10057,6 +10179,31 @@ static s_playerbot_skillcast_cleanup pc_playerbot_cleanup_skillcast(map_session_
 
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "skillcast", "interrupt", before.c_str(), after.c_str(), cleanup.ok ? "ok" : "aborted", detail_s.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, cleanup.ok ? action : "reconcile.failed", "skillcast", target_id.c_str(), reason_code != nullptr ? reason_code : "restart.recovery", cleanup.ok ? "ok" : "aborted", cleanup.ok ? "" : "interrupt.cleanup", detail_s.c_str());
+	return cleanup;
+}
+
+static s_playerbot_session_cleanup pc_playerbot_cleanup_session_state(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* phase, const char* action, const char* reason_code, const char* detail, const char* state_before_override = nullptr)
+{
+	s_playerbot_session_cleanup cleanup = {};
+	if (sd == nullptr)
+		return cleanup;
+
+	std::string before = state_before_override != nullptr && *state_before_override != '\0' ? state_before_override : pc_playerbot_session_state(sd);
+	cleanup.count = pc_playerbot_session_count(sd);
+	cleanup.had = cleanup.count > 0;
+	if (!cleanup.had)
+		return cleanup;
+
+	pc_playerbot_force_clear_session(sd);
+	std::string after = pc_playerbot_session_state(sd);
+	cleanup.ok = (pc_playerbot_session_count(sd) == 0);
+	std::string detail_s = detail != nullptr ? detail : "session.interrupt";
+	detail_s += " count=" + std::to_string(cleanup.count);
+	if (!cleanup.ok)
+		detail_s += ".still_active";
+
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "session", "interrupt", before.c_str(), after.c_str(), cleanup.ok ? "ok" : "aborted", detail_s.c_str());
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, cleanup.ok ? action : "reconcile.failed", "session", "", reason_code != nullptr ? reason_code : "restart.recovery", cleanup.ok ? "ok" : "aborted", cleanup.ok ? "" : "interrupt.cleanup", detail_s.c_str());
 	return cleanup;
 }
 
@@ -10269,12 +10416,15 @@ static void pc_playerbot_handle_death_cleanup(map_session_data* sd)
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
 	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.death.interrupt");
+	auto session_cleanup = pc_playerbot_cleanup_session_state(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.death.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.death.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat", "restart.recovery", "combat.death");
 	std::string after = pc_playerbot_combat_state(sd);
 	std::string detail = released > 0 ? "combat.cleared.reservations" : "combat.cleared";
 	if (cast_cleanup.had)
 		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
+	if (session_cleanup.had)
+		detail += " session=" + std::to_string(session_cleanup.ok ? session_cleanup.count : -session_cleanup.count);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
@@ -10305,6 +10455,7 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
 	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
+	auto session_cleanup = pc_playerbot_cleanup_session_state(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
 	pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat", "restart.recovery", "combat.respawn");
 	pc_playerbot_reconcile_loadout(sd, "respawn", nullptr, nullptr, nullptr);
@@ -10312,6 +10463,8 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 	std::string detail = "combat.respawn_reconciled";
 	if (cast_cleanup.had)
 		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
+	if (session_cleanup.had)
+		detail += " session=" + std::to_string(session_cleanup.ok ? session_cleanup.count : -session_cleanup.count);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
@@ -10335,16 +10488,19 @@ static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
 	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
+	auto session_cleanup = pc_playerbot_cleanup_session_state(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "map.changed", "mapchange.interrupt");
 	std::string after = pc_playerbot_combat_state(sd);
 
-	if (before == after && !cast_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+	if (before == after && !cast_cleanup.had && !session_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
 		return;
 
 	std::string detail = released > 0 ? "mapchange.cleared.reservations" : "mapchange.cleared";
 	if (cast_cleanup.had)
 		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
+	if (session_cleanup.had)
+		detail += " session=" + std::to_string(session_cleanup.ok ? session_cleanup.count : -session_cleanup.count);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
@@ -10352,6 +10508,18 @@ static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
 	}
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "mapchange", "interrupt", before.c_str(), after.c_str(), "ok", detail.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.fixed", "mapchange", "", "map.changed", "ok", "", detail.c_str());
+}
+
+static void pc_playerbot_finalize_mapchange_status(map_session_data* sd, const char* status_before)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	if (sd == nullptr || status_before == nullptr || *status_before == '\0' || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return;
+
+	std::string status_after = pc_playerbot_status_state(sd);
+	const bool changed = strcmp(status_before, status_after.c_str()) != 0;
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "reconcile", status_before, status_after.c_str(), "ok", changed ? "mapchange.reconcile" : "mapchange.nochange");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.fixed", "status", "", "map.changed", "ok", "", changed ? "status.changed" : "status.unchanged");
 }
 
 void pc_playerbot_handle_quit_cleanup(map_session_data* sd)
@@ -10363,16 +10531,19 @@ void pc_playerbot_handle_quit_cleanup(map_session_data* sd)
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
 	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "operator.stop", "quit.interrupt");
+	auto session_cleanup = pc_playerbot_cleanup_session_state(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "operator.stop", "quit.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "operator.stop", "quit.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "operator.stop", "quit.interrupt");
 	std::string after = pc_playerbot_combat_state(sd);
 
-	if (before == after && !cast_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+	if (before == after && !cast_cleanup.had && !session_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
 		return;
 
 	std::string detail = released > 0 ? "quit.cleared.reservations" : "quit.cleared";
 	if (cast_cleanup.had)
 		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
+	if (session_cleanup.had)
+		detail += " session=" + std::to_string(session_cleanup.ok ? session_cleanup.count : -session_cleanup.count);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);

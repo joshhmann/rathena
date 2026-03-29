@@ -5792,6 +5792,43 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 74: Mapchange Status Continuity Guard
+
+### Goal
+
+Fix the warp-authority bug where denied map changes could still trigger
+playerbot cleanup, and make successful map changes visible in the status
+continuity audit layer.
+
+### What Changed
+
+- Moved playerbot map-change cleanup in `pc_setpos()` so it only runs after the
+  engine's `cant.warp` guard passes.
+- Added explicit map-change status reconcile coverage in `pc.cpp`:
+  - `status / reconcile / mapchange.reconcile`
+  - `status / reconcile / mapchange.nochange`
+- Extended the combat selftest so status trace/audit acceptance includes
+  map-change continuity, not only death/respawn.
+- Updated the status continuity contract so map-warp status reconciliation is
+  part of the documented baseline.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- aggregate combat/status selftest remains green with:
+  - `status_map_cont_ok=1`
+  - `status_trace_ok=1`
+  - `status_audit_ok=1`
+
+### Deferrals
+
+This slice does not add:
+
+- explicit denied-warp selftest harness coverage
+- instance/event transfer policy beyond the standard map-change path
+- cross-map claim transfer; current policy remains cleanup-and-reacquire
+
 ## Slice 61: Playerbot Skillcast Interrupt Cleanup
 
 ### Summary

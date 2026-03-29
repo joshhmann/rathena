@@ -557,8 +557,9 @@ S_Run:
 		.@skillcast_trace_count);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_trace_event` "
-		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' AND `target_type` = 'status' "
-		+ "AND `error_detail` IN ('status.applied','status.cleared','status.reconciled','status.changed','status.unchanged')",
+		+ "WHERE `char_id` = '" + .char_id + "' AND `target_type` = 'status' "
+		+ "AND ((`phase` = 'combat' AND `error_detail` IN ('status.applied','status.cleared','status.reconciled','status.changed','status.unchanged')) "
+		+ "OR (`phase` = 'reconcile' AND `reason_code` = 'map.changed' AND `error_detail` IN ('status.changed','status.unchanged')))",
 		.@status_trace_count);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
@@ -572,7 +573,7 @@ S_Run:
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'status' "
-		+ "AND `action` IN ('cleanup','reconcile') AND `detail` IN ('death.cleanup','respawn.reconcile')",
+		+ "AND `action` IN ('cleanup','reconcile') AND `detail` IN ('death.cleanup','respawn.reconcile','mapchange.reconcile','mapchange.nochange')",
 		.@status_audit_count);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
@@ -589,8 +590,8 @@ S_Run:
 	.@skillcast_trace_ok = (.@skillcast_trace_count >= 2);
 	.@audit_ok = (.@audit_count >= 5);
 	.@skill_audit_ok = (.@skill_audit_count >= 2);
-	.@status_trace_ok = (.@status_trace_count >= 6);
-	.@status_audit_ok = (.@status_audit_count >= 2);
+	.@status_trace_ok = (.@status_trace_count >= 7);
+	.@status_audit_ok = (.@status_audit_count >= 3);
 	.@warp_audit_ok = (.@warp_audit_count >= 4);
 	.@warp_trace_ok = (.@warp_trace_count >= 4);
 

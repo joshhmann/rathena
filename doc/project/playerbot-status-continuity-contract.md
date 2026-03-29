@@ -25,6 +25,7 @@ The canonical representation of bot status for traces and audits is the **Status
 | **Death** | Passive States (Weight, Cart) | **Persist** | Tied to inventory/loadout, not vitality. |
 | **Respawn** | Any Remaining Status | **Reconcile** | Ensure live actor state matches intended "fresh" state via `pc_playerbot_handle_respawn_cleanup`. |
 | **Map Change** | Common Buffs/Ailments | **Persist** | Standard RO behavior; maintains continuity during travel. |
+| **Map Change** | Remove-on-Warp Statuses | **Reconcile** | Map-warp status flags remain authoritative; playerbot audits must record whether the status summary changed. |
 | **Participation Recover** | Any Status | **No Change** | Recovering from a stuck dialog/trade should not affect combat state. |
 
 ## Authority Boundaries
@@ -50,7 +51,7 @@ An audit row must be created if a status is cleared as part of a death-cleanup o
 - `scope`: `status`.
 - `action`: `cleanup` or `reconcile`.
 - `state_before` / `state_after`: The **Status Summary String** before and after the transition.
-- `detail`: `death.cleanup`, `death.nochange`, or `respawn.reconcile`.
+- `detail`: `death.cleanup`, `death.nochange`, `respawn.reconcile`, `mapchange.reconcile`, or `mapchange.nochange`.
 
 ## Scenario Coverage Matrix
 

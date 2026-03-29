@@ -2440,3 +2440,25 @@ Current limit:
   skillcast audit/trace coverage
 - ground-target skills, persistent skill units, and richer combat-event
   ownership policy remain deferred
+
+Map-change status continuity now covered:
+
+- playerbot map-change cleanup no longer runs before the engine decides whether
+  a warp is legal
+- a denied warp now leaves:
+  - participation state
+  - reservations
+  - combat/skill state
+  untouched until a real transition occurs
+- successful map changes now emit explicit status reconcile coverage through:
+  - `status / reconcile / mapchange.reconcile`
+  - `status / reconcile / mapchange.nochange`
+- the integrated combat selftest now treats map-change status continuity as part
+  of the accepted status audit/trace baseline
+
+Current limit:
+
+- the current harness proves successful map-change continuity, not explicit
+  denied-warp non-cleanup
+- event-instance transfer policy and cross-map claim transfer are still handled
+  as cleanup-and-reacquire rather than ownership carry-over
