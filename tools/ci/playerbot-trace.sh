@@ -32,7 +32,10 @@ COMMANDS:
   why-failed <bot_id>        Explain recent failures for a bot
   why-parked <bot_id>        Explain why a bot was parked
   stats                      Show aggregate statistics
-  
+  correlate <id1> [id2 ...]  Interleave timelines for multiple bots (color-coded)
+  reservation <resource_key> Full contention history for a resource (reservation_refs)
+  path <bot_id> [N]          Show N events leading up to most recent failure (default: 15)
+
 ACTION FILTERS:
   controller.assigned, controller.released
   scheduler.spawned, scheduler.parked
@@ -47,6 +50,7 @@ OPTIONS:
   -r, --reason CODE          Filter by reason_code
   --result RESULT            Filter by result (ok, denied, failed, etc.)
   --raw                      Output raw SQL results (tab-separated)
+  --json                     Output as JSON array (correlate/reservation/path); falls back to --raw for other commands
   --no-color                 Disable colorized output
   -h, --help                 Show this help
 
@@ -78,6 +82,18 @@ EXAMPLES:
   # Raw output for scripting
   tools/ci/playerbot-trace.sh recent --raw -l 100
 
+  # Interleave timelines for two bots to see contention
+  tools/ci/playerbot-trace.sh correlate 150010 150011
+
+  # Full contention history for a resource
+  tools/ci/playerbot-trace.sh reservation "prontera:anchor:152:179"
+
+  # Events leading up to most recent failure
+  tools/ci/playerbot-trace.sh path 150010
+
+  # JSON output (correlate/reservation/path)
+  tools/ci/playerbot-trace.sh correlate 150010 150011 --json
+
 ENVIRONMENT:
   DB_HOST, DB_NAME, DB_USER, DB_PASS  Database connection settings
 EOF
@@ -89,6 +105,7 @@ since_minutes=0
 reason_filter=""
 result_filter=""
 raw_output=0
+json_output=0
 no_color=0
 
 while [[ $# -gt 0 ]]; do
@@ -110,6 +127,11 @@ while [[ $# -gt 0 ]]; do
 			shift 2
 			;;
 		--raw)
+			raw_output=1
+			shift
+			;;
+		--json)
+			json_output=1
 			raw_output=1
 			shift
 			;;
@@ -185,6 +207,26 @@ build_filters() {
 query() {
 	local sql="$1"
 	mysql -N -B -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "$sql" 2>/dev/null
+}
+
+# Execute query and emit a JSON array.
+# $1 = SQL, $2 = comma-separated column names matching the SELECT list
+query_json() {
+	local sql="$1"
+	local columns="$2"
+	mysql -N -B -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "$sql" 2>/dev/null | \
+	python3 -c "
+import sys, json
+cols = '$columns'.split(',')
+rows = []
+for line in sys.stdin:
+    line = line.rstrip('\n')
+    if not line:
+        continue
+    vals = line.split('\t')
+    rows.append(dict(zip(cols, vals)))
+print(json.dumps(rows, indent=2))
+"
 }
 
 # Format timestamp
@@ -708,15 +750,231 @@ cmd_stats() {
 	
 	# Top controllers by event count
 	printf "\n${C_BOLD}Top Controllers by Event Count:${C_RESET}\n"
-	sql="SELECT controller_id, COUNT(*) as cnt 
-		 FROM bot_trace_event 
+	sql="SELECT controller_id, COUNT(*) as cnt
+		 FROM bot_trace_event
 		 WHERE controller_id != ''
-		 GROUP BY controller_id 
-		 ORDER BY cnt DESC 
+		 GROUP BY controller_id
+		 ORDER BY cnt DESC
 		 LIMIT 10"
 	while IFS=$'\t' read -r controller cnt; do
 		printf "  %-40s  %6s\n" "$controller" "$cnt"
 	done < <(query "$sql")
+}
+
+# Correlate: interleave timelines for multiple bots, color-coded per bot
+cmd_correlate() {
+	if [[ $# -lt 1 ]]; then
+		echo "Usage: tools/ci/playerbot-trace.sh correlate <bot_id1> [bot_id2 ...] [options]" >&2
+		exit 1
+	fi
+
+	# Bot color palette (cycles if more than 5 bots)
+	local PALETTE=("$C_CYAN" "$C_MAGENTA" "$C_GREEN" "$C_YELLOW" "$C_BLUE")
+
+	# Resolve all provided IDs to char_ids
+	local char_ids=()
+	local bot_labels=()
+	local i=0
+	for id in "$@"; do
+		local bot_info
+		bot_info=$(resolve_bot "$id") || true
+		if [[ -z "$bot_info" ]]; then
+			echo "Warning: Bot not found: $id (skipping)" >&2
+			continue
+		fi
+		char_ids+=("$(echo "$bot_info" | cut -f3)")
+		bot_labels+=("$(echo "$bot_info" | cut -f2)")
+	done
+
+	if [[ "${#char_ids[@]}" -eq 0 ]]; then
+		echo "Error: No bots resolved from provided IDs" >&2
+		exit 1
+	fi
+
+	# Build IN list
+	local in_list
+	in_list=$(IFS=,; echo "${char_ids[*]}")
+
+	local where="char_id IN ($in_list)"
+	if [[ "$since_minutes" -gt 0 ]]; then
+		where="$where AND ts >= UNIX_TIMESTAMP(NOW() - INTERVAL $since_minutes MINUTE)"
+	fi
+	if [[ -n "$result_filter" ]]; then
+		where="$where AND result = '$result_filter'"
+	fi
+
+	local sql="SELECT ts, action, IFNULL(NULLIF(controller_id,''), '-'), map_name, x, y, reason_code, result, IFNULL(NULLIF(error_code,''), '-'), char_id,
+			   IFNULL((SELECT p.bot_key FROM bot_profile p JOIN bot_identity_link l ON l.bot_id = p.bot_id WHERE l.char_id = bot_trace_event.char_id LIMIT 1), '-')
+			   FROM bot_trace_event
+			   WHERE $where
+			   ORDER BY ts DESC, id DESC
+			   LIMIT $limit"
+
+	if [[ "$json_output" -eq 1 ]]; then
+		query_json "$sql" "ts,action,controller_id,map_name,x,y,reason_code,result,error_code,char_id,bot_key"
+		return
+	fi
+
+	local label_str=""
+	for j in "${!bot_labels[@]}"; do
+		local c="${PALETTE[$((j % ${#PALETTE[@]}))]}"
+		label_str+="${c}${bot_labels[$j]}${C_RESET} "
+	done
+	printf "${C_BOLD}Correlated Timeline:${C_RESET} %s\n\n" "$label_str"
+	print_header
+
+	# Build a char_id → color map using index position
+	local count=0
+	while IFS=$'\t' read -r ts action controller map_name x y reason_code result error_code char_id bot_key; do
+		# Find color for this char_id
+		local bot_color="$C_CYAN"
+		for j in "${!char_ids[@]}"; do
+			if [[ "${char_ids[$j]}" == "$char_id" ]]; then
+				bot_color="${PALETTE[$((j % ${#PALETTE[@]}))]}"
+				break
+			fi
+		done
+
+		local ts_fmt
+		ts_fmt=$(format_ts "$ts")
+		local result_color="$C_RESET"
+		case "$result" in
+			ok|noop) result_color="$C_GREEN" ;;
+			denied|aborted|failed) result_color="$C_RED" ;;
+			retry|fallback|timeout) result_color="$C_YELLOW" ;;
+			desynced|fatal) result_color="$C_MAGENTA" ;;
+		esac
+		local bot_id="${bot_key}"
+		[[ "$bot_key" == "-" ]] && bot_id="$char_id"
+		local loc="${map_name}(${x},${y})"
+
+		printf "${C_DIM}%s${C_RESET}  " "$ts_fmt"
+		printf "${C_BOLD}%-25s${C_RESET}  " "$action"
+		printf "${bot_color}%-20s${C_RESET}  " "$bot_id"
+		printf "${C_BLUE}%-18s${C_RESET}  " "$controller"
+		printf "%s  " "$loc"
+		printf "${result_color}%-8s${C_RESET}" "$result"
+		if [[ -n "$reason_code" && "$reason_code" != "none" ]]; then
+			printf "  [${C_YELLOW}%s${C_RESET}]" "$reason_code"
+		fi
+		if [[ -n "$error_code" && "$error_code" != "-" ]]; then
+			printf "  (${C_RED}%s${C_RESET})" "$error_code"
+		fi
+		printf "\n"
+		count=$(( count + 1 ))
+	done < <(query "$sql")
+
+	printf "\n${C_DIM}Showing %d rows across %d bot(s)${C_RESET}\n" "$count" "${#char_ids[@]}"
+}
+
+# Reservation: full contention history for a resource via reservation_refs in trace
+cmd_reservation_history() {
+	local resource_key="$1"
+	local n="${2:-$limit}"
+
+	local where="reservation_refs LIKE CONCAT('%', '$resource_key', '%')"
+	if [[ "$since_minutes" -gt 0 ]]; then
+		where="$where AND ts >= UNIX_TIMESTAMP(NOW() - INTERVAL $since_minutes MINUTE)"
+	fi
+
+	local sql="SELECT ts, action, IFNULL(NULLIF(controller_id,''), '-'), map_name, x, y, reason_code, result, IFNULL(NULLIF(error_code,''), '-'), char_id,
+			   IFNULL((SELECT p.bot_key FROM bot_profile p JOIN bot_identity_link l ON l.bot_id = p.bot_id WHERE l.char_id = bot_trace_event.char_id LIMIT 1), '-'),
+			   reservation_refs
+			   FROM bot_trace_event
+			   WHERE $where
+			   ORDER BY id DESC
+			   LIMIT $n"
+
+	if [[ "$json_output" -eq 1 ]]; then
+		query_json "$sql" "ts,action,controller_id,map_name,x,y,reason_code,result,error_code,char_id,bot_key,reservation_refs"
+		return
+	fi
+
+	printf "${C_BOLD}Reservation History: %s${C_RESET}\n\n" "$resource_key"
+	print_header
+
+	local count=0
+	while IFS=$'\t' read -r ts action controller map_name x y reason result error_code char_id bot_key reservation_refs; do
+		print_trace_row "$ts" "$action" "$controller" "$map_name" "$x" "$y" "$reason" "$result" "$error_code" "$char_id" "$bot_key"
+		count=$(( count + 1 ))
+	done < <(query "$sql")
+
+	if [[ "$count" -eq 0 ]]; then
+		printf "  ${C_DIM}No trace events reference this resource key${C_RESET}\n"
+	else
+		printf "\n${C_DIM}Showing %d rows${C_RESET}\n" "$count"
+	fi
+}
+
+# Path: show the N events leading up to the most recent non-ok result for a bot
+cmd_path() {
+	local id="$1"
+	local n="${2:-15}"
+
+	local bot_info
+	bot_info=$(resolve_bot "$id")
+	local bot_key
+	bot_key=$(echo "$bot_info" | cut -f2)
+	local char_id
+	char_id=$(echo "$bot_info" | cut -f3)
+
+	if [[ -z "$char_id" ]]; then
+		echo "Error: Bot not found: $id" >&2
+		exit 1
+	fi
+
+	# Find the most recent non-ok row
+	local fail_sql="SELECT id, ts, action, result, error_code, error_detail
+	                FROM bot_trace_event
+	                WHERE char_id = '$char_id' AND result NOT IN ('ok', 'noop')
+	                ORDER BY id DESC LIMIT 1"
+	local fail_info
+	fail_info=$(query "$fail_sql")
+
+	if [[ -z "$fail_info" ]]; then
+		printf "${C_GREEN}No failures found for bot %s${C_RESET}\n" "$bot_key"
+		return
+	fi
+
+	local fail_id fail_ts fail_action fail_result fail_error fail_detail
+	fail_id=$(echo "$fail_info" | cut -f1)
+	fail_ts=$(echo "$fail_info" | cut -f2)
+	fail_action=$(echo "$fail_info" | cut -f3)
+	fail_result=$(echo "$fail_info" | cut -f4)
+	fail_error=$(echo "$fail_info" | cut -f5)
+	fail_detail=$(echo "$fail_info" | cut -f6)
+
+	# Get N rows leading up to and including the failure
+	local sql="SELECT ts, action, IFNULL(NULLIF(controller_id,''), '-'), map_name, x, y, reason_code, result, IFNULL(NULLIF(error_code,''), '-'), char_id,
+			   IFNULL((SELECT p.bot_key FROM bot_profile p JOIN bot_identity_link l ON l.bot_id = p.bot_id WHERE l.char_id = bot_trace_event.char_id LIMIT 1), '-')
+			   FROM bot_trace_event
+			   WHERE char_id = '$char_id' AND id <= $fail_id
+			   ORDER BY id DESC
+			   LIMIT $n"
+
+	if [[ "$json_output" -eq 1 ]]; then
+		query_json "$sql" "ts,action,controller_id,map_name,x,y,reason_code,result,error_code,char_id,bot_key"
+		return
+	fi
+
+	printf "${C_BOLD}Failure Path: %s${C_RESET}\n" "$bot_key"
+	printf "${C_DIM}Most recent failure:${C_RESET} ${C_BOLD}%s${C_RESET}  ${C_RED}%s${C_RESET}  %s\n" \
+		"$fail_action" "$fail_result" "$(format_ts "$fail_ts")"
+	if [[ -n "$fail_error" && "$fail_error" != "-" ]]; then
+		printf "${C_DIM}Error:${C_RESET} %s" "$fail_error"
+		[[ -n "$fail_detail" ]] && printf "  %s" "$fail_detail"
+		printf "\n"
+	fi
+	printf "\n${C_DIM}(showing %d events leading up to this failure, newest first)${C_RESET}\n\n" "$n"
+	print_header
+
+	local count=0
+	while IFS=$'\t' read -r ts action controller map_name x y reason result error_code char_id bot_key; do
+		print_trace_row "$ts" "$action" "$controller" "$map_name" "$x" "$y" "$reason" "$result" "$error_code" "$char_id" "$bot_key"
+		count=$(( count + 1 ))
+	done < <(query "$sql")
+
+	printf "\n${C_DIM}Showing %d rows${C_RESET}\n" "$count"
 }
 
 # Main dispatcher
@@ -781,6 +1039,27 @@ case "$cmd" in
 		;;
 	stats)
 		cmd_stats
+		;;
+	correlate)
+		if [[ $# -lt 1 ]]; then
+			echo "Usage: tools/ci/playerbot-trace.sh correlate <bot_id1> [bot_id2 ...]" >&2
+			exit 1
+		fi
+		cmd_correlate "$@"
+		;;
+	reservation)
+		if [[ $# -lt 1 ]]; then
+			echo "Usage: tools/ci/playerbot-trace.sh reservation <resource_key>" >&2
+			exit 1
+		fi
+		cmd_reservation_history "$@"
+		;;
+	path)
+		if [[ $# -lt 1 ]]; then
+			echo "Usage: tools/ci/playerbot-trace.sh path <bot_id|char_id> [N]" >&2
+			exit 1
+		fi
+		cmd_path "$@"
 		;;
 	-h|--help|help)
 		usage

@@ -142,6 +142,59 @@ Show aggregate statistics:
 tools/ci/playerbot-trace.sh stats
 ```
 
+### `correlate <id1> [id2 ...]`
+
+Interleave trace timelines for multiple bots, sorted by timestamp, with each bot color-coded.
+Useful for debugging contention: two bots competing for the same anchor or dialog target will
+show their `reservation.denied` / `reservation.acquired` rows interleaved by wall-clock time.
+
+```bash
+# See what two bots were doing at the same time
+tools/ci/playerbot-trace.sh correlate 150010 150011
+
+# With --json for scripting
+tools/ci/playerbot-trace.sh correlate 150010 150011 --json
+
+# Last 30 minutes only
+tools/ci/playerbot-trace.sh correlate 150010 150011 -s 30
+```
+
+### `reservation <resource_key>`
+
+Show all trace events whose `reservation_refs` column references a given resource key.
+Reveals the complete history of who acquired, was denied, and released a resource.
+
+```bash
+# Full history of a specific anchor
+tools/ci/playerbot-trace.sh reservation "prontera:anchor:152:179"
+
+# Merchant spot history
+tools/ci/playerbot-trace.sh reservation "alberta:merchant_spot:163:121"
+
+# With JSON output
+tools/ci/playerbot-trace.sh reservation "prontera:anchor:152:179" --json
+```
+
+For the current ledger state of a resource (who holds it now, TTL), use
+`tools/ci/playerbot-reservations-inspector.sh contended <resource_key>` instead.
+
+### `path <bot_id> [N]`
+
+Show the N events (default: 15) immediately preceding the most recent non-ok result for a bot.
+Unlike `why-failed` (which summarizes grouped failure types), `path` shows the causal sequence
+— what the bot was doing in the moments before it failed.
+
+```bash
+# What was BotPc01 doing before its last failure?
+tools/ci/playerbot-trace.sh path 150010
+
+# Show more context (20 events)
+tools/ci/playerbot-trace.sh path 150010 20
+
+# With JSON output
+tools/ci/playerbot-trace.sh path 150010 --json
+```
+
 ## Global Options
 
 | Option | Description |
@@ -151,6 +204,7 @@ tools/ci/playerbot-trace.sh stats
 | `-r, --reason CODE` | Filter by reason_code |
 | `--result RESULT` | Filter by result (ok, denied, failed, etc.) |
 | `--raw` | Output raw SQL results (tab-separated) |
+| `--json` | Output as JSON array (`correlate`, `reservation`, `path`); falls back to `--raw` for other commands |
 | `--no-color` | Disable colorized output |
 | `-h, --help` | Show help |
 
@@ -201,6 +255,36 @@ tools/ci/playerbot-trace.sh why-parked 150010
 tools/ci/playerbot-trace.sh action "scheduler.parked" --since 60
 ```
 
+### Debugging Reservation Contention Between Two Bots
+
+```bash
+# Step 1: find which resource is being contested (reservation.denied events)
+tools/ci/playerbot-trace.sh action "reservation.denied" --since 10
+
+# Step 2: get the full contention history for that resource
+tools/ci/playerbot-trace.sh reservation "prontera:anchor:152:179"
+
+# Step 3: correlate both bots to see interleaved timeline
+tools/ci/playerbot-trace.sh correlate 150010 150011 -s 10
+
+# Step 4: if one bot failed after the contention, inspect the path
+tools/ci/playerbot-trace.sh path 150011
+```
+
+### Investigating a Failure With Full Context
+
+```bash
+# What was the bot doing before its last failure?
+tools/ci/playerbot-trace.sh path 150010 20
+
+# Cross-reference with the reservation that was involved
+tools/ci/playerbot-trace.sh reservation "prontera:dialog_target:shop_npc_01"
+
+# Export both as JSON for external diffing
+tools/ci/playerbot-trace.sh path 150010 --json > path.json
+tools/ci/playerbot-trace.sh reservation "prontera:dialog_target:shop_npc_01" --json > contention.json
+```
+
 ### Raw Output for Scripting
 
 ```bash
@@ -231,6 +315,10 @@ Use `--no-color` when piping to other tools.
 - `playerbot-foundation-priorities.md` - Observability design principles
 - `headless-pc-v1-slice-log.md` - Implementation history
 - `openkore-test-harness.md` - Integration testing with OpenKore
+
+## Related Tools
+
+- `tools/ci/playerbot-reservations-inspector.sh` - Live reservation ledger inspection (active leases, expired rows, contention history, recovery audits)
 
 ## SQL Schema Reference
 
