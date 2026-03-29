@@ -5792,6 +5792,151 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 65: Playerbot Skillunit Participation Probe
+
+### Summary
+
+Added a separate combat-skillunit proof lane without destabilizing the aggregate
+foundation gate. Playerbots now expose richer skill-use diagnostics and a
+manual/autorun probe that proves positional skillunit creation plus interrupt
+cleanup across map change, death/respawn, and quit/remove.
+
+### Files
+
+- `src/map/script.cpp`
+- `src/map/pc.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-skillunit-smoke.sh` (new)
+
+### What Changed
+
+- Added richer bot-facing combat/event surfaces:
+  - `playerbot_skilluseself`
+  - `playerbot_skillusepos`
+  - `playerbot_skillunitcount`
+- Extended combat-state summaries to expose live `skillunits=<n>`.
+- Added detailed denial diagnostics in the playerbot skill wrappers so failed
+  start attempts now differentiate engine-side rejection causes such as:
+  - `caster.weight90`
+  - `caster.stepaction`
+  - `caster.chat`
+  - `castbegin.denied`
+  - `near_npc.denied`
+- Added runtime cleanup/audit/trace coverage for `skillunit` ownership on:
+  - death
+  - respawn
+  - successful map change
+  - quit/remove
+- Added a separate `PlayerbotCombatSkillunitProbe` in the combat lab and wired
+  a dedicated helper:
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+- Kept the aggregate combat selftest on the last proven baseline while the new
+  skillunit proof remains a separate non-gating probe.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `git diff --check`
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+- OpenKore login with the repo-local `codex` profile
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- aggregate foundation smoke remains green with:
+  - `playerbot_combat_selftest ... result=1`
+  - `playerbot_foundation_selftest: stage=done`
+- dedicated skillunit probe now proves:
+  - positional cast success
+  - live `skillunit` visibility
+  - map-change cleanup
+  - death interrupt cleanup
+  - respawn freshness
+  - quit/remove cleanup
+  - trace and audit coverage
+
+### Deferrals
+
+This slice still does not promote skillunit branches into the aggregate combat
+acceptance formula. Remaining combat/event deepening is still deferred for:
+
+- richer persistent skill-unit coverage beyond the first proven path
+- promotion of skillunit checks into the main combat selftest
+- broader combat-event participation beyond the current legal hooks
+
+## Slice 61: Playerbot Skillunit Probe And Cleanup Baseline
+
+### Summary
+
+Added the first dedicated proof path for ground-skill and persistent skill-unit
+participation without destabilizing the aggregate foundation gate.
+
+### Files
+
+- `src/map/script.cpp`
+- `src/map/pc.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-skillunit-smoke.sh` (new)
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added richer playerbot skill surfaces:
+  - `playerbot_skilluseself`
+  - `playerbot_skillusepos`
+  - `playerbot_skillunitcount`
+- Extended combat-state summaries so runtime inspection now reports:
+  - `casting=<0|1>`
+  - `skill=<skill_id>`
+  - `skillunits=<n>`
+- Added dedicated skill denial detail reporting in the playerbot skill wrappers
+  so cast failures no longer collapse into a generic `skill.not_started`
+  surface.
+- Added runtime cleanup/audit/trace handling for live skill units through:
+  - death
+  - respawn
+  - successful map change
+  - quit/remove
+- Added a separate manual probe in `Playerbot Combat Lab`:
+  - `Run skillunit probe`
+- Added repo-local helper:
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `git diff --check`
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+- repo-local `codex` OpenKore login
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Live probe result:
+
+- `playerbot_combat_skillunit_probe: ... apply_ok=1 active_ok=1 move_ok=1 move_clear_ok=1 death_apply_ok=1 death_unit_ok=1 death_clear_ok=1 respawn_req_ok=1 respawn_ok=1 respawn_fresh_ok=1 quit_apply_ok=1 quit_unit_ok=1 park_ok=1 trace_ok=1 audit_ok=1 ... result=1`
+
+Observed recovery/trace coverage:
+
+- `combat.completed / skill_pos / none / ok`
+- `reconcile.fixed / skillunit / map.changed / ok / mapchange.interrupt count=1`
+- `combat.completed / skillunit / restart.recovery / ok / combat.death.interrupt count=1`
+- `reconcile.fixed / skillunit / operator.stop / ok / quit.interrupt count=1`
+
+### Deferrals
+
+This part intentionally does not yet promote skill-unit branches into the
+aggregate combat acceptance formula.
+
+- aggregate `playerbot_combat_selftest` remains gated on the last proven combat
+  baseline
+- richer skill-unit checks are currently diagnostic in the aggregate lane and
+  authoritative in the separate probe lane
+- broader combat/event expansion beyond ground-skill and skill-unit continuity
+  remains deferred
+
 ## Slice 61: Playerbot Loadout Failure Semantics
 
 ### Summary

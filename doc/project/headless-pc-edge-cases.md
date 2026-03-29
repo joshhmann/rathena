@@ -2656,3 +2656,100 @@ Current limit:
 
 - the current intended-loadout model is still one row per equip location
 - multi-slot/full-build policy and richer equipment sourcing remain deferred
+
+Skillunit participation now has a proved baseline, but two concrete edge cases
+were important in getting there:
+
+- the first failing `AL_PNEUMA` casts were not a job or weapon requirement
+  problem
+- the live rejection came from actor state, and the first concrete runtime
+  denial surfaced as:
+  - `caster.weight90`
+- the quick combat bot had accumulated a large stack of knives from earlier
+  combat/item runs, which pushed the actor over the cast-begin weight guard
+- clearing that inventory/loadout drift before the probe made positional
+  casting start cleanly
+
+Ground-skill targeting also needed to stay explicit:
+
+- `AL_PNEUMA` is a positional skillunit proof path, not a self-target proof
+- temporary self-target fallback attempts were invalid for this skill and were
+  removed from the accepted probe
+- the stable proof path is now:
+  - grant skill
+  - cast at a deterministic nearby cell
+  - verify `playerbot_skillunitcount(...) >= 1`
+  - then prove cleanup through:
+    - map change
+    - death/respawn
+    - quit/remove
+
+Observability for failed skill starts is also materially better now:
+
+- playerbot skill traces now distinguish higher-value denial details instead of
+  collapsing most failures into generic `skill.not_started`
+- the current wrapper diagnostics explicitly expose cast-begin blockers such as:
+  - `caster.weight90`
+  - `caster.stepaction`
+  - `caster.chat`
+  - `caster.cannot_move`
+  - `castbegin.denied`
+  - `near_npc.denied`
+
+Current limit:
+
+- the aggregate combat selftest still leaves richer skillunit branches as
+  diagnostic-only fields
+- accepted foundation coverage for skillunits currently lives in the separate
+  manual/autorun probe plus:
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+
+Skill-unit participation now has a dedicated proof lane on the current
+baseline:
+
+- ground-skill participation is currently proven through a separate
+  `PlayerbotCombatSkillunitProbe`, not through the aggregate combat selftest
+- the probe now proves:
+  - unit creation
+  - successful map-change cleanup
+  - death cleanup
+  - respawn freshness
+  - quit/remove cleanup
+- the repo-local helper for this lane is:
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+
+Important root cause found during this part:
+
+- the first repeated cast-begin failures were not job or weapon gating
+- the real denial was `caster.weight90`, caused by the dev combat bot having
+  accumulated dozens of test knives in inventory
+- after inventory normalization in the probe, the same `AL_PNEUMA` ground-skill
+  path cast successfully and created live skill units
+
+Runtime observability is stronger now for future combat/event work:
+
+- playerbot skill wrappers now emit more specific denial details instead of only
+  collapsing to `skill.not_started`
+- current denial-detail surfaces include:
+  - `caster.blockedskill`
+  - `caster.skilltimer`
+  - `caster.cannot_move`
+  - `caster.stepaction`
+  - `caster.walking`
+  - `caster.chat`
+  - `caster.weight90`
+  - `skill.disabled`
+  - `castbegin.denied`
+  - `near_npc.denied`
+- skill-unit interrupt cleanup is now audited under:
+  - `scope = 'skillunit'`
+
+Current limit:
+
+- the aggregate combat selftest still keeps the richer skill-unit branch
+  diagnostic-only so the full foundation gate stays on the last proven combat
+  baseline
+- broader combat/event participation is still incomplete beyond the dedicated
+  skill-unit probe lane

@@ -374,14 +374,99 @@ static std::string playerbot_combat_state(const map_session_data* sd) {
 		return "offline";
 
 	const unit_data* ud = unit_bl2ud(sd);
+	int32 skillunit_count = 0;
+	if (ud != nullptr) {
+		for (const auto& group : ud->skillunits) {
+			if (group != nullptr)
+				++skillunit_count;
+		}
+	}
 	return "dead=" + std::to_string(pc_isdead(sd) ? 1 : 0)
 		+ ",respawn=" + std::to_string(sd->respawn_tid != INVALID_TIMER ? 1 : 0)
 		+ ",casting=" + std::to_string((ud != nullptr && ud->skilltimer != INVALID_TIMER) ? 1 : 0)
 		+ ",skill=" + std::to_string(ud != nullptr ? ud->skill_id : 0)
+		+ ",skillunits=" + std::to_string(skillunit_count)
 		+ ",target=" + std::to_string(ud != nullptr ? ud->target : 0)
 		+ ",npc=" + std::to_string(sd->npc_id != 0 ? 1 : 0)
 		+ ",storage=" + std::to_string(sd->state.storage_flag != 0 ? 1 : 0)
 		+ ",trade=" + std::to_string((sd->trade_partner.id != 0 || sd->state.trading) ? 1 : 0);
+}
+
+static int32 playerbot_skillunit_count(const map_session_data* sd, uint16 skill_id = 0) {
+	if (sd == nullptr)
+		return 0;
+
+	const unit_data* ud = unit_bl2ud(sd);
+	if (ud == nullptr)
+		return 0;
+
+	int32 count = 0;
+	for (const auto& group : ud->skillunits) {
+		if (group == nullptr)
+			continue;
+		if (skill_id != 0 && group->skill_id != skill_id)
+			continue;
+		++count;
+	}
+	return count;
+}
+
+static const char* playerbot_skill_denial_detail(map_session_data* sd, uint16 skill_id, uint16 skill_lv, const block_list* target, int16 skill_x, int16 skill_y, bool positional) {
+	if (sd == nullptr)
+		return "bot.offline";
+	if (status_isdead(*sd))
+		return "caster.dead";
+	if (skill_id == 0 || skill_lv == 0)
+		return "skill.invalid";
+
+	const unit_data* ud = unit_bl2ud(sd);
+	if (ud == nullptr)
+		return "caster.ud_missing";
+	if (ud->state.blockedskill)
+		return "caster.blockedskill";
+	if (ud->skilltimer != INVALID_TIMER)
+		return "caster.skilltimer";
+	if (pc_issit(sd))
+		return "caster.sitting";
+	if (!unit_can_move(sd))
+		return "caster.cannot_move";
+	if (ud->stepaction || ud->steptimer != INVALID_TIMER)
+		return "caster.stepaction";
+	if (ud->walktimer != INVALID_TIMER)
+		return "caster.walking";
+	if (sd->chatID)
+		return "caster.chat";
+
+	status_change* sc = &sd->sc;
+	if (sc != nullptr && sc->empty())
+		sc = nullptr;
+	if (sc != nullptr) {
+		if (sc->getSCE(SC_WEIGHT90) != nullptr)
+			return "caster.weight90";
+		if (sc->getSCE(SC__SHADOWFORM) != nullptr)
+			return "caster.shadowform";
+		if (sc->getSCE(SC__IGNORANCE) != nullptr)
+			return "caster.ignorance";
+		if (skill_disable_check(*sc, skill_id))
+			return "skill.disabled";
+	}
+	if (pc_isridingwug(sd))
+		return "caster.ridingwug";
+	if (pc_ismadogear(sd))
+		return "caster.madogear";
+
+	if (skill_isNotOk(skill_id, *sd))
+		return "skill.not_ok";
+	if (!skill_check_condition_castbegin(*sd, skill_id, skill_lv))
+		return "castbegin.denied";
+	if (positional) {
+		if (skill_get_inf2(skill_id, INF2_DISABLENEARNPC) && skill_isNotOk_npcRange(sd, skill_id, skill_lv, skill_x, skill_y))
+			return "near_npc.denied";
+	} else if (target != nullptr) {
+		if (skill_get_inf2(skill_id, INF2_DISABLENEARNPC) && skill_isNotOk_npcRange(sd, skill_id, skill_lv, target->x, target->y))
+			return "near_npc.denied";
+	}
+	return "skill.not_started";
 }
 
 static std::string playerbot_participation_state(const map_session_data* sd) {
@@ -14176,10 +14261,71 @@ BUILDIN_FUNC(playerbot_skilluse)
 		return SCRIPT_CMD_SUCCESS;
 	}
 
+	const char* denial_detail = playerbot_skill_denial_detail(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), target, 0, 0, false);
 	unit_skilluse_id2(sd, target_id, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), (cast_ms > 0 ? cast_ms : 0) + skill_castfix(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv)), 1, false);
 	const unit_data* ud = unit_bl2ud(sd);
 	bool ok = (ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id));
-	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill", std::to_string(skill_id).c_str(), ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "combat.skilluse", ok ? "" : "skill.not_started");
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(denial_detail, "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skilluse", ok ? "" : denial_detail);
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skilluseself)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 skill_id = script_getnum(st, 3);
+	int32 skill_lv = script_getnum(st, 4);
+	int32 cast_ms = script_getnum(st, 5);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "skill_self", std::to_string(skill_id).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || skill_id <= 0 || skill_lv <= 0 || status_isdead(*sd)) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill_self", std::to_string(skill_id).c_str(), "target.invalid", "denied", "combat.skilluse", sd == nullptr ? "bot.offline" : "skill.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	const char* denial_detail = playerbot_skill_denial_detail(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), sd, static_cast<int16>(sd->x), static_cast<int16>(sd->y), false);
+	int32 before_units = playerbot_skillunit_count(sd, static_cast<uint16>(skill_id));
+	unit_skilluse_id2(sd, sd->id, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), (cast_ms > 0 ? cast_ms : 0) + skill_castfix(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv)), 1, false);
+	const unit_data* ud = unit_bl2ud(sd);
+	bool ok = (ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id || playerbot_skillunit_count(sd, static_cast<uint16>(skill_id)) > before_units));
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_self", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(denial_detail, "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skilluse", ok ? "" : denial_detail);
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skillusepos)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 skill_x = script_getnum(st, 3);
+	int32 skill_y = script_getnum(st, 4);
+	int32 skill_id = script_getnum(st, 5);
+	int32 skill_lv = script_getnum(st, 6);
+	int32 cast_ms = script_getnum(st, 7);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "skill_pos", std::to_string(skill_id).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || skill_id <= 0 || skill_lv <= 0) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill_pos", std::to_string(skill_id).c_str(), "target.invalid", "denied", "combat.skillusepos", sd == nullptr ? "bot.offline" : "skill.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	struct map_data* md = map_getmapdata(sd->m);
+	if (status_isdead(*sd) || md == nullptr || skill_x < 0 || skill_y < 0 || skill_x >= md->xs || skill_y >= md->ys) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill_pos", std::to_string(skill_id).c_str(), "target.invalid", "denied", "combat.skillusepos", "target.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	const char* denial_detail = playerbot_skill_denial_detail(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), nullptr, static_cast<int16>(skill_x), static_cast<int16>(skill_y), true);
+	int32 before_units = playerbot_skillunit_count(sd, static_cast<uint16>(skill_id));
+	int32 ret = unit_skilluse_pos2(sd, static_cast<int16>(skill_x), static_cast<int16>(skill_y), static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), (cast_ms > 0 ? cast_ms : 0) + skill_castfix(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv)), 1, false);
+	const unit_data* ud = unit_bl2ud(sd);
+	bool ok = (ret > 0 && ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id || playerbot_skillunit_count(sd, static_cast<uint16>(skill_id)) > before_units));
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_pos", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(denial_detail, "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skillusepos", ok ? "" : denial_detail);
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -14191,6 +14337,16 @@ BUILDIN_FUNC(playerbot_skillcastactive)
 	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
 	const unit_data* ud = sd != nullptr ? unit_bl2ud(sd) : nullptr;
 	script_pushint(st, (ud != nullptr && ud->skilltimer != INVALID_TIMER) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skillunitcount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 skill_id = script_hasdata(st, 3) ? script_getnum(st, 3) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, playerbot_skillunit_count(sd, skill_id > 0 ? static_cast<uint16>(skill_id) : 0));
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -32492,7 +32648,10 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_attackstop,"s"),
 	BUILDIN_DEF(playerbot_skillgrant,"sii"),
 	BUILDIN_DEF(playerbot_skilluse,"siiii"),
+	BUILDIN_DEF(playerbot_skilluseself,"siii"),
+	BUILDIN_DEF(playerbot_skillusepos,"siiiii"),
 	BUILDIN_DEF(playerbot_skillcastactive,"s"),
+	BUILDIN_DEF(playerbot_skillunitcount,"s?"),
 	BUILDIN_DEF(playerbot_skillcastcancel,"s"),
 	BUILDIN_DEF(playerbot_gid,"s"),
 	BUILDIN_DEF(playerbot_target,"s"),
