@@ -82,7 +82,41 @@ Validate that the bot returns to a clean status state after respawning.
 EOF
 			;;
 		death-respawn)
-...
+			cat <<'EOF'
+Validate death, respawn, and stale-state cleanup without leaving split-brain runtime state.
+EOF
+			;;
+		item-loadout-continuity)
+			cat <<'EOF'
+Validate intended loadout continuity across spawn, death, and respawn.
+EOF
+			;;
+		mechanic-cleanup)
+			cat <<'EOF'
+Validate that interrupted NPC, trade, storage, and participation flows clean up their claims and runtime state.
+EOF
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
+playerbot_scenario_prereqs() {
+	case "${1:-}" in
+		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn|item-loadout-continuity|mechanic-cleanup)
+			cat <<'EOF'
+- repo-local dev stack is restarted
+- current foundation smoke remains green
+- OpenKore login harness is available for CLI observation if needed
+EOF
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 playerbot_scenario_steps() {
 	case "${1:-}" in
 		combat-baseline)
@@ -128,7 +162,35 @@ EOF
 EOF
 			;;
 		death-respawn)
-...
+			cat <<'EOF'
+- trigger a death event in a controlled scenario
+- verify death traces and recovery/audit rows are emitted
+- respawn the actor
+- confirm stale claims, targets, and runtime state are cleaned up
+EOF
+			;;
+		item-loadout-continuity)
+			cat <<'EOF'
+- define an intended loadout for the test actor
+- spawn or respawn the actor
+- verify the intended equipment summary is readable
+- confirm legal equip reconciliation occurs without duplicate ownership
+EOF
+			;;
+		mechanic-cleanup)
+			cat <<'EOF'
+- interrupt an NPC/dialog flow
+- interrupt a trade or storage flow
+- verify the cleanup path releases claims and clears runtime state
+- confirm the recovery surface records the interruption cleanly
+EOF
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 playerbot_scenario_expected() {
 	case "${1:-}" in
 		combat-baseline)
@@ -145,7 +207,29 @@ EOF
 EOF
 			;;
 		death-respawn)
-...
+			cat <<'EOF'
+- death and respawn trace rows exist
+- stale ownership, target, and reservation rows are cleared
+EOF
+			;;
+		item-loadout-continuity)
+			cat <<'EOF'
+- intended loadout is visible in the summary
+- legal equip reconciliation leaves a clean inventory/equipment state
+EOF
+			;;
+		mechanic-cleanup)
+			cat <<'EOF'
+- interrupted participation flows leave a clean recovery/audit trail
+- claims and runtime state are released
+EOF
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 playerbot_scenario_notes() {
 	case "${1:-}" in
 		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
@@ -156,10 +240,38 @@ runbook layer, while the smoke helper is the concrete launcher/check surface.
 EOF
 			;;
 		item-loadout-continuity)
-...
+			cat <<'EOF'
+This scenario now has a repo-local smoke helper through
+`tools/ci/playerbot-item-smoke.sh`. The scenario runner remains the canonical
+runbook layer, while the item smoke helper is the concrete launcher/check
+surface.
+EOF
+			;;
+		mechanic-cleanup)
+			cat <<'EOF'
+This scenario is intentionally a skeleton definition. It is a stable contract
+for future automation, not a claim that the runtime hook is implemented yet.
+EOF
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 playerbot_scenario_launcher() {
 	case "${1:-}" in
 		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
 			;;
 		item-loadout-continuity)
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check'
+			;;
+		mechanic-cleanup)
+			printf '%s\n' ''
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
