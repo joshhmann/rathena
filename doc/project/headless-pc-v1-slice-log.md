@@ -5792,6 +5792,86 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Session Continuity
+
+### Summary
+
+Closed the next transition-integrity gap around transient session/UI state.
+Successful playerbot death, respawn, map-change, and quit transitions now clear
+menu-skill/progress/UI session state through the same recovery surface, while
+denied map changes no longer destroy that state before warp authority is known.
+
+### Files
+
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Moved transient warp/session resets in `pc_setpos()` so denied warps no
+  longer clear:
+  - mail-writing state
+  - roulette/enchantgrade/item-reform state
+  - related refine/barter/laphine/item-enchant UI flags
+- Added playerbot session-state summaries and deterministic arming buildins:
+  - `playerbot_sessioncount`
+  - `playerbot_sessionsummary`
+  - `playerbot_sessionarm`
+- Added playerbot session cleanup coverage for:
+  - progress bar state
+  - menu-skill state
+  - skill-item state
+  - transient mail/bank/UI flags
+- Wired that cleanup into:
+  - death
+  - respawn
+  - successful map-change
+  - quit/remove
+- Added structured session interrupt traces/audits under:
+  - `target_type = 'session'`
+  - `scope = 'session'`
+- Expanded the combat selftest so it now proves:
+  - denied-warp preserves armed session state under `SC_JAILED`
+  - successful map-change clears armed session state
+  - quit/remove emits session cleanup trace/audit coverage
+- Hardened the aggregate foundation smoke so `run`/`check` wait for the late
+  participation/combat selftest lines instead of assuming `stage=done` is
+  sufficient.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `git diff --check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... session_* ... result=1`
+- `playerbot_foundation_selftest` still reaches:
+  - `stage=state`
+  - `stage=guild`
+  - `stage=item`
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=combat`
+  - `stage=done`
+- aggregate foundation smoke passes again with the longer combat/participation
+  tail accounted for
+
+### Deferrals
+
+This slice does not add:
+
+- first-class mail/auction/bank interaction verbs
+- searchstore/vending/buyingstore participation hooks
+- ground-skill or skill-unit persistence policy
+- event/instance ownership carry-over instead of cleanup-and-reacquire
+
 ## Slice 74: Mapchange Status Continuity Guard
 
 ### Goal

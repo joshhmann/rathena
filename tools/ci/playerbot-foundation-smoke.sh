@@ -52,6 +52,24 @@ wait_for_selftest_line() {
 	return 1
 }
 
+wait_for_all_selftests() {
+	local timeout_s="${1:-120}" elapsed=0 pane
+	while (( elapsed < timeout_s )); do
+		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -1200 2>/dev/null || true)"
+		if printf '%s\n' "$pane" | grep -q 'playerbot_state_selftest:' \
+			&& printf '%s\n' "$pane" | grep -q 'playerbot_guild_selftest:' \
+			&& printf '%s\n' "$pane" | grep -q 'playerbot_item_selftest:' \
+			&& printf '%s\n' "$pane" | grep -q 'playerbot_merchant_selftest:' \
+			&& printf '%s\n' "$pane" | grep -q 'playerbot_participation_selftest:' \
+			&& printf '%s\n' "$pane" | grep -q 'playerbot_combat_selftest:'; then
+			return 0
+		fi
+		sleep 1
+		elapsed=$((elapsed + 1))
+	done
+	return 1
+}
+
 arm() {
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
 REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
@@ -94,7 +112,7 @@ run() {
 		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
 		return 1
 	fi
-	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
+	wait_for_all_selftests 180 || true
 	check
 }
 
@@ -108,6 +126,7 @@ check() {
 		[combat]='playerbot_combat_selftest:'
 	)
 	local pane lines line key failures=0
+	wait_for_all_selftests 120 || true
 	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -600 \; save-buffer - 2>/dev/null | tail -n 600 || true)"
 	printf '%s\n' "$pane" | grep 'playerbot_foundation_selftest:' | tail -n 12 || true
 	printf '\n'

@@ -417,6 +417,51 @@ static std::string playerbot_status_state(const map_session_data* sd) {
 		+ ",stun=" + std::to_string(sd->sc.getSCE(SC_STUN) != nullptr ? 1 : 0);
 }
 
+static int32 playerbot_session_count(const map_session_data* sd) {
+	if (sd == nullptr)
+		return 0;
+
+	return (sd->progressbar.npc_id != 0 ? 1 : 0)
+		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
+		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ (sd->state.mail_writing ? 1 : 0)
+		+ (sd->state.roulette_open ? 1 : 0)
+		+ (sd->state.enchantgrade_open ? 1 : 0)
+		+ (sd->state.item_reform != 0 ? 1 : 0)
+		+ (sd->state.item_enchant_index != 0 ? 1 : 0)
+		+ (sd->state.refineui_open ? 1 : 0)
+		+ (sd->state.stylist_open ? 1 : 0)
+		+ (sd->state.inventory_expansion_confirmation != 0 ? 1 : 0)
+		+ (sd->state.barter_open ? 1 : 0)
+		+ (sd->state.barter_extended_open ? 1 : 0)
+		+ (sd->state.laphine_synthesis != 0 ? 1 : 0)
+		+ (sd->state.laphine_upgrade != 0 ? 1 : 0)
+		+ (sd->state.banking ? 1 : 0);
+}
+
+static std::string playerbot_session_state(const map_session_data* sd) {
+	if (sd == nullptr)
+		return "offline";
+
+	return "count=" + std::to_string(playerbot_session_count(sd))
+		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
+		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
+		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
+		+ ",roulette=" + std::to_string(sd->state.roulette_open ? 1 : 0)
+		+ ",enchantgrade=" + std::to_string(sd->state.enchantgrade_open ? 1 : 0)
+		+ ",reform=" + std::to_string(sd->state.item_reform != 0 ? 1 : 0)
+		+ ",itemenchant=" + std::to_string(sd->state.item_enchant_index != 0 ? 1 : 0)
+		+ ",refine=" + std::to_string(sd->state.refineui_open ? 1 : 0)
+		+ ",stylist=" + std::to_string(sd->state.stylist_open ? 1 : 0)
+		+ ",expand=" + std::to_string(sd->state.inventory_expansion_confirmation != 0 ? 1 : 0)
+		+ ",barter=" + std::to_string(sd->state.barter_open ? 1 : 0)
+		+ ",barterx=" + std::to_string(sd->state.barter_extended_open ? 1 : 0)
+		+ ",laphsyn=" + std::to_string(sd->state.laphine_synthesis != 0 ? 1 : 0)
+		+ ",laphup=" + std::to_string(sd->state.laphine_upgrade != 0 ? 1 : 0)
+		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0);
+}
+
 static bool playerbot_npc_force_recover(map_session_data* sd) {
 	if (sd == nullptr)
 		return false;
@@ -13887,6 +13932,84 @@ BUILDIN_FUNC(playerbot_statussummary)
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
 	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
 	script_pushstrcopy(st, playerbot_status_state(sd).c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_sessioncount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, playerbot_session_count(sd));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_sessionsummary)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushstrcopy(st, playerbot_session_state(sd).c_str());
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_sessionarm)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* mode = script_getstr(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "session_arm", mode, "operator.stop", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "session_arm", mode, "target.invalid", "denied", "session.arm", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (strcmp(mode, "progress") == 0 || strcmp(mode, "all") == 0) {
+		sd->progressbar.npc_id = sd->npc_id != 0 ? sd->npc_id : 1;
+		sd->progressbar.timeout = gettick() + 5000;
+	}
+	if (strcmp(mode, "menuskill") == 0 || strcmp(mode, "all") == 0) {
+		sd->menuskill_id = AL_TELEPORT;
+		sd->menuskill_val = 1;
+		sd->menuskill_val2 = 0;
+	}
+	if (strcmp(mode, "skillitem") == 0 || strcmp(mode, "all") == 0) {
+		sd->skillitem = ITEMID_RED_POTION;
+		sd->skillitemlv = 1;
+	}
+	if (strcmp(mode, "mail") == 0 || strcmp(mode, "all") == 0)
+		sd->state.mail_writing = true;
+	if (strcmp(mode, "roulette") == 0 || strcmp(mode, "all") == 0)
+		sd->state.roulette_open = true;
+	if (strcmp(mode, "enchantgrade") == 0 || strcmp(mode, "all") == 0)
+		sd->state.enchantgrade_open = true;
+	if (strcmp(mode, "reform") == 0 || strcmp(mode, "all") == 0) {
+		sd->state.item_reform = 1201;
+		sd->state.item_enchant_index = 1;
+	}
+	if (strcmp(mode, "refine") == 0 || strcmp(mode, "all") == 0)
+		sd->state.refineui_open = true;
+	if (strcmp(mode, "stylist") == 0 || strcmp(mode, "all") == 0)
+		sd->state.stylist_open = true;
+	if (strcmp(mode, "expand") == 0 || strcmp(mode, "all") == 0)
+		sd->state.inventory_expansion_confirmation = 1;
+	if (strcmp(mode, "barter") == 0 || strcmp(mode, "all") == 0) {
+		sd->state.barter_open = true;
+		sd->state.barter_extended_open = true;
+	}
+	if (strcmp(mode, "laphine") == 0 || strcmp(mode, "all") == 0) {
+		sd->state.laphine_synthesis = ITEMID_RED_POTION;
+		sd->state.laphine_upgrade = ITEMID_RED_POTION;
+	}
+	if (strcmp(mode, "bank") == 0 || strcmp(mode, "all") == 0)
+		sd->state.banking = true;
+
+	bool ok = playerbot_session_count(sd) > 0;
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "session_arm", mode, ok ? "operator.stop" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "session.arm", playerbot_session_state(sd).c_str());
+	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -31434,6 +31557,9 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_statusactive,"si"),
 	BUILDIN_DEF(playerbot_statuscount,"s"),
 	BUILDIN_DEF(playerbot_statussummary,"s"),
+	BUILDIN_DEF(playerbot_sessioncount,"s"),
+	BUILDIN_DEF(playerbot_sessionsummary,"s"),
+	BUILDIN_DEF(playerbot_sessionarm,"ss"),
 	BUILDIN_DEF(playerbot_statusstart,"siii"),
 	BUILDIN_DEF(playerbot_statusclear,"si"),
 	BUILDIN_DEF(playerbot_combatstate,"s"),

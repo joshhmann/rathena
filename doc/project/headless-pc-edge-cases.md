@@ -2462,3 +2462,30 @@ Current limit:
   denied-warp non-cleanup
 - event-instance transfer policy and cross-map claim transfer are still handled
   as cleanup-and-reacquire rather than ownership carry-over
+
+Transient session continuity now covered:
+
+- playerbot transition cleanup now includes engine-owned transient session state:
+  - progressbar state
+  - menu-skill state
+  - skill-item state
+  - transient mail-writing/bank/UI flags
+- successful death, respawn, map-change, and quit/remove now emit:
+  - `session / interrupt` recovery audits
+  - `target_type = 'session'` structured trace rows
+- denied map changes no longer clear those transient session flags before the
+  warp legality guard runs
+- the combat selftest now proves:
+  - denied-warp session preservation under `SC_JAILED`
+  - successful map-change session cleanup
+  - quit/remove session cleanup audit/trace coverage
+
+Current limit:
+
+- this is still a transition-cleanup layer, not full first-class support for:
+  - mail composition
+  - banking flows
+  - roulette/enchantgrade/item-reform participation
+  - searchstore/buyingstore/vending session participation
+- broader event-instance transfer policy is still cleanup-and-reacquire
+  rather than continuity-carry-over
