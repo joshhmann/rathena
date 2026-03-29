@@ -6,6 +6,7 @@ playerbot_scenario_ids() {
 		'combat-skillunit-mapchange-cleanup' \
 		'combat-skillunit-death-cleanup' \
 		'combat-skillunit-quit-cleanup' \
+		'combat-skillunit-promotion-precheck' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -13,7 +14,10 @@ playerbot_scenario_ids() {
 		'status-recovery-integrity' \
 		'death-respawn' \
 		'item-loadout-continuity' \
-		'mechanic-cleanup'
+		'loadout-denied-recover' \
+		'mechanic-cleanup' \
+		'market-buyingstore-partial-fill' \
+		'market-buyingstore-reopen'
 }
 
 playerbot_scenario_title() {
@@ -22,6 +26,7 @@ playerbot_scenario_title() {
 		combat-skillunit-mapchange-cleanup) printf '%s\n' 'Combat Skillunit Mapchange Cleanup' ;;
 		combat-skillunit-death-cleanup) printf '%s\n' 'Combat Skillunit Death Cleanup' ;;
 		combat-skillunit-quit-cleanup) printf '%s\n' 'Combat Skillunit Quit Cleanup' ;;
+		combat-skillunit-promotion-precheck) printf '%s\n' 'Combat Skillunit Promotion Precheck' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -29,31 +34,38 @@ playerbot_scenario_title() {
 		status-recovery-integrity) printf '%s\n' 'Status Recovery Integrity' ;;
 		death-respawn) printf '%s\n' 'Death / Respawn Continuity' ;;
 		item-loadout-continuity) printf '%s\n' 'Item / Loadout Continuity' ;;
+		loadout-denied-recover) printf '%s\n' 'Loadout Denied / Recover' ;;
 		mechanic-cleanup) printf '%s\n' 'Mechanic Cleanup' ;;
+		market-buyingstore-partial-fill) printf '%s\n' 'Market Buyingstore Partial Fill' ;;
+		market-buyingstore-reopen) printf '%s\n' 'Market Buyingstore Reopen' ;;
 		*) return 1 ;;
 	esac
 }
 
 playerbot_scenario_phase() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup) printf '%s\n' 'combat' ;;
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck) printf '%s\n' 'combat' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
-		item-loadout-continuity) printf '%s\n' 'equipment' ;;
+		item-loadout-continuity|loadout-denied-recover) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup) printf '%s\n' 'participation' ;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen) printf '%s\n' 'market' ;;
 		*) return 1 ;;
 	esac
 }
 
 playerbot_scenario_kind() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
 			printf '%s\n' 'runbook'
 			;;
-		item-loadout-continuity)
+		item-loadout-continuity|loadout-denied-recover)
 			printf '%s\n' 'runbook'
 			;;
 		mechanic-cleanup)
+			printf '%s\n' 'runbook'
+			;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen)
 			printf '%s\n' 'runbook'
 			;;
 		*)
@@ -82,6 +94,11 @@ EOF
 		combat-skillunit-quit-cleanup)
 			cat <<'EOF'
 Validate that a live ground-skill unit is cleared when the bot is parked/removed and that quit cleanup is traced and audited.
+EOF
+			;;
+		combat-skillunit-promotion-precheck)
+			cat <<'EOF'
+Validate that the bot correctly evaluates pre-conditions before placing a ground skill unit — confirming that insufficient SP, out-of-range targets, and invalid cell flags all block placement and leave no orphaned skillunit state.
 EOF
 			;;
 		status-continuity)
@@ -119,9 +136,24 @@ EOF
 Validate intended loadout continuity across spawn, death, and respawn.
 EOF
 			;;
+		loadout-denied-recover)
+			cat <<'EOF'
+Validate that when a legal equip attempt is rejected by the engine (wrong job, weight over limit, item locked), the bot's intended loadout record remains intact and the next reconciliation attempt recovers cleanly without duplicate ownership or phantom equip claims.
+EOF
+			;;
 		mechanic-cleanup)
 			cat <<'EOF'
 Validate that interrupted NPC, trade, storage, and participation flows clean up their claims and runtime state.
+EOF
+			;;
+		market-buyingstore-partial-fill)
+			cat <<'EOF'
+Validate that a buying store receives a partial fill — some items purchased, zeny deducted, store remains open — and that the bot's market session state reflects the partial fulfillment without claiming full completion or leaving a stale reservation.
+EOF
+			;;
+		market-buyingstore-reopen)
+			cat <<'EOF'
+Validate that a buying store session that was closed (zeny depleted or operator stop) can be reopened cleanly — confirming that the prior session's zeny/reservation state is fully released before the new session starts and that no double-reservation or orphaned store record exists.
 EOF
 			;;
 		*)
@@ -132,7 +164,7 @@ EOF
 
 playerbot_scenario_prereqs() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|mechanic-cleanup)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|mechanic-cleanup|market-buyingstore-partial-fill|market-buyingstore-reopen)
 			cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
@@ -183,6 +215,19 @@ EOF
 - verify the bot is parked/removed while the skill unit is active
 - confirm quit cleanup clears the skill unit
 - confirm `reconcile.fixed / skillunit / operator.stop / ok / quit.interrupt` is present
+EOF
+			;;
+		combat-skillunit-promotion-precheck)
+			cat <<'EOF'
+- set the test actor's SP below the cost threshold for a ground skill
+- attempt to promote a skillunit placement via the combat frontier
+- confirm the placement is blocked and no skillunit record is created
+- restore SP to a legal value and attempt again with an out-of-range target
+- confirm the placement is blocked and no skillunit record is created
+- restore range and attempt with a cell flagged as skill-blocked
+- confirm the placement is blocked and no skillunit record is created
+- perform one successful placement with all conditions met
+- confirm `playerbot_skillunitcount(...)` becomes positive and `skillunit.precheck / ok` is present in the trace
 EOF
 			;;
 		status-continuity)
@@ -242,6 +287,18 @@ EOF
 - confirm legal equip reconciliation occurs without duplicate ownership
 EOF
 			;;
+		loadout-denied-recover)
+			cat <<'EOF'
+- define an intended loadout that includes at least one item that will be rejected (wrong job class or weight over limit)
+- spawn or respawn the actor and trigger the equip reconciliation pass
+- confirm the engine rejects the equip attempt and logs the denial
+- verify the intended loadout record still lists the rejected item as pending
+- verify no orphaned equip claim or phantom ownership row was created
+- fix the blocking condition (change job or reduce weight) and trigger a second reconciliation pass
+- confirm the item is now equipped and the intended loadout record transitions to filled
+- confirm `loadout.denied / recover / ok` is present in the trace
+EOF
+			;;
 		mechanic-cleanup)
 			cat <<'EOF'
 - arm the participation smoke helper
@@ -249,6 +306,28 @@ EOF
 - verify the selftest drives interrupted NPC/dialog, storage, trade, and reservation flows
 - confirm the cleanup path releases claims and clears runtime state for each case
 - confirm the recovery surface records each interruption cleanly
+EOF
+			;;
+		market-buyingstore-partial-fill)
+			cat <<'EOF'
+- open a buying store on the test actor with zeny sufficient for only a fraction of the target quantity
+- have a second actor (or direct item injection) supply a partial quantity of the wanted item
+- confirm the purchased quantity is deducted from the store and zeny is consumed accordingly
+- confirm the store remains open for the remainder
+- verify the market session state reflects partial fill (items_bought < items_wanted)
+- confirm no stale full-completion or reservation rows exist for the unfilled remainder
+- confirm `market.fill / partial / ok` is present in the trace
+EOF
+			;;
+		market-buyingstore-reopen)
+			cat <<'EOF'
+- open a buying store on the test actor and let it exhaust its zeny (full or operator close)
+- confirm the store session closes and the market reservation is released
+- confirm zeny/reservation state for the closed session shows no remaining open claim
+- trigger the reopen path via the controller scheduler or direct `@playerbotopen` command
+- confirm a new buying store session starts cleanly with a fresh reservation
+- confirm no double-reservation or orphaned store record from the previous session
+- confirm `market.session / reopen / ok` is present in the trace
 EOF
 			;;
 		*)
@@ -274,6 +353,15 @@ EOF
 - the trace output shows both the `skill_pos` request/completion and the `skillunit` cleanup event
 EOF
 			;;
+		combat-skillunit-promotion-precheck)
+			cat <<'EOF'
+- each blocked attempt produces a `skillunit.precheck / denied / <reason>` trace row
+- `playerbot_skillunitcount(...)` remains zero for all denied attempts
+- one successful placement produces `skillunit.precheck / ok` in the trace
+- `playerbot_skillunitcount(...)` becomes positive for the successful attempt
+- no orphaned skillunit ownership or pending placement rows exist after blocked attempts
+EOF
+			;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity)
 			cat <<'EOF'
 - status summary reflects the live effect
@@ -292,12 +380,38 @@ EOF
 - legal equip reconciliation leaves a clean inventory/equipment state
 EOF
 			;;
+		loadout-denied-recover)
+			cat <<'EOF'
+- `loadout.denied / <reason>` trace row is present for the rejected item
+- no orphaned equip claim or phantom ownership row exists after the denial
+- intended loadout record still shows the item as pending after the first pass
+- `loadout.denied / recover / ok` trace row is present after the second reconciliation pass
+- intended loadout record shows the item as filled after successful equip
+EOF
+			;;
 		mechanic-cleanup)
 			cat <<'EOF'
 - `playerbot_participation_selftest ... result=1` is present
 - interrupted dialog, storage, trade, reservation, and quit flows leave a clean recovery/audit trail
 - claims and runtime state are released for each interrupted session
 - recent `interaction` trace rows show the participation targets completing or failing cleanly
+EOF
+			;;
+		market-buyingstore-partial-fill)
+			cat <<'EOF'
+- `market.fill / partial / ok` trace row is present
+- bought quantity matches the injected supply (less than total wanted)
+- zeny consumed matches the per-item price times the bought quantity
+- buying store remains open with correct remaining quantity and zeny
+- no full-completion or stale reservation row for the unfilled remainder
+EOF
+			;;
+		market-buyingstore-reopen)
+			cat <<'EOF'
+- prior session shows closed status and released reservation in the trace
+- no open zeny reservation or store claim from the previous session
+- `market.session / reopen / ok` trace row is present for the new session
+- new session starts with a fresh reservation and no orphaned records from prior session
 EOF
 			;;
 		*)
@@ -325,12 +439,35 @@ foundation baseline proves skillunit creation and cleanup through the dedicated
 probe, while the aggregate combat gate stays on the last stable combat path.
 EOF
 			;;
+		combat-skillunit-promotion-precheck)
+			cat <<'EOF'
+This scenario is a skeleton runbook definition — there is no automated smoke
+helper yet. It documents the pre-condition validation surface that must be
+confirmed before the combat skillunit frontier can promote to a wider gate.
+
+Once the skillunit precheck hook is implemented in the runtime layer, this
+scenario should be backed by a dedicated smoke helper and its launcher field
+populated.
+EOF
+			;;
 		item-loadout-continuity)
 			cat <<'EOF'
 This scenario now has a repo-local smoke helper through
 `tools/ci/playerbot-item-smoke.sh`. The scenario runner remains the canonical
 runbook layer, while the item smoke helper is the concrete launcher/check
 surface.
+EOF
+			;;
+		loadout-denied-recover)
+			cat <<'EOF'
+This scenario is a skeleton runbook definition — there is no automated smoke
+helper yet. It documents the denial and recovery surface for the equipment
+continuity frontier.
+
+It is intended to be run after the base item-loadout-continuity scenario
+confirms the happy path. Once the loadout denial hook and recovery path are
+implemented, this scenario should be backed by an extension of
+`tools/ci/playerbot-item-smoke.sh` and its launcher field populated.
 EOF
 			;;
 		mechanic-cleanup)
@@ -340,6 +477,18 @@ This scenario is now backed by the participation smoke helper:
 
 It is the accepted runbook for interrupted participation cleanup across dialog,
 storage, trade, reservations, and quit/remove cleanup on the current baseline.
+EOF
+			;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen)
+			cat <<'EOF'
+These scenarios are skeleton runbook definitions — there is no automated smoke
+helper yet. They document the buying store session lifecycle surface for the
+market continuity frontier.
+
+Both scenarios extend the accepted participation baseline (mechanic-cleanup) to
+cover the richer market session state: partial fills, zeny depletion, and
+session reopen. Once the market session continuity hooks are implemented, these
+should be backed by a dedicated market smoke helper.
 EOF
 			;;
 		*)
@@ -356,14 +505,23 @@ playerbot_scenario_launcher() {
 		combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-smoke.sh check'
 			;;
+		combat-skillunit-promotion-precheck)
+			return 1
+			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
 			;;
 		item-loadout-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check'
 			;;
+		loadout-denied-recover)
+			return 1
+			;;
 		mechanic-cleanup)
 			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
+			;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen)
+			return 1
 			;;
 		*)
 			return 1

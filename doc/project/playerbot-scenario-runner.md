@@ -38,12 +38,13 @@ layer. A scenario is treated as a stable definition if it exposes:
 
 ## Current Scenario Catalog
 
-The initial frontier catalog contains:
+The current catalog contains:
 
 - `combat-baseline`
 - `combat-skillunit-mapchange-cleanup`
 - `combat-skillunit-death-cleanup`
 - `combat-skillunit-quit-cleanup`
+- `combat-skillunit-promotion-precheck` *(skeleton — no launcher yet)*
 - `status-continuity`
 - `status-death-cleanup`
 - `status-map-continuity`
@@ -51,7 +52,10 @@ The initial frontier catalog contains:
 - `status-recovery-integrity`
 - `death-respawn`
 - `item-loadout-continuity`
+- `loadout-denied-recover` *(skeleton — no launcher yet)*
 - `mechanic-cleanup`
+- `market-buyingstore-partial-fill` *(skeleton — no launcher yet)*
+- `market-buyingstore-reopen` *(skeleton — no launcher yet)*
 
 Current phase labels used by the catalog:
 
@@ -60,10 +64,11 @@ Current phase labels used by the catalog:
 - `respawn`
 - `equipment`
 - `participation`
+- `market`
 
 These split into two groups:
 
-- runbook-backed today:
+- runbook-backed with a repo-local smoke launcher:
   - `combat-baseline`
   - `combat-skillunit-mapchange-cleanup`
   - `combat-skillunit-death-cleanup`
@@ -77,6 +82,12 @@ These split into two groups:
   - `item-loadout-continuity`
   - `mechanic-cleanup`
 
+- skeleton runbook definitions (no launcher yet):
+  - `combat-skillunit-promotion-precheck`
+  - `loadout-denied-recover`
+  - `market-buyingstore-partial-fill`
+  - `market-buyingstore-reopen`
+
 The runbook-backed scenarios use:
 
 - `tools/ci/playerbot-combat-smoke.sh`
@@ -84,12 +95,15 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-item-smoke.sh`
 - `tools/ci/playerbot-participation-smoke.sh`
 
-Highest-value missing additions after this update are:
+The skeleton scenarios define the next-frontier acceptance surface. When the
+corresponding runtime hooks exist, each should be backed by a smoke helper and
+the kind field promoted from skeleton to runbook.
 
-- scenario coverage for later combat/status edges such as status persistence
-  across repeated handoffs or multiple sequential deaths
-- scenario coverage for later market/session continuity beyond the current
-  participation smoke baseline
+Highest-value missing additions after this expansion:
+
+- scenario coverage for status persistence across repeated deaths or sequential
+  handoffs
+- smoke automation for the skeleton scenarios once their runtime frontier ships
 
 ## CLI Contract
 

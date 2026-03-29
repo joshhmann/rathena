@@ -69,6 +69,7 @@ Current catalog:
   combat-skillunit-mapchange-cleanup
   combat-skillunit-death-cleanup
   combat-skillunit-quit-cleanup
+  combat-skillunit-promotion-precheck
   status-continuity
   status-death-cleanup
   status-map-continuity
@@ -76,7 +77,10 @@ Current catalog:
   death-respawn
   status-recovery-integrity
   item-loadout-continuity
+  loadout-denied-recover
   mechanic-cleanup
+  market-buyingstore-partial-fill
+  market-buyingstore-reopen
 EOF
 }
 
