@@ -194,10 +194,11 @@ EOF
 			;;
 		mechanic-cleanup)
 			cat <<'EOF'
-- interrupt an NPC/dialog flow
-- interrupt a trade or storage flow
-- verify the cleanup path releases claims and clears runtime state
-- confirm the recovery surface records the interruption cleanly
+- interrupt an NPC/dialog flow during active participation
+- interrupt a trade or storage flow during active participation
+- warp the bot while a participation session is still active
+- verify the cleanup path releases claims and clears runtime state for each case
+- confirm the recovery surface records each interruption cleanly
 EOF
 			;;
 		*)
@@ -235,8 +236,8 @@ EOF
 			;;
 		mechanic-cleanup)
 			cat <<'EOF'
-- interrupted participation flows leave a clean recovery/audit trail
-- claims and runtime state are released
+- interrupted dialog, trade, storage, and warp flows leave a clean recovery/audit trail
+- claims and runtime state are released for each interrupted session
 EOF
 			;;
 		*)

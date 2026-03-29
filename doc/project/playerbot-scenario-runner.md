@@ -86,7 +86,8 @@ land.
 
 Highest-value missing additions after this update are:
 
-- richer mechanic-cleanup coverage for interrupted NPC, trade, and storage flows
+- richer mechanic-cleanup coverage for interrupted NPC, trade, storage, and
+  warp flows
 - a narrower combat-interrupt scenario that isolates death/respawn cleanup from
   broader status continuity
 - scenario coverage for later combat/status edges such as status persistence
