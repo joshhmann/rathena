@@ -3,7 +3,7 @@ alberta,160,135,4	script	Playerbot Item Lab	4_M_02,{
 	mes "Exercise the transactional playerbot item layer.";
 	next;
 
-	switch(select("Spawn quick item bot:Grant knife and potions:Equip knife:Unequip knife:Set knife loadout:Clear loadout:Reconcile loadout:Deposit 2 red potions:Withdraw 1 red potion:Inspect item state:Run item selftest:Close")) {
+	switch(select("Spawn quick item bot:Grant knife and potions:Equip knife:Unequip knife:Use 1 red potion:Set knife loadout:Clear loadout:Reconcile loadout:Deposit 2 red potions:Withdraw 1 red potion:Inspect item state:Run item selftest:Close")) {
 	case 1:
 		callsub S_EnsureQuickItemBot;
 		mes "[Playerbot Item Lab]";
@@ -32,41 +32,47 @@ alberta,160,135,4	script	Playerbot Item Lab	4_M_02,{
 	case 5:
 		callsub S_EnsureQuickItemBot;
 		mes "[Playerbot Item Lab]";
+		mes "Use red potion -> " + playerbot_itemuse(.bot_key$, 501) + ".";
+		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
+		close;
+	case 6:
+		callsub S_EnsureQuickItemBot;
+		mes "[Playerbot Item Lab]";
 		mes "Set knife loadout -> " + playerbot_loadoutset(.bot_key$, 1201) + ".";
 		mes callfunc("F_PB_LOADOUT_BuildSummary$", .bot_key$);
 		close;
-	case 6:
+	case 7:
 		callsub S_EnsureQuickItemBot;
 		mes "[Playerbot Item Lab]";
 		mes "Clear loadout -> " + playerbot_loadoutclear(.bot_key$) + ".";
 		mes callfunc("F_PB_LOADOUT_BuildSummary$", .bot_key$);
 		close;
-	case 7:
+	case 8:
 		callsub S_EnsureQuickItemBot;
 		mes "[Playerbot Item Lab]";
 		mes "Reconcile loadout -> " + playerbot_loadoutreconcile(.bot_key$) + ".";
 		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
 		mes callfunc("F_PB_LOADOUT_BuildSummary$", .bot_key$);
 		close;
-	case 8:
+	case 9:
 		callsub S_EnsureQuickItemBot;
 		mes "[Playerbot Item Lab]";
 		mes "Deposit -> " + playerbot_storagedeposit(.bot_key$, 501, 2) + ".";
 		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
 		close;
-	case 9:
+	case 10:
 		callsub S_EnsureQuickItemBot;
 		mes "[Playerbot Item Lab]";
 		mes "Withdraw -> " + playerbot_storagewithdraw(.bot_key$, 501, 1) + ".";
 		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
 		close;
-	case 10:
+	case 11:
 		mes "[Playerbot Item Lab]";
 		mes callfunc("F_PB_ITEM_BuildSummary$", .bot_key$);
 		mes callfunc("F_PB_LOADOUT_BuildSummary$", .bot_key$);
 		mes callfunc("F_PB_ITEM_BuildAuditSummary$", .bot_key$, 8);
 		close;
-	case 11:
+	case 12:
 		setd("$PBITST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotItemSelftest::OnManualStart";
 		mes "[Playerbot Item Lab]";
@@ -224,6 +230,7 @@ S_Run:
 	.@equip_ok = playerbot_itemequip(.bot_key$, 1201);
 	.@unequip_ok = playerbot_itemunequip(.bot_key$, 1201);
 	.@reequip_ok = playerbot_itemequip(.bot_key$, 1201);
+	.@consume_ok = playerbot_itemuse(.bot_key$, 501);
 	.@deposit_ok = playerbot_storagedeposit(.bot_key$, 501, 2);
 	.@withdraw_ok = playerbot_storagewithdraw(.bot_key$, 501, 1);
 	.@remove_ok = playerbot_itemremove(.bot_key$, 501, 1);
@@ -276,6 +283,7 @@ S_Run:
 	.@audit$ = callfunc("F_PB_ITEM_BuildAuditSummary$", .bot_key$, 12);
 	.@audit_ok = (countstr(.@audit$, "inventory_add") > 0
 		&& countstr(.@audit$, "inventory_remove") > 0
+		&& countstr(.@audit$, "consume") > 0
 		&& countstr(.@audit$, "equip") > 0
 		&& countstr(.@audit$, "unequip") > 0
 		&& countstr(.@audit$, "storage_deposit") > 0
@@ -295,12 +303,12 @@ S_Run:
 		}
 	}
 
-	.@result = (.@grant_ok && .@equip_ok && .@unequip_ok && .@reequip_ok
+	.@result = (.@grant_ok && .@equip_ok && .@unequip_ok && .@reequip_ok && .@consume_ok
 		&& .@deposit_ok && .@withdraw_ok && .@remove_ok && .@regrant_ok
 		&& .@loadout_set_ok && .@despawn_ok && .@respawn_spawn_ok && .@loadout_spawn_ok
 		&& .@kill_ok && .@dead_ok && .@respawn_req_ok && .@respawn_ok && .@loadout_respawn_ok
-		&& .@knife_eq >= 1 && .@pot_inv == 2 && .@pot_storage == 1 && .@audit_ok && .@loadout_audit_ok && .@park_ok);
-	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+		&& .@knife_eq >= 1 && .@pot_inv == 1 && .@pot_storage == 1 && .@audit_ok && .@loadout_audit_ok && .@park_ok);
+	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " consume_ok=" + .@consume_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	playerbot_loadoutclear(.bot_key$);
 	detachrid;
 	return;

@@ -2365,3 +2365,22 @@ Current limit:
   generalized MMO session-transition framework
 - this still does not add cross-map claim transfer or richer event-instance
   policy
+
+Item-use participation baseline now covered:
+
+- playerbots now have a first-class item-use verb:
+  - `playerbot_itemuse(bot_key$, item_id)`
+- item use runs through the normal server-side item path instead of mutating
+  counts directly
+- item audits now include:
+  - `consume`
+- the item selftest now proves:
+  - live red-potion consumption
+  - expected post-use inventory/storage counts
+  - consume-audit coverage in `bot_item_audit`
+
+Current limit:
+
+- this is still self-use participation, not generalized item-targeting or
+  combat consumable policy
+- richer item continuity under combat/event pressure remains deferred

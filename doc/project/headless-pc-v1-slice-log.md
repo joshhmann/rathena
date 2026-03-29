@@ -5792,6 +5792,65 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Item Use Participation
+
+### Summary
+
+Added the first bot-safe item-use verb so playerbots can consume real inventory
+items through the normal server item path instead of only mutating inventory,
+equipment, and storage directly.
+
+### Files
+
+- `src/map/script.cpp`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260328_playerbot_item_consume.sql`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `doc/project/bot-state-schema.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added a new bot-facing buildin:
+  - `playerbot_itemuse(bot_key$, item_id)`
+- The buildin now:
+  - resolves the live playerbot
+  - routes item use through the normal server-side item-use path
+  - verifies success from live inventory/status change instead of assuming the
+    call succeeded
+  - emits structured interaction traces for item use
+  - writes `bot_item_audit` rows with:
+    - `action = 'consume'`
+- Extended the `bot_item_audit.action` enum with:
+  - `consume`
+- Updated the item lab and hidden selftest so the integrated baseline now
+  proves:
+  - real red-potion use from live inventory
+  - expected post-consume inventory/storage counts
+  - consume audit coverage in the item ledger
+
+### Validation
+
+- `mysql -u rathena -prathena_secure_2024 rathena < sql-files/upgrades/upgrade_20260328_playerbot_item_consume.sql`
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_item_selftest ... consume_ok=1 ... result=1`
+- aggregate foundation smoke remains green with item-use participation included
+
+### Deferrals
+
+This slice does not add:
+
+- generalized item targeting beyond self-use
+- skill-like consumable planners
+- vendor/shop buy-use loops
+- richer consumable policy beyond the first legal participation hook
+
 ## Slice 66: Playerbot Map-Change Mechanic Continuity
 
 ### Summary

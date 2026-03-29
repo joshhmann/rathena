@@ -614,6 +614,7 @@ Committed fields:
   - `unequip`
   - `storage_deposit`
   - `storage_withdraw`
+  - `consume`
 - `item_id`
 - `amount`
 - `location`
@@ -644,6 +645,8 @@ Status:
 - committed in `sql-files/main.sql`
 - migration artifact:
   `sql-files/upgrades/upgrade_20260327_playerbot_item_audit.sql`
+- enum extended for item-use participation in:
+  `sql-files/upgrades/upgrade_20260328_playerbot_item_consume.sql`
 
 ## Runtime Ownership
 

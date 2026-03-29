@@ -12831,6 +12831,51 @@ BUILDIN_FUNC(playerbot_storagewithdraw)
 }
 
 /*==========================================
+ * Use one matching consumable inventory item for a live playerbot.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_itemuse)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "item_use", std::to_string(nameid).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || nameid == 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "consume", nameid, 1, "inventory", "invalid", sd == nullptr ? "bot.offline" : "item.invalid");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "item_use", std::to_string(nameid).c_str(), "target.invalid", "denied", "item.use", sd == nullptr ? "bot.offline" : "item.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, nameid, false);
+	if (idx < 0) {
+		playerbot_item_audit(bot_id, char_id, account_id, "consume", nameid, 1, "inventory", "missing", "inventory.missing");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "item_use", std::to_string(nameid).c_str(), "target.invalid", "denied", "item.use", "inventory.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 before_inv = playerbot_inventory_amount(sd, nameid, false);
+	int32 before_status = playerbot_status_count(sd);
+	bool ok = (pc_useitem(sd, idx) != 0);
+	int32 after_inv = playerbot_inventory_amount(sd, nameid, false);
+	int32 after_status = playerbot_status_count(sd);
+	bool consumed = (after_inv < before_inv);
+	std::string detail;
+	if (consumed)
+		detail = (after_status != before_status) ? "consumed.status" : "consumed";
+	else
+		detail = (after_status != before_status) ? "status.changed" : "pc_useitem.denied";
+
+	playerbot_item_audit(bot_id, char_id, account_id, "consume", nameid, consumed ? static_cast<uint16>(before_inv - after_inv) : 0, "inventory", (ok && (consumed || after_status != before_status)) ? "ok" : "denied", detail.c_str());
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, (ok && (consumed || after_status != before_status)) ? "interaction.completed" : "interaction.failed", "item_use", std::to_string(nameid).c_str(), (ok && (consumed || after_status != before_status)) ? "none" : "target.invalid", (ok && (consumed || after_status != before_status)) ? "ok" : "denied", ok ? "" : "item.use", detail.c_str());
+	script_pushint(st, (ok && (consumed || after_status != before_status)) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Count one item amount for a playerbot by location.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_itemcount)
@@ -31273,6 +31318,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_guildnotice,"ss"),
 	BUILDIN_DEF(playerbot_itemgrant,"sii"),
 	BUILDIN_DEF(playerbot_itemremove,"sii"),
+	BUILDIN_DEF(playerbot_itemuse,"si"),
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),
