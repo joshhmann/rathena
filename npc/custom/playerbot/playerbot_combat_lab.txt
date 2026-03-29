@@ -127,6 +127,9 @@ OnDummyDead:
 S_Run:
 	if (!attachrid(.aid))
 		return;
+	.inviter_char_id = getcharid(0);
+	.inviter_aid = getcharid(3);
+	.inviter_name$ = strcharinfo(0);
 	.bot_key$ = "quick_combat_open";
 	.display_name$ = "QuickCombatOpen";
 	.bot_id = playerbot_profile(.bot_key$);
@@ -344,6 +347,11 @@ S_Run:
 		+ "AND `detail` = 'combat.death.interrupt'",
 		.@storage_interrupt_audit);
 	.@storage_interrupt_clear_ok = (.@storage_interrupt_dead_ok && (.@storage_interrupt_audit > 0 || playerbot_storageisopen(.bot_key$) == 0));
+
+	if (.@storage_respawn_ok) {
+		headlesspc_setpos(.char_id, "alberta", 161, 136);
+		sleep 500;
+	}
 
 	playerbot_tradecharrecover(.inviter_char_id);
 	playerbot_participationrecover(.bot_key$);

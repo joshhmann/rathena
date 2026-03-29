@@ -5792,6 +5792,69 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 64: Combat Trade-Interrupt Proof
+
+### Summary
+
+Closed the remaining combat harness gap so the combat selftest now proves trade
+interrupt cleanup under death/respawn instead of only exposing it in the debug
+line.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Fixed the combat selftest to capture the live inviter identity before running
+  the trade-interrupt path:
+  - `.inviter_char_id`
+  - `.inviter_aid`
+  - `.inviter_name$`
+- Fixed the trade-interrupt setup position so the respawned combat bot is moved
+  back into the same Alberta neighborhood already proven by the participation
+  harness:
+  - `headlesspc_setpos(.char_id, "alberta", 161, 136)`
+- This removed the two harness-specific false failures that had kept the trade
+  interrupt path from being a real acceptance proof:
+  - missing inviter target identity
+  - trade request from the wrong live position
+
+### Validation
+
+- `bash tools/ci/playerbot-combat-smoke.sh arm`
+- OpenKore login with the `codex` profile
+- `bash tools/ci/playerbot-combat-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... result=1`
+- combat selftest now proves:
+  - `trade_interrupt_req_ok=1`
+  - `trade_interrupt_ack_ok=1`
+  - `trade_interrupt_active_ok=1`
+  - `trade_interrupt_kill_ok=1`
+  - `trade_interrupt_dead_ok=1`
+  - `trade_interrupt_clear_ok=1`
+  - `trade_interrupt_respawn_req_ok=1`
+  - `trade_respawn_ok=1`
+- recent aggregate smoke now includes:
+  - `trade / interrupt / ok / combat.death.interrupt`
+  - `combat.completed / trade / restart.recovery / ok`
+- aggregate foundation smoke remains green end-to-end
+
+### Deferrals
+
+This slice still does not add:
+
+- combat skill-cast hooks
+- loot-routing behavior
+- richer post-combat event logic
+- broader status continuity beyond the current legal combat/death/respawn layer
+
 ## Slice 61: Combat-Pressure Mechanic Cleanup
 
 ### Summary

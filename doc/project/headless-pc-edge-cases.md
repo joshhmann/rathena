@@ -2306,5 +2306,15 @@ Combat-pressure mechanic cleanup now covered:
 - current combat selftest acceptance now proves:
   - NPC interrupt cleanup on death
   - storage interrupt cleanup on death
-- current trade interrupt state is still observable in the combat selftest debug
-  line, but it is not yet part of the acceptance gate
+  - trade interrupt cleanup on death
+
+Trade interrupt proof update:
+
+- the remaining combat-harness false failures were in the harness setup, not the
+  runtime cleanup path:
+  - missing inviter identity during the trade path
+  - repositioning the respawned bot to the wrong Alberta patch before trade
+- the combat selftest now reuses the same proven Alberta trade neighborhood as
+  the participation harness
+- aggregate foundation smoke is green with trade interrupt now included in the
+  combat acceptance proof
