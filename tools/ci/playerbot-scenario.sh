@@ -67,6 +67,9 @@ Commands:
 Current catalog:
   combat-baseline
   status-continuity
+  status-death-cleanup
+  status-map-continuity
+  status-respawn-reconcile
   death-respawn
   status-recovery-integrity
   item-loadout-continuity
