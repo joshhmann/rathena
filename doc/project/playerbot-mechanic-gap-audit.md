@@ -28,50 +28,65 @@ The current baseline already has:
 
 The next unresolved mechanic-participation gaps are:
 
-1. **Map-change / warp continuity for active participation**
-   - bots should not retain stale claims, targets, or session ownership after a
-     handoff or warp
-   - map-change cleanup still needs a fuller contract for every contested
-     mechanic, not just the first combat/status paths
+1. **Broader market/session execution semantics**
+   - vending, vendlist, seller-side buyingstore, and one-item buyer-side
+     buyingstore flows are now covered
+   - the remaining market gap is richer commerce behavior beyond the current
+     continuity baseline:
+     - multi-item buyingstore negotiation
+     - fuller purchase/commit flows
+     - deeper market-session state transitions during live commerce
+   - mail composition/business logic is still only partially first-class; the
+     current baseline proves session ownership, not full mail semantics
 
-2. **Trade / storage / dialog interruption under combat pressure**
-   - the current hooks exist, but the cleanup rules still need broader
-     mechanical coverage when death, respawn, or warp interrupts an active
-     session
-   - the remaining gap is not "can we close the session?"
-     - it is "does every overlapping mechanic release the right authority and
-       leave one clear recovery source?"
+2. **Mechanic execution semantics beyond session ownership**
+   - transient mechanic/session ownership is now broadly tracked and cleaned up
+   - the remaining gap is the actual business/action layer for mechanics that
+     still only have open/close continuity:
+     - refine
+     - reform
+     - enchantgrade
+     - related execution/result semantics
+   - the unresolved question is no longer whether those states clear cleanly; it
+     is whether bots can participate through the real engine flow without ad hoc
+     shims
 
-3. **Equip / use / consume continuity beyond the first loadout baseline**
-   - intended loadout reconcile is in place
-   - item-use and consume side effects still need a clearer continuity model
-     when a bot dies or respawns mid-flow
-   - the next gap is legal continuity, not equipment optimization
+3. **Equip / use / consume continuity beyond the current loadout baseline**
+   - intended loadout reconcile and first consume/use hooks are in place
+   - the remaining gap is deeper legality and continuity under more complex
+     transitions:
+     - interrupted item use side effects
+     - stronger ownership guarantees under overlapping mechanic transitions
+     - richer equipment continuity outside the current spawn/death/respawn path
 
 4. **Broader combat-event participation**
-   - legal attack/death/respawn participation exists
-   - richer combat-adjacent transitions still need to be formalized, including
-     what happens when combat interrupts other player-system activity
+   - the stable aggregate combat gate is green
+   - richer positional-skill / persistent-skillunit participation is proven
+     through the separate probe and scenario layer
+   - the remaining combat gap is promotion and expansion beyond that boundary:
+     - more combat-adjacent event transitions
+     - repeated sequential combat/status handoffs
+     - eventual promotion of richer skill-unit proof into the broader accepted
+       combat frontier when stable
 
-5. **Scenario coverage for mechanic cleanup**
-   - the current scenario runner covers the first legal combat/status/loadout
-     cases plus `status-recovery-integrity`
-   - the unresolved gap is a dedicated mechanic-cleanup scenario matrix for:
-     - death during dialog
-     - death during trade
-     - death during storage
-     - warp during active participation
-     - respawn after interrupted mechanic state
+5. **Scenario coverage beyond the current accepted gates**
+   - `mechanic-cleanup` is now runbook-backed
+   - combat skillunit cleanup is now scenario-backed
+   - the remaining scenario gap is broader targeted coverage for the still-open
+     fronts above:
+     - richer market/session continuity
+     - deeper item/use/equipment continuity
+     - repeated combat-event transition cases
 
 ## Priority Order For The Remaining Gap Work
 
 Recommended order:
 
-1. map-change / warp cleanup
-2. trade / storage / dialog interruption rules
+1. broader market/session execution semantics
+2. mechanic execution semantics beyond session ownership
 3. equip / use / consume continuity
 4. broader combat-event participation
-5. scenario coverage for the cleanup matrix
+5. scenario coverage for the remaining open fronts
 
 That order follows the current authority model:
 
@@ -90,5 +105,8 @@ This note does not reopen the already-covered foundation slices:
 - status continuity baseline
 - intended loadout continuity baseline
 - the first legal combat hooks
+- the stable aggregate combat gate
+- the current interrupted participation cleanup gate
+- the first market/session continuity baseline for vending and buyingstore
 
 Those are now part of the current baseline.
