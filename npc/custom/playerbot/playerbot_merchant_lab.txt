@@ -176,8 +176,24 @@ S_Run:
 	.@spawn_ok = 0;
 	.@bootstrap_ok = 0;
 	.@shop_ok = 0;
+	.@market_spawn_ok = 0;
+	.@vending_open_ok = 0;
+	.@vending_active_ok = 0;
+	.@vendlist_open_ok = 0;
+	.@vendlist_active_ok = 0;
+	.@vendlist_move_ok = 0;
+	.@vendlist_clear_ok = 0;
+	.@vendlist_return_ok = 0;
+	.@vending_close_ok = 0;
+	.@vending_closed_ok = 0;
+	.@market_trace_ok = 0;
 	debugmes "playerbot_merchant_selftest: step=summary found=" + .@found + " char_id=" + $@pbbot_char_id + ".";
 	if (.@found && $@pbbot_char_id > 0) {
+		.@seller_char_id = $@pbbot_char_id;
+		.@seller_account_id = $@pbbot_account_id;
+		.@seller_market_map$ = $@pbbot_market_map$;
+		.@seller_market_x = $@pbbot_market_x;
+		.@seller_market_y = $@pbbot_market_y;
 		if (headlesspc_status($@pbbot_char_id) == 2)
 			headlesspc_remove($@pbbot_char_id);
 		sleep 600;
@@ -236,12 +252,65 @@ S_Run:
 					&& .@browse_events[0] >= 1
 					&& .@sale_units[0] >= 3);
 				callfunc "F_PB_DB_HideMerchantProxy", "Harbor Curios Counter#pb";
+				debugmes "playerbot_merchant_selftest: step=market.";
+				.@viewer_key$ = "quick_vend_view_alb";
+				.@viewer_name$ = "PBQVendView";
+				.@viewer_bot_id = playerbot_profile(.@viewer_key$);
+				if (!.@viewer_bot_id)
+					.@viewer_bot_id = playerbot_provision(.@viewer_key$, .@viewer_name$, "social.alberta.night");
+				if (.@viewer_bot_id && callfunc("F_PB_DB_LoadBotSummary", .@viewer_key$)) {
+					.@viewer_char_id = $@pbbot_char_id;
+					.@viewer_account_id = $@pbbot_account_id;
+					if (headlesspc_status(.@viewer_char_id) == 2)
+						headlesspc_remove(.@viewer_char_id);
+					sleep 600;
+					headlesspc_spawn(.@viewer_char_id, .@seller_market_map$, .@seller_market_x + 1, .@seller_market_y);
+					for (.@i = 0; .@i < 12; ++.@i) {
+						sleep 400;
+						if (headlesspc_status(.@viewer_char_id) == 2) {
+							.@market_spawn_ok = 1;
+							break;
+						}
+					}
+					if (.@market_spawn_ok) {
+						playerbot_vendingclose(.bot_key$);
+						sleep 200;
+						.@vending_open_ok = playerbot_vendingopen(.bot_key$, "PB Market Test", 909, 5, 500);
+						.@vending_active_ok = (.@vending_open_ok && playerbot_vendingactive(.bot_key$));
+						.@vendlist_open_ok = (.@vending_active_ok && playerbot_vendlistopen(.@viewer_key$, .@seller_char_id));
+						.@vendlist_active_ok = (.@vendlist_open_ok && playerbot_vendlistactive(.@viewer_key$));
+						.@vendlist_move_ok = (.@vendlist_active_ok && headlesspc_setpos(.@viewer_char_id, "izlude", 128, 146));
+						if (.@vendlist_move_ok)
+							sleep 600;
+						.@vendlist_clear_ok = (.@vendlist_move_ok && !playerbot_vendlistactive(.@viewer_key$));
+						.@vendlist_return_ok = (.@vendlist_clear_ok && headlesspc_setpos(.@viewer_char_id, .@seller_market_map$, .@seller_market_x + 1, .@seller_market_y));
+						if (.@vendlist_return_ok)
+							sleep 600;
+						.@vending_close_ok = playerbot_vendingclose(.bot_key$);
+						.@vending_closed_ok = (.@vending_close_ok && !playerbot_vendingactive(.bot_key$));
+						.@market_trace_rows = query_sql(
+							"SELECT COUNT(*) "
+							+ "FROM `bot_trace_event` "
+							+ "WHERE `char_id` IN ('" + .@seller_char_id + "','" + .@viewer_char_id + "') "
+							+ "AND `target_type` IN ('vending','vendlist')",
+							.@market_trace_count);
+						.@market_trace_ok = (.@market_trace_rows > 0 && .@market_trace_count[0] >= 4);
+					}
+				}
 			}
 		}
 	}
 	.@park_ok = 0;
 	debugmes "playerbot_merchant_selftest: step=park.";
 	if (.@found && $@pbbot_char_id > 0) {
+		if (.@viewer_char_id > 0) {
+			headlesspc_remove(.@viewer_char_id);
+			for (.@i = 0; .@i < 10; ++.@i) {
+				sleep 300;
+				if (headlesspc_status(.@viewer_char_id) == 0)
+					break;
+			}
+		}
 		headlesspc_remove($@pbbot_char_id);
 		for (.@i = 0; .@i < 10; ++.@i) {
 			sleep 400;
@@ -254,7 +323,7 @@ S_Run:
 	// The aggregate foundation pass now runs its own top-level orchestration.
 	// Avoid forcing a full control-plane reload from inside the merchant selftest.
 	.@reload_ok = 1;
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@park_ok && .@reload_ok) + ".";
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " market_trace_ok=" + .@market_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@market_trace_ok && .@park_ok && .@reload_ok) + ".";
 	return;
 }
 

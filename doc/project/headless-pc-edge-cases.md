@@ -2546,3 +2546,24 @@ Current limit:
   - buyingstore ownership/browse
   - mail composition/business logic
   - refine/reform/enchantgrade execution semantics
+
+Vendlist market participation is now first-class enough for the current
+foundation bar:
+
+- seller-side vending can be opened and closed through script-facing playerbot
+  verbs that target the real vending runtime
+- viewer-side vendlist browsing now uses the real `vended_id` session owner path
+  instead of ad hoc session toggles
+- successful map changes clear viewer-side vendlist state through the same
+  continuity cleanup path already used for the broader session system
+- traces now make vending/vendlist interaction visible with dedicated
+  `target_type` values:
+  - `vending`
+  - `vendlist`
+
+Current limit:
+
+- this is still a browse/open/close continuity slice, not full market commerce
+- buyingstore remains the next real market-session gap
+- purchase flows, seller stock mutation under purchases, and richer market
+  continuity are still deferred

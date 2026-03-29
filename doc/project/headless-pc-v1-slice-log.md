@@ -5792,6 +5792,66 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice: Market Vendlist Participation
+
+### What Changed
+
+- Added first-class market participation buildins in `src/map/script.cpp`:
+  - `playerbot_vendingopen`
+  - `playerbot_vendingclose`
+  - `playerbot_vendingactive`
+  - `playerbot_vendingsummary`
+  - `playerbot_vendlistopen`
+  - `playerbot_vendlistclose`
+  - `playerbot_vendlistactive`
+  - `playerbot_vendlistsummary`
+- Wired those buildins to the real engine paths:
+  - seller open/close goes through `vending_openvending` / `vending_closevending`
+  - viewer browse goes through `vending_vendinglistreq`
+- Added compact script-side market state helpers:
+  - vending summary (`open`, `vender_id`, `items`)
+  - vendlist summary (`active`, `vended_id`)
+- Extended `PlayerbotMerchantSelftest` so it now proves:
+  - merchant seller bootstrap
+  - real vending open
+  - viewer vendlist browse
+  - successful map-change clear for viewer-side vendlist state
+  - seller vending close
+  - structured trace coverage for `target_type IN ('vending','vendlist')`
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- Verified merchant selftest line on the live stack:
+  - `market_spawn_ok=1`
+  - `vending_open_ok=1`
+  - `vending_active_ok=1`
+  - `vendlist_open_ok=1`
+  - `vendlist_active_ok=1`
+  - `vendlist_move_ok=1`
+  - `vendlist_clear_ok=1`
+  - `vendlist_return_ok=1`
+  - `vending_close_ok=1`
+  - `vending_closed_ok=1`
+  - `market_trace_ok=1`
+  - `result=1`
+- Verified recent trace rows in `bot_trace_event`:
+  - `vending / interaction.requested / ok`
+  - `vending / interaction.completed / ok`
+  - `vendlist / interaction.requested / ok`
+  - `vendlist / interaction.completed / ok`
+
+### Deferrals
+
+This part still does not add:
+
+- full seller buyingstore participation
+- buyer-side buyingstore browse continuity
+- market purchase/commit semantics
+- deterministic denied-warp preservation proof specifically for vendlist state
+
 ## Slice 61: Playerbot Session Helper Verbs
 
 ### Summary
