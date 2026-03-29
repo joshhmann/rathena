@@ -66,6 +66,9 @@ Commands:
 
 Current catalog:
   combat-baseline
+  combat-skillunit-mapchange-cleanup
+  combat-skillunit-death-cleanup
+  combat-skillunit-quit-cleanup
   status-continuity
   status-death-cleanup
   status-map-continuity

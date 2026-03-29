@@ -5937,6 +5937,47 @@ aggregate combat acceptance formula.
 - broader combat/event expansion beyond ground-skill and skill-unit continuity
   remains deferred
 
+## Slice 67: Playerbot Skillunit Scenario Coverage
+
+### Summary
+
+Promoted the separate skillunit probe into first-class scenario-runner coverage
+without changing runtime semantics or destabilizing the aggregate combat gate.
+
+### Files
+
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `tools/ci/playerbot-scenario.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added explicit runbook-backed scenarios:
+  - `combat-skillunit-mapchange-cleanup`
+  - `combat-skillunit-death-cleanup`
+  - `combat-skillunit-quit-cleanup`
+- Wired those scenarios to the dedicated launcher:
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+- Updated the scenario-runner docs so the current combat foundation boundary is
+  explicit:
+  - aggregate combat smoke covers the stable baseline
+  - dedicated skillunit probe covers the richer ground-skill / persistent-unit
+    path
+
+### Validation
+
+- `bash tools/ci/playerbot-scenario.sh list`
+- `bash tools/ci/playerbot-scenario.sh show combat-skillunit-death-cleanup`
+- `bash tools/ci/playerbot-scenario.sh run combat-skillunit-mapchange-cleanup`
+
+### Deferrals
+
+This slice still does not change runtime semantics and does not promote the
+skillunit lane into the aggregate combat acceptance formula.
+
 ## Slice 61: Playerbot Loadout Failure Semantics
 
 ### Summary

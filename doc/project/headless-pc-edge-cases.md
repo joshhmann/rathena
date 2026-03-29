@@ -2753,3 +2753,16 @@ Current limit:
   baseline
 - broader combat/event participation is still incomplete beyond the dedicated
   skill-unit probe lane
+
+Scenario coverage is now explicit for this boundary:
+
+- `combat-skillunit-mapchange-cleanup`
+- `combat-skillunit-death-cleanup`
+- `combat-skillunit-quit-cleanup`
+
+Those scenarios intentionally point at the dedicated skillunit probe helper, not
+the aggregate combat smoke helper, because the current accepted foundation line
+is:
+
+- aggregate combat gate for the stable baseline
+- separate skillunit probe for the richer ground-skill and persistent-unit path

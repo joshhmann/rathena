@@ -3,6 +3,9 @@
 playerbot_scenario_ids() {
 	printf '%s\n' \
 		'combat-baseline' \
+		'combat-skillunit-mapchange-cleanup' \
+		'combat-skillunit-death-cleanup' \
+		'combat-skillunit-quit-cleanup' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -16,6 +19,9 @@ playerbot_scenario_ids() {
 playerbot_scenario_title() {
 	case "${1:-}" in
 		combat-baseline) printf '%s\n' 'Combat Baseline' ;;
+		combat-skillunit-mapchange-cleanup) printf '%s\n' 'Combat Skillunit Mapchange Cleanup' ;;
+		combat-skillunit-death-cleanup) printf '%s\n' 'Combat Skillunit Death Cleanup' ;;
+		combat-skillunit-quit-cleanup) printf '%s\n' 'Combat Skillunit Quit Cleanup' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -30,7 +36,7 @@ playerbot_scenario_title() {
 
 playerbot_scenario_phase() {
 	case "${1:-}" in
-		combat-baseline) printf '%s\n' 'combat' ;;
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup) printf '%s\n' 'combat' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity) printf '%s\n' 'equipment' ;;
@@ -41,7 +47,7 @@ playerbot_scenario_phase() {
 
 playerbot_scenario_kind() {
 	case "${1:-}" in
-		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
 			printf '%s\n' 'runbook'
 			;;
 		item-loadout-continuity)
@@ -61,6 +67,21 @@ playerbot_scenario_purpose() {
 		combat-baseline)
 			cat <<'EOF'
 Validate the first legal combat-intent lifecycle once the combat hooks exist.
+EOF
+			;;
+		combat-skillunit-mapchange-cleanup)
+			cat <<'EOF'
+Validate that a live ground-skill unit is created and then cleared cleanly by a successful map change.
+EOF
+			;;
+		combat-skillunit-death-cleanup)
+			cat <<'EOF'
+Validate that a live ground-skill unit is interrupted and cleared when the bot dies, and stays fresh after respawn.
+EOF
+			;;
+		combat-skillunit-quit-cleanup)
+			cat <<'EOF'
+Validate that a live ground-skill unit is cleared when the bot is parked/removed and that quit cleanup is traced and audited.
 EOF
 			;;
 		status-continuity)
@@ -111,7 +132,7 @@ EOF
 
 playerbot_scenario_prereqs() {
 	case "${1:-}" in
-		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|mechanic-cleanup)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|mechanic-cleanup)
 			cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
@@ -133,6 +154,35 @@ playerbot_scenario_steps() {
 - issue attack intent
 - confirm the intent can be cleared cleanly
 - confirm any required target cleanup/release path is visible in the trace
+EOF
+			;;
+		combat-skillunit-mapchange-cleanup)
+			cat <<'EOF'
+- arm the dedicated skillunit probe helper
+- log in once with the `codex` OpenKore profile
+- verify the probe creates a live positional skill unit
+- verify a successful map change clears the skill unit
+- confirm `reconcile.fixed / skillunit / map.changed / ok` is present in the trace/audit output
+EOF
+			;;
+		combat-skillunit-death-cleanup)
+			cat <<'EOF'
+- arm the dedicated skillunit probe helper
+- log in once with the `codex` OpenKore profile
+- verify the probe creates a live positional skill unit
+- verify the bot dies with the skill unit active
+- confirm the skill unit is cleared on death and remains absent after respawn
+- confirm `combat.completed / skillunit / restart.recovery / ok / combat.death.interrupt` is present
+EOF
+			;;
+		combat-skillunit-quit-cleanup)
+			cat <<'EOF'
+- arm the dedicated skillunit probe helper
+- log in once with the `codex` OpenKore profile
+- verify the probe creates a live positional skill unit
+- verify the bot is parked/removed while the skill unit is active
+- confirm quit cleanup clears the skill unit
+- confirm `reconcile.fixed / skillunit / operator.stop / ok / quit.interrupt` is present
 EOF
 			;;
 		status-continuity)
@@ -216,6 +266,14 @@ playerbot_scenario_expected() {
 - no stale claim remains after the intent is cleared
 EOF
 			;;
+		combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup)
+			cat <<'EOF'
+- `playerbot_combat_skillunit_probe ... result=1` is present
+- `playerbot_skillunitcount(...)` becomes positive during the probe
+- `scope = 'skillunit'` recovery audits are emitted for the targeted transition
+- the trace output shows both the `skill_pos` request/completion and the `skillunit` cleanup event
+EOF
+			;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity)
 			cat <<'EOF'
 - status summary reflects the live effect
@@ -255,6 +313,16 @@ This scenario now has a repo-local smoke helper through
 runbook layer, while the smoke helper is the concrete launcher/check surface.
 EOF
 			;;
+		combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup)
+			cat <<'EOF'
+These scenarios are backed by the dedicated skillunit probe helper:
+`tools/ci/playerbot-combat-skillunit-smoke.sh`.
+
+They remain separate from the aggregate combat selftest on purpose. The current
+foundation baseline proves skillunit creation and cleanup through the dedicated
+probe, while the aggregate combat gate stays on the last stable combat path.
+EOF
+			;;
 		item-loadout-continuity)
 			cat <<'EOF'
 This scenario now has a repo-local smoke helper through
@@ -279,6 +347,9 @@ playerbot_scenario_launcher() {
 	case "${1:-}" in
 		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
+			;;
+		combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup)
+			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-smoke.sh check'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'

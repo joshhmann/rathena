@@ -41,6 +41,9 @@ layer. A scenario is treated as a stable definition if it exposes:
 The initial frontier catalog contains:
 
 - `combat-baseline`
+- `combat-skillunit-mapchange-cleanup`
+- `combat-skillunit-death-cleanup`
+- `combat-skillunit-quit-cleanup`
 - `status-continuity`
 - `status-death-cleanup`
 - `status-map-continuity`
@@ -62,6 +65,9 @@ These split into two groups:
 
 - runbook-backed today:
   - `combat-baseline`
+  - `combat-skillunit-mapchange-cleanup`
+  - `combat-skillunit-death-cleanup`
+  - `combat-skillunit-quit-cleanup`
   - `status-continuity`
   - `status-death-cleanup`
   - `status-map-continuity`
@@ -79,6 +85,7 @@ The unresolved mechanic-cleanup gaps are summarized in:
 The runbook-backed scenarios use:
 
 - `tools/ci/playerbot-combat-smoke.sh`
+- `tools/ci/playerbot-combat-skillunit-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
 
 The remaining skeleton scenario stays future-facing until those runtime hooks
@@ -88,8 +95,6 @@ Highest-value missing additions after this update are:
 
 - richer mechanic-cleanup coverage for interrupted NPC, trade, storage, and
   warp flows
-- a narrower combat-interrupt scenario that isolates death/respawn cleanup from
-  broader status continuity
 - scenario coverage for later combat/status edges such as status persistence
   across repeated handoffs or multiple sequential deaths
 
@@ -100,6 +105,7 @@ Use the runner with:
 ```bash
 bash tools/ci/playerbot-scenario.sh list
 bash tools/ci/playerbot-scenario.sh show combat-baseline
+bash tools/ci/playerbot-scenario.sh show combat-skillunit-death-cleanup
 bash tools/ci/playerbot-scenario.sh checklist death-respawn
 bash tools/ci/playerbot-scenario.sh describe item-loadout-continuity
 bash tools/ci/playerbot-scenario.sh template combat-baseline
