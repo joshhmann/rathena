@@ -13823,7 +13823,7 @@ BUILDIN_FUNC(playerbot_respawn)
 	std::string status_after = playerbot_status_state(sd);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "respawn.completed" : "respawn.failed", "respawn", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.respawn", ok ? "" : "respawn.still_dead");
 	if (ok)
-		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", "", "respawn.reconcile", "ok", "", strcmp(status_before.c_str(), status_after.c_str()) == 0 ? "status.reconciled" : "status.changed");
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", "", "restart.recovery", "ok", "", strcmp(status_before.c_str(), status_after.c_str()) == 0 ? "status.reconciled" : "status.changed");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -13852,7 +13852,7 @@ BUILDIN_FUNC(playerbot_kill)
 	std::string status_after = playerbot_status_state(sd);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "death.completed" : "death.failed", "death", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.kill", ok ? "" : "kill.not_dead");
 	if (ok)
-		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", "", "death.cleanup", "ok", "", strcmp(status_before.c_str(), status_after.c_str()) == 0 ? "status.unchanged" : "status.cleared");
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.completed", "status", "", "restart.recovery", "ok", "", strcmp(status_before.c_str(), status_after.c_str()) == 0 ? "status.unchanged" : "status.cleared");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }

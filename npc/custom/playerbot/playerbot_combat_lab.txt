@@ -243,6 +243,52 @@ S_Run:
 	sleep 200;
 	.@status_recover_clear_ok = (.@status_recover_clear_req_ok && !playerbot_statusactive(.bot_key$, SC_BLESSING));
 
+	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+	.@warp_npc_anchor_ok = headlesspc_setpos(.char_id, "alberta", 163, 136);
+	if (.@warp_npc_anchor_ok)
+		sleep 500;
+	.@warp_npc_start_ok = (.@warp_npc_anchor_ok && playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe"));
+	sleep 200;
+	.@warp_npc_reserve_id = callfunc("F_PB_RES_Acquire", "anchor", "lab:warp:quick", .bot_key$, "CombatSelftest", 60000, 45, "warp.prechange");
+	.@warp_npc_move_ok = (.@warp_npc_start_ok && .@warp_npc_reserve_id > 0 && headlesspc_setpos(.char_id, "izlude", 128, 146));
+	if (.@warp_npc_move_ok)
+		sleep 900;
+	query_sql("SELECT COUNT(*) FROM `bot_reservation` WHERE `holder_bot_id` = '" + .bot_id + "'", .@warp_npc_res_left);
+	.@warp_npc_clear_ok = (.@warp_npc_move_ok && playerbot_npcactive(.bot_key$) == 0 && .@warp_npc_res_left == 0);
+	.@warp_npc_return_ok = (.@warp_npc_clear_ok && headlesspc_setpos(.char_id, "alberta", 182, 144));
+	if (.@warp_npc_return_ok)
+		sleep 900;
+
+	.@warp_storage_open_ok = (.@warp_npc_return_ok && playerbot_storageopen(.bot_key$));
+	sleep 200;
+	.@warp_storage_active_ok = (playerbot_storageisopen(.bot_key$) == 1);
+	.@warp_storage_move_ok = (.@warp_storage_active_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
+	if (.@warp_storage_move_ok)
+		sleep 900;
+	.@warp_storage_clear_ok = (.@warp_storage_move_ok && playerbot_storageisopen(.bot_key$) == 0);
+	.@warp_storage_return_ok = (.@warp_storage_clear_ok && headlesspc_setpos(.char_id, "alberta", 182, 144));
+	if (.@warp_storage_return_ok)
+		sleep 900;
+
+	.@warp_trade_anchor_ok = (.@warp_storage_return_ok && headlesspc_setpos(.char_id, "alberta", 161, 136));
+	if (.@warp_trade_anchor_ok)
+		sleep 500;
+	playerbot_tradecharrecover(.inviter_char_id);
+	playerbot_participationrecover(.bot_key$);
+	sleep 200;
+	.@warp_trade_req_ok = (.@warp_trade_anchor_ok && playerbot_traderequest(.bot_key$, .inviter_char_id));
+	sleep 200;
+	.@warp_trade_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	sleep 300;
+	.@warp_trade_active_ok = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
+	.@warp_trade_move_ok = (.@warp_trade_active_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
+	if (.@warp_trade_move_ok)
+		sleep 900;
+	.@warp_trade_clear_ok = (.@warp_trade_move_ok && !playerbot_tradeactive(.bot_key$) && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradecharactive(.inviter_char_id) && playerbot_tradecharpartner(.inviter_char_id) == 0);
+	.@warp_trade_return_ok = (.@warp_trade_clear_ok && headlesspc_setpos(.char_id, "alberta", 182, 144));
+	if (.@warp_trade_return_ok)
+		sleep 900;
+
 	.@death_status_bless_ok = playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000);
 	.@death_status_poison_ok = playerbot_statusstart(.bot_key$, SC_POISON, 10, 15000);
 	sleep 200;
@@ -426,10 +472,22 @@ S_Run:
 		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'status' "
 		+ "AND `action` IN ('cleanup','reconcile') AND `detail` IN ('death.cleanup','respawn.reconcile')",
 		.@status_audit_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND ((`scope` IN ('npc','storage','trade') AND `action` = 'interrupt' AND `detail` = 'mapchange.interrupt') "
+		+ "OR (`scope` = 'mapchange' AND `action` = 'interrupt' AND `detail` LIKE 'mapchange.cleared%'))",
+		.@warp_audit_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND ((`phase` = 'reconcile' AND `action` = 'reconcile.fixed' AND `reason_code` = 'map.changed') "
+		+ "OR (`phase` = 'reconcile' AND `action` = 'reservation.released' AND `reason_code` = 'map.changed'))",
+		.@warp_trace_count);
 	.@trace_ok = (.@trace_count >= 9);
 	.@audit_ok = (.@audit_count >= 5);
 	.@status_trace_ok = (.@status_trace_count >= 6);
 	.@status_audit_ok = (.@status_audit_count >= 2);
+	.@warp_audit_ok = (.@warp_audit_count >= 4);
+	.@warp_trace_ok = (.@warp_trace_count >= 4);
 
 	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
 	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
@@ -448,6 +506,12 @@ S_Run:
 		&& .@status_map_apply_ok && .@status_map_ok && .@status_map_move_ok && .@status_map_cont_ok
 		&& .@status_map_return_ok && .@status_map_return_cont_ok && .@status_recover_req_ok
 		&& .@status_recover_ok && .@status_recover_clear_req_ok && .@status_recover_clear_ok
+		&& .@warp_npc_anchor_ok && .@warp_npc_start_ok && .@warp_npc_reserve_id > 0 && .@warp_npc_move_ok && .@warp_npc_clear_ok
+		&& .@warp_npc_return_ok && .@warp_storage_open_ok && .@warp_storage_active_ok
+		&& .@warp_storage_move_ok && .@warp_storage_clear_ok && .@warp_storage_return_ok
+		&& .@warp_trade_anchor_ok
+		&& .@warp_trade_req_ok && .@warp_trade_ack_ok && .@warp_trade_active_ok
+		&& .@warp_trade_move_ok && .@warp_trade_clear_ok && .@warp_trade_return_ok
 		&& .@death_status_bless_ok && .@death_status_poison_ok && .@death_status_before_ok
 		&& .@reserve_ok && .@kill_ok && .@death_clear_ok && .@status_death_clear_ok && .@respawn_req_ok
 		&& .@respawn_ok && .@npc_interrupt_start_ok && .@npc_interrupt_active_ok && .@npc_interrupt_kill_ok
@@ -459,8 +523,9 @@ S_Run:
 		&& .@trade_interrupt_req_ok && .@trade_interrupt_ack_ok && .@trade_interrupt_active_ok
 		&& .@trade_interrupt_kill_ok && .@trade_interrupt_dead_ok && .@trade_interrupt_clear_ok
 		&& .@trade_interrupt_respawn_req_ok && .@trade_respawn_ok
-		&& .@trace_ok && .@audit_ok && .@status_trace_ok && .@status_audit_ok && .@park_ok);
-	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " combat_preclear_ok=" + .@combat_preclear_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " status_map_apply_ok=" + .@status_map_apply_ok + " status_map_ok=" + .@status_map_ok + " status_map_move_ok=" + .@status_map_move_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " status_map_return_ok=" + .@status_map_return_ok + " status_map_return_cont_ok=" + .@status_map_return_cont_ok + " status_recover_req_ok=" + .@status_recover_req_ok + " status_recover_ok=" + .@status_recover_ok + " status_recover_clear_req_ok=" + .@status_recover_clear_req_ok + " status_recover_clear_ok=" + .@status_recover_clear_ok + " death_status_bless_ok=" + .@death_status_bless_ok + " death_status_poison_ok=" + .@death_status_poison_ok + " death_status_before_ok=" + .@death_status_before_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " status_death_clear_ok=" + .@status_death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " status_respawn_fresh_ok=" + .@status_respawn_fresh_ok + " npc_interrupt_start_ok=" + .@npc_interrupt_start_ok + " npc_interrupt_active_ok=" + .@npc_interrupt_active_ok + " npc_interrupt_kill_ok=" + .@npc_interrupt_kill_ok + " npc_interrupt_dead_ok=" + .@npc_interrupt_dead_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " npc_interrupt_respawn_req_ok=" + .@npc_interrupt_respawn_req_ok + " npc_interrupt_respawn_ok=" + .@npc_interrupt_respawn_ok + " storage_interrupt_open_ok=" + .@storage_interrupt_open_ok + " storage_interrupt_active_ok=" + .@storage_interrupt_active_ok + " storage_interrupt_kill_ok=" + .@storage_interrupt_kill_ok + " storage_interrupt_dead_ok=" + .@storage_interrupt_dead_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " storage_interrupt_audit=" + .@storage_interrupt_audit + " storage_respawn_req_ok=" + .@storage_respawn_req_ok + " storage_respawn_ok=" + .@storage_respawn_ok + " trade_interrupt_req_ok=" + .@trade_interrupt_req_ok + " trade_interrupt_ack_ok=" + .@trade_interrupt_ack_ok + " trade_interrupt_active_ok=" + .@trade_interrupt_active_ok + " trade_interrupt_kill_ok=" + .@trade_interrupt_kill_ok + " trade_interrupt_dead_ok=" + .@trade_interrupt_dead_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trade_interrupt_respawn_req_ok=" + .@trade_interrupt_respawn_req_ok + " trade_respawn_ok=" + .@trade_respawn_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " status_trace_ok=" + .@status_trace_ok + " status_audit_ok=" + .@status_audit_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " result=" + .@result + ".";
+		&& .@trace_ok && .@audit_ok && .@status_trace_ok && .@status_audit_ok
+		&& .@warp_audit_ok && .@warp_trace_ok && .@park_ok);
+	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " combat_preclear_ok=" + .@combat_preclear_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " status_map_apply_ok=" + .@status_map_apply_ok + " status_map_ok=" + .@status_map_ok + " status_map_move_ok=" + .@status_map_move_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " status_map_return_ok=" + .@status_map_return_ok + " status_map_return_cont_ok=" + .@status_map_return_cont_ok + " status_recover_req_ok=" + .@status_recover_req_ok + " status_recover_ok=" + .@status_recover_ok + " status_recover_clear_req_ok=" + .@status_recover_clear_req_ok + " status_recover_clear_ok=" + .@status_recover_clear_ok + " warp_npc_anchor_ok=" + .@warp_npc_anchor_ok + " warp_npc_start_ok=" + .@warp_npc_start_ok + " warp_npc_reserve_ok=" + (.@warp_npc_reserve_id > 0) + " warp_npc_move_ok=" + .@warp_npc_move_ok + " warp_npc_clear_ok=" + .@warp_npc_clear_ok + " warp_npc_return_ok=" + .@warp_npc_return_ok + " warp_storage_open_ok=" + .@warp_storage_open_ok + " warp_storage_active_ok=" + .@warp_storage_active_ok + " warp_storage_move_ok=" + .@warp_storage_move_ok + " warp_storage_clear_ok=" + .@warp_storage_clear_ok + " warp_storage_return_ok=" + .@warp_storage_return_ok + " warp_trade_anchor_ok=" + .@warp_trade_anchor_ok + " warp_trade_req_ok=" + .@warp_trade_req_ok + " warp_trade_ack_ok=" + .@warp_trade_ack_ok + " warp_trade_active_ok=" + .@warp_trade_active_ok + " warp_trade_move_ok=" + .@warp_trade_move_ok + " warp_trade_clear_ok=" + .@warp_trade_clear_ok + " warp_trade_return_ok=" + .@warp_trade_return_ok + " death_status_bless_ok=" + .@death_status_bless_ok + " death_status_poison_ok=" + .@death_status_poison_ok + " death_status_before_ok=" + .@death_status_before_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " status_death_clear_ok=" + .@status_death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " status_respawn_fresh_ok=" + .@status_respawn_fresh_ok + " npc_interrupt_start_ok=" + .@npc_interrupt_start_ok + " npc_interrupt_active_ok=" + .@npc_interrupt_active_ok + " npc_interrupt_kill_ok=" + .@npc_interrupt_kill_ok + " npc_interrupt_dead_ok=" + .@npc_interrupt_dead_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " npc_interrupt_respawn_req_ok=" + .@npc_interrupt_respawn_req_ok + " npc_interrupt_respawn_ok=" + .@npc_interrupt_respawn_ok + " storage_interrupt_open_ok=" + .@storage_interrupt_open_ok + " storage_interrupt_active_ok=" + .@storage_interrupt_active_ok + " storage_interrupt_kill_ok=" + .@storage_interrupt_kill_ok + " storage_interrupt_dead_ok=" + .@storage_interrupt_dead_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " storage_interrupt_audit=" + .@storage_interrupt_audit + " storage_respawn_req_ok=" + .@storage_respawn_req_ok + " storage_respawn_ok=" + .@storage_respawn_ok + " trade_interrupt_req_ok=" + .@trade_interrupt_req_ok + " trade_interrupt_ack_ok=" + .@trade_interrupt_ack_ok + " trade_interrupt_active_ok=" + .@trade_interrupt_active_ok + " trade_interrupt_kill_ok=" + .@trade_interrupt_kill_ok + " trade_interrupt_dead_ok=" + .@trade_interrupt_dead_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trade_interrupt_respawn_req_ok=" + .@trade_interrupt_respawn_req_ok + " trade_respawn_ok=" + .@trade_respawn_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " status_trace_ok=" + .@status_trace_ok + " status_audit_ok=" + .@status_audit_ok + " warp_audit_ok=" + .@warp_audit_ok + " warp_trace_ok=" + .@warp_trace_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

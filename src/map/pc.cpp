@@ -6899,6 +6899,8 @@ bool pc_steal_item(map_session_data *sd,block_list *bl, uint16 skill_lv)
  *			SETPOS_NO_MAPSERVER	Map not in this map-server, and failed to locate alternate map-server.
  *			SETPOS_AUTOTRADE	Player is in autotrade state
  *------------------------------------------*/
+static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd);
+
 enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y, clr_type clrtype)
 {
 	nullpo_retr(SETPOS_OK,sd);
@@ -6953,6 +6955,8 @@ enum e_setpos pc_setpos(map_session_data* sd, uint16 mapindex, int32 x, int32 y,
 			bg_team_leave(sd, false, true);
 
 		sd->state.pmap = sd->m;
+		if (sd->prev != nullptr || sd->state.active)
+			pc_playerbot_handle_mapchange_cleanup(sd);
 		if (sc != nullptr && !sc->empty()) { // Cancel some map related stuff.
 			if (sc->cant.warp)
 				return SETPOS_MAPINDEX; // You may not get out!
@@ -10002,20 +10006,31 @@ struct s_playerbot_participation_cleanup {
 	bool trade_ok = true;
 };
 
-static void pc_playerbot_trace_interrupt(uint32 bot_id, uint32 char_id, uint32 account_id, map_session_data* sd, const char* scope, const char* reason, bool had_state, bool ok)
+static const char* pc_playerbot_interrupt_failure_suffix(const char* scope)
+{
+	if (scope != nullptr && strcmp(scope, "storage") == 0)
+		return ".still_open";
+	return ".still_active";
+}
+
+static void pc_playerbot_trace_interrupt(uint32 bot_id, uint32 char_id, uint32 account_id, map_session_data* sd, const char* phase, const char* action, const char* reason_code, const char* scope, const char* detail, bool had_state, bool ok)
 {
 	if (!had_state)
 		return;
-	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", ok ? "combat.completed" : "combat.failed", scope, "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "interrupt.cleanup", ok ? reason : (std::string(reason) + ".still_active").c_str());
+
+	std::string detail_s = detail != nullptr ? detail : "interrupt";
+	if (!ok)
+		detail_s += pc_playerbot_interrupt_failure_suffix(scope);
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, ok ? action : "reconcile.failed", scope, "", reason_code, ok ? "ok" : "aborted", ok ? "" : "interrupt.cleanup", detail_s.c_str());
 }
 
-static s_playerbot_participation_cleanup pc_playerbot_cleanup_participation(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* reason)
+static s_playerbot_participation_cleanup pc_playerbot_cleanup_participation(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* phase, const char* action, const char* reason_code, const char* detail)
 {
 	s_playerbot_participation_cleanup cleanup = {};
 	if (sd == nullptr)
 		return cleanup;
 
-	std::string reason_s = reason != nullptr ? reason : "combat.interrupt";
+	std::string detail_s = detail != nullptr ? detail : "combat.interrupt";
 	std::string before = pc_playerbot_combat_state(sd);
 
 	cleanup.npc_had = (sd->npc_id != 0 || sd->st != nullptr || sd->state.menu_or_input);
@@ -10051,19 +10066,19 @@ static s_playerbot_participation_cleanup pc_playerbot_cleanup_participation(map_
 
 	std::string after = pc_playerbot_combat_state(sd);
 	if (cleanup.npc_had)
-		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "npc", "interrupt", before.c_str(), after.c_str(), cleanup.npc_ok ? "ok" : "aborted", cleanup.npc_ok ? reason_s.c_str() : (reason_s + ".still_active").c_str());
+		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "npc", "interrupt", before.c_str(), after.c_str(), cleanup.npc_ok ? "ok" : "aborted", cleanup.npc_ok ? detail_s.c_str() : (detail_s + ".still_active").c_str());
 	if (cleanup.storage_had)
-		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "storage", "interrupt", before.c_str(), after.c_str(), cleanup.storage_ok ? "ok" : "aborted", cleanup.storage_ok ? reason_s.c_str() : (reason_s + ".still_open").c_str());
+		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "storage", "interrupt", before.c_str(), after.c_str(), cleanup.storage_ok ? "ok" : "aborted", cleanup.storage_ok ? detail_s.c_str() : (detail_s + ".still_open").c_str());
 	if (cleanup.trade_had)
-		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "trade", "interrupt", before.c_str(), after.c_str(), cleanup.trade_ok ? "ok" : "aborted", cleanup.trade_ok ? reason_s.c_str() : (reason_s + ".still_active").c_str());
+		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "trade", "interrupt", before.c_str(), after.c_str(), cleanup.trade_ok ? "ok" : "aborted", cleanup.trade_ok ? detail_s.c_str() : (detail_s + ".still_active").c_str());
 
-	pc_playerbot_trace_interrupt(bot_id, char_id, account_id, sd, "npc", reason_s.c_str(), cleanup.npc_had, cleanup.npc_ok);
-	pc_playerbot_trace_interrupt(bot_id, char_id, account_id, sd, "storage", reason_s.c_str(), cleanup.storage_had, cleanup.storage_ok);
-	pc_playerbot_trace_interrupt(bot_id, char_id, account_id, sd, "trade", reason_s.c_str(), cleanup.trade_had, cleanup.trade_ok);
+	pc_playerbot_trace_interrupt(bot_id, char_id, account_id, sd, phase, action, reason_code, "npc", detail_s.c_str(), cleanup.npc_had, cleanup.npc_ok);
+	pc_playerbot_trace_interrupt(bot_id, char_id, account_id, sd, phase, action, reason_code, "storage", detail_s.c_str(), cleanup.storage_had, cleanup.storage_ok);
+	pc_playerbot_trace_interrupt(bot_id, char_id, account_id, sd, phase, action, reason_code, "trade", detail_s.c_str(), cleanup.trade_had, cleanup.trade_ok);
 	return cleanup;
 }
 
-static int32 pc_playerbot_release_reservations(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* detail)
+static int32 pc_playerbot_release_reservations(uint32 bot_id, uint32 char_id, uint32 account_id, const map_session_data* sd, const char* phase, const char* reason_code, const char* detail)
 {
 	char type[32];
 	char resource_key[97];
@@ -10101,7 +10116,7 @@ static int32 pc_playerbot_release_reservations(uint32 bot_id, uint32 char_id, ui
 			continue;
 		}
 
-		pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "reservation.released", type, resource_key, "restart.recovery", "ok", "", detail != nullptr ? detail : "combat.death");
+		pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, "reservation.released", type, resource_key, reason_code, "ok", "", detail != nullptr ? detail : "combat.death");
 		++released;
 	}
 	Sql_FreeResult(mmysql_handle);
@@ -10217,8 +10232,8 @@ static void pc_playerbot_handle_death_cleanup(map_session_data* sd)
 
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
-	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat.death.interrupt");
-	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat.death");
+	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.death.interrupt");
+	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat", "restart.recovery", "combat.death");
 	std::string after = pc_playerbot_combat_state(sd);
 	std::string detail = released > 0 ? "combat.cleared.reservations" : "combat.cleared";
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
@@ -10239,7 +10254,7 @@ static void pc_playerbot_finalize_death_status(map_session_data* sd, const char*
 	std::string status_after = pc_playerbot_status_state(sd);
 	const char* status_detail = (strcmp(status_before, status_after.c_str()) == 0) ? "death.nochange" : "death.cleanup";
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "cleanup", status_before, status_after.c_str(), "ok", status_detail);
-	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "death.cleanup", "ok", "", strcmp(status_before, status_after.c_str()) == 0 ? "status.unchanged" : "status.cleared");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "restart.recovery", "ok", "", strcmp(status_before, status_after.c_str()) == 0 ? "status.unchanged" : "status.cleared");
 }
 
 static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
@@ -10250,8 +10265,8 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
-	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat.respawn.interrupt");
-	pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat.respawn");
+	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
+	pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat", "restart.recovery", "combat.respawn");
 	pc_playerbot_reconcile_loadout(sd, "respawn", nullptr, nullptr, nullptr);
 	std::string after = pc_playerbot_combat_state(sd);
 	std::string detail = "combat.respawn_reconciled";
@@ -10266,7 +10281,32 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 	std::string status_before = pc_playerbot_status_state(sd);
 	std::string status_after = pc_playerbot_status_state(sd);
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "reconcile", status_before.c_str(), status_after.c_str(), "ok", "respawn.reconcile");
-	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "respawn.reconcile", "ok", "", "status.reconciled");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "restart.recovery", "ok", "", "status.reconciled");
+}
+
+static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
+{
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	if (sd == nullptr || !pc_playerbot_lookup_identity(sd, &bot_id, &char_id, &account_id))
+		return;
+
+	std::string before = pc_playerbot_combat_state(sd);
+	unit_stop_attack(sd);
+	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
+	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "map.changed", "mapchange.interrupt");
+	std::string after = pc_playerbot_combat_state(sd);
+
+	if (before == after && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+		return;
+
+	std::string detail = released > 0 ? "mapchange.cleared.reservations" : "mapchange.cleared";
+	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
+		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
+		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
+		detail += " trade=" + std::to_string(cleanup.trade_had ? (cleanup.trade_ok ? 1 : -1) : 0);
+	}
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "mapchange", "interrupt", before.c_str(), after.c_str(), "ok", detail.c_str());
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.fixed", "mapchange", "", "map.changed", "ok", "", detail.c_str());
 }
 
 /*==========================================

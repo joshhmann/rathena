@@ -5792,6 +5792,63 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 66: Playerbot Map-Change Mechanic Continuity
+
+### Summary
+
+Extended the combat/status frontier so headless bots now clear active
+participation state and held reservations on real map changes, not only on
+death and respawn.
+
+### Files
+
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Refactored playerbot participation cleanup into a lifecycle-aware helper so
+  cleanup traces can be emitted from more than one transition path.
+- Added map-change cleanup in `pc_setpos(...)` for playerbot actors that are
+  already live in the world:
+  - stop attack intent
+  - clear active NPC/dialog state
+  - clear storage ownership
+  - clear trade state on both sides
+  - release held reservations
+- Added a `mapchange / interrupt` recovery audit surface plus matching
+  `reconcile.fixed` / `reservation.released` trace coverage with
+  `reason_code = 'map.changed'`.
+- Normalized status trace reason codes to fit the current enum-backed
+  `bot_trace_event` schema while keeping status-specific details in
+  `error_detail`.
+- Expanded `Playerbot Combat Lab` so the combat selftest now proves warp-driven
+  cleanup for:
+  - NPC/dialog state
+  - storage state
+  - trade state
+  - held reservations
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- aggregate result:
+  - `playerbot_combat_selftest ... result=1`
+  - full foundation pass green
+
+### Deferrals
+
+This slice does not add:
+
+- map-change-specific planner logic
+- cross-map reservation transfer
+- richer event/instance cleanup beyond the current playerbot participation
+  surfaces
+
 ## Slice 65: Playerbot Status Continuity Baseline
 
 ### Summary

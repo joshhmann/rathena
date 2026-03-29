@@ -2340,3 +2340,28 @@ Current limit:
   aggregate foundation smoke
 - broader map-change/event-specific status trace coverage is still deferred
 - this is the first continuity baseline, not a full status-system planner
+
+Map-change mechanic continuity now covered:
+
+- live playerbot map changes now force the same participation cleanup class as
+  death/respawn for:
+  - NPC/dialog state
+  - storage state
+  - trade state
+  - held reservations
+- the runtime emits:
+  - `mapchange / interrupt` recovery audits
+  - `reconcile.fixed` trace rows with `reason_code = 'map.changed'`
+  - `reservation.released` trace rows with `reason_code = 'map.changed'`
+- the combat selftest now proves:
+  - dialog cleanup on warp
+  - storage cleanup on warp
+  - trade cleanup on warp
+  - reservation release on warp
+
+Current limit:
+
+- map-change cleanup is currently a playerbot-specific continuity layer, not a
+  generalized MMO session-transition framework
+- this still does not add cross-map claim transfer or richer event-instance
+  policy
