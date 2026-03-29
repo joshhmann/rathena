@@ -275,10 +275,11 @@ print_trace_row() {
 	local error_code="$9"
 	local char_id="${10}"
 	local bot_key="${11}"
-	
+	local bot_color="${12:-$C_CYAN}"
+
 	local ts_fmt
 	ts_fmt=$(format_ts "$ts")
-	
+
 	# Color result
 	local result_color="$C_RESET"
 	case "$result" in
@@ -287,19 +288,19 @@ print_trace_row() {
 		retry|fallback|timeout) result_color="$C_YELLOW" ;;
 		desynced|fatal) result_color="$C_MAGENTA" ;;
 	esac
-	
+
 	# Format location
 	local loc="${map_name}(${x},${y})"
-	
+
 	# Format bot identifier
 	local bot_id="$char_id"
 	if [[ -n "$bot_key" && "$bot_key" != "-" ]]; then
 		bot_id="$bot_key"
 	fi
-	
+
 	printf "${C_DIM}%s${C_RESET}  " "$ts_fmt"
 	printf "${C_BOLD}%-25s${C_RESET}  " "$action"
-	printf "${C_CYAN}%-20s${C_RESET}  " "$bot_id"
+	printf "${bot_color}%-20s${C_RESET}  " "$bot_id"
 	printf "${C_BLUE}%-18s${C_RESET}  " "$controller"
 	printf "%s  " "$loc"
 	printf "${result_color}%-8s${C_RESET}" "$result"
@@ -774,7 +775,6 @@ cmd_correlate() {
 	# Resolve all provided IDs to char_ids
 	local char_ids=()
 	local bot_labels=()
-	local i=0
 	for id in "$@"; do
 		local bot_info
 		bot_info=$(resolve_bot "$id") || true
@@ -782,8 +782,10 @@ cmd_correlate() {
 			echo "Warning: Bot not found: $id (skipping)" >&2
 			continue
 		fi
-		char_ids+=("$(echo "$bot_info" | cut -f3)")
-		bot_labels+=("$(echo "$bot_info" | cut -f2)")
+		local _bid _bkey _cid
+		IFS=$'\t' read -r _bid _bkey _cid <<< "$bot_info"
+		char_ids+=("$_cid")
+		bot_labels+=("$_bkey")
 	done
 
 	if [[ "${#char_ids[@]}" -eq 0 ]]; then
@@ -823,10 +825,9 @@ cmd_correlate() {
 	printf "${C_BOLD}Correlated Timeline:${C_RESET} %s\n\n" "$label_str"
 	print_header
 
-	# Build a char_id → color map using index position
 	local count=0
 	while IFS=$'\t' read -r ts action controller map_name x y reason_code result error_code char_id bot_key; do
-		# Find color for this char_id
+		# Pick palette color for this bot's char_id
 		local bot_color="$C_CYAN"
 		for j in "${!char_ids[@]}"; do
 			if [[ "${char_ids[$j]}" == "$char_id" ]]; then
@@ -834,33 +835,7 @@ cmd_correlate() {
 				break
 			fi
 		done
-
-		local ts_fmt
-		ts_fmt=$(format_ts "$ts")
-		local result_color="$C_RESET"
-		case "$result" in
-			ok|noop) result_color="$C_GREEN" ;;
-			denied|aborted|failed) result_color="$C_RED" ;;
-			retry|fallback|timeout) result_color="$C_YELLOW" ;;
-			desynced|fatal) result_color="$C_MAGENTA" ;;
-		esac
-		local bot_id="${bot_key}"
-		[[ "$bot_key" == "-" ]] && bot_id="$char_id"
-		local loc="${map_name}(${x},${y})"
-
-		printf "${C_DIM}%s${C_RESET}  " "$ts_fmt"
-		printf "${C_BOLD}%-25s${C_RESET}  " "$action"
-		printf "${bot_color}%-20s${C_RESET}  " "$bot_id"
-		printf "${C_BLUE}%-18s${C_RESET}  " "$controller"
-		printf "%s  " "$loc"
-		printf "${result_color}%-8s${C_RESET}" "$result"
-		if [[ -n "$reason_code" && "$reason_code" != "none" ]]; then
-			printf "  [${C_YELLOW}%s${C_RESET}]" "$reason_code"
-		fi
-		if [[ -n "$error_code" && "$error_code" != "-" ]]; then
-			printf "  (${C_RED}%s${C_RESET})" "$error_code"
-		fi
-		printf "\n"
+		print_trace_row "$ts" "$action" "$controller" "$map_name" "$x" "$y" "$reason_code" "$result" "$error_code" "$char_id" "$bot_key" "$bot_color"
 		count=$(( count + 1 ))
 	done < <(query "$sql")
 
@@ -913,10 +888,8 @@ cmd_path() {
 
 	local bot_info
 	bot_info=$(resolve_bot "$id")
-	local bot_key
-	bot_key=$(echo "$bot_info" | cut -f2)
-	local char_id
-	char_id=$(echo "$bot_info" | cut -f3)
+	local _bid bot_key char_id
+	IFS=$'\t' read -r _bid bot_key char_id <<< "$bot_info"
 
 	if [[ -z "$char_id" ]]; then
 		echo "Error: Bot not found: $id" >&2
@@ -937,12 +910,7 @@ cmd_path() {
 	fi
 
 	local fail_id fail_ts fail_action fail_result fail_error fail_detail
-	fail_id=$(echo "$fail_info" | cut -f1)
-	fail_ts=$(echo "$fail_info" | cut -f2)
-	fail_action=$(echo "$fail_info" | cut -f3)
-	fail_result=$(echo "$fail_info" | cut -f4)
-	fail_error=$(echo "$fail_info" | cut -f5)
-	fail_detail=$(echo "$fail_info" | cut -f6)
+	IFS=$'\t' read -r fail_id fail_ts fail_action fail_result fail_error fail_detail <<< "$fail_info"
 
 	# Get N rows leading up to and including the failure
 	local sql="SELECT ts, action, IFNULL(NULLIF(controller_id,''), '-'), map_name, x, y, reason_code, result, IFNULL(NULLIF(error_code,''), '-'), char_id,

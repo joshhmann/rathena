@@ -95,11 +95,9 @@ format_ts() {
 }
 
 # Format seconds remaining as "2m30s" or "EXPIRED"
+# Accepts pre-computed remaining seconds (lease_until - now)
 format_ttl() {
-	local lease_until="$1"
-	local now
-	now=$(date +%s)
-	local remaining=$(( lease_until - now ))
+	local remaining="$1"
 	if [[ "$remaining" -le 0 ]]; then
 		echo "EXPIRED"
 	elif [[ "$remaining" -lt 60 ]]; then
@@ -172,13 +170,16 @@ cmd_active() {
 		"TYPE" "RESOURCE_KEY" "BOT" "CONTROLLER" "MODE" "TTL" "REASON"
 
 	local count=0
+	local now
+	now=$(date +%s)
 	while IFS=$'\t' read -r type resource_key holder_bot holder_ctrl lock_mode lease_until reason; do
 		count=$(( count + 1 ))
+		local remaining=$(( lease_until - now ))
 		local ttl
-		ttl=$(format_ttl "$lease_until")
+		ttl=$(format_ttl "$remaining")
 		local ttl_color="$C_GREEN"
-		local remaining=$(( lease_until - $(date +%s) ))
-		[[ "$remaining" -lt 30 ]] && ttl_color="$C_YELLOW"
+		[[ "$remaining" -le 0 ]] && ttl_color="$C_RED"
+		[[ "$remaining" -gt 0 && "$remaining" -lt 30 ]] && ttl_color="$C_YELLOW"
 		printf "  %-16s  ${C_CYAN}%-38s${C_RESET}  ${C_BLUE}%-6s${C_RESET}  %-24s  %-10s  ${ttl_color}%-10s${C_RESET}  %s\n" \
 			"$type" "$resource_key" "$holder_bot" "$holder_ctrl" "$lock_mode" "$ttl" "$reason"
 	done < <(query "$sql")
@@ -233,12 +234,14 @@ cmd_by_bot() {
 		"TYPE" "RESOURCE_KEY" "MODE" "STATUS" "CREATED" "REASON"
 
 	local count=0
+	local now
+	now=$(date +%s)
 	while IFS=$'\t' read -r type resource_key lock_mode lease_until reason created_at; do
 		count=$(( count + 1 ))
+		local remaining=$(( lease_until - now ))
 		local ttl
-		ttl=$(format_ttl "$lease_until")
+		ttl=$(format_ttl "$remaining")
 		local ttl_color="$C_GREEN"
-		local remaining=$(( lease_until - $(date +%s) ))
 		if [[ "$remaining" -le 0 ]]; then
 			ttl_color="$C_RED"
 		elif [[ "$remaining" -lt 30 ]]; then
@@ -272,12 +275,14 @@ cmd_by_type() {
 		"RESOURCE_KEY" "BOT" "CONTROLLER" "MODE" "STATUS" "REASON"
 
 	local count=0
+	local now
+	now=$(date +%s)
 	while IFS=$'\t' read -r resource_key holder_bot holder_ctrl lock_mode lease_until priority reason; do
 		count=$(( count + 1 ))
+		local remaining=$(( lease_until - now ))
 		local ttl
-		ttl=$(format_ttl "$lease_until")
+		ttl=$(format_ttl "$remaining")
 		local ttl_color="$C_GREEN"
-		local remaining=$(( lease_until - $(date +%s) ))
 		if [[ "$remaining" -le 0 ]]; then
 			ttl_color="$C_RED"
 		elif [[ "$remaining" -lt 30 ]]; then
@@ -308,14 +313,11 @@ cmd_contended() {
 	holder_info=$(query "$sql")
 	if [[ -n "$holder_info" ]]; then
 		local holder_bot holder_ctrl lock_mode lease_until
-		holder_bot=$(echo "$holder_info" | cut -f1)
-		holder_ctrl=$(echo "$holder_info" | cut -f2)
-		lock_mode=$(echo "$holder_info" | cut -f3)
-		lease_until=$(echo "$holder_info" | cut -f4)
+		IFS=$'\t' read -r holder_bot holder_ctrl lock_mode lease_until <<< "$holder_info"
 		local remaining=$(( lease_until - $(date +%s) ))
 		if [[ "$remaining" -gt 0 ]]; then
 			local ttl
-			ttl=$(format_ttl "$lease_until")
+			ttl=$(format_ttl "$remaining")
 			printf "  ${C_BOLD}Current holder:${C_RESET} ${C_GREEN}bot %s${C_RESET} via ${C_CYAN}%s${C_RESET} (%s, TTL: %s)\n\n" \
 				"$holder_bot" "$holder_ctrl" "$lock_mode" "$ttl"
 		else
