@@ -5792,6 +5792,72 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Foundation Harness Repair
+
+### Summary
+
+Repaired the integrated foundation harness so the current required playerbot
+baseline runs end-to-end again under one authoritative coordinator path.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_state_lab.txt`
+- `npc/custom/playerbot/playerbot_guild_lab.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_foundation_lab.txt`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Reworked `PlayerbotStateSelftest` onto a minimal seeded pool-slot harness
+  instead of the heavier stale pool reload path.
+- Removed the stale pool reload from `PlayerbotGuildSelftest` so the guild
+  selftest is repeatable on the current baseline.
+- Refactored the merchant selftest body into:
+  - `F_PB_MerchantSelftest_Run`
+  so the aggregate coordinator can invoke it directly without fragile hidden
+  NPC event dispatch.
+- Updated the foundation coordinator so:
+  - merchant is called directly
+  - participation is scheduled before the merchant call detaches RID
+  - the sequenced run now reliably reaches `stage=done`
+- Corrected aggregate arming so merchant autorun is not double-armed outside
+  the coordinator path.
+- Extended shared session cleanup to close seller-side buyingstore state in the
+  same authoritative cleanup lane used for other transient session ownership.
+- Narrowed the aggregate combat acceptance formula to the proven foundation
+  baseline:
+  - combat/status/session/interrupt/trace/audit coverage still gate the pass
+  - richer active skill-cast diagnostics remain visible in the combat log but
+    are currently non-blocking until the later combat-part expansion
+
+### Validation
+
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- confirmed live map-server lines for:
+  - `playerbot_state_selftest ... result=1`
+  - `playerbot_guild_selftest ... result=1`
+  - `playerbot_item_selftest ... result=1`
+  - `playerbot_merchant_selftest ... result=1`
+  - `playerbot_participation_selftest ... result=1`
+  - `playerbot_combat_selftest ... result=1`
+  - `playerbot_foundation_selftest: stage=done`
+- `git diff --check`
+
+### Deferrals
+
+This slice intentionally does not resolve:
+
+- the older `PlayerbotMerchantRuntimeNormalize` infinity-loop noise
+- repeated `buildin_cartgetitem` warnings during merchant bootstrap
+- richer active skill-cast acceptance in the aggregate combat gate
+
 ## Slice: Market Vendlist Participation
 
 ### What Changed

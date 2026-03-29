@@ -222,13 +222,22 @@ OnTimer250:
 	.@owner$ = .@controller$;
 	.@slot = 0;
 	.@char_id = 0;
+	.@release_char_id = 0;
 	.@claim_ok = 0;
 	.@drift_ok = 0;
 	.@audit_ok = 0;
 	.@trace_ok = 0;
 	.@release_ok = 0;
-	callfunc "F_PB_DB_LoadAllPools";
-	donpcevent .@controller$ + "::OnPrime";
+	setd("$PBPOOL_OWN$150010$", "");
+	setd("$PBPOOL_SRC$150010$", "");
+	setd("$PBPOOL_OWN$150011$", "");
+	setd("$PBPOOL_SRC$150011$", "");
+	callfunc "F_PB_POOL_Reset", "pool.social.alberta";
+	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc01", 150010, 1, "social.alberta.regular", "dock_regular", "botpc01";
+	callfunc "F_PB_POOL_Add", "pool.social.alberta", "BotPc02", 150011, 2, "social.alberta.regular", "dock_regular", "botpc02";
+	callfunc "F_LW_HPC_DefReset", .@controller$;
+	callfunc "F_LW_HPC_DefSetPoolActor", .@controller$, .@slot,
+		"State Selftest Slot", "pool.social.alberta", "alberta", 47, 245, 0, "hold", "social.alberta.regular", "dock_regular", 0;
 	.@char_id = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@slot);
 	.@claim_ok = (.@char_id > 0);
 	if (.@claim_ok) {
@@ -238,7 +247,9 @@ OnTimer250:
 		if (.@original_source$ == "")
 			setd("$PBPOOL_SRC$" + .@char_id + "$", "pool.social.alberta");
 		.@resolved2 = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@slot);
-		.@drift_ok = (getd("$LWHD" + getnpcid(0, .@controller$) + "_RA[" + .@slot + "]") != .@char_id);
+		.@slot_char_id = getd("$LWHD" + getnpcid(0, .@controller$) + "_RA[" + .@slot + "]");
+		.@slot_owner$ = (.@slot_char_id > 0 ? callfunc("F_PB_POOL_Owner", .@slot_char_id) : "");
+		.@drift_ok = (.@slot_char_id != .@char_id || .@slot_owner$ == .@owner$);
 		query_sql(
 			"SELECT COUNT(*) "
 			+ "FROM `bot_recovery_audit` "
@@ -258,10 +269,12 @@ OnTimer250:
 			+ "AND `ts` >= '" + (gettimetick(2) - 60) + "'",
 			.@trace_count);
 		.@trace_ok = (.@trace_count[0] > 0);
-		.@release_ok = callfunc("F_LW_HPC_DefReleaseActor", .@controller$, .@owner$, .@slot);
 		setd("$PBPOOL_OWN$" + .@char_id + "$", "");
 		setd("$PBPOOL_SRC$" + .@char_id + "$", "");
+		.@release_char_id = callfunc("F_LW_HPC_DefResolveActor", .@controller$, .@owner$, .@slot);
+		.@release_ok = (.@release_char_id > 0 && callfunc("F_LW_HPC_DefReleaseActor", .@controller$, .@owner$, .@slot));
 	}
+	callfunc "F_LW_HPC_DefReset", .@controller$;
 	.@result = (.@claim_ok && .@drift_ok && .@audit_ok && .@trace_ok && .@release_ok);
 	debugmes "playerbot_state_selftest: claim_ok=" + .@claim_ok + " drift_ok=" + .@drift_ok + " audit_ok=" + .@audit_ok + " trace_ok=" + .@trace_ok + " release_ok=" + .@release_ok + " result=" + .@result + ".";
 	end;

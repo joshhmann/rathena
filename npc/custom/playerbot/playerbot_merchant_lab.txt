@@ -104,78 +104,30 @@ S_ShowMerchant:
 	mes "Stock / Price / Stall: " + ($@pbbot_stock_profile$ == "" ? "<none>" : $@pbbot_stock_profile$) + " / " + ($@pbbot_price_profile$ == "" ? "<none>" : $@pbbot_price_profile$) + " / " + ($@pbbot_stall_style$ == "" ? "<none>" : $@pbbot_stall_style$);
 	mes callfunc("F_PB_DB_BuildMerchantRuntimeSummary$", .@bot_key$);
 	return;
+
+OnFoundationRun:
+	callfunc "F_PB_MerchantSelftest_Run";
+	end;
 }
 
--	script	PlayerbotMerchantSelftest	FAKE_NPC,{
-OnInit:
-	.enabled = 1;
-	.autorun = 0;
-	.bot_key$ = "quick_merc_alb";
-	.display_name$ = "PBQMerchantA";
-	.test_aid = 2000004;
-	.test_char_id = 150001;
-	.ran = 0;
-	end;
-
-OnPCLoginEvent:
-	if (!.enabled)
-		end;
-	if (.ran)
-		end;
-	if (!.autorun && $PBMST_AUTORUN_AID != getcharid(3))
-		end;
-	if (getcharid(0) != .test_char_id)
-		end;
-	.ran = 1;
-	.aid = getcharid(3);
-	if ($PBMST_AUTORUN_AID == .aid)
-		setd("$PBMST_AUTORUN_AID", 0);
-	callsub S_Run;
-	end;
-
-OnInterIfInitOnce:
-	sleep 2500;
-	if (!.enabled || .ran)
-		end;
-	if (!.autorun && $PBMST_AUTORUN_AID != .test_aid)
-		end;
-	for (.@i = 0; .@i < 10; ++.@i) {
-		if (isloggedin(.test_aid, .test_char_id)) {
-			.ran = 1;
-			.aid = .test_aid;
-			if ($PBMST_AUTORUN_AID == .aid)
-				setd("$PBMST_AUTORUN_AID", 0);
-			callsub S_Run;
-			end;
-		}
-		sleep 1000;
-	}
-	end;
-
-OnManualStart:
-	.aid = $PBMST_MANUAL_AID;
-	callsub S_Run;
-	end;
-
-OnRun:
-	callsub S_Run;
-	end;
-
-S_Run:
+function	script	F_PB_MerchantSelftest_Run	{
 	debugmes "playerbot_merchant_selftest: step=begin.";
-	.@bot_id = playerbot_profile(.bot_key$);
+	.@bot_key$ = "quick_merc_alb";
+	.@display_name$ = "PBQMerchantA";
+	.@bot_id = playerbot_profile(.@bot_key$);
 	if (!.@bot_id)
-		.@bot_id = playerbot_provision(.bot_key$, .display_name$, "merchant.alberta.stall");
+		.@bot_id = playerbot_provision(.@bot_key$, .@display_name$, "merchant.alberta.stall");
 	if (!.@bot_id) {
 		debugmes "playerbot_merchant_selftest: provision failed at login.";
-		return;
+		return 0;
 	}
-	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	callfunc "F_PB_DB_LoadBotSummary", .@bot_key$;
 	.@found = $@pbbot_found;
 	.@base_ok = (.@found && $@pbbot_merchant_policy$ == "stall_day" && $@pbbot_market_map$ == "alberta");
 	.@spawn_ok = 0;
 	.@bootstrap_ok = 0;
 	.@shop_ok = 0;
+	.@activity_ok = 0;
 	.@market_spawn_ok = 0;
 	.@vending_open_ok = 0;
 	.@vending_active_ok = 0;
@@ -217,7 +169,7 @@ S_Run:
 		}
 		if (.@spawn_ok) {
 			debugmes "playerbot_merchant_selftest: step=bootstrap.";
-			.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .bot_key$);
+			.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .@bot_key$);
 			debugmes "playerbot_merchant_selftest: step=bootstrap seeded=" + .@seeded + ".";
 			if (attachrid($@pbbot_account_id)) {
 				.@class = readparam(Class);
@@ -236,10 +188,10 @@ S_Run:
 				&& cartcountitem(912, $@pbbot_account_id) >= 10);
 			if (.@bootstrap_ok) {
 				debugmes "playerbot_merchant_selftest: step=shop.";
-				callfunc "F_PB_DB_SetMerchantState", .bot_key$, 1, "open";
-				.@shop_ok = (callfunc("F_PB_DB_ShowMerchantProxy", .bot_key$, "Harbor Curios Counter#pb", "pb_merchant_alberta_shop") > 0);
-				callfunc "F_PB_DB_RecordMerchantBrowse", .bot_key$;
-				callfunc "F_PB_DB_RecordMerchantSale", .bot_key$, 3;
+				callfunc "F_PB_DB_SetMerchantState", .@bot_key$, 1, "open";
+				.@shop_ok = (callfunc("F_PB_DB_ShowMerchantProxy", .@bot_key$, "Harbor Curios Counter#pb", "pb_merchant_alberta_shop") > 0);
+				callfunc "F_PB_DB_RecordMerchantBrowse", .@bot_key$;
+				callfunc "F_PB_DB_RecordMerchantSale", .@bot_key$, 3;
 				.@runtime_rows = query_sql(
 					"SELECT `total_browse_count`, `total_sale_count`, `total_items_sold` "
 					+ "FROM `bot_merchant_runtime` "
@@ -269,7 +221,6 @@ S_Run:
 					.@viewer_bot_id = playerbot_provision(.@viewer_key$, .@viewer_name$, "social.alberta.night");
 				if (.@viewer_bot_id && callfunc("F_PB_DB_LoadBotSummary", .@viewer_key$)) {
 					.@viewer_char_id = $@pbbot_char_id;
-					.@viewer_account_id = $@pbbot_account_id;
 					if (headlesspc_status(.@viewer_char_id) == 2)
 						headlesspc_remove(.@viewer_char_id);
 					sleep 600;
@@ -282,10 +233,10 @@ S_Run:
 						}
 					}
 					if (.@market_spawn_ok) {
-						playerbot_vendingclose(.bot_key$);
+						playerbot_vendingclose(.@bot_key$);
 						sleep 200;
-						.@vending_open_ok = playerbot_vendingopen(.bot_key$, "PB Market Test", 909, 5, 500);
-						.@vending_active_ok = (.@vending_open_ok && playerbot_vendingactive(.bot_key$));
+						.@vending_open_ok = playerbot_vendingopen(.@bot_key$, "PB Market Test", 909, 5, 500);
+						.@vending_active_ok = (.@vending_open_ok && playerbot_vendingactive(.@bot_key$));
 						.@vendlist_open_ok = (.@vending_active_ok && playerbot_vendlistopen(.@viewer_key$, .@seller_char_id));
 						.@vendlist_active_ok = (.@vendlist_open_ok && playerbot_vendlistactive(.@viewer_key$));
 						.@vendlist_move_ok = (.@vendlist_active_ok && headlesspc_setpos(.@viewer_char_id, "izlude", 128, 146));
@@ -295,28 +246,28 @@ S_Run:
 						.@vendlist_return_ok = (.@vendlist_clear_ok && headlesspc_setpos(.@viewer_char_id, .@seller_market_map$, .@seller_market_x + 1, .@seller_market_y));
 						if (.@vendlist_return_ok)
 							sleep 600;
-						.@vending_close_ok = playerbot_vendingclose(.bot_key$);
-						.@vending_closed_ok = (.@vending_close_ok && !playerbot_vendingactive(.bot_key$));
-						playerbot_itemgrant(.bot_key$, 909, 1);
+						.@vending_close_ok = playerbot_vendingclose(.@bot_key$);
+						.@vending_closed_ok = (.@vending_close_ok && !playerbot_vendingactive(.@bot_key$));
+						playerbot_itemgrant(.@bot_key$, 909, 1);
 						if (attachrid(.@seller_account_id)) {
 							if (Zeny < 500)
 								set Zeny, 500;
-							.@buying_seed_ok = (playerbot_itemcount(.bot_key$, 909) >= 1 && Zeny >= 500);
+							.@buying_seed_ok = (playerbot_itemcount(.@bot_key$, "inventory", 909) >= 1 && Zeny >= 500);
 							detachrid;
 						}
 						if (.@buying_seed_ok) {
-							.@buying_open_ok = playerbot_buyingstoreopen(.bot_key$, "PB Buying Test", 909, 1, 50, 500);
-							.@buying_active_ok = (.@buying_open_ok && playerbot_buyingstoreactive(.bot_key$));
+							.@buying_open_ok = playerbot_buyingstoreopen(.@bot_key$, "PB Buying Test", 909, 1, 50, 500);
+							.@buying_active_ok = (.@buying_open_ok && playerbot_buyingstoreactive(.@bot_key$));
 							.@buying_move_ok = (.@buying_active_ok && headlesspc_setpos(.@seller_char_id, "izlude", 128, 146));
 							if (.@buying_move_ok)
 								sleep 600;
-							.@buying_clear_ok = (.@buying_move_ok && !playerbot_buyingstoreactive(.bot_key$));
+							.@buying_clear_ok = (.@buying_move_ok && !playerbot_buyingstoreactive(.@bot_key$));
 							.@buying_return_ok = (.@buying_clear_ok && headlesspc_setpos(.@seller_char_id, .@seller_market_map$, .@seller_market_x, .@seller_market_y));
 							if (.@buying_return_ok)
 								sleep 600;
-							.@buying_reopen_ok = (.@buying_return_ok && playerbot_buyingstoreopen(.bot_key$, "PB Buying Test", 909, 1, 50, 500));
-							.@buying_close_ok = (.@buying_reopen_ok && playerbot_buyingstoreclose(.bot_key$));
-							.@buying_closed_ok = (.@buying_close_ok && !playerbot_buyingstoreactive(.bot_key$));
+							.@buying_reopen_ok = (.@buying_return_ok && playerbot_buyingstoreopen(.@bot_key$, "PB Buying Test", 909, 1, 50, 500));
+							.@buying_close_ok = (.@buying_reopen_ok && playerbot_buyingstoreclose(.@bot_key$));
+							.@buying_closed_ok = (.@buying_close_ok && !playerbot_buyingstoreactive(.@bot_key$));
 						}
 						.@market_trace_rows = query_sql(
 							"SELECT COUNT(*) "
@@ -350,11 +301,66 @@ S_Run:
 			}
 		}
 	}
-	// The aggregate foundation pass now runs its own top-level orchestration.
-	// Avoid forcing a full control-plane reload from inside the merchant selftest.
 	.@reload_ok = 1;
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " buying_seed_ok=" + .@buying_seed_ok + " buying_open_ok=" + .@buying_open_ok + " buying_active_ok=" + .@buying_active_ok + " buying_move_ok=" + .@buying_move_ok + " buying_clear_ok=" + .@buying_clear_ok + " buying_return_ok=" + .@buying_return_ok + " buying_reopen_ok=" + .@buying_reopen_ok + " buying_close_ok=" + .@buying_close_ok + " buying_closed_ok=" + .@buying_closed_ok + " market_trace_ok=" + .@market_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@buying_seed_ok && .@buying_open_ok && .@buying_active_ok && .@buying_move_ok && .@buying_clear_ok && .@buying_return_ok && .@buying_reopen_ok && .@buying_close_ok && .@buying_closed_ok && .@market_trace_ok && .@park_ok && .@reload_ok) + ".";
-	return;
+	.@result = (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@buying_seed_ok && .@buying_open_ok && .@buying_active_ok && .@buying_move_ok && .@buying_clear_ok && .@buying_return_ok && .@buying_reopen_ok && .@buying_close_ok && .@buying_closed_ok && .@market_trace_ok && .@park_ok && .@reload_ok);
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " buying_seed_ok=" + .@buying_seed_ok + " buying_open_ok=" + .@buying_open_ok + " buying_active_ok=" + .@buying_active_ok + " buying_move_ok=" + .@buying_move_ok + " buying_clear_ok=" + .@buying_clear_ok + " buying_return_ok=" + .@buying_return_ok + " buying_reopen_ok=" + .@buying_reopen_ok + " buying_close_ok=" + .@buying_close_ok + " buying_closed_ok=" + .@buying_closed_ok + " market_trace_ok=" + .@market_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + .@result + ".";
+	return .@result;
+}
+
+-	script	PlayerbotMerchantSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.autorun = 0;
+	.bot_key$ = "quick_merc_alb";
+	.display_name$ = "PBQMerchantA";
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled)
+		end;
+	if (.ran)
+		end;
+	if (!.autorun && $PBMST_AUTORUN_AID != getcharid(3))
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	if ($PBMST_AUTORUN_AID == .aid)
+		setd("$PBMST_AUTORUN_AID", 0);
+	callfunc "F_PB_MerchantSelftest_Run";
+	end;
+
+OnInterIfInitOnce:
+	sleep 2500;
+	if (!.enabled || .ran)
+		end;
+	if (!.autorun && $PBMST_AUTORUN_AID != .test_aid)
+		end;
+	for (.@i = 0; .@i < 10; ++.@i) {
+		if (isloggedin(.test_aid, .test_char_id)) {
+			.ran = 1;
+			.aid = .test_aid;
+			if ($PBMST_AUTORUN_AID == .aid)
+				setd("$PBMST_AUTORUN_AID", 0);
+			callfunc "F_PB_MerchantSelftest_Run";
+			end;
+		}
+		sleep 1000;
+	}
+	end;
+
+OnManualStart:
+	.aid = $PBMST_MANUAL_AID;
+	callfunc "F_PB_MerchantSelftest_Run";
+	end;
+
+OnRun:
+	callfunc "F_PB_MerchantSelftest_Run";
+	end;
 }
 
 -	script	PlayerbotMerchantRuntimeNormalize	FAKE_NPC,{

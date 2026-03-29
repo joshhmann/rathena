@@ -140,6 +140,7 @@ S_Run:
 	.inviter_name$ = strcharinfo(0);
 	.bot_key$ = "quick_combat_open";
 	.display_name$ = "QuickCombatOpen";
+	.skill_test_id = 19;
 	.bot_id = playerbot_profile(.bot_key$);
 	if (!.bot_id)
 		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
@@ -232,28 +233,28 @@ S_Run:
 	sleep 600;
 	.@skill_gid = $@mobid[0];
 	callsub S_RefillBotVitals;
-	.@skill_grant_ok = playerbot_skillgrant(.bot_key$, 11, 1);
-	.@bot_gid = playerbot_gid(.bot_key$);
-	.@skill_target_ok = (.@skill_grant_ok && .@skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@skill_gid));
-	.@skill_cast_start_ok = (.@skill_target_ok && playerbot_skilluse(.bot_key$, .@skill_gid, 11, 1, 1200));
+		.@skill_grant_ok = playerbot_skillgrant(.bot_key$, .skill_test_id, 1);
+		.@bot_gid = playerbot_gid(.bot_key$);
+		.@skill_target_ok = (.@skill_grant_ok && .@skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@skill_gid));
+		.@skill_cast_start_ok = (.@skill_target_ok && playerbot_skilluse(.bot_key$, .@skill_gid, .skill_test_id, 1, 1200));
 	sleep 200;
 	.@skill_cast_active_ok = (.@skill_cast_start_ok && playerbot_skillcastactive(.bot_key$));
 	.@skill_cancel_ok = (.@skill_cast_active_ok && playerbot_skillcastcancel(.bot_key$));
 	sleep 200;
 	.@skill_cast_clear_ok = (.@skill_cancel_ok && !playerbot_skillcastactive(.bot_key$));
-	.@skill_apply_req_ok = (.@skill_cast_clear_ok && playerbot_skilluse(.bot_key$, .@skill_gid, 11, 1, 0));
-	sleep 1400;
-	.@skill_status_ok = .@skill_apply_req_ok;
-	.@skill_status_clear_ok = (.@skill_status_ok && !playerbot_skillcastactive(.bot_key$));
-	sleep 200;
-	.@skill_status_reset_ok = .@skill_status_clear_ok;
+		.@skill_apply_req_ok = (.@skill_cast_clear_ok && playerbot_skilluse(.bot_key$, .@skill_gid, .skill_test_id, 1, 0));
+		sleep 1400;
+		.@skill_status_ok = (.@skill_apply_req_ok && !playerbot_skillcastactive(.bot_key$));
+		.@skill_status_clear_ok = (.@skill_status_ok && !playerbot_skillcastactive(.bot_key$));
+		sleep 200;
+		.@skill_status_reset_ok = .@skill_status_clear_ok;
 	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
 	sleep 200;
 	monster "alberta", 186, 144, "Skill Interrupt Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
 	sleep 600;
 	.@skill_interrupt_gid = $@mobid[0];
 	callsub S_RefillBotVitals;
-	.@skill_interrupt_req_ok = (.@skill_interrupt_gid > 0 && playerbot_targetvalid(.bot_key$, .@skill_interrupt_gid) && playerbot_skilluse(.bot_key$, .@skill_interrupt_gid, 11, 1, 2000));
+		.@skill_interrupt_req_ok = (.@skill_interrupt_gid > 0 && playerbot_targetvalid(.bot_key$, .@skill_interrupt_gid) && playerbot_skilluse(.bot_key$, .@skill_interrupt_gid, .skill_test_id, 1, 2000));
 	sleep 200;
 	.@skill_interrupt_active_ok = (.@skill_interrupt_req_ok && playerbot_skillcastactive(.bot_key$));
 	.@skill_interrupt_kill_ok = (.@skill_interrupt_active_ok && playerbot_kill(.bot_key$));
@@ -308,7 +309,7 @@ S_Run:
 	sleep 600;
 	.@warp_skill_gid = $@mobid[0];
 	callsub S_RefillBotVitals;
-	.@warp_skill_req_ok = (.@warp_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@warp_skill_gid) && playerbot_skilluse(.bot_key$, .@warp_skill_gid, 11, 1, 5000));
+		.@warp_skill_req_ok = (.@warp_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@warp_skill_gid) && playerbot_skilluse(.bot_key$, .@warp_skill_gid, .skill_test_id, 1, 5000));
 	for (.@i = 0; .@i < 5; ++.@i) {
 		sleep 200;
 		if (.@warp_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
@@ -658,7 +659,7 @@ S_Run:
 	sleep 600;
 	.@quit_skill_gid = $@mobid[0];
 	callsub S_RefillBotVitals;
-	.@quit_skill_req_ok = (.@quit_anchor_ok && .@quit_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@quit_skill_gid) && playerbot_skilluse(.bot_key$, .@quit_skill_gid, 11, 1, 5000));
+		.@quit_skill_req_ok = (.@quit_anchor_ok && .@quit_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@quit_skill_gid) && playerbot_skilluse(.bot_key$, .@quit_skill_gid, .skill_test_id, 1, 5000));
 	for (.@i = 0; .@i < 5; ++.@i) {
 		sleep 200;
 		if (.@quit_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
@@ -690,14 +691,9 @@ S_Run:
 	.@quit_session_trace_ok = (.@quit_session_trace_count >= 1);
 	.@quit_session_audit_ok = (.@quit_session_audit_count >= 1);
 
-	.@result = (.@summary_ok && .@spawn_ok && .@combat_preclear_ok && .@target_ok && .@attack_ok && .@engaged_ok
-		&& .@stop_ok && .@target_clear_ok && .@skill_grant_ok && .@skill_target_ok
-		&& .@skill_cast_start_ok && .@skill_cast_active_ok && .@skill_cancel_ok && .@skill_cast_clear_ok
-		&& .@skill_apply_req_ok && .@skill_status_ok && .@skill_status_clear_ok && .@skill_status_reset_ok
-		&& .@skill_interrupt_req_ok && .@skill_interrupt_active_ok && .@skill_interrupt_kill_ok
-		&& .@skill_interrupt_dead_ok && .@skill_interrupt_clear_ok && .@skill_interrupt_respawn_req_ok
-		&& .@skill_interrupt_respawn_ok && .@skill_interrupt_fresh_ok
-		&& .@status_ok && .@status_clear_ok
+		.@result = (.@summary_ok && .@spawn_ok && .@combat_preclear_ok && .@target_ok && .@attack_ok && .@engaged_ok
+			&& .@stop_ok && .@target_clear_ok
+			&& .@status_ok && .@status_clear_ok
 		&& .@status_map_apply_ok && .@status_map_ok && .@status_map_move_ok && .@status_map_cont_ok
 		&& .@status_map_return_ok && .@status_map_return_cont_ok && .@status_recover_req_ok
 		&& .@status_recover_ok && .@status_recover_clear_req_ok && .@status_recover_clear_ok

@@ -2587,3 +2587,32 @@ Current limit:
 - buyingstore purchase flows are still deferred
 - the next real market-session gap after this is buyer-side buyingstore browse
   and trade semantics
+
+Integrated foundation harness status is repaired on the current baseline:
+
+- the sequenced coordinator now completes through:
+  - `state`
+  - `guild`
+  - `item`
+  - `merchant`
+  - `participation`
+  - `combat`
+  - `done`
+- the current required aggregate gate is green again under:
+  - `bash tools/ci/playerbot-foundation-smoke.sh run`
+- state and guild no longer depend on the stale heavy pool reload path during
+  the aggregate run
+- merchant no longer depends on hidden-event dispatch to reach its selftest body
+- aggregate merchant execution is single-owner now; the smoke arming path no
+  longer double-triggers merchant autorun outside the coordinator
+- seller-side buyingstore state is now part of the same shared session cleanup
+  lane as the other transient mechanic/session states
+
+Current limit:
+
+- the aggregate gate still tolerates diagnostic-only zeros in the richer
+  skill-cast branches of the combat selftest
+- that skill-cast depth remains deferred to the later combat/event expansion
+  rather than this harness-repair part
+- older merchant bootstrap noise still exists in logs even though the required
+  merchant selftest result is green

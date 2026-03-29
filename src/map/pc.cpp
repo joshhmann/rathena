@@ -10149,6 +10149,8 @@ static void pc_playerbot_force_clear_session(map_session_data* sd)
 	else
 		searchstore_clearremote(*sd);
 	sd->vended_id = 0;
+	if (sd->state.buyingstore)
+		buyingstore_close(sd);
 	if (sd->skillitem != 0)
 		sd->skillitem = sd->skillitemlv = 0;
 	if (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0)

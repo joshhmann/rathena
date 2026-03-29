@@ -238,7 +238,6 @@ S_Run:
 	}
 
 	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
-	callfunc "F_PB_DB_LoadAllPools";
 	.char_id = $@pbbot_char_id;
 	if (.char_id < 1) {
 		.log$ = "summary-missing-char";

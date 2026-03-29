@@ -586,17 +586,20 @@ static bool playerbot_session_mode_set(map_session_data* sd, const char* mode, b
 		return false;
 
 	if (strcmp(mode, "all") == 0) {
-		if (!enable) {
-			if (sd->progressbar.npc_id)
-				clif_progressbar_abort(sd);
-			sd->progressbar.npc_id = 0;
-			sd->progressbar.timeout = 0;
-			if (sd->searchstore.open)
-				searchstore_close(*sd);
-			else
-				searchstore_clearremote(*sd);
-			if (sd->skillitem != 0)
-				sd->skillitem = sd->skillitemlv = 0;
+			if (!enable) {
+				if (sd->progressbar.npc_id)
+					clif_progressbar_abort(sd);
+				sd->progressbar.npc_id = 0;
+				sd->progressbar.timeout = 0;
+				if (sd->searchstore.open)
+					searchstore_close(*sd);
+				else
+					searchstore_clearremote(*sd);
+				sd->vended_id = 0;
+				if (sd->state.buyingstore)
+					buyingstore_close(sd);
+				if (sd->skillitem != 0)
+					sd->skillitem = sd->skillitemlv = 0;
 			if (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0)
 				clif_menuskill_clear(sd);
 			sd->state.mail_writing = false;

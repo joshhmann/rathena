@@ -77,13 +77,12 @@ OnStageItem:
 
 OnStageMerchant:
 	debugmes "playerbot_foundation_selftest: stage=merchant";
-	setd("$PBMST_MANUAL_AID", .aid);
 	if (!attachrid(.aid)) {
 		.running = 0;
 		end;
 	}
-	addtimer 1, "PlayerbotMerchantSelftest::OnManualStart";
 	addtimer 18000, strnpcinfo(3) + "::OnStageParticipation";
+	callfunc "F_PB_MerchantSelftest_Run";
 	detachrid;
 	end;
 
