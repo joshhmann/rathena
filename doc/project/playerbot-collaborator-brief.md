@@ -25,6 +25,8 @@ It is not a substitute for the main foundation docs.
 Before starting any side-lane branch, read:
 
 - `AGENTS.md`
+- `doc/project/playerbot-contributor-workflow.md`
+- `doc/project/playerbot-merge-guardrails.md`
 - `doc/project/playerbot-foundation-program.md`
 - `doc/project/playerbot-foundation-priorities.md`
 - `doc/project/headless-pc-v1-slice-log.md`
@@ -163,6 +165,11 @@ Before a side-lane branch is called merge-ready, check:
 - Is slice-log content rebased cleanly?
 
 If any of those fail, the branch is not merge-ready.
+
+Additional rule:
+
+- external contributor branches are not self-merging branches
+- they must be reviewed against current `master` before acceptance
 
 ## How To Ask For Work
 

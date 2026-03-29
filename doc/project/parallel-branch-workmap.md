@@ -14,6 +14,8 @@ Also read:
 
 - `doc/project/playerbot-collaborator-brief.md`
 - `doc/project/playerbot-foundation-handoff.md`
+- `doc/project/playerbot-contributor-workflow.md`
+- `doc/project/playerbot-merge-guardrails.md`
 
 ## Current Rule
 
@@ -65,6 +67,7 @@ Main-thread responsibilities when sub-agents are active:
 - review pass/fail on returned work
 - reject scope drift
 - keep merge order coherent
+- perform the final merge/cherry-pick decision on accepted work
 
 ## Branch Index
 

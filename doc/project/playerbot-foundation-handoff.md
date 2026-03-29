@@ -20,6 +20,8 @@ branch is explicitly assigned.
 Before starting any branch:
 
 - `AGENTS.md`
+- `doc/project/playerbot-contributor-workflow.md`
+- `doc/project/playerbot-merge-guardrails.md`
 - `doc/project/playerbot-foundation-program.md`
 - `doc/project/playerbot-foundation-priorities.md`
 - `doc/project/playerbot-collaborator-brief.md`
@@ -205,6 +207,7 @@ Validation:
 - `bash tools/ci/playerbot-scenario.sh show <scenario>`
 - `bash tools/ci/playerbot-scenario.sh run <scenario>` for at least one new
   scenario
+- `git diff --check`
 
 ### Gemini
 
@@ -243,6 +246,7 @@ Validation:
 - docs must match current implementation
 - no invented runtime capabilities
 - clean rebase onto current `master`
+- `git diff --check`
 
 ## Validation Rules
 
@@ -282,6 +286,7 @@ A branch is not merge-ready unless:
 - labels and docs match what the code or queries actually do
 - validation commands are included and pass
 - it does not overwrite newer slice-log content
+- it is reviewed by the primary runtime owner before any merge or cherry-pick
 
 ## Current Best Next Moves
 

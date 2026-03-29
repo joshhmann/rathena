@@ -13,6 +13,9 @@ Use the repo-local project docs as the authority for scope, architecture, and va
 - `doc/project/playerbot-foundation-priorities.md`
 - `doc/project/playerbot-foundation-program.md`
 - `doc/project/playerbot-foundation-handoff.md`
+- `doc/project/playerbot-contributor-workflow.md`
+- `doc/project/playerbot-merge-guardrails.md`
+- `doc/project/playerbot-review-checklist.md`
 - `doc/project/playerbot-collaborator-brief.md`
 - `doc/project/parallel-branch-workmap.md`
 - `doc/project/parallel-branches/*.md`
