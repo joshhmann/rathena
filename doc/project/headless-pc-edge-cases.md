@@ -2410,3 +2410,33 @@ Current limit:
 - this is a playerbot-specific quit/park cleanup layer, not a generalized
   session-transition policy for all actors
 - broader event-instance cleanup and cross-map claim transfer remain deferred
+
+Skillcast interrupt cleanup now covered:
+
+- playerbots now expose first-class targeted skill participation through:
+  - `playerbot_skillgrant`
+  - `playerbot_skilluse`
+  - `playerbot_skillcastactive`
+  - `playerbot_skillcastcancel`
+  - `playerbot_gid`
+- combat-state summaries now include:
+  - `casting`
+  - `skill`
+- death/respawn/map-change/quit transitions now interrupt active casts through
+  the same recovery/audit layer as the existing participation cleanup
+- the combat selftest now proves:
+  - targeted skill start
+  - cast-active visibility
+  - explicit cast cancel
+  - death/respawn skill continuity
+  - skillcast audit/trace coverage in the integrated foundation smoke
+
+Current limit:
+
+- the deterministic proof currently relies on targeted `unit_skilluse_id2`
+  participation only
+- the selftest still records non-gating diagnostic fields for warp/quit
+  cast-activity snapshots, but the authoritative acceptance gate is the emitted
+  skillcast audit/trace coverage
+- ground-target skills, persistent skill units, and richer combat-event
+  ownership policy remain deferred

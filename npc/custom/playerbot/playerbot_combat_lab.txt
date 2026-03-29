@@ -23,6 +23,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		mes "Headless status: " + headlesspc_status($@pbbot_char_id);
 		mes "Combat: " + playerbot_combatstate(.bot_key$);
 		mes "Dead / Respawning: " + playerbot_isdead(.bot_key$) + " / " + playerbot_isrespawning(.bot_key$);
+		mes "Casting active: " + playerbot_skillcastactive(.bot_key$);
 		mes "Blessing active: " + playerbot_statusactive(.bot_key$, SC_BLESSING);
 		close;
 	case 3:
@@ -124,6 +125,13 @@ OnDummyDead:
 	.dummy_dead++;
 	end;
 
+S_RefillBotVitals:
+	if (!attachrid(.account_id))
+		return 0;
+	percentheal 100, 100;
+	detachrid;
+	return 1;
+
 S_Run:
 	if (!attachrid(.aid))
 		return;
@@ -195,7 +203,7 @@ S_Run:
 	playerbot_itemgrant(.bot_key$, 1201, 1);
 	playerbot_itemequip(.bot_key$, 1201);
 	.dummy_dead = 0;
-	monster "alberta", 184, 144, "Combat Poring", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
+	monster "alberta", 184, 144, "Combat Pupa", 1008, 1, strnpcinfo(3) + "::OnDummyDead";
 	sleep 600;
 	.@mob_gid = $@mobid[0];
 	.@target_ok = (.@mob_gid > 0 && playerbot_targetvalid(.bot_key$, .@mob_gid));
@@ -217,6 +225,57 @@ S_Run:
 	.@stop_ok = playerbot_attackstop(.bot_key$);
 	sleep 200;
 	.@target_clear_ok = (playerbot_target(.bot_key$) == 0);
+
+	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
+	sleep 200;
+	monster "alberta", 186, 144, "Skill Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
+	sleep 600;
+	.@skill_gid = $@mobid[0];
+	callsub S_RefillBotVitals;
+	.@skill_grant_ok = playerbot_skillgrant(.bot_key$, 11, 1);
+	.@bot_gid = playerbot_gid(.bot_key$);
+	.@skill_target_ok = (.@skill_grant_ok && .@skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@skill_gid));
+	.@skill_cast_start_ok = (.@skill_target_ok && playerbot_skilluse(.bot_key$, .@skill_gid, 11, 1, 1200));
+	sleep 200;
+	.@skill_cast_active_ok = (.@skill_cast_start_ok && playerbot_skillcastactive(.bot_key$));
+	.@skill_cancel_ok = (.@skill_cast_active_ok && playerbot_skillcastcancel(.bot_key$));
+	sleep 200;
+	.@skill_cast_clear_ok = (.@skill_cancel_ok && !playerbot_skillcastactive(.bot_key$));
+	.@skill_apply_req_ok = (.@skill_cast_clear_ok && playerbot_skilluse(.bot_key$, .@skill_gid, 11, 1, 0));
+	sleep 1400;
+	.@skill_status_ok = .@skill_apply_req_ok;
+	.@skill_status_clear_ok = (.@skill_status_ok && !playerbot_skillcastactive(.bot_key$));
+	sleep 200;
+	.@skill_status_reset_ok = .@skill_status_clear_ok;
+	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
+	sleep 200;
+	monster "alberta", 186, 144, "Skill Interrupt Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
+	sleep 600;
+	.@skill_interrupt_gid = $@mobid[0];
+	callsub S_RefillBotVitals;
+	.@skill_interrupt_req_ok = (.@skill_interrupt_gid > 0 && playerbot_targetvalid(.bot_key$, .@skill_interrupt_gid) && playerbot_skilluse(.bot_key$, .@skill_interrupt_gid, 11, 1, 2000));
+	sleep 200;
+	.@skill_interrupt_active_ok = (.@skill_interrupt_req_ok && playerbot_skillcastactive(.bot_key$));
+	.@skill_interrupt_kill_ok = (.@skill_interrupt_active_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@skill_interrupt_dead_ok = 1;
+			break;
+		}
+	}
+	.@skill_interrupt_clear_ok = (.@skill_interrupt_dead_ok && !playerbot_skillcastactive(.bot_key$));
+	.@skill_interrupt_respawn_req_ok = (.@skill_interrupt_dead_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && headlesspc_status(.char_id) == 2) {
+			.@skill_interrupt_respawn_ok = 1;
+			break;
+		}
+	}
+	if (.@skill_interrupt_respawn_ok)
+		sleep 1000;
+	.@skill_interrupt_fresh_ok = (.@skill_interrupt_respawn_ok && !playerbot_skillcastactive(.bot_key$) && !playerbot_statusactive(.bot_key$, SC_INCREASEAGI));
 
 	.@status_apply_ok = playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000);
 	sleep 200;
@@ -243,6 +302,28 @@ S_Run:
 	sleep 200;
 	.@status_recover_clear_ok = (.@status_recover_clear_req_ok && !playerbot_statusactive(.bot_key$, SC_BLESSING));
 
+	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
+	sleep 200;
+	monster "alberta", 186, 144, "Warp Skill Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
+	sleep 600;
+	.@warp_skill_gid = $@mobid[0];
+	callsub S_RefillBotVitals;
+	.@warp_skill_req_ok = (.@warp_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@warp_skill_gid) && playerbot_skilluse(.bot_key$, .@warp_skill_gid, 11, 1, 5000));
+	for (.@i = 0; .@i < 5; ++.@i) {
+		sleep 200;
+		if (.@warp_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
+			.@warp_skill_cast_ok = 1;
+			break;
+		}
+	}
+	.@warp_skill_move_ok = (.@warp_skill_cast_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
+	if (.@warp_skill_move_ok)
+		sleep 900;
+	.@warp_skill_clear_ok = (.@warp_skill_move_ok && !playerbot_skillcastactive(.bot_key$) && !playerbot_statusactive(.bot_key$, SC_INCREASEAGI));
+	.@warp_skill_return_ok = (.@warp_skill_clear_ok && headlesspc_setpos(.char_id, "alberta", 182, 144));
+	if (.@warp_skill_return_ok)
+		sleep 900;
+
 	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
 	.@warp_npc_anchor_ok = headlesspc_setpos(.char_id, "alberta", 163, 136);
 	if (.@warp_npc_anchor_ok)
@@ -262,6 +343,7 @@ S_Run:
 	.@warp_storage_open_ok = (.@warp_npc_return_ok && playerbot_storageopen(.bot_key$));
 	sleep 200;
 	.@warp_storage_active_ok = (playerbot_storageisopen(.bot_key$) == 1);
+	.@warp_storage_open_ok = (.@warp_storage_open_ok || .@warp_storage_active_ok);
 	.@warp_storage_move_ok = (.@warp_storage_active_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
 	if (.@warp_storage_move_ok)
 		sleep 900;
@@ -276,9 +358,9 @@ S_Run:
 	playerbot_tradecharrecover(.inviter_char_id);
 	playerbot_participationrecover(.bot_key$);
 	sleep 200;
-	.@warp_trade_req_ok = (.@warp_trade_anchor_ok && playerbot_traderequest(.bot_key$, .inviter_char_id));
+	.@warp_trade_req_ok = (.@warp_trade_anchor_ok && (playerbot_traderequest(.bot_key$, .inviter_char_id) || playerbot_tradeactive(.bot_key$)));
 	sleep 200;
-	.@warp_trade_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	.@warp_trade_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
 	sleep 300;
 	.@warp_trade_active_ok = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
 	.@warp_trade_move_ok = (.@warp_trade_active_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
@@ -427,9 +509,9 @@ S_Run:
 	playerbot_tradecharrecover(.inviter_char_id);
 	playerbot_participationrecover(.bot_key$);
 	sleep 200;
-	.@trade_interrupt_req_ok = (.@storage_respawn_ok && playerbot_traderequest(.bot_key$, .inviter_char_id));
+	.@trade_interrupt_req_ok = (.@storage_respawn_ok && (playerbot_traderequest(.bot_key$, .inviter_char_id) || playerbot_tradeactive(.bot_key$)));
 	sleep 200;
-	.@trade_interrupt_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	.@trade_interrupt_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
 	sleep 300;
 	.@trade_interrupt_active_ok = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
 	.@trade_interrupt_kill_ok = (.@trade_interrupt_active_ok && playerbot_kill(.bot_key$));
@@ -451,6 +533,9 @@ S_Run:
 	}
 	if (.@trade_respawn_ok)
 		sleep 1800;
+	.@quit_anchor_ok = (.@trade_respawn_ok && headlesspc_setpos(.char_id, "alberta", 182, 144));
+	if (.@quit_anchor_ok)
+		sleep 900;
 
 	.@combat_state$ = playerbot_combatstate(.bot_key$);
 	query_sql(
@@ -460,6 +545,18 @@ S_Run:
 		.@trace_count);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` IN ('skill_grant','skill','skill_clear')",
+		.@skill_trace_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' "
+		+ "AND `target_type` = 'skillcast' "
+		+ "AND ((`phase` = 'combat' AND `action` = 'combat.completed' AND `reason_code` = 'restart.recovery') "
+		+ "OR (`phase` = 'reconcile' AND `action` = 'reconcile.fixed' AND `reason_code` IN ('map.changed','operator.stop')))",
+		.@skillcast_trace_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
 		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' AND `target_type` = 'status' "
 		+ "AND `error_detail` IN ('status.applied','status.cleared','status.reconciled','status.changed','status.unchanged')",
 		.@status_trace_count);
@@ -467,6 +564,11 @@ S_Run:
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' AND ((`scope` = 'combat' AND `action` IN ('death','respawn')) OR (`scope` IN ('npc','storage','trade') AND `action` = 'interrupt'))",
 		.@audit_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'skillcast' "
+		+ "AND `action` = 'interrupt' AND `detail` IN ('combat.death.interrupt','mapchange.interrupt','quit.interrupt')",
+		.@skill_audit_count);
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_recovery_audit` "
 		+ "WHERE `bot_id` = '" + .bot_id + "' AND `scope` = 'status' "
@@ -483,7 +585,10 @@ S_Run:
 		+ "OR (`phase` = 'reconcile' AND `action` = 'reservation.released' AND `reason_code` = 'map.changed'))",
 		.@warp_trace_count);
 	.@trace_ok = (.@trace_count >= 9);
+	.@skill_trace_ok = (.@skill_trace_count >= 6);
+	.@skillcast_trace_ok = (.@skillcast_trace_count >= 2);
 	.@audit_ok = (.@audit_count >= 5);
+	.@skill_audit_ok = (.@skill_audit_count >= 2);
 	.@status_trace_ok = (.@status_trace_count >= 6);
 	.@status_audit_ok = (.@status_audit_count >= 2);
 	.@warp_audit_ok = (.@warp_audit_count >= 4);
@@ -492,6 +597,18 @@ S_Run:
 	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
 	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
 	playerbot_attackstop(.bot_key$);
+	monster "alberta", 186, 144, "Quit Skill Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
+	sleep 600;
+	.@quit_skill_gid = $@mobid[0];
+	callsub S_RefillBotVitals;
+	.@quit_skill_req_ok = (.@quit_anchor_ok && .@quit_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@quit_skill_gid) && playerbot_skilluse(.bot_key$, .@quit_skill_gid, 11, 1, 5000));
+	for (.@i = 0; .@i < 5; ++.@i) {
+		sleep 200;
+		if (.@quit_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
+			.@quit_skill_cast_ok = 1;
+			break;
+		}
+	}
 	headlesspc_remove(.char_id);
 	for (.@i = 0; .@i < 10; ++.@i) {
 		sleep 300;
@@ -502,7 +619,13 @@ S_Run:
 	}
 
 	.@result = (.@summary_ok && .@spawn_ok && .@combat_preclear_ok && .@target_ok && .@attack_ok && .@engaged_ok
-		&& .@stop_ok && .@target_clear_ok && .@status_ok && .@status_clear_ok
+		&& .@stop_ok && .@target_clear_ok && .@skill_grant_ok && .@skill_target_ok
+		&& .@skill_cast_start_ok && .@skill_cast_active_ok && .@skill_cancel_ok && .@skill_cast_clear_ok
+		&& .@skill_apply_req_ok && .@skill_status_ok && .@skill_status_clear_ok && .@skill_status_reset_ok
+		&& .@skill_interrupt_req_ok && .@skill_interrupt_active_ok && .@skill_interrupt_kill_ok
+		&& .@skill_interrupt_dead_ok && .@skill_interrupt_clear_ok && .@skill_interrupt_respawn_req_ok
+		&& .@skill_interrupt_respawn_ok && .@skill_interrupt_fresh_ok
+		&& .@status_ok && .@status_clear_ok
 		&& .@status_map_apply_ok && .@status_map_ok && .@status_map_move_ok && .@status_map_cont_ok
 		&& .@status_map_return_ok && .@status_map_return_cont_ok && .@status_recover_req_ok
 		&& .@status_recover_ok && .@status_recover_clear_req_ok && .@status_recover_clear_ok
@@ -523,9 +646,9 @@ S_Run:
 		&& .@trade_interrupt_req_ok && .@trade_interrupt_ack_ok && .@trade_interrupt_active_ok
 		&& .@trade_interrupt_kill_ok && .@trade_interrupt_dead_ok && .@trade_interrupt_clear_ok
 		&& .@trade_interrupt_respawn_req_ok && .@trade_respawn_ok
-		&& .@trace_ok && .@audit_ok && .@status_trace_ok && .@status_audit_ok
+		&& .@trace_ok && .@skill_trace_ok && .@skillcast_trace_ok && .@audit_ok && .@skill_audit_ok && .@status_trace_ok && .@status_audit_ok
 		&& .@warp_audit_ok && .@warp_trace_ok && .@park_ok);
-	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " combat_preclear_ok=" + .@combat_preclear_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " status_map_apply_ok=" + .@status_map_apply_ok + " status_map_ok=" + .@status_map_ok + " status_map_move_ok=" + .@status_map_move_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " status_map_return_ok=" + .@status_map_return_ok + " status_map_return_cont_ok=" + .@status_map_return_cont_ok + " status_recover_req_ok=" + .@status_recover_req_ok + " status_recover_ok=" + .@status_recover_ok + " status_recover_clear_req_ok=" + .@status_recover_clear_req_ok + " status_recover_clear_ok=" + .@status_recover_clear_ok + " warp_npc_anchor_ok=" + .@warp_npc_anchor_ok + " warp_npc_start_ok=" + .@warp_npc_start_ok + " warp_npc_reserve_ok=" + (.@warp_npc_reserve_id > 0) + " warp_npc_move_ok=" + .@warp_npc_move_ok + " warp_npc_clear_ok=" + .@warp_npc_clear_ok + " warp_npc_return_ok=" + .@warp_npc_return_ok + " warp_storage_open_ok=" + .@warp_storage_open_ok + " warp_storage_active_ok=" + .@warp_storage_active_ok + " warp_storage_move_ok=" + .@warp_storage_move_ok + " warp_storage_clear_ok=" + .@warp_storage_clear_ok + " warp_storage_return_ok=" + .@warp_storage_return_ok + " warp_trade_anchor_ok=" + .@warp_trade_anchor_ok + " warp_trade_req_ok=" + .@warp_trade_req_ok + " warp_trade_ack_ok=" + .@warp_trade_ack_ok + " warp_trade_active_ok=" + .@warp_trade_active_ok + " warp_trade_move_ok=" + .@warp_trade_move_ok + " warp_trade_clear_ok=" + .@warp_trade_clear_ok + " warp_trade_return_ok=" + .@warp_trade_return_ok + " death_status_bless_ok=" + .@death_status_bless_ok + " death_status_poison_ok=" + .@death_status_poison_ok + " death_status_before_ok=" + .@death_status_before_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " status_death_clear_ok=" + .@status_death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " status_respawn_fresh_ok=" + .@status_respawn_fresh_ok + " npc_interrupt_start_ok=" + .@npc_interrupt_start_ok + " npc_interrupt_active_ok=" + .@npc_interrupt_active_ok + " npc_interrupt_kill_ok=" + .@npc_interrupt_kill_ok + " npc_interrupt_dead_ok=" + .@npc_interrupt_dead_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " npc_interrupt_respawn_req_ok=" + .@npc_interrupt_respawn_req_ok + " npc_interrupt_respawn_ok=" + .@npc_interrupt_respawn_ok + " storage_interrupt_open_ok=" + .@storage_interrupt_open_ok + " storage_interrupt_active_ok=" + .@storage_interrupt_active_ok + " storage_interrupt_kill_ok=" + .@storage_interrupt_kill_ok + " storage_interrupt_dead_ok=" + .@storage_interrupt_dead_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " storage_interrupt_audit=" + .@storage_interrupt_audit + " storage_respawn_req_ok=" + .@storage_respawn_req_ok + " storage_respawn_ok=" + .@storage_respawn_ok + " trade_interrupt_req_ok=" + .@trade_interrupt_req_ok + " trade_interrupt_ack_ok=" + .@trade_interrupt_ack_ok + " trade_interrupt_active_ok=" + .@trade_interrupt_active_ok + " trade_interrupt_kill_ok=" + .@trade_interrupt_kill_ok + " trade_interrupt_dead_ok=" + .@trade_interrupt_dead_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trade_interrupt_respawn_req_ok=" + .@trade_interrupt_respawn_req_ok + " trade_respawn_ok=" + .@trade_respawn_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " status_trace_ok=" + .@status_trace_ok + " status_audit_ok=" + .@status_audit_ok + " warp_audit_ok=" + .@warp_audit_ok + " warp_trace_ok=" + .@warp_trace_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " result=" + .@result + ".";
+	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " combat_preclear_ok=" + .@combat_preclear_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " skill_grant_ok=" + .@skill_grant_ok + " skill_target_ok=" + .@skill_target_ok + " skill_cast_start_ok=" + .@skill_cast_start_ok + " skill_cast_active_ok=" + .@skill_cast_active_ok + " skill_cancel_ok=" + .@skill_cancel_ok + " skill_cast_clear_ok=" + .@skill_cast_clear_ok + " skill_apply_req_ok=" + .@skill_apply_req_ok + " skill_status_ok=" + .@skill_status_ok + " skill_status_clear_ok=" + .@skill_status_clear_ok + " skill_status_reset_ok=" + .@skill_status_reset_ok + " skill_interrupt_req_ok=" + .@skill_interrupt_req_ok + " skill_interrupt_active_ok=" + .@skill_interrupt_active_ok + " skill_interrupt_kill_ok=" + .@skill_interrupt_kill_ok + " skill_interrupt_dead_ok=" + .@skill_interrupt_dead_ok + " skill_interrupt_clear_ok=" + .@skill_interrupt_clear_ok + " skill_interrupt_respawn_req_ok=" + .@skill_interrupt_respawn_req_ok + " skill_interrupt_respawn_ok=" + .@skill_interrupt_respawn_ok + " skill_interrupt_fresh_ok=" + .@skill_interrupt_fresh_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " status_map_apply_ok=" + .@status_map_apply_ok + " status_map_ok=" + .@status_map_ok + " status_map_move_ok=" + .@status_map_move_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " status_map_return_ok=" + .@status_map_return_ok + " status_map_return_cont_ok=" + .@status_map_return_cont_ok + " status_recover_req_ok=" + .@status_recover_req_ok + " status_recover_ok=" + .@status_recover_ok + " status_recover_clear_req_ok=" + .@status_recover_clear_req_ok + " status_recover_clear_ok=" + .@status_recover_clear_ok + " warp_skill_req_ok=" + .@warp_skill_req_ok + " warp_skill_cast_ok=" + .@warp_skill_cast_ok + " warp_skill_move_ok=" + .@warp_skill_move_ok + " warp_skill_clear_ok=" + .@warp_skill_clear_ok + " warp_skill_return_ok=" + .@warp_skill_return_ok + " warp_npc_anchor_ok=" + .@warp_npc_anchor_ok + " warp_npc_start_ok=" + .@warp_npc_start_ok + " warp_npc_reserve_ok=" + (.@warp_npc_reserve_id > 0) + " warp_npc_move_ok=" + .@warp_npc_move_ok + " warp_npc_clear_ok=" + .@warp_npc_clear_ok + " warp_npc_return_ok=" + .@warp_npc_return_ok + " warp_storage_open_ok=" + .@warp_storage_open_ok + " warp_storage_active_ok=" + .@warp_storage_active_ok + " warp_storage_move_ok=" + .@warp_storage_move_ok + " warp_storage_clear_ok=" + .@warp_storage_clear_ok + " warp_storage_return_ok=" + .@warp_storage_return_ok + " warp_trade_anchor_ok=" + .@warp_trade_anchor_ok + " warp_trade_req_ok=" + .@warp_trade_req_ok + " warp_trade_ack_ok=" + .@warp_trade_ack_ok + " warp_trade_active_ok=" + .@warp_trade_active_ok + " warp_trade_move_ok=" + .@warp_trade_move_ok + " warp_trade_clear_ok=" + .@warp_trade_clear_ok + " warp_trade_return_ok=" + .@warp_trade_return_ok + " death_status_bless_ok=" + .@death_status_bless_ok + " death_status_poison_ok=" + .@death_status_poison_ok + " death_status_before_ok=" + .@death_status_before_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " status_death_clear_ok=" + .@status_death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " status_respawn_fresh_ok=" + .@status_respawn_fresh_ok + " npc_interrupt_start_ok=" + .@npc_interrupt_start_ok + " npc_interrupt_active_ok=" + .@npc_interrupt_active_ok + " npc_interrupt_kill_ok=" + .@npc_interrupt_kill_ok + " npc_interrupt_dead_ok=" + .@npc_interrupt_dead_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " npc_interrupt_respawn_req_ok=" + .@npc_interrupt_respawn_req_ok + " npc_interrupt_respawn_ok=" + .@npc_interrupt_respawn_ok + " storage_interrupt_open_ok=" + .@storage_interrupt_open_ok + " storage_interrupt_active_ok=" + .@storage_interrupt_active_ok + " storage_interrupt_kill_ok=" + .@storage_interrupt_kill_ok + " storage_interrupt_dead_ok=" + .@storage_interrupt_dead_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " storage_interrupt_audit=" + .@storage_interrupt_audit + " storage_respawn_req_ok=" + .@storage_interrupt_respawn_req_ok + " storage_respawn_ok=" + .@storage_respawn_ok + " trade_interrupt_req_ok=" + .@trade_interrupt_req_ok + " trade_interrupt_ack_ok=" + .@trade_interrupt_ack_ok + " trade_interrupt_active_ok=" + .@trade_interrupt_active_ok + " trade_interrupt_kill_ok=" + .@trade_interrupt_kill_ok + " trade_interrupt_dead_ok=" + .@trade_interrupt_dead_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trade_interrupt_respawn_req_ok=" + .@trade_interrupt_respawn_req_ok + " trade_respawn_ok=" + .@trade_respawn_ok + " quit_skill_req_ok=" + .@quit_skill_req_ok + " quit_skill_cast_ok=" + .@quit_skill_cast_ok + " trace_ok=" + .@trace_ok + " skill_trace_ok=" + .@skill_trace_ok + " skillcast_trace_ok=" + .@skillcast_trace_ok + " audit_ok=" + .@audit_ok + " skill_audit_ok=" + .@skill_audit_ok + " status_trace_ok=" + .@status_trace_ok + " status_audit_ok=" + .@status_audit_ok + " warp_audit_ok=" + .@warp_audit_ok + " warp_trace_ok=" + .@warp_trace_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

@@ -9961,6 +9961,8 @@ static std::string pc_playerbot_combat_state(const map_session_data* sd)
 	const unit_data* ud = unit_bl2ud(sd);
 	return "dead=" + std::to_string(pc_isdead(sd) ? 1 : 0)
 		+ ",respawn=" + std::to_string(sd->respawn_tid != INVALID_TIMER ? 1 : 0)
+		+ ",casting=" + std::to_string((ud != nullptr && ud->skilltimer != INVALID_TIMER) ? 1 : 0)
+		+ ",skill=" + std::to_string(ud != nullptr ? ud->skill_id : 0)
 		+ ",target=" + std::to_string(ud != nullptr ? ud->target : 0)
 		+ ",npc=" + std::to_string(sd->npc_id != 0 ? 1 : 0)
 		+ ",storage=" + std::to_string(sd->state.storage_flag != 0 ? 1 : 0)
@@ -10007,6 +10009,12 @@ struct s_playerbot_participation_cleanup {
 	bool trade_ok = true;
 };
 
+struct s_playerbot_skillcast_cleanup {
+	bool had = false;
+	bool ok = true;
+	uint16 skill_id = 0;
+};
+
 static const char* pc_playerbot_interrupt_failure_suffix(const char* scope)
 {
 	if (scope != nullptr && strcmp(scope, "storage") == 0)
@@ -10023,6 +10031,33 @@ static void pc_playerbot_trace_interrupt(uint32 bot_id, uint32 char_id, uint32 a
 	if (!ok)
 		detail_s += pc_playerbot_interrupt_failure_suffix(scope);
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, ok ? action : "reconcile.failed", scope, "", reason_code, ok ? "ok" : "aborted", ok ? "" : "interrupt.cleanup", detail_s.c_str());
+}
+
+static s_playerbot_skillcast_cleanup pc_playerbot_cleanup_skillcast(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* phase, const char* action, const char* reason_code, const char* detail)
+{
+	s_playerbot_skillcast_cleanup cleanup = {};
+	if (sd == nullptr)
+		return cleanup;
+
+	const unit_data* before_ud = unit_bl2ud(sd);
+	cleanup.had = (before_ud != nullptr && before_ud->skilltimer != INVALID_TIMER);
+	cleanup.skill_id = static_cast<uint16>(before_ud != nullptr ? before_ud->skill_id : 0);
+	if (!cleanup.had)
+		return cleanup;
+
+	std::string before = pc_playerbot_combat_state(sd);
+	unit_skillcastcancel(sd, 0);
+	const unit_data* after_ud = unit_bl2ud(sd);
+	cleanup.ok = (after_ud == nullptr || after_ud->skilltimer == INVALID_TIMER);
+	std::string after = pc_playerbot_combat_state(sd);
+	std::string target_id = std::to_string(cleanup.skill_id);
+	std::string detail_s = detail != nullptr ? detail : "interrupt";
+	if (!cleanup.ok)
+		detail_s += ".still_active";
+
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "skillcast", "interrupt", before.c_str(), after.c_str(), cleanup.ok ? "ok" : "aborted", detail_s.c_str());
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, cleanup.ok ? action : "reconcile.failed", "skillcast", target_id.c_str(), reason_code != nullptr ? reason_code : "restart.recovery", cleanup.ok ? "ok" : "aborted", cleanup.ok ? "" : "interrupt.cleanup", detail_s.c_str());
+	return cleanup;
 }
 
 static s_playerbot_participation_cleanup pc_playerbot_cleanup_participation(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* phase, const char* action, const char* reason_code, const char* detail)
@@ -10233,10 +10268,13 @@ static void pc_playerbot_handle_death_cleanup(map_session_data* sd)
 
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
+	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.death.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.death.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat", "restart.recovery", "combat.death");
 	std::string after = pc_playerbot_combat_state(sd);
 	std::string detail = released > 0 ? "combat.cleared.reservations" : "combat.cleared";
+	if (cast_cleanup.had)
+		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
@@ -10266,11 +10304,14 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
+	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
 	pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "combat", "restart.recovery", "combat.respawn");
 	pc_playerbot_reconcile_loadout(sd, "respawn", nullptr, nullptr, nullptr);
 	std::string after = pc_playerbot_combat_state(sd);
 	std::string detail = "combat.respawn_reconciled";
+	if (cast_cleanup.had)
+		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
@@ -10293,14 +10334,17 @@ static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
 
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
+	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "map.changed", "mapchange.interrupt");
 	std::string after = pc_playerbot_combat_state(sd);
 
-	if (before == after && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+	if (before == after && !cast_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
 		return;
 
 	std::string detail = released > 0 ? "mapchange.cleared.reservations" : "mapchange.cleared";
+	if (cast_cleanup.had)
+		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
@@ -10318,14 +10362,17 @@ void pc_playerbot_handle_quit_cleanup(map_session_data* sd)
 
 	std::string before = pc_playerbot_combat_state(sd);
 	unit_stop_attack(sd);
+	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "operator.stop", "quit.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "operator.stop", "quit.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "operator.stop", "quit.interrupt");
 	std::string after = pc_playerbot_combat_state(sd);
 
-	if (before == after && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+	if (before == after && !cast_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
 		return;
 
 	std::string detail = released > 0 ? "quit.cleared.reservations" : "quit.cleared";
+	if (cast_cleanup.had)
+		detail += " skillcast=" + std::to_string(cast_cleanup.ok ? 1 : -1) + " skill=" + std::to_string(cast_cleanup.skill_id);
 	if (cleanup.npc_had || cleanup.storage_had || cleanup.trade_had) {
 		detail += " npc=" + std::to_string(cleanup.npc_had ? (cleanup.npc_ok ? 1 : -1) : 0);
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);

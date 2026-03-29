@@ -373,6 +373,8 @@ static std::string playerbot_combat_state(const map_session_data* sd) {
 	const unit_data* ud = unit_bl2ud(sd);
 	return "dead=" + std::to_string(pc_isdead(sd) ? 1 : 0)
 		+ ",respawn=" + std::to_string(sd->respawn_tid != INVALID_TIMER ? 1 : 0)
+		+ ",casting=" + std::to_string((ud != nullptr && ud->skilltimer != INVALID_TIMER) ? 1 : 0)
+		+ ",skill=" + std::to_string(ud != nullptr ? ud->skill_id : 0)
 		+ ",target=" + std::to_string(ud != nullptr ? ud->target : 0)
 		+ ",npc=" + std::to_string(sd->npc_id != 0 ? 1 : 0)
 		+ ",storage=" + std::to_string(sd->state.storage_flag != 0 ? 1 : 0)
@@ -13719,6 +13721,99 @@ BUILDIN_FUNC(playerbot_attackstop)
 	bool ok = (ud == nullptr || ud->target == 0);
 	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "combat_clear", "", "restart.recovery", ok ? "ok" : "aborted", ok ? "" : "combat.stop", ok ? "" : "target.still_set");
 	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skillgrant)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 skill_id = script_getnum(st, 3);
+	int32 level = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "skill_grant", std::to_string(skill_id).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || skill_id <= 0 || level <= 0) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill_grant", std::to_string(skill_id).c_str(), "target.invalid", "denied", "combat.skillgrant", sd == nullptr ? "bot.offline" : "skill.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	pc_skill(sd, static_cast<uint16>(skill_id), level, ADDSKILL_TEMP);
+	bool ok = (pc_checkskill(sd, static_cast<uint16>(skill_id)) >= level);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_grant", std::to_string(skill_id).c_str(), ok ? "restart.recovery" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "combat.skillgrant", ok ? "" : "skill.not_granted");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skilluse)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 target_id = script_getnum(st, 3);
+	int32 skill_id = script_getnum(st, 4);
+	int32 skill_lv = script_getnum(st, 5);
+	int32 cast_ms = script_getnum(st, 6);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	block_list* target = map_id2bl(target_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "skill", std::to_string(skill_id).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || target == nullptr || skill_id <= 0 || skill_lv <= 0) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill", std::to_string(skill_id).c_str(), "target.invalid", "denied", "combat.skilluse", sd == nullptr ? "bot.offline" : (target == nullptr ? "target.invalid" : "skill.invalid"));
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (target->m != sd->m || status_isdead(*sd) || status_isdead(*target)) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill", std::to_string(skill_id).c_str(), "target.invalid", "denied", "combat.skilluse", "target.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	unit_skilluse_id2(sd, target_id, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), (cast_ms > 0 ? cast_ms : 0) + skill_castfix(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv)), 1, false);
+	const unit_data* ud = unit_bl2ud(sd);
+	bool ok = (ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id));
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill", std::to_string(skill_id).c_str(), ok ? "none" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "combat.skilluse", ok ? "" : "skill.not_started");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skillcastactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	const unit_data* ud = sd != nullptr ? unit_bl2ud(sd) : nullptr;
+	script_pushint(st, (ud != nullptr && ud->skilltimer != INVALID_TIMER) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_skillcastcancel)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.requested", "skill_clear", "", "restart.recovery", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_combat(bot_id, char_id, account_id, sd, "combat.failed", "skill_clear", "", "target.invalid", "denied", "combat.skillcancel", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 ret = unit_skillcastcancel(sd, 0);
+	const unit_data* ud = unit_bl2ud(sd);
+	bool ok = (ret > 0 && (ud == nullptr || ud->skilltimer == INVALID_TIMER));
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_clear", "", ok ? "restart.recovery" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "combat.skillcancel", ok ? "" : "cast.still_active");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_gid)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->id : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -31327,6 +31422,11 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_loadoutreconcile,"s"),
 	BUILDIN_DEF(playerbot_attack,"si"),
 	BUILDIN_DEF(playerbot_attackstop,"s"),
+	BUILDIN_DEF(playerbot_skillgrant,"sii"),
+	BUILDIN_DEF(playerbot_skilluse,"siiii"),
+	BUILDIN_DEF(playerbot_skillcastactive,"s"),
+	BUILDIN_DEF(playerbot_skillcastcancel,"s"),
+	BUILDIN_DEF(playerbot_gid,"s"),
 	BUILDIN_DEF(playerbot_target,"s"),
 	BUILDIN_DEF(playerbot_targetvalid,"si"),
 	BUILDIN_DEF(playerbot_isdead,"s"),

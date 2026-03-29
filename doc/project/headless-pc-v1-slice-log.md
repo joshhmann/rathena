@@ -5792,6 +5792,74 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Skillcast Interrupt Cleanup
+
+### Summary
+
+Extended the combat-participation foundation so active playerbot casts are now
+observable and cleanly interrupted across the existing transition paths.
+
+### Files
+
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Added bot-facing skill helpers in `script.cpp`:
+  - `playerbot_skillgrant(bot_key$, skill_id, level)`
+  - `playerbot_skilluse(bot_key$, target_id, skill_id, level, cast_ms)`
+  - `playerbot_skillcastactive(bot_key$)`
+  - `playerbot_skillcastcancel(bot_key$)`
+  - `playerbot_gid(bot_key$)`
+- extended combat-state summaries to include:
+  - `casting`
+  - `skill`
+- added shared skillcast cleanup in `pc.cpp` so death/respawn/map-change/quit
+  transitions now audit and trace interrupted casts
+- expanded the combat lab so the selftest now proves:
+  - targeted skill start
+  - cast visibility
+  - explicit cast cancel
+  - skill-use continuity through death/respawn
+  - skillcast audit/trace coverage alongside the existing combat cleanup proof
+- kept the older map-change NPC/storage/trade continuity proof independent from
+  the new skillcast branch so the foundation smoke stays deterministic
+
+### Validation
+
+- `git diff --check`
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-combat-smoke.sh arm`
+- repo-local `codex` OpenKore login
+- `bash tools/ci/playerbot-combat-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... result=1`
+- aggregate foundation smoke passes with:
+  - `stage=state`
+  - `stage=guild`
+  - `stage=item`
+  - `stage=merchant`
+  - `stage=participation`
+  - `stage=combat`
+  - `stage=done`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- ground-target/AoE skill participation
+- combat rotation/decision logic
+- support/heal behavior planning
+- skill-unit ownership cleanup for traps or persistent ground effects
+- broader event-instance policy outside the current death/respawn/map-change/quit transitions
+
 ## Slice 61: Playerbot Item Use Participation
 
 ### Summary
