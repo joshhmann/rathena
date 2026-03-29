@@ -2516,3 +2516,33 @@ Current limit:
   result selection, or purchase flows
 - buyingstore, vending-list browsing, and richer market-session continuity
   remain deferred
+
+First-class transient session helpers now covered:
+
+- playerbots no longer have to rely only on the bulk `sessionarm` path to
+  exercise transient mechanic/UI state
+- script-facing helpers now exist to open, close, and inspect individual
+  session modes for:
+  - `mail`
+  - `barter`
+  - `laphine`
+  - and the wider transient session set wired through the shared mode helper
+- the current selftest proves those mode-specific helpers participate in the
+  same continuity surface as the existing session layer:
+  - explicit open
+  - explicit close
+  - then bulk arm / denied warp / successful warp / quit cleanup
+- structured traces for those mode-specific interactions now show up under:
+  - `target_type = 'session'`
+  - `target_id IN ('mail','barter','laphine')`
+
+Current limit:
+
+- on the real repo baseline at `9804f1004`, unrelated pre-existing
+  state/combat selftest branches are still failing outside the new session
+  helper path
+- broader market/mechanic participation is still not first-class yet for:
+  - vending-list browsing
+  - buyingstore ownership/browse
+  - mail composition/business logic
+  - refine/reform/enchantgrade execution semantics

@@ -5792,6 +5792,75 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Session Helper Verbs
+
+### Summary
+
+Added first-class bot-facing session helper verbs for transient mechanic/UI state
+that was previously only reachable through the bulk `sessionarm` path.
+
+### Files
+
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+
+### What Changed
+
+- Added shared session-mode helpers in `script.cpp`:
+  - `playerbot_sessionopen(bot_key$, mode$)`
+  - `playerbot_sessionclose(bot_key$, mode$)`
+  - `playerbot_sessionactive(bot_key$, mode$)`
+- Supported fixed modes:
+  - `progress`
+  - `menuskill`
+  - `skillitem`
+  - `searchstore`
+  - `mail`
+  - `roulette`
+  - `enchantgrade`
+  - `reform`
+  - `refine`
+  - `stylist`
+  - `expand`
+  - `barter`
+  - `laphine`
+  - `bank`
+  - `all`
+- Refactored `playerbot_sessionarm(...)` to use the same shared mode setter, so
+  the single-mode verbs and the bulk-arm path now manipulate the same state
+  surface.
+- Extended the combat/session continuity selftest to prove first-class open and
+  close coverage for:
+  - `mail`
+  - `barter`
+  - `laphine`
+- Added trace coverage expectations for those new session interactions via
+  `target_type = 'session'`.
+
+### Validation
+
+- `git diff --check`
+- `cmake --build build --target map-server -j4`
+- Latest integrated combat/session selftest line shows:
+  - `session_mail_open_ok=1`
+  - `session_barter_open_ok=1`
+  - `session_laphine_open_ok=1`
+  - `session_mail_close_ok=1`
+  - `session_barter_close_ok=1`
+  - `session_laphine_close_ok=1`
+  - `session_arm_ok=1`
+  - `session_io_trace_ok=1`
+- Live trace query confirms session interaction rows for those modes are being
+  emitted.
+
+### Current Limit
+
+- The real repository baseline at `9804f1004` still has unrelated failing
+  state/combat selftest branches outside this session-helper slice.
+- This slice does not yet make the broader mechanic modes full business-logic
+  participants; it only makes their transient session ownership first-class and
+  script-callable.
+
 ## Slice 61: Playerbot Bank And Searchstore Session Continuity
 
 ### Summary
