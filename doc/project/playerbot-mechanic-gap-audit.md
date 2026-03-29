@@ -21,6 +21,8 @@ The current baseline already has:
 - trace and recovery-audit surfaces for combat, status, reservation, and
   participation cleanup
 - repo-local smoke coverage for the integrated baseline
+- scenario coverage for the core status continuity matrix, including
+  `status-recovery-integrity`
 
 ## Remaining Foundational Gaps
 
@@ -53,7 +55,7 @@ The next unresolved mechanic-participation gaps are:
 
 5. **Scenario coverage for mechanic cleanup**
    - the current scenario runner covers the first legal combat/status/loadout
-     cases
+     cases plus `status-recovery-integrity`
    - the unresolved gap is a dedicated mechanic-cleanup scenario matrix for:
      - death during dialog
      - death during trade
