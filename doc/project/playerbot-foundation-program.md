@@ -137,6 +137,7 @@ Primary lane:
 
 - define the first combat-capable playerbot participation boundary
 - add bot-facing combat intent and combat-state reads
+- add status continuity contract and cleanup rules
 - make death / respawn clear stale combat and participation claims
 - add trace and recovery audit coverage for combat lifecycle transitions
 

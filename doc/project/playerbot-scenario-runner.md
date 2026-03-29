@@ -42,6 +42,9 @@ The initial frontier catalog contains:
 
 - `combat-baseline`
 - `status-continuity`
+- `status-death-cleanup`
+- `status-map-continuity`
+- `status-respawn-reconcile`
 - `death-respawn`
 - `item-loadout-continuity`
 - `mechanic-cleanup`
@@ -59,6 +62,9 @@ These split into two groups:
 - runbook-backed today:
   - `combat-baseline`
   - `status-continuity`
+  - `status-death-cleanup`
+  - `status-map-continuity`
+  - `status-respawn-reconcile`
   - `death-respawn`
   - `item-loadout-continuity`
 - skeleton-only for the next frontier:

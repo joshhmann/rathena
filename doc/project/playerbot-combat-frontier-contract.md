@@ -127,7 +127,7 @@ remaining first-class player mechanics.
 | Mechanic | Current repo truth | Next frontier requirement | Primary authority |
 | --- | --- | --- | --- |
 | Combat target / attack intent | Not yet surfaced through bot-facing verbs | add explicit attack start/stop and target-validity reads | live actor state |
-| Status / buffs / ailments | Engine support exists, but there is no bot-facing continuity contract yet | add status continuity reads and cleanup rules around death/respawn | live actor state |
+| Status / buffs / ailments | Engine support exists; contract defined in `playerbot-status-continuity-contract.md` | add status continuity reads and cleanup rules around death/respawn | live actor state |
 | Death / KO | Engine support exists; recovery hooks already exist for runtime presence | clear combat and participation state on death | live actor state + recovery audit |
 | Respawn / revive | Runtime restore exists for headless presence, but not a combat-frontier contract | reconcile stale combat context after respawn/revive | live actor state + runtime state |
 | NPC / dialog / menu | Participation hooks and recovery handling already exist | keep dialog claims from surviving death/warp | reservation/session authority |
