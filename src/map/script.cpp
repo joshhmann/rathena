@@ -594,6 +594,48 @@ static std::string playerbot_buyinglist_state(const map_session_data* sd) {
 		+ ",results=" + std::to_string(sd->searchstore.items.size());
 }
 
+static bool playerbot_buyinglist_refresh(map_session_data* viewer_sd, map_session_data* buyer_sd, bool reopen) {
+	if (viewer_sd == nullptr || buyer_sd == nullptr || !buyer_sd->state.buyingstore || buyer_sd->buyer_id == 0 || buyer_sd->buyingstore.slots == 0)
+		return false;
+
+	if (reopen) {
+		if (viewer_sd->searchstore.open)
+			searchstore_close(*viewer_sd);
+		if (!searchstore_open(*viewer_sd, 1, SEARCHSTORE_EFFECT_REMOTE, viewer_sd->m))
+			return false;
+	}
+
+	viewer_sd->searchstore.type = SEARCHTYPE_BUYING_STORE;
+	viewer_sd->searchstore.remote_id = buyer_sd->status.account_id;
+	viewer_sd->searchstore.pages = 0;
+	viewer_sd->searchstore.items.clear();
+
+	for (uint32 i = 0; i < buyer_sd->buyingstore.slots && i < MAX_BUYINGSTORE_SLOTS; ++i) {
+		if (buyer_sd->buyingstore.items[i].nameid == 0 || buyer_sd->buyingstore.items[i].amount == 0)
+			continue;
+
+		auto ssitem = std::make_shared<s_search_store_info_item>();
+		safestrncpy(ssitem->store_name, buyer_sd->status.name, sizeof(ssitem->store_name));
+		ssitem->store_id = buyer_sd->buyer_id;
+		ssitem->account_id = buyer_sd->status.account_id;
+		ssitem->nameid = buyer_sd->buyingstore.items[i].nameid;
+		ssitem->amount = buyer_sd->buyingstore.items[i].amount;
+		ssitem->price = buyer_sd->buyingstore.items[i].price;
+		memset(ssitem->card, 0, sizeof(ssitem->card));
+		ssitem->refine = 0;
+		ssitem->enchantgrade = 0;
+		viewer_sd->searchstore.items.push_back(ssitem);
+	}
+
+	if (reopen)
+		buyingstore_open(viewer_sd, buyer_sd->status.account_id);
+
+	return viewer_sd->searchstore.open
+		&& viewer_sd->searchstore.type == SEARCHTYPE_BUYING_STORE
+		&& viewer_sd->searchstore.remote_id == static_cast<int32>(buyer_sd->status.account_id)
+		&& !viewer_sd->searchstore.items.empty();
+}
+
 static int32 playerbot_find_cart_index(const map_session_data* sd, t_itemid nameid, int16 min_amount) {
 	if (sd == nullptr || nameid == 0 || min_amount <= 0)
 		return -1;
@@ -607,6 +649,34 @@ static int32 playerbot_find_cart_index(const map_session_data* sd, t_itemid name
 	}
 
 	return -1;
+}
+
+static int32 playerbot_cart_amount(const map_session_data* sd, t_itemid nameid) {
+	if (sd == nullptr || nameid == 0)
+		return 0;
+
+	int32 total = 0;
+	for (int32 i = 0; i < MAX_CART; ++i) {
+		if (sd->cart.u.items_cart[i].nameid != nameid)
+			continue;
+		total += sd->cart.u.items_cart[i].amount;
+	}
+
+	return total;
+}
+
+static const char* playerbot_additem_result_name(e_additem_result flag) {
+	switch (flag) {
+		case ADDITEM_SUCCESS: return "success";
+		case ADDITEM_INVALID: return "invalid";
+		case ADDITEM_OVERWEIGHT: return "overweight";
+		case ADDITEM_ITEM: return "item_limit";
+		case ADDITEM_OVERITEM: return "inventory_limit";
+		case ADDITEM_OVERAMOUNT: return "overamount";
+		case ADDITEM_REFUSED_TIME: return "refused_time";
+		case ADDITEM_STACKLIMIT: return "stacklimit";
+		default: return "unknown";
+	}
 }
 
 static std::string playerbot_vending_state(const map_session_data* sd) {
@@ -12930,6 +13000,173 @@ BUILDIN_FUNC(playerbot_itemgrant)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_cartset)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 type = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || type < 0 || type > MAX_CARTS) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool before_active = static_cast<bool>(pc_iscarton(sd));
+	bool ok = pc_setcart(sd, type);
+	bool after_active = static_cast<bool>(pc_iscarton(sd));
+	if (type > 0 && ok && !after_active) {
+		ShowWarning("buildin_playerbot_cartset: bot '%s' cart did not activate (char_id=%u, before=%d, after=%d, state.active=%d, pc_loaded=%d, fd=%d, prev=%p, class=%u, push=%d, sc_option=%d, status_option=%d).\n",
+			bot_key != nullptr ? bot_key : "",
+			char_id,
+			before_active ? 1 : 0,
+			after_active ? 1 : 0,
+			sd->state.active ? 1 : 0,
+			sd->state.pc_loaded ? 1 : 0,
+			sd->fd,
+			static_cast<void*>(sd->prev),
+			sd->status.class_,
+			pc_checkskill(sd, MC_PUSHCART),
+			sd->sc.option,
+			sd->status.option);
+	}
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_cartclear)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!static_cast<bool>(pc_iscarton(sd))) {
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	for (int32 i = 0; i < MAX_CART; ++i) {
+		if (sd->cart.u.items_cart[i].nameid > 0)
+			pc_cart_delitem(sd, i, sd->cart.u.items_cart[i].amount, 0, LOG_TYPE_SCRIPT);
+	}
+
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_cartgrant)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	int32 requested = script_getnum(st, 4);
+	uint16 amount = requested > 0 ? static_cast<uint16>(requested) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	std::shared_ptr<item_data> id = item_db.find(nameid);
+	item it = {};
+
+	if (sd == nullptr || amount == 0 || id == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!static_cast<bool>(pc_iscarton(sd))) {
+		ShowWarning("buildin_playerbot_cartgrant: bot '%s' has no active cart (char_id=%u, weight=%d/%d, cart_items=%d).\n",
+			bot_key != nullptr ? bot_key : "", char_id, sd->cart_weight, sd->cart_weight_max, sd->cart_num);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "cart", std::to_string(nameid).c_str(), "script.busy", "denied", "cart.grant", "cart.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	it.nameid = nameid;
+	it.identify = 1;
+	it.bound = BOUND_NONE;
+	e_additem_result flag = pc_cart_additem(sd, &it, amount, LOG_TYPE_SCRIPT);
+	if (flag != ADDITEM_SUCCESS) {
+		ShowWarning("buildin_playerbot_cartgrant: bot '%s' failed to add item %u x%u to cart (char_id=%u, reason=%s, weight=%d/%d, cart_items=%d).\n",
+			bot_key != nullptr ? bot_key : "", nameid, amount, char_id, playerbot_additem_result_name(flag), sd->cart_weight, sd->cart_weight_max, sd->cart_num);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "cart", std::to_string(nameid).c_str(), "script.busy", "aborted", "cart.grant", playerbot_additem_result_name(flag));
+	}
+	script_pushint(st, flag == ADDITEM_SUCCESS ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_cartcount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid nameid = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, playerbot_cart_amount(sd, nameid));
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_cartactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && static_cast<bool>(pc_iscarton(sd))) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_pcloaded)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && sd->state.pc_loaded) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_vitalsrestore)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	uint32 hp = sd->battle_status.max_hp > 0 ? static_cast<uint32>(sd->battle_status.max_hp) : sd->status.max_hp;
+	uint32 sp = sd->battle_status.max_sp > 0 ? static_cast<uint32>(sd->battle_status.max_sp) : sd->status.max_sp;
+	bool changed = false;
+
+	if (hp > 0 && sd->battle_status.hp <= 0) {
+		sd->battle_status.hp = static_cast<int32>(hp);
+		sd->status.hp = hp;
+		clif_updatestatus(*sd, SP_HP);
+		changed = true;
+	}
+	if (sp > 0 && sd->battle_status.sp == 0 && sd->status.sp == 0) {
+		sd->battle_status.sp = static_cast<int32>(sp);
+		sd->status.sp = sp;
+		clif_updatestatus(*sd, SP_SP);
+		changed = true;
+	}
+
+	if (changed) {
+		ShowInfo("playerbot: restored vitals for bot '%s' (%u:%u) to hp=%d/%d sp=%d/%d.\n",
+			bot_key != nullptr ? bot_key : "",
+			account_id,
+			char_id,
+			sd->battle_status.hp,
+			sd->battle_status.max_hp,
+			sd->battle_status.sp,
+			sd->battle_status.max_sp);
+	}
+
+	script_pushint(st, (sd->battle_status.hp > 0) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 /*==========================================
  * Remove one item amount from a live playerbot inventory.
  *------------------------------------------*/
@@ -14745,6 +14982,55 @@ BUILDIN_FUNC(playerbot_buyingstoreopen)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_buyingstoreopen2)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* title = script_getstr(st, 3);
+	t_itemid nameid1 = static_cast<t_itemid>(script_getnum(st, 4));
+	int32 amount1 = script_getnum(st, 5);
+	int32 price1 = script_getnum(st, 6);
+	t_itemid nameid2 = static_cast<t_itemid>(script_getnum(st, 7));
+	int32 amount2 = script_getnum(st, 8);
+	int32 price2 = script_getnum(st, 9);
+	int32 zenylimit = script_getnum(st, 10);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "buyingstore", title, "operator.start", "ok", "", "");
+
+	if (sd == nullptr || nameid1 == 0 || amount1 <= 0 || price1 <= 0 || nameid2 == 0 || amount2 <= 0 || price2 <= 0 || zenylimit <= 0 || nameid1 == nameid2) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingstore", title, "target.invalid", "denied", "buyingstore.open2", sd == nullptr ? "bot.offline" : "buyingstore.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->state.buyingstore) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "buyingstore", title, "operator.start", "noop", "", "already.open");
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int8 setup = buyingstore_setup(sd, 2);
+	if (setup != 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingstore", title, "target.invalid", "denied", "buyingstore.open2", ("setup=" + std::to_string(setup)).c_str());
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	PACKET_CZ_REQ_OPEN_BUYING_STORE_sub items[2] = {};
+	items[0].itemId = static_cast<uint32>(nameid1);
+	items[0].amount = static_cast<uint16>(amount1);
+	items[0].price = static_cast<uint32>(price1);
+	items[1].itemId = static_cast<uint32>(nameid2);
+	items[1].amount = static_cast<uint16>(amount2);
+	items[1].price = static_cast<uint32>(price2);
+
+	int8 result = buyingstore_create(sd, zenylimit, 1, title, items, 2, nullptr);
+	bool ok = (result == 0 && sd->state.buyingstore && sd->buyer_id != 0 && sd->buyingstore.slots >= 2);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "buyingstore", title, ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "buyingstore.open2", ok ? playerbot_buyingstore_state(sd).c_str() : ("result=" + std::to_string(result)).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_buyinglistopen)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -14763,31 +15049,11 @@ BUILDIN_FUNC(playerbot_buyinglistopen)
 	if (sd->searchstore.open)
 		searchstore_close(*sd);
 
-	bool search_ok = searchstore_open(*sd, 1, SEARCHSTORE_EFFECT_REMOTE, sd->m);
-	if (!search_ok) {
+	if (!playerbot_buyinglist_refresh(sd, buyer_sd, true)) {
 		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyinglist", std::to_string(buyer_char_id).c_str(), "script.busy", "aborted", "buyinglist.open", "search.open");
 		script_pushint(st, 0);
 		return SCRIPT_CMD_SUCCESS;
 	}
-
-	sd->searchstore.type = SEARCHTYPE_BUYING_STORE;
-	sd->searchstore.remote_id = buyer_sd->status.account_id;
-	sd->searchstore.pages = 0;
-	sd->searchstore.items.clear();
-
-	auto ssitem = std::make_shared<s_search_store_info_item>();
-	safestrncpy(ssitem->store_name, buyer_sd->status.name, sizeof(ssitem->store_name));
-	ssitem->store_id = buyer_sd->buyer_id;
-	ssitem->account_id = buyer_sd->status.account_id;
-	ssitem->nameid = buyer_sd->buyingstore.items[0].nameid;
-	ssitem->amount = buyer_sd->buyingstore.items[0].amount;
-	ssitem->price = buyer_sd->buyingstore.items[0].price;
-	memset(ssitem->card, 0, sizeof(ssitem->card));
-	ssitem->refine = 0;
-	ssitem->enchantgrade = 0;
-	sd->searchstore.items.push_back(ssitem);
-
-	buyingstore_open(sd, buyer_sd->status.account_id);
 	bool ok = (sd->searchstore.open && sd->searchstore.type == SEARCHTYPE_BUYING_STORE && sd->searchstore.remote_id == static_cast<int32>(buyer_sd->status.account_id) && !sd->searchstore.items.empty());
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "buyinglist", std::to_string(buyer_char_id).c_str(), ok ? "operator.start" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "buyinglist.open", playerbot_buyinglist_state(sd).c_str());
 	script_pushint(st, ok ? 1 : 0);
@@ -14881,6 +15147,8 @@ BUILDIN_FUNC(playerbot_buyingstoresell)
 	int32 after_seller = playerbot_inventory_amount(sd, nameid, false);
 	int32 after_buyer = playerbot_inventory_amount(buyer_sd, nameid, false);
 	int32 after_limit = buyer_sd->buyingstore.zenylimit;
+	if (buyer_sd->state.buyingstore && buyer_sd->buyer_id != 0)
+		playerbot_buyinglist_refresh(sd, buyer_sd, true);
 	bool ok = (after_seller == before_seller - amount && after_buyer >= before_buyer + amount && after_limit < before_limit);
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "buyingtrade.sell", ok ? playerbot_buyinglist_state(sd).c_str() : ("seller=" + std::to_string(after_seller) + ",buyer=" + std::to_string(after_buyer)).c_str());
 	script_pushint(st, ok ? 1 : 0);
@@ -32634,6 +32902,13 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_guildcreate,"s"),
 	BUILDIN_DEF(playerbot_guildnotice,"ss"),
 	BUILDIN_DEF(playerbot_itemgrant,"sii"),
+	BUILDIN_DEF(playerbot_cartset,"si"),
+	BUILDIN_DEF(playerbot_cartclear,"s"),
+	BUILDIN_DEF(playerbot_cartgrant,"sii"),
+	BUILDIN_DEF(playerbot_cartcount,"si"),
+	BUILDIN_DEF(playerbot_cartactive,"s"),
+	BUILDIN_DEF(playerbot_pcloaded,"s"),
+	BUILDIN_DEF(playerbot_vitalsrestore,"s"),
 	BUILDIN_DEF(playerbot_itemremove,"sii"),
 	BUILDIN_DEF(playerbot_itemuse,"si"),
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
@@ -32676,6 +32951,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_vendlistactive,"s"),
 	BUILDIN_DEF(playerbot_vendlistsummary,"s"),
 	BUILDIN_DEF(playerbot_buyingstoreopen,"ssiiii"),
+	BUILDIN_DEF(playerbot_buyingstoreopen2,"ssiiiiiii"),
 	BUILDIN_DEF(playerbot_buyinglistopen,"si"),
 	BUILDIN_DEF(playerbot_buyinglistclose,"s"),
 	BUILDIN_DEF(playerbot_buyinglistactive,"s"),

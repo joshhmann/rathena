@@ -2782,3 +2782,34 @@ Mechanic cleanup is no longer a future-only scenario stub:
   cleanup exists"
 - it is now "extend scenario coverage beyond that baseline into deeper
   market/session and richer combat-event paths"
+
+Merchant-market continuity now has a concrete headless-specific failure record:
+
+- a headless merchant can load with:
+  - `battle_status.hp = 0`
+  - `status.hp = 0`
+  - `status_isdead(sd) = true`
+  - `pc_isdead(sd) = false`
+- in that state, `pc_setcart(sd, 1)` can return success while `SC_PUSH_CART`
+  never becomes active
+- the accepted repair on the current baseline is:
+  - restore vitals first
+  - then activate cart
+  - then seed merchant stock
+- this is now enforced in merchant bootstrap through:
+  - `playerbot_vitalsrestore`
+  - `playerbot_cartset`
+  - `playerbot_cartgrant`
+
+Buyingstore continuity also has a now-documented partial-fill rule:
+
+- a successful `buyingstore_trade(...)` clears the seller's remote searchstore
+  state
+- if the buyer store still has remaining requested items, seller-side browse
+  state must be rebuilt before the next item sale
+- the current baseline does that rebuild explicitly and the merchant selftest
+  now proves:
+  - first sale succeeds
+  - remaining request stays visible
+  - second sale succeeds
+  - buyer store auto-closes after fulfillment

@@ -3190,15 +3190,76 @@ function	script	F_PB_MerchantBootstrapByBotKey	{
 		return 0;
 	if ($@pbbot_account_id < 1 || $@pbbot_char_id < 1 || !isloggedin($@pbbot_account_id))
 		return 0;
+	.@count = callfunc("F_PB_DB_LoadMerchantStockProfile", $@pbbot_stock_profile$);
+	debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " stock=" + $@pbbot_stock_profile$ + " count=" + .@count + ".";
+	if (.@count < 1)
+		return 0;
+	if (playerbot_isdead(.@bot_key$)) {
+		.@respawn = playerbot_respawn(.@bot_key$);
+		for (.@i = 0; .@i < 15; ++.@i) {
+			sleep 200;
+			if (!playerbot_isdead(.@bot_key$) && headlesspc_status($@pbbot_char_id) == 2)
+				break;
+		}
+		debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " dead=1 respawn=" + .@respawn + " alive=" + (!playerbot_isdead(.@bot_key$)) + ".";
+	}
+	if (playerbot_isdead(.@bot_key$))
+		return 0;
 	if (!attachrid($@pbbot_account_id))
 		return 0;
+	.@dead_before_job = playerbot_isdead(.@bot_key$);
+	percentheal 100, 100;
 	jobchange Job_Merchant;
 	skill "MC_PUSHCART", 10, SKILL_PERM_GRANT;
 	skill "MC_VENDING", 10, SKILL_PERM_GRANT;
+	.@push = getskilllv("MC_PUSHCART");
+	.@vend = getskilllv("MC_VENDING");
+	percentheal 100, 100;
+	if (.@push < 10 || .@vend < 10) {
+		debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " skills push=" + .@push + " vend=" + .@vend + ".";
+		detachrid;
+		return 0;
+	}
 	detachrid;
-	setcart 1, $@pbbot_char_id;
-	clearcart $@pbbot_char_id;
-	return callfunc("F_PB_CFG_LoadStockProfileToCart", $@pbbot_stock_profile$, $@pbbot_account_id);
+	.@dead_after_job = playerbot_isdead(.@bot_key$);
+	if (.@dead_after_job) {
+		.@respawn_after_job = playerbot_respawn(.@bot_key$);
+		for (.@i = 0; .@i < 15; ++.@i) {
+			sleep 200;
+			if (!playerbot_isdead(.@bot_key$) && headlesspc_status($@pbbot_char_id) == 2)
+				break;
+		}
+	}
+	debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " dead_before_job=" + .@dead_before_job + " dead_after_job=" + .@dead_after_job + " alive_after_respawn=" + (!playerbot_isdead(.@bot_key$)) + ".";
+	.@vitals_ok = playerbot_vitalsrestore(.@bot_key$);
+	debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " vitals_ok=" + .@vitals_ok + ".";
+	.@cartset = playerbot_cartset(.@bot_key$, 1);
+	sleep 200;
+	.@cartactive = playerbot_cartactive(.@bot_key$);
+	if (!.@cartactive && attachrid($@pbbot_account_id)) {
+		setcart 1;
+		sleep 100;
+		.@cartactive = checkcart($@pbbot_char_id);
+		debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " attach_cartset=" + .@cartactive + ".";
+		detachrid;
+	}
+	if (attachrid($@pbbot_account_id)) {
+		debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " class=" + readparam(Class) + " push=" + getskilllv("MC_PUSHCART") + " vend=" + getskilllv("MC_VENDING") + " loaded=" + playerbot_pcloaded(.@bot_key$) + " cartset=" + .@cartset + " active=" + .@cartactive + ".";
+		detachrid;
+	}
+	if (!.@cartset || !.@cartactive)
+		return 0;
+	.@cartclear = playerbot_cartclear(.@bot_key$);
+	debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " cartclear=" + .@cartclear + " active=" + playerbot_cartactive(.@bot_key$) + ".";
+	if (!.@cartclear)
+		return 0;
+	for (.@i = 0; .@i < .@count; ++.@i) {
+		.@grant = playerbot_cartgrant(.@bot_key$, $@pbm_item_id[.@i], $@pbm_stock[.@i]);
+		debugmes "playerbot_merchant_bootstrap: bot=" + .@bot_key$ + " grant item=" + $@pbm_item_id[.@i] + " amount=" + $@pbm_stock[.@i] + " ok=" + .@grant + " count=" + playerbot_cartcount(.@bot_key$, $@pbm_item_id[.@i]) + ".";
+		if (!.@grant)
+			return 0;
+	}
+	return .@count;
 }
 
 function	script	F_PB_DB_LoadMerchantStockProfile	{

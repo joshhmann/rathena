@@ -5792,6 +5792,72 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 67: Merchant Market Continuity Repair
+
+### Summary
+
+Repaired the remaining merchant-market continuity failures on the integrated
+foundation baseline.
+
+### Files
+
+- `src/map/script.cpp`
+- `src/map/pc.cpp`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Fixed merchant bootstrap so headless merchants recover from the inconsistent
+  `hp=0 but not pc_isdead()` state before cart activation:
+  - added `playerbot_vitalsrestore(bot_key$)`
+  - merchant bootstrap now restores vitals, then activates cart, then seeds
+    stock
+- Added bot-safe cart helpers for merchant bootstrap:
+  - `playerbot_cartset`
+  - `playerbot_cartclear`
+  - `playerbot_cartgrant`
+  - `playerbot_cartcount`
+  - `playerbot_cartactive`
+  - `playerbot_pcloaded`
+- Removed the stale merchant autorun normalize loop that was mutating runtime
+  state during validation.
+- Fixed buyingstore continuity after partial sales:
+  - seller-side remote browse state is now rebuilt after the first successful
+    sale when the buyer store remains active
+  - merchant selftest now proves a two-item partial-fill path before final
+    close
+- Fixed buyingstore reopen validation by clamping the reopen zeny limit to the
+  buyer's live remaining zeny instead of a stale hardcoded amount.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `git diff --check`
+
+Integrated live result:
+
+- `playerbot_state_selftest ... result=1`
+- `playerbot_guild_selftest ... result=1`
+- `playerbot_item_selftest ... result=1`
+- `playerbot_merchant_selftest ... result=1`
+- `playerbot_participation_selftest ... result=1`
+- `playerbot_combat_selftest ... result=1`
+- `playerbot_foundation_selftest: stage=done`
+- `[playerbot-foundation-smoke] foundation pass ok.`
+
+### Deferrals
+
+This repair does not add:
+
+- automated removal of the temporary cart/vitals diagnostics in the runtime
+- richer merchant economics or pricing behavior
+- broader market AI beyond the current legal vending/buyingstore continuity
+
 ## Slice 68: Playerbot Mechanic Cleanup Scenario Promotion
 
 ### Goal

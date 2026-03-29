@@ -12150,7 +12150,32 @@ bool pc_setcart(map_session_data *sd,int32 type) {
 				status_calc_cart_weight(sd, (e_status_calc_weight_opt)(CALCWT_ITEM|CALCWT_MAXBONUS|CALCWT_CARTSTATE));
 			}
 			clif_updatestatus(*sd, SP_CARTINFO);
-			sc_start(sd, sd, SC_PUSH_CART, 100, type, 0);
+			{
+				bool started = sc_start(sd, sd, SC_PUSH_CART, 100, type, 0);
+				if (sd->state.headless_bot && (!started || !sd->sc.getSCE(SC_PUSH_CART))) {
+					ShowWarning("pc_setcart: headless cart activation failed for %s (%u:%u): type=%d started=%d active=%d dead=%d dead_sit=%d hp=%d/%d status_hp=%u/%u gravity=%d active_state=%d pc_loaded=%d class=%u push=%d map=%d sc_option=%d status_option=%d.\n",
+						sd->status.name,
+						sd->status.account_id,
+						sd->status.char_id,
+						type,
+						started ? 1 : 0,
+						sd->sc.getSCE(SC_PUSH_CART) ? 1 : 0,
+						status_isdead(*sd) ? 1 : 0,
+						pc_isdead(sd) ? 1 : 0,
+						sd->battle_status.hp,
+						sd->battle_status.max_hp,
+						sd->status.hp,
+						sd->status.max_hp,
+						sd->sc.getSCE(SC_GRAVITYCONTROL) ? 1 : 0,
+						sd->state.active ? 1 : 0,
+						sd->state.pc_loaded ? 1 : 0,
+						sd->status.class_,
+						pc_checkskill(sd, MC_PUSHCART),
+						sd->m,
+						sd->sc.option,
+						sd->status.option);
+				}
+			}
 			break;
 	}
 
