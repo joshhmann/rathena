@@ -10026,6 +10026,8 @@ static int32 pc_playerbot_session_count(const map_session_data* sd)
 	return (sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ (sd->searchstore.open ? 1 : 0)
+		+ (sd->vended_id != 0 ? 1 : 0)
 		+ (sd->state.mail_writing ? 1 : 0)
 		+ (sd->state.roulette_open ? 1 : 0)
 		+ (sd->state.enchantgrade_open ? 1 : 0)
@@ -10050,6 +10052,8 @@ static std::string pc_playerbot_session_state(const map_session_data* sd)
 		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
+		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
 		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
 		+ ",roulette=" + std::to_string(sd->state.roulette_open ? 1 : 0)
 		+ ",enchantgrade=" + std::to_string(sd->state.enchantgrade_open ? 1 : 0)
@@ -10138,6 +10142,11 @@ static void pc_playerbot_force_clear_session(map_session_data* sd)
 		clif_progressbar_abort(sd);
 	sd->progressbar.npc_id = 0;
 	sd->progressbar.timeout = 0;
+	if (sd->searchstore.open)
+		searchstore_close(*sd);
+	else
+		searchstore_clearremote(*sd);
+	sd->vended_id = 0;
 	if (sd->skillitem != 0)
 		sd->skillitem = sd->skillitemlv = 0;
 	if (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0)

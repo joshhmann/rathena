@@ -2489,3 +2489,30 @@ Current limit:
   - searchstore/buyingstore/vending session participation
 - broader event-instance transfer policy is still cleanup-and-reacquire
   rather than continuity-carry-over
+
+Bank and searchstore continuity now covered:
+
+- transition cleanup now treats bank and searchstore session state as owned
+  transient session state
+- denied map changes preserve both:
+  - `bank`
+  - `searchstore`
+  until a real transition happens
+- successful map changes and quit/remove clear both through the same session
+  interrupt path used by the broader session-continuity layer
+- the integrated combat selftest now proves bank/search continuity through:
+  - open
+  - close/reopen
+  - denied-warp preservation
+  - successful map-change cleanup
+  - quit/remove cleanup
+
+Current limit:
+
+- the current proof is about session ownership continuity, not money movement
+- bank deposit/withdraw still depend on live zeny and bank-vault preconditions
+  and are not yet part of the deterministic aggregate combat gate
+- searchstore continuity currently stops at open/close state, not result paging,
+  result selection, or purchase flows
+- buyingstore, vending-list browsing, and richer market-session continuity
+  remain deferred

@@ -5792,6 +5792,78 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Playerbot Bank And Searchstore Session Continuity
+
+### Summary
+
+Extended the playerbot session-continuity layer to treat bank and searchstore
+state as real transient session ownership, then proved that continuity through
+the integrated combat/foundation smoke without relying on seeded zeny.
+
+### Files
+
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Extended runtime session summaries/counts to include:
+  - `searchstore`
+  - `vendlist`
+- Extended forced session cleanup so transition cleanup now also clears:
+  - active searchstore state
+  - remote searchstore state
+  - vendor-list browsing state
+- Added first-class bot-facing bank helpers:
+  - `playerbot_bankopen`
+  - `playerbot_bankclose`
+  - `playerbot_bankactive`
+  - `playerbot_bankbalance`
+  - `playerbot_bankdeposit`
+  - `playerbot_bankwithdraw`
+- Added first-class bot-facing searchstore helpers:
+  - `playerbot_searchopen`
+  - `playerbot_searchclose`
+  - `playerbot_searchactive`
+  - `playerbot_searchsummary`
+- Extended `playerbot_sessionarm(..., "searchstore"|"all")` so session smoke
+  can arm searchstore state intentionally.
+- Reworked the combat selftest so the authoritative gate now proves:
+  - bank open/close/reopen continuity
+  - searchstore open continuity
+  - denied-warp preservation of bank/search session state
+  - successful map-change cleanup of bank/search session state
+  - quit/remove cleanup of bank/search session state
+- Deliberately removed the combat selftest’s dependency on bank money movement.
+  The current combat bot has no seeded zeny or bank balance, so deterministic
+  continuity proof is now based on session ownership instead of wallet state.
+
+### Validation
+
+- `git diff --check`
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... bank_open_ok=1 bank_active_ok=1`
+- `playerbot_combat_selftest ... bank_cycle_close_ok=1 bank_cycle_reopen_ok=1`
+- `playerbot_combat_selftest ... search_open_ok=1 search_active_ok=1`
+- `playerbot_combat_selftest ... session_warp_denied_ok=1 session_clear_ok=1`
+- aggregate foundation smoke ends with `foundation pass ok`
+
+### Deferrals
+
+This slice does not yet make bank/searchstore a full economy-feature proof:
+
+- no deterministic zeny seeding for bank deposit/withdraw smoke
+- no search result browsing or purchase flow
+- no buyingstore/vending commercial continuity
+- no bank transfer audit truth beyond the existing verb wrappers
+
 ## Slice 61: Playerbot Session Continuity
 
 ### Summary

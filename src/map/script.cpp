@@ -424,6 +424,8 @@ static int32 playerbot_session_count(const map_session_data* sd) {
 	return (sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ (sd->searchstore.open ? 1 : 0)
+		+ (sd->vended_id != 0 ? 1 : 0)
 		+ (sd->state.mail_writing ? 1 : 0)
 		+ (sd->state.roulette_open ? 1 : 0)
 		+ (sd->state.enchantgrade_open ? 1 : 0)
@@ -447,6 +449,8 @@ static std::string playerbot_session_state(const map_session_data* sd) {
 		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
+		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
 		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
 		+ ",roulette=" + std::to_string(sd->state.roulette_open ? 1 : 0)
 		+ ",enchantgrade=" + std::to_string(sd->state.enchantgrade_open ? 1 : 0)
@@ -460,6 +464,18 @@ static std::string playerbot_session_state(const map_session_data* sd) {
 		+ ",laphsyn=" + std::to_string(sd->state.laphine_synthesis != 0 ? 1 : 0)
 		+ ",laphup=" + std::to_string(sd->state.laphine_upgrade != 0 ? 1 : 0)
 		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0);
+}
+
+static std::string playerbot_search_state(const map_session_data* sd) {
+	if (sd == nullptr)
+		return "offline";
+
+	return "open=" + std::to_string(sd->searchstore.open ? 1 : 0)
+		+ ",uses=" + std::to_string(sd->searchstore.uses)
+		+ ",effect=" + std::to_string(sd->searchstore.effect)
+		+ ",pages=" + std::to_string(sd->searchstore.pages)
+		+ ",results=" + std::to_string(sd->searchstore.items.size())
+		+ ",remote=" + std::to_string(sd->searchstore.remote_id != 0 ? 1 : 0);
 }
 
 static bool playerbot_npc_force_recover(map_session_data* sd) {
@@ -13980,6 +13996,8 @@ BUILDIN_FUNC(playerbot_sessionarm)
 		sd->skillitem = ITEMID_RED_POTION;
 		sd->skillitemlv = 1;
 	}
+	if (strcmp(mode, "searchstore") == 0 || strcmp(mode, "all") == 0)
+		searchstore_open(*sd, 1, SEARCHSTORE_EFFECT_REMOTE, sd->m);
 	if (strcmp(mode, "mail") == 0 || strcmp(mode, "all") == 0)
 		sd->state.mail_writing = true;
 	if (strcmp(mode, "roulette") == 0 || strcmp(mode, "all") == 0)
@@ -14010,6 +14028,187 @@ BUILDIN_FUNC(playerbot_sessionarm)
 	bool ok = playerbot_session_count(sd) > 0;
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "session_arm", mode, ok ? "operator.stop" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "session.arm", playerbot_session_state(sd).c_str());
 	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_bankopen)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "bank", "open", "operator.start", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "bank", "open", "target.invalid", "denied", "bank.open", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!battle_config.feature_banking || map_getmapflag(sd->m, MF_NOBANK)) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "bank", "open", "target.invalid", "denied", "bank.open", !battle_config.feature_banking ? "bank.disabled" : "map.nobank");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	sd->state.banking = true;
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "bank", "open", "operator.start", "ok", "", "");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_bankclose)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "bank", "close", "operator.stop", "ok", "", "");
+
+	if (sd == nullptr || !sd->state.banking) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "bank", "close", "target.invalid", "denied", "bank.close", sd == nullptr ? "bot.offline" : "bank.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	sd->state.banking = false;
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "bank", "close", "operator.stop", "ok", "", "");
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_bankactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && sd->state.banking) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_bankbalance)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? static_cast<int64>(sd->bank_vault) : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_bankdeposit)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 amount = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "bank_deposit", std::to_string(amount).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || amount <= 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "bank_deposit", std::to_string(amount).c_str(), "target.invalid", "denied", "bank.deposit", sd == nullptr ? "bot.offline" : "amount.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	enum e_BANKING_DEPOSIT_ACK result = pc_bank_deposit(sd, amount);
+	bool ok = (result == BDA_SUCCESS);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "bank_deposit", std::to_string(amount).c_str(), ok ? "none" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "bank.deposit", ("result=" + std::to_string(result) + " vault=" + std::to_string(sd->bank_vault)).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_bankwithdraw)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 amount = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "bank_withdraw", std::to_string(amount).c_str(), "none", "ok", "", "");
+
+	if (sd == nullptr || amount <= 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "bank_withdraw", std::to_string(amount).c_str(), "target.invalid", "denied", "bank.withdraw", sd == nullptr ? "bot.offline" : "amount.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	enum e_BANKING_WITHDRAW_ACK result = pc_bank_withdraw(sd, amount);
+	bool ok = (result == BWA_SUCCESS);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "bank_withdraw", std::to_string(amount).c_str(), ok ? "none" : "target.invalid", ok ? "ok" : "denied", ok ? "" : "bank.withdraw", ("result=" + std::to_string(result) + " vault=" + std::to_string(sd->bank_vault)).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_searchopen)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 uses = script_getnum(st, 3);
+	int32 effect = script_getnum(st, 4);
+	const char* mapname = script_getstr(st, 5);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "searchstore", mapname, "operator.start", "ok", "", "");
+
+	if (sd == nullptr) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "searchstore", mapname, "target.invalid", "denied", "search.open", "bot.offline");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!battle_config.feature_search_stores || uses < 1 || uses > UINT8_MAX || effect < SEARCHSTORE_EFFECT_NORMAL || effect >= SEARCHSTORE_EFFECT_MAX) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "searchstore", mapname, "target.invalid", "denied", "search.open", !battle_config.feature_search_stores ? "search.disabled" : "search.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 m = sd->m;
+	if (stricmp(mapname, "all") == 0)
+		m = 0;
+	else if (stricmp(mapname, "this") != 0) {
+		m = map_mapname2mapid(mapname);
+		if (m < 0) {
+			playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "searchstore", mapname, "target.invalid", "denied", "search.open", "map.invalid");
+			script_pushint(st, 0);
+			return SCRIPT_CMD_SUCCESS;
+		}
+	}
+
+	bool ok = searchstore_open(*sd, static_cast<uint8>(uses), static_cast<e_searchstore_effecttype>(effect), m);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "searchstore", mapname, ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "search.open", playerbot_search_state(sd).c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_searchclose)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "searchstore", "close", "operator.stop", "ok", "", "");
+
+	if (sd == nullptr || !sd->searchstore.open) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "searchstore", "close", "target.invalid", "denied", "search.close", sd == nullptr ? "bot.offline" : "search.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	searchstore_close(*sd);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.completed", "searchstore", "close", "operator.stop", "ok", "", playerbot_search_state(sd).c_str());
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_searchactive)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, (sd != nullptr && sd->searchstore.open) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_searchsummary)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushstrcopy(st, playerbot_search_state(sd).c_str());
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -31560,6 +31759,16 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_sessioncount,"s"),
 	BUILDIN_DEF(playerbot_sessionsummary,"s"),
 	BUILDIN_DEF(playerbot_sessionarm,"ss"),
+	BUILDIN_DEF(playerbot_bankopen,"s"),
+	BUILDIN_DEF(playerbot_bankclose,"s"),
+	BUILDIN_DEF(playerbot_bankactive,"s"),
+	BUILDIN_DEF(playerbot_bankbalance,"s"),
+	BUILDIN_DEF(playerbot_bankdeposit,"si"),
+	BUILDIN_DEF(playerbot_bankwithdraw,"si"),
+	BUILDIN_DEF(playerbot_searchopen,"siis"),
+	BUILDIN_DEF(playerbot_searchclose,"s"),
+	BUILDIN_DEF(playerbot_searchactive,"s"),
+	BUILDIN_DEF(playerbot_searchsummary,"s"),
 	BUILDIN_DEF(playerbot_statusstart,"siii"),
 	BUILDIN_DEF(playerbot_statusclear,"si"),
 	BUILDIN_DEF(playerbot_combatstate,"s"),
