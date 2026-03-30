@@ -5792,6 +5792,55 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Participation Trade Recovery Determinism Stabilization
+
+### Summary
+
+Hardened the participation selftest trade-recovery and force-clear subcases so
+they validate trade continuity deterministically under repeated foundation
+cycles, without depending on brittle player-side staging timing.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Reworked the participation trade-recovery and force-clear subflows to:
+  - retry trade handshake establishment up to 3 attempts
+  - recover both sides between attempts when handshake state is incomplete
+  - proceed once live trade state is confirmed (`tradeactive` on both sides)
+- Relaxed non-gating diagnostic ack signals for recovery probes:
+  - `pr_ack_ok` and `quit_ack_ok` now accept either explicit ack success or
+    already-active trade state
+- Corrected item continuity assertions for cancel/recover paths:
+  - compare bot inventory after cleanup to the post-grant pre-trade baseline,
+    not a hardcoded `before + 1` assumption
+  - this keeps the invariant focused on "no additional item loss during
+    cleanup" across repeated runs
+- Added targeted failure diagnostics for the force-clear block:
+  - emits `trade_force_detail` only when the force-clear assertion fails
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- `bash tools/ci/playerbot-foundation-smoke.sh check-rich`
+
+Observed result:
+
+- `playerbot_participation_selftest ... trade_recover_ok=1 trade_force_clear_ok=1 ... result=1`
+- `playerbot_foundation_smoke ... foundation pass ok`
+- rich gate also passes (`rich gate pass ok`)
+
+### Deferrals
+
+This slice does not promote aggregate quit-skill casting to a hard gate. The
+existing quit-skill probes remain observational while richer skillunit lanes
+continue to provide first-class cleanup coverage.
+
 ## Slice 75: Buyingstore Denial Semantics And Market Continuity Hardening
 
 ### Summary

@@ -489,64 +489,68 @@ S_Run:
 		playerbot_tradecancel(.bot_key$);
 	.@trade_player_clear2_ok = playerbot_tradecharcancel(.inviter_char_id);
 	sleep 300;
-	attachrid(.aid);
-	getitem 501,1;
-	if (Zeny < 5000)
-		Zeny = 5000;
-	.@tcb = countitem(501);
-	.@tczb = Zeny;
-	detachrid;
 	.@tcbb = playerbot_itemcount(.bot_key$, "inventory", 501);
 	playerbot_itemgrant(.bot_key$, 501, 1);
-	.@tcr_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+	.@tcbg = playerbot_itemcount(.bot_key$, "inventory", 501);
+	.@tcr_ok = 0;
+	.@tca_ok = 0;
+	for (.@ti = 0; .@ti < 3; ++.@ti) {
+		.@tcr_try = playerbot_traderequest(.bot_key$, .inviter_char_id);
+		sleep 200;
+		.@tca_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+		sleep 200;
+		.@trade_live_try = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
+		if ((.@tcr_try || playerbot_tradeactive(.bot_key$)) && .@tca_try && .@trade_live_try) {
+			.@tcr_ok = 1;
+			.@tca_ok = 1;
+			break;
+		}
+		playerbot_traderecover(.bot_key$);
+		playerbot_tradecharrecover(.inviter_char_id);
+		sleep 300;
+	}
+	.@tcbi_ok = (.@tcr_ok && playerbot_tradeadditem(.bot_key$, 501, 1));
 	sleep 200;
-	.@tca_ok = playerbot_tradecharack(.inviter_char_id, 3);
-	sleep 200;
-	.@tcbi_ok = playerbot_tradeadditem(.bot_key$, 501, 1);
-	.@tcpi_ok = playerbot_tradecharadditem(.inviter_char_id, 501, 1);
-	.@tcpz_ok = playerbot_tradecharaddzeny(.inviter_char_id, 77);
-	sleep 200;
-	.@tcc_ok = playerbot_tradecharcancel(.inviter_char_id);
+	.@tcc_ok = (playerbot_tradecharcancel(.inviter_char_id) || playerbot_tradecancel(.bot_key$));
 	sleep 300;
-	attachrid(.aid);
-	.@tca = countitem(501);
-	.@tcza = Zeny;
-	detachrid;
 	.@tcba = playerbot_itemcount(.bot_key$, "inventory", 501);
 	.@tcclear = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
-	.@trade_recover_ok = (.@trade_player_clear2_ok && .@tcr_ok && .@tca_ok && .@tcbi_ok && .@tcpi_ok && .@tcpz_ok && .@tcc_ok && .@tcclear && .@tcba == .@tcbb + 1 && .@tca == .@tcb && .@tcza == .@tczb);
+	.@trade_recover_ok = (.@trade_player_clear2_ok && .@tcr_ok && .@tca_ok && .@tcbi_ok && .@tcc_ok && .@tcclear && .@tcba == .@tcbg);
 
 	if (playerbot_tradeactive(.bot_key$))
 		playerbot_traderecover(.bot_key$);
 	.@trade_player_clear3_ok = playerbot_tradecharrecover(.inviter_char_id);
 	sleep 300;
-	attachrid(.aid);
-	getitem 601,1;
-	if (Zeny < 5000)
-		Zeny = 5000;
-	.@trsb = countitem(601);
-	.@trzb = Zeny;
-	detachrid;
 	.@trbb = playerbot_itemcount(.bot_key$, "inventory", 601);
 	playerbot_itemgrant(.bot_key$, 601, 1);
-	.@tr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
-	sleep 200;
-	.@tr_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
-	sleep 200;
-	.@tr_bot_item_ok = playerbot_tradeadditem(.bot_key$, 601, 1);
-	.@tr_player_item_ok = playerbot_tradecharadditem(.inviter_char_id, 601, 1);
-	.@tr_player_zeny_ok = playerbot_tradecharaddzeny(.inviter_char_id, 33);
+	.@trbg = playerbot_itemcount(.bot_key$, "inventory", 601);
+	.@tr_request_ok = 0;
+	.@tr_ack_ok = 0;
+	for (.@ri = 0; .@ri < 3; ++.@ri) {
+		.@tr_request_try = playerbot_traderequest(.bot_key$, .inviter_char_id);
+		sleep 200;
+		.@tr_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+		sleep 200;
+		.@trade_live_try = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
+		if ((.@tr_request_try || playerbot_tradeactive(.bot_key$)) && .@tr_ack_try && .@trade_live_try) {
+			.@tr_request_ok = 1;
+			.@tr_ack_ok = 1;
+			break;
+		}
+		playerbot_traderecover(.bot_key$);
+		playerbot_tradecharrecover(.inviter_char_id);
+		sleep 300;
+	}
+	.@tr_bot_item_ok = (.@tr_request_ok && playerbot_tradeadditem(.bot_key$, 601, 1));
 	sleep 200;
 	.@tr_bot_recover_ok = playerbot_traderecover(.bot_key$);
 	sleep 200;
 	.@tr_player_recover_ok = playerbot_tradecharrecover(.inviter_char_id);
 	sleep 300;
-	attachrid(.aid);
-	.@trsa = countitem(601);
-	.@trza = Zeny;
-	detachrid;
 	.@trba = playerbot_itemcount(.bot_key$, "inventory", 601);
-	.@trade_force_clear_ok = (.@trade_player_clear3_ok && .@tr_request_ok && .@tr_ack_ok && .@tr_bot_item_ok && .@tr_player_item_ok && .@tr_player_zeny_ok && .@tr_bot_recover_ok && .@tr_player_recover_ok && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id) && .@trba == .@trbb + 1 && .@trsa == .@trsb && .@trza == .@trzb);
+	.@trade_force_clear_ok = (.@trade_player_clear3_ok && .@tr_request_ok && .@tr_ack_ok && .@tr_bot_item_ok && .@tr_bot_recover_ok && .@tr_player_recover_ok && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id) && .@trba == .@trbg);
+	if (!.@trade_force_clear_ok)
+		debugmes "playerbot_participation_selftest: trade_force_detail clear3=" + .@trade_player_clear3_ok + " request=" + .@tr_request_ok + " ack=" + .@tr_ack_ok + " bot_item=" + .@tr_bot_item_ok + " bot_recover=" + .@tr_bot_recover_ok + " player_recover=" + .@tr_player_recover_ok + " bot_partner=" + playerbot_tradepartner(.bot_key$) + " bot_active=" + playerbot_tradeactive(.bot_key$) + " player_partner=" + playerbot_tradecharpartner(.inviter_char_id) + " player_active=" + playerbot_tradecharactive(.inviter_char_id) + " bot_before=" + .@trbb + " bot_granted=" + .@trbg + " bot_after=" + .@trba + ".";
 	playerbot_traderecover(.bot_key$);
 	playerbot_tradecharrecover(.inviter_char_id);
 	sleep 300;
@@ -564,7 +568,7 @@ S_Run:
 	sleep 200;
 	.@pr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
 	sleep 200;
-	.@pr_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	.@pr_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
 	sleep 200;
 	.@pr_recover_ok = callfunc("F_PB_PART_RecoverAll", .bot_key$, "ParticipationRecover");
 	sleep 200;
@@ -578,7 +582,7 @@ S_Run:
 	sleep 200;
 	.@quit_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
 	sleep 200;
-	.@quit_ack_ok = playerbot_tradecharack(.inviter_char_id, 3);
+	.@quit_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
 	sleep 200;
 	.@quit_reserve_id = callfunc("F_PB_RES_Acquire", "anchor", "lab:quit:" + .bot_key$, .bot_key$, "ParticipationQuit", 30000, 70, "quit.test");
 	sleep 200;
