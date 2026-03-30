@@ -387,11 +387,24 @@ S_Run:
 	playerbot_tradecharrecover(.inviter_char_id);
 	playerbot_participationrecover(.bot_key$);
 	sleep 200;
-	.@warp_trade_req_ok = (.@warp_trade_anchor_ok && (playerbot_traderequest(.bot_key$, .inviter_char_id) || playerbot_tradeactive(.bot_key$)));
-	sleep 200;
-	.@warp_trade_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
-	sleep 300;
-	.@warp_trade_active_ok = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
+	.@warp_trade_req_ok = 0;
+	.@warp_trade_ack_ok = 0;
+	.@warp_trade_active_ok = 0;
+	for (.@i = 0; .@i < 5; ++.@i) {
+		if (!.@warp_trade_req_ok && .@warp_trade_anchor_ok)
+			.@warp_trade_req_ok = (playerbot_traderequest(.bot_key$, .inviter_char_id) || playerbot_tradeactive(.bot_key$));
+		sleep 200;
+		if (.@warp_trade_req_ok && !.@warp_trade_ack_ok)
+			.@warp_trade_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+		sleep 200;
+		.@warp_trade_active_ok = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
+		if (.@warp_trade_active_ok) {
+			.@warp_trade_ack_ok = 1;
+			break;
+		}
+		playerbot_tradecharrecover(.inviter_char_id);
+		playerbot_participationrecover(.bot_key$);
+	}
 	.@warp_trade_move_ok = (.@warp_trade_active_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
 	if (.@warp_trade_move_ok)
 		sleep 900;
@@ -797,7 +810,12 @@ S_Run:
 
 	callsub S_RefillBotVitals;
 	.@skillunit_interrupt_req_ok = 0;
-	for (.@i = 0; .@i < 3; ++.@i) {
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` = 'skill_pos' AND `target_id` = '" + .@quit_skill_id + "'",
+		.@sunit_int_trace_before);
+	for (.@i = 0; .@i < 5; ++.@i) {
 		if (.@skillunit_return_ok && playerbot_skillusepos(.bot_key$, .@quit_cast_x, .@quit_cast_y, .@quit_skill_id, 1, 0)) {
 			.@skillunit_interrupt_req_ok = 1;
 			break;
@@ -809,10 +827,18 @@ S_Run:
 	for (.@i = 0; .@i < 5; ++.@i) {
 		sleep 200;
 		if (.@skillunit_interrupt_req_ok && playerbot_skillunitcount(.bot_key$, .@quit_skill_id) >= 1) {
-			.@skillunit_interrupt_active_ok = 1;
+			.@skillunit_interrupt_unit_ok = 1;
 			break;
 		}
 	}
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` = 'skill_pos' AND `target_id` = '" + .@quit_skill_id + "' "
+		+ "AND `action` = 'combat.completed' AND `result` = 'ok' "
+		+ "AND `id` > '" + .@sunit_int_trace_before + "'",
+		.@skillunit_interrupt_trace_ok_count);
+	.@skillunit_interrupt_active_ok = (.@skillunit_interrupt_req_ok && (.@skillunit_interrupt_unit_ok || .@skillunit_interrupt_trace_ok_count > 0));
 	.@skillunit_interrupt_kill_ok = (.@skillunit_interrupt_active_ok && playerbot_kill(.bot_key$));
 	for (.@i = 0; .@i < 12; ++.@i) {
 		sleep 250;

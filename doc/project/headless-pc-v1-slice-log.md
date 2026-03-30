@@ -5908,6 +5908,60 @@ combat validation, but does not yet promote the standalone aggregate
 `sunit_int_*` death-interrupt counters. Those remain covered by the dedicated
 skillunit probe/precheck rich lanes.
 
+## Slice 78: Warp-Trade Handshake Stabilization In Aggregate Combat
+
+### Summary
+
+Stabilized the intermittent `warp_trade_ack_ok=0` aggregate combat failure by
+replacing the single-shot trade request/ack flow with a bounded retry handshake
+that re-recovers both sides between attempts.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Hardened warp-trade setup in `playerbot_combat_selftest`:
+  - replaced one-shot
+    `traderequest -> tradecharack -> active-check`
+    with a 5-attempt handshake loop.
+  - each attempt now:
+    - requests trade if not already requested
+    - acks inviter trade window when available
+    - checks both bot/inviter active trade state
+    - re-runs `playerbot_tradecharrecover` and
+      `playerbot_participationrecover` before retrying if not active yet.
+  - once active trade is observed, ack is treated as satisfied for the gate.
+- Added a small signal hardening on the observational aggregate `sunit_int_*`
+  segment:
+  - increased skillunit-interrupt request retries from 3 to 5
+  - added a trace-window lookup around the interrupt request attempt so
+    successful `skill_pos` completion can be inspected when live unit presence
+    is transient.
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+
+Integrated result:
+
+- aggregate combat line now consistently passed in validation runs with:
+  - `warp_trade_req_ok=1`
+  - `warp_trade_ack_ok=1`
+  - `warp_trade_active_ok=1`
+- rich gate remained green:
+  - separate skillunit probe pass
+  - separate skillunit precheck pass
+
+### Deferrals
+
+This slice fixes the aggregate warp-trade handshake flake. It does not yet
+promote aggregate `sunit_int_*` counters into pass/fail authority; those remain
+diagnostic in aggregate and authoritative in the rich skillunit lanes.
+
 ## Slice 75: Merchant Denial Continuity Gate Expansion
 
 ### Summary
