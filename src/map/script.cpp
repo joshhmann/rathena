@@ -13728,6 +13728,106 @@ BUILDIN_FUNC(playerbot_refine)
 }
 
 /*==========================================
+ * Execute one real item reform attempt for a live playerbot item.
+ * Returns 1 on reform success, or 0 when denied by preconditions.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_reform)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid reform_item = script_getnum(st, 3);
+	t_itemid base_item = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "reform", std::to_string(base_item).c_str(), "operator.start", "ok", "", "");
+
+#if PACKETVER < 20211103
+	playerbot_item_audit(bot_id, char_id, account_id, "reform", base_item, 0, "inventory", "denied", "reform.unsupported_packetver");
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "reform", std::to_string(base_item).c_str(), "target.invalid", "denied", "reform.execute", "reform.unsupported_packetver");
+	script_pushint(st, 0);
+	return SCRIPT_CMD_SUCCESS;
+#else
+	if (sd == nullptr || reform_item == 0 || base_item == 0) {
+		const char* detail = sd == nullptr ? "bot.offline" : "reform_or_item.invalid";
+		playerbot_item_audit(bot_id, char_id, account_id, "reform", base_item, 0, "inventory", "invalid", detail);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "reform", std::to_string(base_item).c_str(), "target.invalid", "denied", "reform.execute", detail);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::shared_ptr<s_item_reform> reform = item_reform_db.find(reform_item);
+	if (reform == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "reform", base_item, 0, "inventory", "denied", "reform.invalid");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "reform", std::to_string(base_item).c_str(), "target.invalid", "denied", "reform.execute", "reform.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool opened_here = false;
+	if (sd->state.item_reform != reform_item) {
+		clif_item_reform_open(*sd, reform_item);
+		opened_here = (sd->state.item_reform == reform_item);
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, base_item, false);
+	if (idx < 0) {
+		if (opened_here)
+			sd->state.item_reform = 0;
+		playerbot_item_audit(bot_id, char_id, account_id, "reform", base_item, 0, "inventory", "missing", "inventory.missing");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "reform", std::to_string(base_item).c_str(), "target.invalid", "denied", "reform.execute", "inventory.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::shared_ptr<s_item_reform_base> base = util::umap_find(reform->base_items, base_item);
+	if (base == nullptr) {
+		if (opened_here)
+			sd->state.item_reform = 0;
+		playerbot_item_audit(bot_id, char_id, account_id, "reform", base_item, 0, "inventory", "denied", "reform.base_unsupported");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "reform", std::to_string(base_item).c_str(), "target.invalid", "denied", "reform.execute", "reform.base_unsupported");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 before_base = playerbot_inventory_amount(sd, base_item, false);
+	int32 before_result = playerbot_inventory_amount(sd, base->resultItemId, false);
+	int32 before_refine = sd->inventory.u.items_inventory[idx].refine;
+	bool attempted = (clif_item_reform_attempt(sd, reform_item, static_cast<uint16>(idx)) == ITEM_REFORM_ATTEMPT_SUCCESS);
+	int32 after_base = playerbot_inventory_amount(sd, base_item, false);
+	int32 after_result = playerbot_inventory_amount(sd, base->resultItemId, false);
+	int32 after_refine = (idx >= 0 && idx < MAX_INVENTORY) ? sd->inventory.u.items_inventory[idx].refine : -1;
+	bool slot_reformed = (idx >= 0 && idx < MAX_INVENTORY && sd->inventory.u.items_inventory[idx].nameid == base->resultItemId);
+
+	std::string detail = attempted ? "reform.success" : "reform.denied";
+	detail += " reform=" + std::to_string(reform_item)
+		+ " base=" + std::to_string(base_item)
+		+ " result=" + std::to_string(base->resultItemId)
+		+ " slot_reformed=" + std::to_string(slot_reformed ? 1 : 0)
+		+ " base_count=" + std::to_string(before_base) + "->" + std::to_string(after_base)
+		+ " result_count=" + std::to_string(before_result) + "->" + std::to_string(after_result)
+		+ " refine=" + std::to_string(before_refine) + "->" + std::to_string(after_refine);
+
+	playerbot_item_audit(bot_id, char_id, account_id, "reform", base_item, attempted ? 1 : 0, "inventory", attempted ? "ok" : "denied", detail.c_str());
+	playerbot_trace_interaction(
+		bot_id,
+		char_id,
+		account_id,
+		sd,
+		attempted ? "interaction.completed" : "interaction.failed",
+		"reform",
+		std::to_string(base_item).c_str(),
+		attempted ? "operator.start" : "target.invalid",
+		attempted ? "ok" : "denied",
+		attempted ? "" : "reform.execute",
+		detail.c_str());
+	if (opened_here)
+		sd->state.item_reform = 0;
+	script_pushint(st, attempted ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+#endif
+}
+
+/*==========================================
  * Count one item amount for a playerbot by location.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_itemcount)
@@ -33089,6 +33189,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_itemremove,"sii"),
 	BUILDIN_DEF(playerbot_itemuse,"si"),
 	BUILDIN_DEF(playerbot_refine,"sii?"),
+	BUILDIN_DEF(playerbot_reform,"sii"),
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),

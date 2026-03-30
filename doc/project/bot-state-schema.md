@@ -615,6 +615,8 @@ Committed fields:
   - `storage_deposit`
   - `storage_withdraw`
   - `consume`
+  - `refine`
+  - `reform`
 - `item_id`
 - `amount`
 - `location`
@@ -647,6 +649,10 @@ Status:
   `sql-files/upgrades/upgrade_20260327_playerbot_item_audit.sql`
 - enum extended for item-use participation in:
   `sql-files/upgrades/upgrade_20260328_playerbot_item_consume.sql`
+- enum extended for refine participation in:
+  `sql-files/upgrades/upgrade_20260330_playerbot_item_refine.sql`
+- enum extended for reform participation in:
+  `sql-files/upgrades/upgrade_20260330_playerbot_item_reform.sql`
 
 ## Runtime Ownership
 

@@ -1473,6 +1473,11 @@ void clif_reputation_open( map_session_data& sd, uint64 tabID, uint64 repID );
 
 // Item Reform UI
 void clif_item_reform_open( map_session_data& sd, t_itemid item );
+enum e_item_reform_attempt_result : int16 {
+	ITEM_REFORM_ATTEMPT_DENIED = 0,
+	ITEM_REFORM_ATTEMPT_SUCCESS,
+};
+e_item_reform_attempt_result clif_item_reform_attempt( map_session_data* sd, t_itemid reform_item, uint16 index );
 
 // Item Enchant UI
 void clif_enchantwindow_open( map_session_data& sd, uint64 clientLuaIndex );

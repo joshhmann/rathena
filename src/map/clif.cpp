@@ -24409,69 +24409,52 @@ void clif_item_reform_result( map_session_data& sd, uint16 index, uint8 result )
 #endif
 }
 
-void clif_parse_item_reform_start( int32 fd, map_session_data* sd ){
+e_item_reform_attempt_result clif_item_reform_attempt( map_session_data* sd, t_itemid reform_item, uint16 index ){
 #if PACKETVER_MAIN_NUM >= 20200916 || PACKETVER_RE_NUM >= 20211103 || PACKETVER_ZERO_NUM >= 20221024
-	// Not opened
-	if( sd->state.item_reform == 0 ){
-		return;
+	nullpo_retr( ITEM_REFORM_ATTEMPT_DENIED, sd );
+
+	if( reform_item == 0 || index >= MAX_INVENTORY || sd->inventory_data[index] == nullptr ){
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
-	const PACKET_CZ_ITEM_REFORM* p = reinterpret_cast<PACKET_CZ_ITEM_REFORM*>( RFIFOP( fd, 0 ) );
-
-	// Item mismatch
-	if( p->ITID != sd->state.item_reform ){
-		return;
-	}
-
-	uint16 index = server_index( p->index );
-
-	if( index >= MAX_INVENTORY ){
-		return;
-	}
-
-	if( sd->inventory_data[index] == nullptr ){
-		return;
-	}
-
-	std::shared_ptr<s_item_reform> reform = item_reform_db.find( sd->state.item_reform );
+	std::shared_ptr<s_item_reform> reform = item_reform_db.find( reform_item );
 
 	if( reform == nullptr ){
-		return;
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	struct item& selected_item = sd->inventory.u.items_inventory[index];
-
 	std::shared_ptr<s_item_reform_base> base = util::umap_find( reform->base_items, selected_item.nameid );
 
 	if( base == nullptr ){
-		return;
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	// If target item is not identified
 	if( selected_item.identify == 0 ){
-		return;
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	// If target item is equipped
 	if( selected_item.equip != 0 ){
-		return;
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	// Check minimum refine requirement
 	if( selected_item.refine < base->minimumRefine ){
-		return;
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	// Check maximum refine requirement
 	if( selected_item.refine > base->maximumRefine ){
-		return;
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	// If no cards are allowed
 	if( !base->cardsAllowed ){
 		for( int32 i = 0; i < MAX_SLOTS; i++ ){
 			if( selected_item.card[i] != 0 ){
-				return;
+				return ITEM_REFORM_ATTEMPT_DENIED;
 			}
 		}
 	}
@@ -24487,7 +24470,7 @@ void clif_parse_item_reform_start( int32 fd, map_session_data* sd ){
 		}
 
 		if( ( i + 1 ) < base->requiredRandomOptions ){
-			return;
+			return ITEM_REFORM_ATTEMPT_DENIED;
 		}
 	}
 
@@ -24498,11 +24481,11 @@ void clif_parse_item_reform_start( int32 fd, map_session_data* sd ){
 		int16 material_index = pc_search_inventory( sd, material.first );
 
 		if( material_index < 0 ){
-			return;
+			return ITEM_REFORM_ATTEMPT_DENIED;
 		}
 
 		if( sd->inventory.u.items_inventory[material_index].amount < material.second ){
-			return;
+			return ITEM_REFORM_ATTEMPT_DENIED;
 		}
 
 		materials[material_index] = material.second;
@@ -24511,13 +24494,13 @@ void clif_parse_item_reform_start( int32 fd, map_session_data* sd ){
 	// Remove the material
 	for( const auto& material : materials ){
 		if( pc_delitem( sd, material.first, material.second, 0, 0, LOG_TYPE_REFORM ) != 0 ){
-			return;
+			return ITEM_REFORM_ATTEMPT_DENIED;
 		}
 	}
 
 	// If triggered from item
-	if( sd->itemid == sd->state.item_reform && pc_delitem( sd, sd->itemindex, 1, 0, 0, LOG_TYPE_REFORM ) != 0 ){
-		return;
+	if( sd->itemid == reform_item && pc_delitem( sd, sd->itemindex, 1, 0, 0, LOG_TYPE_REFORM ) != 0 ){
+		return ITEM_REFORM_ATTEMPT_DENIED;
 	}
 
 	// Log removal of item
@@ -24560,6 +24543,34 @@ void clif_parse_item_reform_start( int32 fd, map_session_data* sd ){
 	clif_additem( sd, index, 1, 0 );
 
 	clif_item_reform_result( *sd, index, 0 );
+
+	return ITEM_REFORM_ATTEMPT_SUCCESS;
+#else
+	return ITEM_REFORM_ATTEMPT_DENIED;
+#endif
+}
+
+void clif_parse_item_reform_start( int32 fd, map_session_data* sd ){
+#if PACKETVER_MAIN_NUM >= 20200916 || PACKETVER_RE_NUM >= 20211103 || PACKETVER_ZERO_NUM >= 20221024
+	// Not opened
+	if( sd->state.item_reform == 0 ){
+		return;
+	}
+
+	const PACKET_CZ_ITEM_REFORM* p = reinterpret_cast<PACKET_CZ_ITEM_REFORM*>( RFIFOP( fd, 0 ) );
+
+	// Item mismatch
+	if( p->ITID != sd->state.item_reform ){
+		return;
+	}
+
+	uint16 index = server_index( p->index );
+
+	if( index >= MAX_INVENTORY ){
+		return;
+	}
+
+	clif_item_reform_attempt( sd, sd->state.item_reform, index );
 #endif
 }
 

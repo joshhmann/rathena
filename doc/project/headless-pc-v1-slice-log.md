@@ -5792,6 +5792,76 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 87: Real Playerbot Reform Execution Baseline
+
+### Summary
+
+Extended the transactional item foundation from refine-only execution to include
+real engine-backed item reform execution for live playerbots, then promoted the
+new reform proof into item smoke and the aggregate foundation-rich gate.
+
+### Files
+
+- `src/map/clif.hpp`
+- `src/map/clif.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260330_playerbot_item_reform.sql` (new)
+- `doc/project/bot-state-schema.md`
+
+### What Changed
+
+- Added reusable map-server reform helper:
+  - `clif_item_reform_attempt(sd, reform_item, index)`
+  - mirrors the existing packet-path legality and material checks
+  - executes real reform mutation (materials, item replacement, options/refine
+    adjustments) and returns explicit success/denied result
+- Refactored `clif_parse_item_reform_start` to delegate runtime execution to the
+  shared helper so packet path and script path use the same logic.
+- Added new playerbot script buildin:
+  - `playerbot_reform(<bot_key>, <reform_item_id>, <base_item_id>)`
+  - emits interaction trace + `bot_item_audit` rows
+  - closes transient reform session state when opened by the buildin
+- Extended item selftest coverage in `PlayerbotItemSelftest` with deterministic
+  reform path:
+  - uses `IDTest_Special (100000)` to reform `Ring (2601)` into
+    `Clothes_Of_The_Lord (2318)` with `Jellopy (909)` + `Fluff (914)`
+  - validates consumed materials, transformed result item, reform session
+    cleanup, reform audit presence, and includes these in `result=1` criteria
+- Extended `playerbot-item-smoke.sh` denied/recovery gate to require:
+  - `reform_exec_ok=1`
+  - `reform_result_ok=1`
+  - `reform_session_clear_ok=1`
+  - `reform_audit_ok=1`
+  - at least one `action='reform'` audit row in the recent window
+- Extended `bot_item_audit.action` enum with `reform`:
+  - base schema in `main.sql`
+  - upgrade artifact `upgrade_20260330_playerbot_item_reform.sql`
+- Updated schema contract docs so `bot_item_audit` action list now includes both
+  `refine` and `reform` plus the new upgrade reference.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+
+Observed pass signals:
+
+- `playerbot_item_selftest ... reform_exec_ok=1 ... reform_result_ok=1 ... reform_audit_ok=1 ... result=1`
+- `[playerbot-item-smoke] loadout denial/recovery check passed.`
+- `[playerbot-foundation-smoke] rich gate pass ok.`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- enchantgrade execution buildin path
+- multi-step reform chains or random-option branch assertions
+- expanded market-side transactional semantics beyond the current item baseline
+
 ## Slice 86: Real Playerbot Refine Execution Baseline
 
 ### Summary
