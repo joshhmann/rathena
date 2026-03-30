@@ -166,7 +166,7 @@ EOF
 			;;
 		market-buyingstore-denial-continuity)
 			cat <<'EOF'
-Validate that buyingstore sell denials for wrong-item and overfill attempts do not tear down either side of the market session and that the same session can still continue into legal partial-fill and close/reopen flow.
+Validate that buyingstore sell denials for browse-inactive, wrong-item, overfill, and zeny-limit attempts do not tear down either side of the market session and that continuity still reaches legal partial-fill and close/reopen flow.
 EOF
 			;;
 		foundation-rich-gate)
@@ -352,7 +352,7 @@ EOF
 - arm the market smoke helper
 - log in once with the `codex` OpenKore profile
 - run `bash tools/ci/playerbot-market-smoke.sh check`
-- confirm the selftest line contains `buying_wrong_item_denied_ok=1`, `buying_overfill_denied_ok=1`, and `buying_denied_state_ok=1`
+- confirm the selftest line contains `buying_browse_inactive_denied_ok=1`, `buying_wrong_item_denied_ok=1`, `buying_overfill_denied_ok=1`, `buying_zeny_limit_denied_ok=1`, and `buying_denial_trace_ok=1`
 - confirm `result=1`, `buying_partial_ok=1`, and `buying_reopen_ok=1` remain present on the same line
 - confirm the printed interaction summary includes `buyingtrade` denials and completed rows in the same test window
 EOF
@@ -454,7 +454,7 @@ EOF
 			;;
 		market-buyingstore-denial-continuity)
 			cat <<'EOF'
-- `playerbot_merchant_selftest ... buying_wrong_item_denied_ok=1 ... buying_overfill_denied_ok=1 ... buying_denied_state_ok=1 ... result=1` is present
+- `playerbot_merchant_selftest ... buying_browse_inactive_denied_ok=1 ... buying_wrong_item_denied_ok=1 ... buying_overfill_denied_ok=1 ... buying_zeny_limit_denied_ok=1 ... buying_denial_trace_ok=1 ... result=1` is present
 - `buying_partial_ok=1` and `buying_reopen_ok=1` are both still present
 - `market_trace_ok=1` is present
 - recent interaction summary shows denied and completed `buyingtrade` rows within the same run

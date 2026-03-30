@@ -5792,6 +5792,66 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 75: Merchant Denial Continuity Gate Expansion
+
+### Summary
+
+Expanded the merchant selftest and market smoke gate to require two additional
+buyingstore denial-continuity behaviors:
+
+- `browse.inactive` denial continuity
+- `buyer.zeny_limit` denial continuity
+
+Both denials are now required to appear in runtime trace evidence while the same
+market flow still reaches partial-fill and reopen/close success.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- In `F_PB_MerchantSelftest_Run`, expanded the buyingstore path with:
+  - an explicit close-then-sell attempt to force `browse.inactive`, then
+    reopen and continue the same session flow
+  - a low-zeny-limit buyingstore cycle (`zenylimit=40`, request priced at 50)
+    to force `buyer.zeny_limit` while proving state continuity and clean close
+- Added a trace-backed denial proof:
+  - `buying_denial_trace_ok` now requires at least one `buyingtrade` trace row
+    with `error_detail='browse.inactive'` and one with
+    `error_detail='buyer.zeny_limit'` in the same runtime window
+- Raised the market trace volume floor for this richer path:
+  - `market_trace_ok` now requires at least 20 market interaction rows
+- Updated `playerbot-market-smoke.sh check` required keys to include:
+  - `buying_browse_inactive_denied_ok=1`
+  - `buying_zeny_limit_denied_ok=1`
+  - `buying_denial_trace_ok=1`
+- Updated scenario catalog wording and proof expectations for
+  `market-buyingstore-denial-continuity` to include browse-inactive and
+  zeny-limit continuity.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-market-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_merchant_selftest ... buying_browse_inactive_denied_ok=1 ... buying_zeny_limit_denied_ok=1 ... buying_denial_trace_ok=1 ... result=1`
+- `[playerbot-market-smoke] market continuity check passed.`
+- `[playerbot-foundation-smoke] rich gate pass ok.`
+
+### Deferrals
+
+This slice does not change core `buyingstore` C++ semantics in `src/map/*`; it
+only strengthens script-level continuity gates and scenario/operator validation
+for existing runtime behavior.
+
 ## Slice 61: Participation Trade Recovery Determinism Stabilization
 
 ### Summary
