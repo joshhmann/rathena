@@ -81,6 +81,7 @@ Current catalog:
   mechanic-cleanup
   market-buyingstore-partial-fill
   market-buyingstore-reopen
+  foundation-rich-gate
 EOF
 }
 

@@ -17,7 +17,8 @@ playerbot_scenario_ids() {
 		'loadout-denied-recover' \
 		'mechanic-cleanup' \
 		'market-buyingstore-partial-fill' \
-		'market-buyingstore-reopen'
+		'market-buyingstore-reopen' \
+		'foundation-rich-gate'
 }
 
 playerbot_scenario_title() {
@@ -38,6 +39,7 @@ playerbot_scenario_title() {
 		mechanic-cleanup) printf '%s\n' 'Mechanic Cleanup' ;;
 		market-buyingstore-partial-fill) printf '%s\n' 'Market Buyingstore Partial Fill' ;;
 		market-buyingstore-reopen) printf '%s\n' 'Market Buyingstore Reopen' ;;
+		foundation-rich-gate) printf '%s\n' 'Foundation Rich Gate' ;;
 		*) return 1 ;;
 	esac
 }
@@ -50,6 +52,7 @@ playerbot_scenario_phase() {
 		item-loadout-continuity|loadout-denied-recover) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup) printf '%s\n' 'participation' ;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen) printf '%s\n' 'market' ;;
+		foundation-rich-gate) printf '%s\n' 'foundation' ;;
 		*) return 1 ;;
 	esac
 }
@@ -66,6 +69,9 @@ playerbot_scenario_kind() {
 			printf '%s\n' 'runbook'
 			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen)
+			printf '%s\n' 'runbook'
+			;;
+		foundation-rich-gate)
 			printf '%s\n' 'runbook'
 			;;
 		*)
@@ -156,6 +162,11 @@ EOF
 Validate that a buying store session that was closed (zeny depleted or operator stop) can be reopened cleanly — confirming that the prior session's zeny/reservation state is fully released before the new session starts and that no double-reservation or orphaned store record exists.
 EOF
 			;;
+		foundation-rich-gate)
+			cat <<'EOF'
+Validate the promoted richer foundation gate: aggregate foundation pass plus separate passing skillunit probe cycle.
+EOF
+			;;
 		*)
 			return 1
 			;;
@@ -164,7 +175,7 @@ EOF
 
 playerbot_scenario_prereqs() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|mechanic-cleanup|market-buyingstore-partial-fill|market-buyingstore-reopen)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|mechanic-cleanup|market-buyingstore-partial-fill|market-buyingstore-reopen|foundation-rich-gate)
 			cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
@@ -330,6 +341,15 @@ EOF
 - confirm `market.session / reopen / ok` is present in the trace
 EOF
 			;;
+		foundation-rich-gate)
+			cat <<'EOF'
+- run the canonical richer gate command:
+  - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- confirm the aggregate foundation gate passes first
+- confirm the separate skillunit probe cycle passes
+- confirm the final line reports `rich gate pass ok`
+EOF
+			;;
 		*)
 			return 1
 			;;
@@ -414,6 +434,13 @@ EOF
 - new session starts with a fresh reservation and no orphaned records from prior session
 EOF
 			;;
+		foundation-rich-gate)
+			cat <<'EOF'
+- `[playerbot-foundation-smoke] foundation pass ok.` is present
+- `playerbot_combat_skillunit_probe ... result=1` is present in the rich cycle
+- `[playerbot-foundation-smoke] rich gate pass ok.` is present
+EOF
+			;;
 		*)
 			return 1
 			;;
@@ -491,6 +518,19 @@ session reopen. Once the market session continuity hooks are implemented, these
 should be backed by a dedicated market smoke helper.
 EOF
 			;;
+		foundation-rich-gate)
+			cat <<'EOF'
+This scenario is backed by the integrated richer gate command:
+`bash tools/ci/playerbot-foundation-smoke.sh run-rich`.
+
+It is intentionally two-phase:
+1. aggregate foundation gate (`run`)
+2. separate skillunit probe gate
+
+That split preserves aggregate determinism while still requiring richer
+skillunit proof as part of promoted foundation validation.
+EOF
+			;;
 		*)
 			return 1
 			;;
@@ -522,6 +562,9 @@ playerbot_scenario_launcher() {
 			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen)
 			return 1
+			;;
+		foundation-rich-gate)
+			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run-rich'
 			;;
 		*)
 			return 1

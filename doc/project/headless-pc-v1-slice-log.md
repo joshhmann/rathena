@@ -5837,6 +5837,42 @@ foundation selftest stable while also requiring the separate skillunit probe.
 - The richer gate is promoted through a separate cycle to keep core baseline
   determinism.
 
+## Slice 81: Promote Rich Gate Into Scenario Catalog
+
+### Summary
+
+Wired the richer foundation gate into the repo-local scenario catalog so it is
+tracked as a first-class runbook scenario instead of an ad hoc command.
+
+### Files
+
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `tools/ci/playerbot-scenario.sh`
+
+### What Changed
+
+- Added new scenario id: `foundation-rich-gate`
+- Added full metadata and runbook sections:
+  - title, phase, kind, purpose
+  - prereqs, checklist, expected signals, notes
+  - launcher:
+    - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- Updated `playerbot-scenario.sh` usage output to include
+  `foundation-rich-gate` in the listed catalog.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash -n tools/ci/playerbot-scenario.sh`
+- `bash tools/ci/playerbot-scenario.sh list`
+- `bash tools/ci/playerbot-scenario.sh show foundation-rich-gate`
+
+### Notes
+
+- This slice does not change runtime behavior.
+- It promotes the richer combat/event gate into the same scenario-governed
+  validation surface used by other foundation fronts.
+
 ## Slice 79: Add playerbot mail-send mechanic proof
 
 Date: 2026-03-29

@@ -2864,3 +2864,11 @@ Richer combat/event promotion now has a sequencing guardrail:
     `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
 - `run-rich` is the required gate when validating richer combat/event promotion
   changes; plain `run` remains the baseline core gate
+
+Scenario governance for this promotion boundary is now explicit:
+
+- `foundation-rich-gate` is part of the repo-local scenario catalog
+- launcher:
+  - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- this makes the richer gate discoverable in the same interface as the other
+  foundation runbooks and reduces drift between runtime validation and docs
