@@ -5889,6 +5889,64 @@ This slice does not yet promote standalone `sunit_*` counters in the aggregate
 line; first-class skillunit continuity remains covered by the dedicated
 skillunit probe and precheck lanes in the rich gate.
 
+## Slice 63: Aggregate Skillunit Mapchange Continuity Promotion
+
+### Summary
+
+Promoted stable skillunit mapchange continuity signals into the aggregate combat
+selftest so `sunit_*` no longer remains a dead all-zero branch in the normal
+foundation pass.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended aggregate quit-skill segment to derive a first-class skillunit
+  continuity flow:
+  - skillunit grant/apply/active checks from the same deterministic
+    `AL_PNEUMA` cast path
+  - explicit mapchange cleanup proof (`prt_fild08 -> izlude`) with
+    skillunit count cleared
+  - return to field continuity check before proceeding
+- Wired stable `sunit_*` mapchange flags into aggregate pass criteria:
+  - `sunit_grant_ok`
+  - `sunit_apply_ok`
+  - `sunit_active_ok`
+  - `sunit_move_ok`
+  - `sunit_clear_ok`
+  - `sunit_return_ok`
+- Kept interrupt re-cast stress metrics diagnostic-only in aggregate:
+  - `sunit_int_*` values still emit for observability but are not hard-gated
+    in the aggregate line (interrupt authority remains proven in rich skillunit
+    lanes)
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- `bash tools/ci/playerbot-foundation-smoke.sh check-rich`
+
+Observed result:
+
+- aggregate combat line now reports:
+  - `sunit_grant_ok=1 sunit_apply_ok=1 sunit_active_ok=1`
+  - `sunit_move_ok=1 sunit_clear_ok=1 sunit_return_ok=1`
+  - `quit_skill_req_ok=1 quit_skill_cast_ok=1`
+  - `result=1`
+- standard foundation gate passes (`foundation pass ok`)
+- rich gate passes (`rich gate pass ok`)
+
+### Deferrals
+
+Interrupt re-cast stress (`sunit_int_req/active/kill`) remains non-gating in
+the aggregate line due intermittent script-busy recast timing under this long
+sequence; dedicated rich skillunit probe/precheck lanes remain the authority
+for full interrupt semantics.
+
 ## Slice 75: Buyingstore Denial Semantics And Market Continuity Hardening
 
 ### Summary

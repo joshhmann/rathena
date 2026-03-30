@@ -768,6 +768,57 @@ S_Run:
 		+ "AND `id` > '" + .@quit_skill_trace_before + "'",
 		.@quit_skill_trace_ok_count);
 	.@quit_skill_cast_ok = (.@quit_skill_req_ok && (.@quit_skill_unit_ok || .@quit_skill_trace_ok_count > 0));
+
+	.@skillunit_grant_ok = .@quit_skill_grant_ok;
+	.@skillunit_apply_ok = .@quit_skill_req_ok;
+	.@skillunit_active_ok = (.@quit_skill_req_ok && (.@quit_skill_unit_ok || playerbot_skillunitcount(.bot_key$, .@quit_skill_id) >= 1));
+	.@skillunit_move_ok = (.@skillunit_active_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
+	if (.@skillunit_move_ok)
+		sleep 900;
+	.@skillunit_clear_ok = (.@skillunit_move_ok && playerbot_skillunitcount(.bot_key$, .@quit_skill_id) == 0);
+	.@skillunit_return_ok = (.@skillunit_clear_ok && headlesspc_setpos(.char_id, "prt_fild08", 187, 218));
+	if (.@skillunit_return_ok)
+		sleep 1400;
+
+	callsub S_RefillBotVitals;
+	.@skillunit_interrupt_req_ok = 0;
+	for (.@i = 0; .@i < 3; ++.@i) {
+		if (.@skillunit_return_ok && playerbot_skillusepos(.bot_key$, .@quit_cast_x, .@quit_cast_y, .@quit_skill_id, 1, 0)) {
+			.@skillunit_interrupt_req_ok = 1;
+			break;
+		}
+		sleep 250;
+		playerbot_participationrecover(.bot_key$);
+		callsub S_RefillBotVitals;
+	}
+	for (.@i = 0; .@i < 5; ++.@i) {
+		sleep 200;
+		if (.@skillunit_interrupt_req_ok && playerbot_skillunitcount(.bot_key$, .@quit_skill_id) >= 1) {
+			.@skillunit_interrupt_active_ok = 1;
+			break;
+		}
+	}
+	.@skillunit_interrupt_kill_ok = (.@skillunit_interrupt_active_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@skillunit_interrupt_dead_ok = 1;
+			break;
+		}
+	}
+	.@skillunit_interrupt_clear_ok = (.@skillunit_interrupt_dead_ok && playerbot_skillunitcount(.bot_key$, .@quit_skill_id) == 0);
+	.@sunit_int_resp_req_ok = (.@skillunit_interrupt_dead_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && headlesspc_status(.char_id) == 2) {
+			.@sunit_int_resp_ok = 1;
+			break;
+		}
+	}
+	if (.@sunit_int_resp_ok)
+		sleep 900;
+	.@sunit_int_fresh_ok = (.@sunit_int_resp_ok && playerbot_skillunitcount(.bot_key$, .@quit_skill_id) == 0);
+
 	.@quit_skill_return_ok = headlesspc_setpos(.char_id, "alberta", 182, 144);
 	if (.@quit_skill_return_ok)
 		sleep 900;
@@ -796,8 +847,10 @@ S_Run:
 	.@quit_session_audit_ok = (.@quit_session_audit_count >= 1);
 
 		.@result = (.@summary_ok && .@spawn_ok && .@combat_preclear_ok && .@target_ok && .@attack_ok && .@engaged_ok
-			&& .@stop_ok && .@target_clear_ok
-			&& .@status_ok && .@status_clear_ok
+		&& .@stop_ok && .@target_clear_ok
+		&& .@skillunit_grant_ok && .@skillunit_apply_ok && .@skillunit_active_ok
+		&& .@skillunit_move_ok && .@skillunit_clear_ok && .@skillunit_return_ok
+		&& .@status_ok && .@status_clear_ok
 		&& .@status_map_apply_ok && .@status_map_ok && .@status_map_move_ok && .@status_map_cont_ok
 		&& .@status_map_return_ok && .@status_map_return_cont_ok && .@status_recover_req_ok
 		&& .@status_recover_ok && .@status_recover_clear_req_ok && .@status_recover_clear_ok
