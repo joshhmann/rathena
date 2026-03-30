@@ -505,13 +505,28 @@ static std::string playerbot_status_state(const map_session_data* sd) {
 		+ ",stun=" + std::to_string(sd->sc.getSCE(SC_STUN) != nullptr ? 1 : 0);
 }
 
+static bool playerbot_item_context_active(const map_session_data* sd) {
+	if (sd == nullptr)
+		return false;
+
+	if (sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement)
+		return true;
+	if (sd->itemid == 0)
+		return false;
+	if (sd->itemindex < 0 || sd->itemindex >= MAX_INVENTORY)
+		return true;
+	if (sd->inventory_data[sd->itemindex] == nullptr)
+		return true;
+	return (sd->inventory_data[sd->itemindex]->flag.delay_consume != DELAYCONSUME_NONE);
+}
+
 static int32 playerbot_session_count(const map_session_data* sd) {
 	if (sd == nullptr)
 		return 0;
 
 	return (sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
-		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ((sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement) ? 1 : 0)
 		+ (sd->searchstore.open ? 1 : 0)
 		+ (sd->vended_id != 0 ? 1 : 0)
 		+ (sd->state.buyingstore ? 1 : 0)
@@ -527,7 +542,8 @@ static int32 playerbot_session_count(const map_session_data* sd) {
 		+ (sd->state.barter_extended_open ? 1 : 0)
 		+ (sd->state.laphine_synthesis != 0 ? 1 : 0)
 		+ (sd->state.laphine_upgrade != 0 ? 1 : 0)
-		+ (sd->state.banking ? 1 : 0);
+		+ (sd->state.banking ? 1 : 0)
+		+ (playerbot_item_context_active(sd) ? 1 : 0);
 }
 
 static std::string playerbot_session_state(const map_session_data* sd) {
@@ -538,6 +554,7 @@ static std::string playerbot_session_state(const map_session_data* sd) {
 		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ",itemkeep=" + std::to_string(sd->skillitem_keep_requirement ? 1 : 0)
 		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
 		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
 		+ ",buyingstore=" + std::to_string(sd->state.buyingstore ? 1 : 0)
@@ -553,7 +570,8 @@ static std::string playerbot_session_state(const map_session_data* sd) {
 		+ ",barterx=" + std::to_string(sd->state.barter_extended_open ? 1 : 0)
 		+ ",laphsyn=" + std::to_string(sd->state.laphine_synthesis != 0 ? 1 : 0)
 		+ ",laphup=" + std::to_string(sd->state.laphine_upgrade != 0 ? 1 : 0)
-		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0);
+		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0)
+		+ ",itemctx=" + std::to_string(playerbot_item_context_active(sd) ? 1 : 0);
 }
 
 static std::string playerbot_search_state(const map_session_data* sd) {
@@ -725,7 +743,7 @@ static bool playerbot_session_mode_active(const map_session_data* sd, const char
 	if (strcmp(mode, "menuskill") == 0)
 		return (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0);
 	if (strcmp(mode, "skillitem") == 0)
-		return (sd->skillitem != 0 || sd->skillitemlv != 0);
+		return (sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement);
 	if (strcmp(mode, "searchstore") == 0)
 		return sd->searchstore.open;
 	if (strcmp(mode, "mail") == 0)
@@ -771,6 +789,9 @@ static bool playerbot_session_mode_set(map_session_data* sd, const char* mode, b
 					buyingstore_close(sd);
 				if (sd->skillitem != 0)
 					sd->skillitem = sd->skillitemlv = 0;
+				sd->skillitem_keep_requirement = false;
+				sd->itemid = 0;
+				sd->itemindex = -1;
 			if (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0)
 				clif_menuskill_clear(sd);
 			sd->state.mail_writing = false;
@@ -838,6 +859,7 @@ static bool playerbot_session_mode_set(map_session_data* sd, const char* mode, b
 		} else {
 			sd->skillitem = 0;
 			sd->skillitemlv = 0;
+			sd->skillitem_keep_requirement = false;
 		}
 		return playerbot_session_mode_active(sd, mode) == enable;
 	}

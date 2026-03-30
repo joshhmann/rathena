@@ -10002,6 +10002,26 @@ static std::string pc_playerbot_loadout_state(const map_session_data* sd, uint32
 	return "loadout_rows=" + std::to_string(loadout_rows) + ",equipped_rows=" + std::to_string(equipped_rows);
 }
 
+static bool pc_playerbot_has_loadout(uint32 bot_id)
+{
+	if (bot_id == 0)
+		return false;
+
+	if (SQL_ERROR == Sql_Query(mmysql_handle,
+		"SELECT COUNT(*) FROM `bot_equipment_loadout` WHERE `bot_id` = '%u'",
+		bot_id)) {
+		Sql_ShowDebug(mmysql_handle);
+		return false;
+	}
+
+	char* data = nullptr;
+	int32 rows = 0;
+	if (SQL_SUCCESS == Sql_NextRow(mmysql_handle) && SQL_SUCCESS == Sql_GetData(mmysql_handle, 0, &data, nullptr) && data != nullptr)
+		rows = atoi(data);
+	Sql_FreeResult(mmysql_handle);
+	return rows > 0;
+}
+
 static const char* pc_playerbot_equip_ack_detail(uint8 ack)
 {
 	switch (ack) {
@@ -10039,6 +10059,22 @@ static std::string pc_playerbot_combat_state(const map_session_data* sd)
 		+ ",trade=" + std::to_string((sd->trade_partner.id != 0 || sd->state.trading) ? 1 : 0);
 }
 
+static bool pc_playerbot_item_context_active(const map_session_data* sd)
+{
+	if (sd == nullptr)
+		return false;
+
+	if (sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement)
+		return true;
+	if (sd->itemid == 0)
+		return false;
+	if (sd->itemindex < 0 || sd->itemindex >= MAX_INVENTORY)
+		return true;
+	if (sd->inventory_data[sd->itemindex] == nullptr)
+		return true;
+	return (sd->inventory_data[sd->itemindex]->flag.delay_consume != DELAYCONSUME_NONE);
+}
+
 static int32 pc_playerbot_session_count(const map_session_data* sd)
 {
 	if (sd == nullptr)
@@ -10046,7 +10082,7 @@ static int32 pc_playerbot_session_count(const map_session_data* sd)
 
 	return (sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
-		+ ((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ((sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement) ? 1 : 0)
 		+ (sd->searchstore.open ? 1 : 0)
 		+ (sd->vended_id != 0 ? 1 : 0)
 		+ (sd->state.buyingstore ? 1 : 0)
@@ -10062,7 +10098,8 @@ static int32 pc_playerbot_session_count(const map_session_data* sd)
 		+ (sd->state.barter_extended_open ? 1 : 0)
 		+ (sd->state.laphine_synthesis != 0 ? 1 : 0)
 		+ (sd->state.laphine_upgrade != 0 ? 1 : 0)
-		+ (sd->state.banking ? 1 : 0);
+		+ (sd->state.banking ? 1 : 0)
+		+ (pc_playerbot_item_context_active(sd) ? 1 : 0);
 }
 
 static std::string pc_playerbot_session_state(const map_session_data* sd)
@@ -10074,6 +10111,7 @@ static std::string pc_playerbot_session_state(const map_session_data* sd)
 		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
 		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
+		+ ",itemkeep=" + std::to_string(sd->skillitem_keep_requirement ? 1 : 0)
 		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
 		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
 		+ ",buyingstore=" + std::to_string(sd->state.buyingstore ? 1 : 0)
@@ -10089,7 +10127,8 @@ static std::string pc_playerbot_session_state(const map_session_data* sd)
 		+ ",barterx=" + std::to_string(sd->state.barter_extended_open ? 1 : 0)
 		+ ",laphsyn=" + std::to_string(sd->state.laphine_synthesis != 0 ? 1 : 0)
 		+ ",laphup=" + std::to_string(sd->state.laphine_upgrade != 0 ? 1 : 0)
-		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0);
+		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0)
+		+ ",itemctx=" + std::to_string(pc_playerbot_item_context_active(sd) ? 1 : 0);
 }
 
 static bool pc_playerbot_force_recover_npc(map_session_data* sd)
@@ -10180,6 +10219,9 @@ static void pc_playerbot_force_clear_session(map_session_data* sd)
 		buyingstore_close(sd);
 	if (sd->skillitem != 0)
 		sd->skillitem = sd->skillitemlv = 0;
+	sd->skillitem_keep_requirement = 0;
+	sd->itemid = 0;
+	sd->itemindex = -1;
 	if (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0)
 		clif_menuskill_clear(sd);
 	sd->state.mail_writing = false;
@@ -10563,6 +10605,7 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 		return;
 
 	std::string before = pc_playerbot_combat_state(sd);
+	std::string status_before = pc_playerbot_status_state(sd);
 	unit_stop_attack(sd);
 	auto cast_cleanup = pc_playerbot_cleanup_skillcast(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
 	auto skillunit_cleanup = pc_playerbot_cleanup_skillunits(sd, bot_id, char_id, account_id, "combat", "combat.completed", "restart.recovery", "combat.respawn.interrupt");
@@ -10586,10 +10629,10 @@ static void pc_playerbot_handle_respawn_cleanup(map_session_data* sd)
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "combat", "respawn", before.c_str(), after.c_str(), "ok", detail.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "respawn.completed", "respawn", "", "restart.recovery", "ok", "", detail.c_str());
 
-	std::string status_before = pc_playerbot_status_state(sd);
 	std::string status_after = pc_playerbot_status_state(sd);
-	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "reconcile", status_before.c_str(), status_after.c_str(), "ok", "respawn.reconcile");
-	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "restart.recovery", "ok", "", "status.reconciled");
+	const bool status_changed = (status_before != status_after);
+	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "status", "reconcile", status_before.c_str(), status_after.c_str(), "ok", status_changed ? "respawn.reconcile" : "respawn.nochange");
+	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "combat", "combat.completed", "status", "", "restart.recovery", "ok", "", status_changed ? "status.reconciled" : "status.unchanged");
 }
 
 static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
@@ -10604,9 +10647,15 @@ static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
 	auto skillunit_cleanup = pc_playerbot_cleanup_skillunits(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
 	auto cleanup = pc_playerbot_cleanup_participation(sd, bot_id, char_id, account_id, "reconcile", "reconcile.fixed", "map.changed", "mapchange.interrupt");
 	int32 released = pc_playerbot_release_reservations(bot_id, char_id, account_id, sd, "reconcile", "map.changed", "mapchange.interrupt");
+	int32 loadout_applied = 0, loadout_missing = 0, loadout_denied = 0;
+	bool loadout_attempted = false;
+	if (pc_playerbot_has_loadout(bot_id)) {
+		loadout_attempted = true;
+		pc_playerbot_reconcile_loadout(sd, "mapchange", &loadout_applied, &loadout_missing, &loadout_denied);
+	}
 	std::string after = pc_playerbot_combat_state(sd);
 
-	if (before == after && !cast_cleanup.had && !skillunit_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0)
+	if (before == after && !cast_cleanup.had && !skillunit_cleanup.had && !cleanup.npc_had && !cleanup.storage_had && !cleanup.trade_had && released == 0 && !loadout_attempted)
 		return;
 
 	std::string detail = released > 0 ? "mapchange.cleared.reservations" : "mapchange.cleared";
@@ -10619,6 +10668,8 @@ static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd)
 		detail += " storage=" + std::to_string(cleanup.storage_had ? (cleanup.storage_ok ? 1 : -1) : 0);
 		detail += " trade=" + std::to_string(cleanup.trade_had ? (cleanup.trade_ok ? 1 : -1) : 0);
 	}
+	if (loadout_attempted)
+		detail += " loadout=" + std::to_string(loadout_applied) + "/" + std::to_string(loadout_missing) + "/" + std::to_string(loadout_denied);
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "mapchange", "interrupt", before.c_str(), after.c_str(), "ok", detail.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", "reconcile.fixed", "mapchange", "", "map.changed", "ok", "", detail.c_str());
 }

@@ -72,7 +72,7 @@ check_denied() {
 		printf '[playerbot-item-smoke] missing item selftest result line.\n' >&2
 		return 1
 	fi
-	for key in result=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_audit_ok=1; do
+	for key in result=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[playerbot-item-smoke] required signal missing: %s\n' "$key" >&2
 			failures=$((failures + 1))
@@ -95,6 +95,21 @@ EOF
 		printf '[playerbot-item-smoke] missing slot-conflict-clear item-audit detail row.\n' >&2
 		failures=$((failures + 1))
 	fi
+	local mapchange_loadout_audits=0
+	mapchange_loadout_audits="$(
+		mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
+SELECT COUNT(*)
+FROM \`bot_recovery_audit\`
+WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
+  AND \`scope\` = 'loadout'
+  AND \`action\` = 'reconcile'
+  AND \`detail\` LIKE 'loadout.mapchange %';
+EOF
+	)"
+	if (( mapchange_loadout_audits < 1 )); then
+		printf '[playerbot-item-smoke] missing loadout.mapchange reconcile audit row.\n' >&2
+		failures=$((failures + 1))
+	fi
 
 	printf '\n[playerbot-item-smoke] Recent loadout denial/recovery audit summary\n'
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
@@ -110,6 +125,7 @@ GROUP BY \`action\`, \`detail\`, \`result\`
 ORDER BY MAX(\`id\`) DESC
 LIMIT 12;
 EOF
+	printf '\n[playerbot-item-smoke] loadout.mapchange reconcile rows (last 30m): %s\n' "$mapchange_loadout_audits"
 	if (( failures > 0 )); then
 		printf '\n[playerbot-item-smoke] loadout denial/recovery check failed with %d missing signal(s).\n' "$failures" >&2
 		return 1

@@ -32,9 +32,9 @@ EOF
 }
 
 wait_for_stage_done() {
-	local timeout_s="${1:-150}" elapsed=0 pane
+	local timeout_s="${1:-240}" elapsed=0 pane
 	while (( elapsed < timeout_s )); do
-		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -200 2>/dev/null || true)"
+		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 2>/dev/null || true)"
 		if printf '%s\n' "$pane" | grep -q 'playerbot_foundation_selftest: stage=done'; then
 			return 0
 		fi
@@ -116,7 +116,7 @@ EOF
 run() {
 	arm
 	launch_kore
-	if ! wait_for_stage_done 150; then
+	if ! wait_for_stage_done 300; then
 		printf '[playerbot-foundation-smoke] foundation pass did not reach stage=done within timeout.\n' >&2
 		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
 		return 1

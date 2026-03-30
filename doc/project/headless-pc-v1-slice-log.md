@@ -5792,6 +5792,86 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 85: Mapchange Loadout Reconcile And Session Item-Context Tightening
+
+### Summary
+
+Extended the core runtime continuity boundary so map-change cleanup now includes
+intended-loadout reconcile (when a loadout exists), and tightened session
+cleanup/accounting to treat delayed-item keep context as first-class state.
+
+### Files
+
+- `src/map/pc.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+
+### What Changed
+
+- `pc.cpp`:
+  - Added `pc_playerbot_has_loadout(bot_id)` helper and invoked
+    `pc_playerbot_reconcile_loadout(..., "mapchange", ...)` during
+    `pc_playerbot_handle_mapchange_cleanup(...)` when loadout rows exist.
+  - Session counting/summaries now include `skillitem_keep_requirement` through
+    `itemkeep`.
+  - Session cleanup now clears:
+    - `skillitem_keep_requirement`
+    - `itemid`
+    - `itemindex`
+  - Fixed respawn status audit semantics so before/after snapshots are no
+    longer captured after cleanup.
+
+- `script.cpp`:
+  - Playerbot session counting/summary now include `itemkeep`.
+  - `playerbot_session_mode_active("skillitem")` now treats keep-requirement
+    state as active.
+  - Session-mode clear paths explicitly clear keep-requirement and item context.
+
+- `playerbot_item_lab.txt`:
+  - Item selftest now validates loadout continuity through a successful
+    map-change and return sequence.
+  - Added required `loadout.mapchange` reconcile audit signal.
+
+- `playerbot-item-smoke.sh`:
+  - `check-denied` now requires map-change continuity keys:
+    - `loadout_map_move_ok=1`
+    - `loadout_map_cont_ok=1`
+    - `loadout_map_return_ok=1`
+    - `loadout_map_return_cont_ok=1`
+  - Added required `bot_recovery_audit` check for
+    `scope='loadout' action='reconcile' detail LIKE 'loadout.mapchange %'`.
+
+- `playerbot-foundation-smoke.sh`:
+  - Increased `stage=done` wait window and pane capture window to avoid
+    false timeout failures during noisier aggregate runs.
+
+- `playerbot-scenario-catalog.sh`:
+  - `item-loadout-continuity` runbook/expected output now explicitly include
+    map-change continuity and `loadout.mapchange` reconcile evidence.
+
+### Validation
+
+- `bash -n src/map/pc.cpp` is not applicable; C++ compiles validated via normal build flow.
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash -n npc/custom/playerbot/playerbot_item_lab.txt` is not applicable; NPC script validated in runtime selftest harness.
+- Runtime validation target:
+  - `bash tools/ci/playerbot-item-smoke.sh run`
+  - `bash tools/ci/playerbot-item-smoke.sh check-denied`
+  - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- multi-slot/full-build loadout policy
+- richer item-targeted combat consumable behavior
+- broader item-session transfer semantics beyond current map-change reconcile
+
 ## Slice 84: Skillunit Precheck Gate Promotion
 
 ### Summary

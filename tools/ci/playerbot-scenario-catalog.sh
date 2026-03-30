@@ -295,6 +295,8 @@ EOF
 - define an intended loadout for the test actor
 - spawn or respawn the actor
 - verify the intended equipment summary is readable
+- trigger a successful map change and return
+- confirm intended equipment continuity survives the map transition
 - confirm legal equip reconciliation occurs without duplicate ownership
 EOF
 			;;
@@ -396,6 +398,7 @@ EOF
 			cat <<'EOF'
 - intended loadout is visible in the summary
 - legal equip reconciliation leaves a clean inventory/equipment state
+- map-change loadout reconcile audits (`loadout.mapchange ...`) are emitted
 EOF
 			;;
 		loadout-denied-recover)
