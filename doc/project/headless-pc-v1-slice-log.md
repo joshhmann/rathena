@@ -5843,6 +5843,71 @@ This slice strengthens execution/denial continuity gates and audit proof, but
 does not introduce new refine/reform/enchantgrade C++ business rules beyond the
 existing runtime APIs.
 
+## Slice 77: Aggregate Combat Skillunit Mapchange Promotion
+
+### Summary
+
+Promoted a deterministic skillunit continuity signal into the aggregate combat
+gate by requiring mapchange skillunit cleanup trace/audit proof inside
+`playerbot_combat_selftest`, and surfaced `skillunit` scope in core smoke
+summaries.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended aggregate combat selftest observability and gating:
+  - Added `skillunit_map_trace_count` query:
+    - `bot_trace_event`
+    - `target_type='skillunit'`
+    - `phase='reconcile'`
+    - `action='reconcile.fixed'`
+    - `reason_code='map.changed'`
+    - `error_detail LIKE 'mapchange.interrupt%'`
+  - Added `skillunit_map_audit_count` query:
+    - `bot_recovery_audit`
+    - `scope='skillunit'`
+    - `action='interrupt'`
+    - `detail LIKE 'mapchange.interrupt%'`
+  - Added booleans:
+    - `skillunit_map_trace_ok`
+    - `skillunit_map_audit_ok`
+  - Tightened aggregate pass condition to require both booleans.
+  - Added both booleans to the `playerbot_combat_selftest` debug output line.
+- Extended combat smoke visibility:
+  - `playerbot-combat-smoke.sh check` now prints:
+    - `phase` column in trace output
+    - recent `reconcile/skillunit` trace rows alongside combat rows
+  - recovery-audit scope filter now includes `skillunit`.
+- Extended foundation smoke summary visibility:
+  - `playerbot-foundation-smoke.sh check` recovery-audit summary now includes
+    `scope='skillunit'`.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-combat-smoke.sh`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+
+Integrated result:
+
+- `playerbot_combat_selftest ... skillunit_map_trace_ok=1 ... skillunit_map_audit_ok=1 ... result=1`
+- `[playerbot-foundation-smoke] foundation pass ok.`
+- `[playerbot-foundation-smoke] rich gate pass ok.`
+
+### Deferrals
+
+This slice promotes deterministic mapchange skillunit continuity in aggregate
+combat validation, but does not yet promote the standalone aggregate
+`sunit_int_*` death-interrupt counters. Those remain covered by the dedicated
+skillunit probe/precheck rich lanes.
+
 ## Slice 75: Merchant Denial Continuity Gate Expansion
 
 ### Summary

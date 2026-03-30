@@ -32,15 +32,16 @@ EOF
 check() {
 	tmux capture-pane -J -pt rathena-dev-map-server -S -220 \; save-buffer - 2>/dev/null | tail -n 220 | grep 'playerbot_combat_selftest' || true
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
-SELECT \`action\`, \`target_type\`, \`reason_code\`, \`result\`, \`error_detail\`
+SELECT \`phase\`, \`action\`, \`target_type\`, \`reason_code\`, \`result\`, \`error_detail\`
 FROM \`bot_trace_event\`
 WHERE \`phase\` = 'combat'
+   OR (\`phase\` = 'reconcile' AND \`target_type\` = 'skillunit')
 ORDER BY \`id\` DESC
-LIMIT 16;
+LIMIT 20;
 
 SELECT \`scope\`, \`action\`, \`result\`, \`detail\`
 FROM \`bot_recovery_audit\`
-WHERE \`scope\` IN ('combat','npc','storage','trade')
+WHERE \`scope\` IN ('combat','npc','storage','trade','skillunit')
 ORDER BY \`id\` DESC
 LIMIT 16;
 EOF
