@@ -14527,8 +14527,16 @@ BUILDIN_FUNC(playerbot_skilluseself)
 	int32 before_units = playerbot_skillunit_count(sd, static_cast<uint16>(skill_id));
 	unit_skilluse_id2(sd, sd->id, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), (cast_ms > 0 ? cast_ms : 0) + skill_castfix(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv)), 1, false);
 	const unit_data* ud = unit_bl2ud(sd);
-	bool ok = (ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id || playerbot_skillunit_count(sd, static_cast<uint16>(skill_id)) > before_units));
-	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_self", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(denial_detail, "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skilluse", ok ? "" : denial_detail);
+	int32 after_units = playerbot_skillunit_count(sd, static_cast<uint16>(skill_id));
+	bool unit_created = after_units > before_units;
+	bool cast_started = (ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id));
+	bool ok = (ud != nullptr && (cast_started || unit_created));
+	std::string success_detail;
+	if (unit_created)
+		success_detail = "skillunit.created count=" + std::to_string(after_units - before_units);
+	else if (cast_started)
+		success_detail = "skill.started";
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_self", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(denial_detail, "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skilluse", ok ? success_detail.c_str() : denial_detail);
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -14561,8 +14569,19 @@ BUILDIN_FUNC(playerbot_skillusepos)
 	int32 before_units = playerbot_skillunit_count(sd, static_cast<uint16>(skill_id));
 	int32 ret = unit_skilluse_pos2(sd, static_cast<int16>(skill_x), static_cast<int16>(skill_y), static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv), (cast_ms > 0 ? cast_ms : 0) + skill_castfix(sd, static_cast<uint16>(skill_id), static_cast<uint16>(skill_lv)), 1, false);
 	const unit_data* ud = unit_bl2ud(sd);
-	bool ok = (ret > 0 && ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id || playerbot_skillunit_count(sd, static_cast<uint16>(skill_id)) > before_units));
-	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_pos", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(denial_detail, "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skillusepos", ok ? "" : denial_detail);
+	int32 after_units = playerbot_skillunit_count(sd, static_cast<uint16>(skill_id));
+	bool unit_created = after_units > before_units;
+	bool cast_started = (ud != nullptr && (ud->skilltimer != INVALID_TIMER || ud->skill_id == skill_id));
+	bool ok = (ret > 0 && ud != nullptr && (cast_started || unit_created));
+	std::string success_detail;
+	if (unit_created)
+		success_detail = "skillunit.created count=" + std::to_string(after_units - before_units);
+	else if (cast_started)
+		success_detail = "skill.started";
+	std::string failure_detail = denial_detail;
+	if (!ok && ret <= 0 && failure_detail.empty())
+		failure_detail = "skill.not_started";
+	playerbot_trace_combat(bot_id, char_id, account_id, sd, ok ? "combat.completed" : "combat.failed", "skill_pos", std::to_string(skill_id).c_str(), ok ? "none" : (std::strcmp(failure_detail.c_str(), "skill.not_started") == 0 ? "script.busy" : "cap.actor"), ok ? "ok" : "aborted", ok ? "" : "combat.skillusepos", ok ? success_detail.c_str() : failure_detail.c_str());
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }

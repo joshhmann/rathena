@@ -2745,6 +2745,11 @@ Runtime observability is stronger now for future combat/event work:
   - `near_npc.denied`
 - skill-unit interrupt cleanup is now audited under:
   - `scope = 'skillunit'`
+- successful positional skill traces now distinguish:
+  - `skill.started`
+  - `skillunit.created count=<n>`
+- that makes the dedicated skillunit probe more authoritative because the trace
+  can now prove unit creation separately from later interrupt cleanup
 
 Current limit:
 

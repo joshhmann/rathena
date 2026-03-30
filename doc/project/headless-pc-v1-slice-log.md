@@ -5792,6 +5792,53 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 62: Sharper Playerbot Skillunit Trace Details
+
+### Summary
+
+Improved the runtime skill wrappers so positional-skill traces now distinguish
+between a cast merely starting and a skillunit actually materializing.
+
+### Files
+
+- `src/map/script.cpp`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Extended `playerbot_skilluseself(...)` success traces to distinguish:
+  - `skill.started`
+  - `skillunit.created count=<n>`
+
+- Extended `playerbot_skillusepos(...)` success traces to distinguish:
+  - `skill.started`
+  - `skillunit.created count=<n>`
+
+- Kept the accepted combat gate unchanged:
+  - richer skillunit coverage is still proven through the dedicated probe and
+    scenario lane
+  - aggregate combat acceptance remains on the last stable baseline
+
+### Validation
+
+- `git diff --check`
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh arm`
+- repo-local `codex` OpenKore login
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh check`
+
+- live proof now includes:
+  - `playerbot_combat_skillunit_probe ... result=1`
+  - `combat.completed / skill_pos / none / ok / skillunit.created count=1`
+
+### Deferrals
+
+This slice does not yet:
+
+- promote skillunit branches into the aggregate combat selftest
+- broaden accepted combat coverage beyond the current dedicated skillunit probe
+
 ## Slice 61: Deeper Playerbot Loadout Continuity
 
 ### Summary
