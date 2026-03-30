@@ -1363,6 +1363,14 @@ void clif_sale_open( map_session_data* sd );
 
 // Refine UI
 void clif_refineui_open( map_session_data* sd );
+enum e_refineui_attempt_result : int16 {
+	REFINEUI_ATTEMPT_DENIED = 0,
+	REFINEUI_ATTEMPT_SUCCESS,
+	REFINEUI_ATTEMPT_FAILED,
+	REFINEUI_ATTEMPT_BROKE,
+	REFINEUI_ATTEMPT_DOWNGRADE,
+};
+e_refineui_attempt_result clif_refineui_attempt( map_session_data* sd, uint16 index, t_itemid material, bool use_blacksmith_blessing );
 
 /**
  * Color Table

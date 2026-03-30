@@ -13629,6 +13629,105 @@ BUILDIN_FUNC(playerbot_itemuse)
 }
 
 /*==========================================
+ * Execute one real refine attempt for a live playerbot item.
+ * Returns 1 when the attempt executed (success/fail/break/downgrade),
+ * or 0 when denied by preconditions.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_refine)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid item_nameid = script_getnum(st, 3);
+	t_itemid material_nameid = script_getnum(st, 4);
+	bool use_blessing = script_hasdata(st, 5) ? (script_getnum(st, 5) != 0) : false;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "refine", std::to_string(item_nameid).c_str(), "operator.start", "ok", "", "");
+
+	if (sd == nullptr || item_nameid == 0 || material_nameid == 0) {
+		const char* detail = sd == nullptr ? "bot.offline" : "item_or_material.invalid";
+		playerbot_item_audit(bot_id, char_id, account_id, "refine", item_nameid, 0, "inventory", "invalid", detail);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "refine", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "refine.execute", detail);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (!battle_config.feature_refineui) {
+		playerbot_item_audit(bot_id, char_id, account_id, "refine", item_nameid, 0, "inventory", "denied", "refine.disabled");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "refine", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "refine.execute", "refine.disabled");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool opened_here = false;
+	if (!sd->state.refineui_open) {
+		clif_refineui_open(sd);
+		opened_here = sd->state.refineui_open;
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, item_nameid, false);
+	if (idx < 0) {
+		if (opened_here)
+			sd->state.refineui_open = false;
+		playerbot_item_audit(bot_id, char_id, account_id, "refine", item_nameid, 0, "inventory", "missing", "inventory.missing");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "refine", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "refine.execute", "inventory.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 before_refine = sd->inventory.u.items_inventory[idx].refine;
+	int32 before_material = playerbot_inventory_amount(sd, material_nameid, false);
+	int32 before_zeny = sd->status.zeny;
+	e_refineui_attempt_result outcome = clif_refineui_attempt(sd, static_cast<uint16>(idx), material_nameid, use_blessing);
+	int32 after_material = playerbot_inventory_amount(sd, material_nameid, false);
+	int32 after_zeny = sd->status.zeny;
+	bool item_exists_after = (sd->inventory.u.items_inventory[idx].nameid == item_nameid);
+	int32 after_refine = item_exists_after ? sd->inventory.u.items_inventory[idx].refine : -1;
+
+	std::string detail;
+	switch (outcome) {
+	case REFINEUI_ATTEMPT_SUCCESS:
+		detail = "refine.success";
+		break;
+	case REFINEUI_ATTEMPT_FAILED:
+		detail = "refine.failed";
+		break;
+	case REFINEUI_ATTEMPT_BROKE:
+		detail = "refine.broke";
+		break;
+	case REFINEUI_ATTEMPT_DOWNGRADE:
+		detail = "refine.downgrade";
+		break;
+	default:
+		detail = (before_material < 1) ? "material.missing" : "refine.denied";
+		break;
+	}
+	detail += " before=" + std::to_string(before_refine)
+		+ " after=" + std::to_string(after_refine)
+		+ " mat=" + std::to_string(before_material) + "->" + std::to_string(after_material)
+		+ " zeny=" + std::to_string(before_zeny) + "->" + std::to_string(after_zeny);
+
+	bool attempted = (outcome != REFINEUI_ATTEMPT_DENIED);
+	playerbot_item_audit(bot_id, char_id, account_id, "refine", item_nameid, attempted ? 1 : 0, "inventory", attempted ? "ok" : "denied", detail.c_str());
+	playerbot_trace_interaction(
+		bot_id,
+		char_id,
+		account_id,
+		sd,
+		attempted ? "interaction.completed" : "interaction.failed",
+		"refine",
+		std::to_string(item_nameid).c_str(),
+		attempted ? "operator.start" : "target.invalid",
+			attempted ? "ok" : "denied",
+			attempted ? "" : "refine.execute",
+			detail.c_str());
+	if (opened_here)
+		sd->state.refineui_open = false;
+	script_pushint(st, attempted ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Count one item amount for a playerbot by location.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_itemcount)
@@ -32989,6 +33088,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_vitalsrestore,"s"),
 	BUILDIN_DEF(playerbot_itemremove,"sii"),
 	BUILDIN_DEF(playerbot_itemuse,"si"),
+	BUILDIN_DEF(playerbot_refine,"sii?"),
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),

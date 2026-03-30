@@ -5792,6 +5792,51 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 86: Real Playerbot Refine Execution Baseline
+
+### Summary
+
+Added the first real playerbot mechanic execution path beyond session ownership
+by wiring bot-side refine attempts through the same map-server refine runtime
+used by client packet handling.
+
+### Files
+
+- `src/map/clif.cpp`
+- `src/map/clif.hpp`
+- `src/map/script.cpp`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260330_playerbot_item_refine.sql` (new)
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+
+### What Changed
+
+- Extracted packet-equivalent refine execution into shared helper:
+  - `clif_refineui_attempt(...)`
+- Kept packet path semantics intact by routing `clif_parse_refineui_refine(...)`
+  through the shared helper.
+- Added new playerbot buildin:
+  - `playerbot_refine(bot_key$, item_id, material_id{,use_blessing})`
+  - returns execution acknowledgment (`1` when attempt executed, `0` when denied)
+  - emits interaction trace + item audit detail
+- Extended item audit schema action enum to include `refine`.
+- Updated item selftest and smoke gate to require refine execution signals and
+  refine item-audit evidence.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+
+Observed:
+
+- `playerbot_item_selftest ... refine_exec_ok=1 ... refine_audit_ok=1 ... result=1`
+- `[playerbot-item-smoke] loadout denial/recovery check passed.`
+
 ## Slice 85: Mapchange Loadout Reconcile And Session Item-Context Tightening
 
 ### Summary

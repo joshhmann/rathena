@@ -306,6 +306,7 @@ EOF
 - log in once with the `codex` OpenKore profile
 - run `bash tools/ci/playerbot-item-smoke.sh check-denied`
 - confirm the selftest line contains `loadout_denied_ok=1` and `loadout_recover_ok=1`
+- confirm `refine_exec_ok=1`, `refine_material_ok=1`, `refine_level_ok=1`, and `refine_session_clear_ok=1` are present
 - confirm `loadout_conflict_cleared_ok=1`, `loadout_audit_ok=1`, and `result=1` are present
 - confirm the printed item-audit summary includes denied and slot-conflict-clear rows
 EOF
@@ -404,9 +405,10 @@ EOF
 		loadout-denied-recover)
 			cat <<'EOF'
 - `playerbot_item_selftest ... loadout_denied_ok=1 ... loadout_recover_ok=1 ... result=1` is present
+- `phracon_grant_ok=1`, `refine_exec_ok=1`, `refine_material_ok=1`, `refine_level_ok=1`, and `refine_session_clear_ok=1` are present
 - `loadout_conflict_ok=1` and `loadout_conflict_cleared_ok=1` are present
-- `loadout_audit_ok=1` is present
-- recent `bot_item_audit` summary shows one denied detail row (`loadout.manual.*.denied`) and `loadout.manual.slot_conflict.clear`
+- `loadout_audit_ok=1` and `refine_audit_ok=1` are present
+- recent `bot_item_audit` summary shows one denied detail row (`loadout.manual.*.denied`), `loadout.manual.slot_conflict.clear`, and at least one `refine` row
 EOF
 			;;
 		mechanic-cleanup)

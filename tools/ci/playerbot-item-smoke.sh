@@ -35,14 +35,25 @@ wait_for_item_result_line() {
 
 launch_kore() {
 	tmux kill-session -t playerbot-item-kore 2>/dev/null || true
+	tmux kill-session -t playerbot-foundation-kore 2>/dev/null || true
+	tmux kill-session -t playerbot-combat-kore 2>/dev/null || true
+	tmux kill-session -t playerbot-combat-skillunit-kore 2>/dev/null || true
+	tmux kill-session -t playerbot-market-kore 2>/dev/null || true
+	tmux kill-session -t playerbot-participation-kore 2>/dev/null || true
 	tmux new-session -d -s playerbot-item-kore 'cd /root/testing/openkore && perl openkore.pl --control=/root/testing/openkore-control-codex'
 	printf '[playerbot-item-smoke] Launched OpenKore in tmux session playerbot-item-kore.\n'
 }
 
 arm() {
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
-REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`)
-VALUES ('\$PBITST_AUTORUN_AID', 0, '$TEST_AID');
+REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
+('\$PBITST_AUTORUN_AID', 0, '$TEST_AID'),
+('\$PBFNST_AUTORUN_AID', 0, '0'),
+('\$PBCST_AUTORUN_AID', 0, '0'),
+('\$PBGST_AUTORUN_AID', 0, '0'),
+('\$PBMST_AUTORUN_AID', 0, '0'),
+('\$PBPST_AUTORUN_AID', 0, '0'),
+('\$PBSTAT_AUTORUN_AID', 0, '0');
 EOF
 
 	cd "$REPO_ROOT"
@@ -72,17 +83,18 @@ check_denied() {
 		printf '[playerbot-item-smoke] missing item selftest result line.\n' >&2
 		return 1
 	fi
-	for key in result=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
+	for key in result=1 phracon_grant_ok=1 refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 refine_session_clear_ok=1 refine_audit_ok=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[playerbot-item-smoke] required signal missing: %s\n' "$key" >&2
 			failures=$((failures + 1))
 		fi
 	done
-	read -r denied_rows conflict_clear_rows < <(
+	read -r denied_rows conflict_clear_rows refine_rows < <(
 		mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
 SELECT
   COALESCE(SUM(CASE WHEN \`detail\` LIKE 'loadout.manual.%.denied' THEN 1 ELSE 0 END), 0),
-  COALESCE(SUM(CASE WHEN \`detail\` = 'loadout.manual.slot_conflict.clear' THEN 1 ELSE 0 END), 0)
+  COALESCE(SUM(CASE WHEN \`detail\` = 'loadout.manual.slot_conflict.clear' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`action\` = 'refine' THEN 1 ELSE 0 END), 0)
 FROM \`bot_item_audit\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800;
 EOF
@@ -93,6 +105,10 @@ EOF
 	fi
 	if (( conflict_clear_rows < 1 )); then
 		printf '[playerbot-item-smoke] missing slot-conflict-clear item-audit detail row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( refine_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing refine item-audit row.\n' >&2
 		failures=$((failures + 1))
 	fi
 	local mapchange_loadout_audits=0
@@ -126,6 +142,7 @@ ORDER BY MAX(\`id\`) DESC
 LIMIT 12;
 EOF
 	printf '\n[playerbot-item-smoke] loadout.mapchange reconcile rows (last 30m): %s\n' "$mapchange_loadout_audits"
+	printf '[playerbot-item-smoke] refine item-audit rows (last 30m): %s\n' "$refine_rows"
 	if (( failures > 0 )); then
 		printf '\n[playerbot-item-smoke] loadout denial/recovery check failed with %d missing signal(s).\n' "$failures" >&2
 		return 1

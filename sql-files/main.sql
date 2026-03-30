@@ -1636,7 +1636,7 @@ CREATE TABLE IF NOT EXISTS `bot_item_audit` (
   `bot_id` int(10) unsigned NOT NULL default '0',
   `char_id` int(10) unsigned NOT NULL default '0',
   `account_id` int(10) unsigned NOT NULL default '0',
-  `action` enum('inventory_add','inventory_remove','equip','unequip','storage_deposit','storage_withdraw','consume') NOT NULL default 'inventory_add',
+  `action` enum('inventory_add','inventory_remove','equip','unequip','storage_deposit','storage_withdraw','consume','refine') NOT NULL default 'inventory_add',
   `item_id` int(10) unsigned NOT NULL default '0',
   `amount` int(10) unsigned NOT NULL default '0',
   `location` enum('inventory','equipped','storage') NOT NULL default 'inventory',

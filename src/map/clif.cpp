@@ -22663,6 +22663,177 @@ void clif_refineui_info( map_session_data* sd, uint16 index ){
 #endif
 }
 
+e_refineui_attempt_result clif_refineui_attempt( map_session_data* sd, uint16 index, t_itemid material, bool use_blacksmith_blessing ){
+#if PACKETVER < 20161012
+	return REFINEUI_ATTEMPT_DENIED;
+#else
+	nullpo_retr( REFINEUI_ATTEMPT_DENIED, sd );
+
+	int16 j;
+
+	// Check if the refine UI is open
+	if( !sd->state.refineui_open ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Check if the index is valid
+	if( index >= MAX_INVENTORY ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Get the item db reference
+	struct item_data* id = sd->inventory_data[index];
+
+	// No item data was found
+	if( id == nullptr ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Check the inventory
+	struct item* item = &sd->inventory.u.items_inventory[index];
+
+	// No item was found at the given index
+	if( item == nullptr ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Check if the item is identified
+	if( !item->identify ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Check if the item is broken
+	if( item->attribute ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	std::shared_ptr<s_refine_level_info> info = refine_db.findLevelInfo( *id, *item );
+
+	// No refine possible
+	if( info == nullptr ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// No possibilities were found
+	if( info->costs.empty() ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Check if the player has the selected material
+	if( ( j = pc_search_inventory( sd, material ) ) < 0 ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	int16 blacksmith_index = -1;
+	uint16 blacksmith_amount = 0;
+
+	// Check if the player has enough blacksmith blessings
+	if( use_blacksmith_blessing ){
+		blacksmith_amount = info->blessing_amount;
+
+		// Player tried to use blacksmith blessing on a refine level, where it is not available
+		if( blacksmith_amount == 0 ){
+			return REFINEUI_ATTEMPT_DENIED;
+		}
+
+		// Check if the player has blacksmith blessings
+		if( ( blacksmith_index = pc_search_inventory( sd, ITEMID_BLACKSMITH_BLESSING ) ) < 0 ){
+			return REFINEUI_ATTEMPT_DENIED;
+		}
+
+		// Check if the player has enough blacksmith blessings
+		if( sd->inventory.u.items_inventory[blacksmith_index].amount < blacksmith_amount ){
+			return REFINEUI_ATTEMPT_DENIED;
+		}
+	}
+
+	std::shared_ptr<s_refine_cost> cost = nullptr;
+
+	for( const auto& pair : info->costs ){
+		if( pair.second->nameid == material ){
+			cost = pair.second;
+			break;
+		}
+	}
+
+	// The material was not in the list of possible materials
+	if( cost == nullptr ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Try to pay for the refine
+	if( pc_payzeny( sd, cost->zeny, LOG_TYPE_CONSUME ) ){
+		clif_npc_buy_result( sd, e_purchase_result::PURCHASE_FAIL_MONEY ); // "You do not have enough zeny."
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Delete the required material
+	if( pc_delitem( sd, j, 1, 0, 0, LOG_TYPE_CONSUME ) ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Delete the required blacksmith blessings
+	if( blacksmith_amount > 0 && pc_delitem( sd, blacksmith_index, blacksmith_amount, 0, 0, LOG_TYPE_CONSUME ) ){
+		return REFINEUI_ATTEMPT_DENIED;
+	}
+
+	// Try to refine the item
+	if( cost->chance >= ( rnd() % 10000 ) ){
+		log_pick_pc( sd, LOG_TYPE_OTHER, -1, item );
+		// Success
+		item->refine = cap_value( item->refine + 1, 0, MAX_REFINE );
+		log_pick_pc( sd, LOG_TYPE_OTHER, 1, item );
+		clif_misceffect( *sd, NOTIFYEFFECT_REFINE_SUCCESS );
+		clif_refine( *sd, index, ITEMREFINING_SUCCESS );
+		if (info->broadcast_success) {
+			clif_broadcast_refine_result(*sd, item->nameid, item->refine, true);
+		}
+		if( id->type == IT_WEAPON ){
+			achievement_update_objective( sd, AG_ENCHANT_SUCCESS, 2, id->weapon_level, item->refine );
+		}
+		clif_refineui_info( sd, index );
+		return REFINEUI_ATTEMPT_SUCCESS;
+	}
+
+	// Failure
+	if (info->broadcast_failure) {
+		clif_broadcast_refine_result(*sd, item->nameid, item->refine, false);
+	}
+	// Blacksmith blessings were used to prevent breaking and downgrading
+	if( blacksmith_amount > 0 ){
+		clif_refine( *sd, index, ITEMREFINING_FAILURE2 );
+		clif_refineui_info( sd, index );
+		clif_misceffect( *sd, NOTIFYEFFECT_REFINE_FAILURE );
+		achievement_update_objective( sd, AG_ENCHANT_FAIL, 1, 1 );
+		return REFINEUI_ATTEMPT_FAILED;
+	}
+	// Delete the item if it is breakable
+	if( cost->breaking_rate > 0 && ( rnd() % 10000 ) < cost->breaking_rate ){
+		clif_refine( *sd, index, ITEMREFINING_FAILURE );
+		pc_delitem( sd, index, 1, 0, 2, LOG_TYPE_CONSUME );
+		clif_misceffect( *sd, NOTIFYEFFECT_REFINE_FAILURE );
+		achievement_update_objective( sd, AG_ENCHANT_FAIL, 1, 1 );
+		return REFINEUI_ATTEMPT_BROKE;
+	}
+	// Downgrade the item if necessary
+	if( cost->downgrade_amount > 0 ){
+		item->refine = cap_value( item->refine - cost->downgrade_amount, 0, MAX_REFINE );
+		clif_refine( *sd, index, ITEMREFINING_DOWNGRADE );
+		clif_refineui_info(sd, index);
+		clif_misceffect( *sd, NOTIFYEFFECT_REFINE_FAILURE );
+		achievement_update_objective( sd, AG_ENCHANT_FAIL, 1, 1 );
+		return REFINEUI_ATTEMPT_DOWNGRADE;
+	}
+
+	// Only show failure, but dont do anything
+	clif_refine( *sd, index, ITEMREFINING_FAILURE2 );
+	clif_refineui_info( sd, index );
+	clif_misceffect( *sd, NOTIFYEFFECT_REFINE_FAILURE );
+	achievement_update_objective( sd, AG_ENCHANT_FAIL, 1, 1 );
+	return REFINEUI_ATTEMPT_FAILED;
+#endif
+}
+
 /**
  * Client request to add an item to the refine UI.
  * 0aa1 <index>.W
@@ -22697,158 +22868,7 @@ void clif_parse_refineui_refine( int32 fd, map_session_data* sd ){
 	const PACKET_CZ_REQ_REFINING* p = reinterpret_cast<PACKET_CZ_REQ_REFINING*>( RFIFOP( fd, 0 ) );
 
 	uint16 index = server_index( p->index );
-	t_itemid material = p->itemId;
-	int16 j;
-
-	// Check if the refine UI is open
-	if( !sd->state.refineui_open ){
-		return;
-	}
-
-	// Check if the index is valid
-	if( index >= MAX_INVENTORY ){
-		return;
-	}
-
-	// Get the item db reference
-	struct item_data* id = sd->inventory_data[index];
-
-	// No item data was found
-	if( id == nullptr ){
-		return;
-	}
-
-	// Check the inventory
-	struct item* item = &sd->inventory.u.items_inventory[index];
-
-	// No item was found at the given index
-	if( item == nullptr ){
-		return;
-	}
-
-	// Check if the item is identified
-	if( !item->identify ){
-		return;
-	}
-
-	// Check if the item is broken
-	if( item->attribute ){
-		return;
-	}
-
-	std::shared_ptr<s_refine_level_info> info = refine_db.findLevelInfo( *id, *item );
-
-	// No refine possible
-	if( info == nullptr ){
-		return;
-	}
-
-	// No possibilities were found
-	if( info->costs.empty() ){
-		return;
-	}
-
-	// Check if the player has the selected material
-	if( ( j = pc_search_inventory( sd, material ) ) < 0 ){
-		return;
-	}
-
-	int16 blacksmith_index = -1;
-	uint16 blacksmith_amount = 0;
-
-	// Check if the player has enough blacksmith blessings
-	if( p->blacksmithBlessing != 0 ){
-		blacksmith_amount = info->blessing_amount;
-
-		// Player tried to use blacksmith blessing on a refine level, where it is not available
-		if( blacksmith_amount == 0 ){
-			return;
-		}
-
-		// Check if the player has blacksmith blessings
-		if( ( blacksmith_index = pc_search_inventory( sd, ITEMID_BLACKSMITH_BLESSING ) ) < 0 ){
-			return;
-		}
-
-		// Check if the player has enough blacksmith blessings
-		if( sd->inventory.u.items_inventory[blacksmith_index].amount < blacksmith_amount ){
-			return;
-		}
-	}
-
-	std::shared_ptr<s_refine_cost> cost = nullptr;
-
-	for( const auto& pair : info->costs ){
-		if( pair.second->nameid == material ){
-			cost = pair.second;
-			break;
-		}
-	}
-
-	// The material was not in the list of possible materials
-	if( cost == nullptr ){
-		return;
-	}
-
-	// Try to pay for the refine
-	if( pc_payzeny( sd, cost->zeny, LOG_TYPE_CONSUME ) ){
-		clif_npc_buy_result( sd, e_purchase_result::PURCHASE_FAIL_MONEY ); // "You do not have enough zeny."
-		return;
-	}
-
-	// Delete the required material
-	if( pc_delitem( sd, j, 1, 0, 0, LOG_TYPE_CONSUME ) ){
-		return;
-	}
-
-	// Delete the required blacksmith blessings
-	if( blacksmith_amount > 0 && pc_delitem( sd, blacksmith_index, blacksmith_amount, 0, 0, LOG_TYPE_CONSUME ) ){
-		return;
-	}
-
-	// Try to refine the item
-	if( cost->chance >= ( rnd() % 10000 ) ){
-		log_pick_pc( sd, LOG_TYPE_OTHER, -1, item );
-		// Success
-		item->refine = cap_value( item->refine + 1, 0, MAX_REFINE );
-		log_pick_pc( sd, LOG_TYPE_OTHER, 1, item );
-		clif_misceffect( *sd, NOTIFYEFFECT_REFINE_SUCCESS );
-		clif_refine( *sd, index, ITEMREFINING_SUCCESS );
-		if (info->broadcast_success) {
-			clif_broadcast_refine_result(*sd, item->nameid, item->refine, true);
-		}
-		if( id->type == IT_WEAPON ){
-			achievement_update_objective( sd, AG_ENCHANT_SUCCESS, 2, id->weapon_level, item->refine );
-		}
-		clif_refineui_info( sd, index );
-	}else{
-		// Failure
-
-		if (info->broadcast_failure) {
-			clif_broadcast_refine_result(*sd, item->nameid, item->refine, false);
-		}
-		// Blacksmith blessings were used to prevent breaking and downgrading
-		if( blacksmith_amount > 0 ){
-			clif_refine( *sd, index, ITEMREFINING_FAILURE2 );
-			clif_refineui_info( sd, index );
-		// Delete the item if it is breakable
-		}else if( cost->breaking_rate > 0 && ( rnd() % 10000 ) < cost->breaking_rate ){
-			clif_refine( *sd, index, ITEMREFINING_FAILURE );
-			pc_delitem( sd, index, 1, 0, 2, LOG_TYPE_CONSUME );
-		// Downgrade the item if necessary
-		}else if( cost->downgrade_amount > 0 ){
-			item->refine = cap_value( item->refine - cost->downgrade_amount, 0, MAX_REFINE );
-			clif_refine( *sd, index, ITEMREFINING_DOWNGRADE );
-			clif_refineui_info(sd, index);
-		// Only show failure, but dont do anything
-		}else{
-			clif_refine( *sd, index, ITEMREFINING_FAILURE2 );
-			clif_refineui_info( sd, index );
-		}
-
-		clif_misceffect( *sd, NOTIFYEFFECT_REFINE_FAILURE );
-		achievement_update_objective( sd, AG_ENCHANT_FAIL, 1, 1 );
-	}
+	clif_refineui_attempt( sd, index, p->itemId, p->blacksmithBlessing != 0 );
 #endif
 }
 
