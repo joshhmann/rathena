@@ -5792,6 +5792,65 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 61: Deeper Playerbot Loadout Continuity
+
+### Summary
+
+Strengthened loadout reconciliation so the runtime now clears conflicting
+equipment occupying the intended slot before re-equipping the desired loadout
+item, and repaired the item selftest to start from a deterministic empty test
+fixture.
+
+### Files
+
+- `src/map/pc.cpp`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+- `doc/project/headless-pc-edge-cases.md`
+
+### What Changed
+
+- Extended `pc_playerbot_reconcile_loadout(...)` to:
+  - detect wrong equipped items occupying the target slot
+  - force-unequip those slot conflicts before trying the intended item
+  - emit explicit item audits for:
+    - `loadout.<reason>.slot_conflict.clear`
+    - `loadout.<reason>.slot_conflict.denied`
+  - distinguish equip failures more precisely:
+    - `equip.level`
+    - `equip.denied`
+  - include conflict-clear counts in the loadout recovery audit detail
+
+- Reworked `PlayerbotItemSelftest` into a deterministic fixture setup for the
+  dedicated test bot:
+  - clears `inventory`, `storage`, `cart_inventory`, and loadout rows before
+    spawning
+  - stops inheriting stale legacy test clutter from earlier runs
+
+- Expanded the item selftest so it now proves:
+  - missing loadout item failure
+  - denied loadout failure
+  - slot-conflict normalization
+  - respawn re-equip continuity after reconciliation
+
+### Validation
+
+- `git diff --check`
+- `bash tools/dev/playerbot-dev.sh restart`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- live map-server output now includes:
+  - `playerbot_item_selftest ... loadout_conflict_ok=1 ... loadout_conflict_cleared_ok=1 ... result=1`
+  - `[playerbot-foundation-smoke] foundation pass ok.`
+
+### Deferrals
+
+This slice does not yet:
+
+- promote richer skillunit combat coverage into the aggregate combat gate
+- add optimization/build-planning APIs for equipment selection
+- add more aggressive cross-transition item normalization beyond the current
+  intended-loadout contract
+
 ## Slice 67: Merchant Market Continuity Repair
 
 ### Summary

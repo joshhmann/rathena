@@ -2813,3 +2813,19 @@ Buyingstore continuity also has a now-documented partial-fill rule:
   - remaining request stays visible
   - second sale succeeds
   - buyer store auto-closes after fulfillment
+
+Loadout continuity now has a stricter slot-conflict rule:
+
+- if an intended loadout item targets a slot already occupied by a different
+  equipped item, reconciliation must normalize that slot first
+- the accepted runtime order on the current baseline is:
+  - detect conflict
+  - unequip conflicting item
+  - attempt intended item equip
+- the accepted audit shapes are:
+  - `bot_item_audit.action='unequip' detail='loadout.<reason>.slot_conflict.clear'`
+  - `bot_item_audit.action='unequip' detail='loadout.<reason>.slot_conflict.denied'`
+  - `bot_recovery_audit.scope='loadout' action='reconcile'` with conflict counts
+- the item selftest now starts from a hard reset of the dedicated bot fixture so
+  stale inventory rows from earlier harness versions cannot masquerade as a
+  runtime failure

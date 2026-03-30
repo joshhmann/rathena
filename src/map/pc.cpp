@@ -10002,6 +10002,19 @@ static std::string pc_playerbot_loadout_state(const map_session_data* sd, uint32
 	return "loadout_rows=" + std::to_string(loadout_rows) + ",equipped_rows=" + std::to_string(equipped_rows);
 }
 
+static const char* pc_playerbot_equip_ack_detail(uint8 ack)
+{
+	switch (ack) {
+		case ITEM_EQUIP_ACK_OK:
+			return "equip.ok";
+		case ITEM_EQUIP_ACK_FAILLEVEL:
+			return "equip.level";
+		case ITEM_EQUIP_ACK_FAIL:
+		default:
+			return "equip.denied";
+	}
+}
+
 static std::string pc_playerbot_combat_state(const map_session_data* sd)
 {
 	if (sd == nullptr)
@@ -10376,7 +10389,7 @@ bool pc_playerbot_reconcile_loadout(map_session_data* sd, const char* reason, in
 {
 	uint32 bot_id = 0, char_id = 0, account_id = 0;
 	char* data = nullptr;
-	int32 local_applied = 0, local_missing = 0, local_denied = 0, rows = 0;
+	int32 local_applied = 0, local_missing = 0, local_denied = 0, rows = 0, local_conflicts = 0, local_conflict_clears = 0;
 	std::string reason_s = reason != nullptr ? reason : "manual";
 	struct s_loadout_row {
 		uint32 equip_location;
@@ -10421,6 +10434,7 @@ bool pc_playerbot_reconcile_loadout(map_session_data* sd, const char* reason, in
 	rows = static_cast<int32>(loadout_rows.size());
 	for (const auto& row : loadout_rows) {
 		std::shared_ptr<item_data> id = item_db.find(row.item_id);
+		std::vector<int16> conflict_indices;
 		if (!row.required)
 			continue;
 		if (id == nullptr || row.equip_location == 0 || (id->equip & row.equip_location) == 0) {
@@ -10431,20 +10445,47 @@ bool pc_playerbot_reconcile_loadout(map_session_data* sd, const char* reason, in
 
 		bool already_equipped = false;
 		for (int16 i = 0; i < MAX_INVENTORY; ++i) {
-			if (sd->inventory.u.items_inventory[i].nameid != row.item_id || sd->inventory.u.items_inventory[i].equip == 0)
+			if (sd->inventory.u.items_inventory[i].nameid == 0 || sd->inventory.u.items_inventory[i].equip == 0)
 				continue;
-			if ((sd->inventory.u.items_inventory[i].equip & row.equip_location) != 0) {
+			if ((sd->inventory.u.items_inventory[i].equip & row.equip_location) == 0)
+				continue;
+			if (sd->inventory.u.items_inventory[i].nameid == row.item_id) {
 				already_equipped = true;
 				break;
 			}
+			conflict_indices.push_back(i);
 		}
 		if (already_equipped)
+			continue;
+
+		bool conflict_denied = false;
+		for (int16 conflict_idx : conflict_indices) {
+			t_itemid conflict_item_id = sd->inventory.u.items_inventory[conflict_idx].nameid;
+			++local_conflicts;
+			if (!pc_unequipitem(sd, conflict_idx, 1 | 2)) {
+				++local_denied;
+				conflict_denied = true;
+				pc_playerbot_item_audit(bot_id, char_id, account_id, "unequip", conflict_item_id, 1, "equipped", "denied", ("loadout." + reason_s + ".slot_conflict.denied").c_str());
+				pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "denied", ("loadout." + reason_s + ".slot_conflict").c_str());
+				break;
+			}
+			++local_conflict_clears;
+			pc_playerbot_item_audit(bot_id, char_id, account_id, "unequip", conflict_item_id, 1, "equipped", "ok", ("loadout." + reason_s + ".slot_conflict.clear").c_str());
+		}
+		if (conflict_denied)
 			continue;
 
 		int16 idx = pc_playerbot_find_inventory_index(sd, row.item_id, false);
 		if (idx < 0) {
 			++local_missing;
 			pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "missing", ("loadout." + reason_s + ".missing").c_str());
+			continue;
+		}
+
+		uint8 equip_ack = pc_isequip(sd, idx);
+		if (equip_ack != ITEM_EQUIP_ACK_OK) {
+			++local_denied;
+			pc_playerbot_item_audit(bot_id, char_id, account_id, "equip", row.item_id, 1, "equipped", "denied", ("loadout." + reason_s + "." + std::string(pc_playerbot_equip_ack_detail(equip_ack))).c_str());
 			continue;
 		}
 
@@ -10459,7 +10500,7 @@ bool pc_playerbot_reconcile_loadout(map_session_data* sd, const char* reason, in
 	}
 
 	std::string after = pc_playerbot_loadout_state(sd, bot_id);
-	std::string detail = "loadout." + reason_s + " rows=" + std::to_string(rows) + " applied=" + std::to_string(local_applied) + " missing=" + std::to_string(local_missing) + " denied=" + std::to_string(local_denied);
+	std::string detail = "loadout." + reason_s + " rows=" + std::to_string(rows) + " applied=" + std::to_string(local_applied) + " missing=" + std::to_string(local_missing) + " denied=" + std::to_string(local_denied) + " conflicts=" + std::to_string(local_conflicts) + " cleared=" + std::to_string(local_conflict_clears);
 	const char* result = (local_missing == 0 && local_denied == 0) ? (local_applied > 0 ? "ok" : "noop") : "aborted";
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "transactional_inventory_state", "loadout", "reconcile", before.c_str(), after.c_str(), result, detail.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, "reconcile", (local_missing == 0 && local_denied == 0) ? "reconcile.fixed" : "reconcile.failed", "loadout", "", "restart.recovery", result, (local_missing == 0 && local_denied == 0) ? "" : "loadout.reconcile", detail.c_str());
