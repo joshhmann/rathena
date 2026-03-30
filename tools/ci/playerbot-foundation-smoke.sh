@@ -112,6 +112,7 @@ run() {
 		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
 		return 1
 	fi
+	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
 	wait_for_all_selftests 180 || true
 	check
 }
@@ -126,6 +127,8 @@ check() {
 		[combat]='playerbot_combat_selftest:'
 	)
 	local pane lines line key failures=0
+	wait_for_stage_done 30 || true
+	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
 	wait_for_all_selftests 120 || true
 	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 \; save-buffer - 2>/dev/null | tail -n 2400 || true)"
 	printf '%s\n' "$pane" | grep 'playerbot_foundation_selftest:' | tail -n 12 || true

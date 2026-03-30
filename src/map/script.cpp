@@ -14802,6 +14802,43 @@ BUILDIN_FUNC(playerbot_sessionactive)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_mailsend)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* dest_name = script_getstr(st, 3);
+	const char* title = script_getstr(st, 4);
+	const char* body = script_getstr(st, 5);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "mail", dest_name, "operator.start", "ok", "", "");
+
+	if (sd == nullptr || dest_name == nullptr || *dest_name == '\0' || title == nullptr || *title == '\0') {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail", dest_name != nullptr ? dest_name : "", "target.invalid", "denied", "mail.send", sd == nullptr ? "bot.offline" : "mail.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (mail_invalid_operation(sd)) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail", dest_name, "target.invalid", "denied", "mail.send", "mail.invalid_operation");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->state.trading) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail", dest_name, "target.invalid", "denied", "mail.send", "trade.inactive");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	t_tick before_tick = sd->cansendmail_tick;
+	mail_clear(sd);
+	mail_send(sd, dest_name, title, body != nullptr ? body : "", body != nullptr ? static_cast<int32>(std::strlen(body)) : 0);
+	bool ok = (sd->cansendmail_tick != before_tick && DIFF_TICK(sd->cansendmail_tick, gettick()) > 0);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "mail", dest_name, ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "mail.send", ok ? "mail.sent" : "mail.not_sent");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_vendingopen)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -32961,6 +32998,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_sessionopen,"ss"),
 	BUILDIN_DEF(playerbot_sessionclose,"ss"),
 	BUILDIN_DEF(playerbot_sessionactive,"ss"),
+	BUILDIN_DEF(playerbot_mailsend,"ssss"),
 	BUILDIN_DEF(playerbot_vendingopen,"ssiii"),
 	BUILDIN_DEF(playerbot_vendingclose,"s"),
 	BUILDIN_DEF(playerbot_vendingactive,"s"),

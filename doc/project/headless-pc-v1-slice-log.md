@@ -5792,6 +5792,49 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 79: Add playerbot mail-send mechanic proof
+
+Date: 2026-03-29
+
+### What Changed
+
+- Added `playerbot_mailsend(bot_key$, dest_name$, title$, body$)` in
+  `src/map/script.cpp`.
+- The new mail helper uses the real map-server mail path:
+  - rejects invalid mail-operation state
+  - rejects active trade state
+  - clears prior compose state with `mail_clear(sd)`
+  - sends text-only mail through `mail_send(...)`
+  - treats a forward-moving `cansendmail_tick` as the authoritative success
+    signal
+- Extended `npc/custom/playerbot/playerbot_combat_lab.txt` so the accepted
+  combat/session baseline now proves:
+  - session-owned mail open
+  - one real text mail send to the inviter
+  - SQL-backed mailbox row delivery
+  - structured mail interaction traces
+- Hardened `tools/ci/playerbot-foundation-smoke.sh` so `check` waits for the
+  oversized combat selftest line after `stage=done` before deciding pass/fail.
+
+### Validation
+
+- `git diff --check`
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+- Live trace summary now includes:
+  - `interaction.requested mail operator.start ok`
+  - `interaction.completed mail operator.start ok`
+- Aggregate gate ends with:
+  - `[playerbot-foundation-smoke] foundation pass ok.`
+
+### Notes
+
+- The runtime mail proof is now part of the accepted aggregate baseline.
+- The checker fix was necessary because the combat selftest line is now large
+  enough that `stage=done` can appear slightly before that final line is flushed
+  into the captured tmux pane.
+
 ## Slice 62: Sharper Playerbot Skillunit Trace Details
 
 ### Summary

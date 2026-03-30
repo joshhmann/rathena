@@ -2834,3 +2834,20 @@ Loadout continuity now has a stricter slot-conflict rule:
 - the item selftest now starts from a hard reset of the dedicated bot fixture so
   stale inventory rows from earlier harness versions cannot masquerade as a
   runtime failure
+
+Mail participation now has an accepted mechanic-proof rule:
+
+- opening the `mail` session alone is not enough foundation proof
+- the accepted baseline now requires one real text-only send through the live
+  mail runtime path
+- current success authority is:
+  - `mail_invalid_operation(sd)` is false
+  - `sd->state.trading` is false
+  - `mail_send(...)` advances `sd->cansendmail_tick`
+  - a matching mailbox row appears for the intended recipient
+- current observability requirements are:
+  - `bot_trace_event.target_type='mail'`
+  - both `interaction.requested` and `interaction.completed`
+- the aggregate foundation checker must wait for the final combat selftest line
+  after `stage=done`, because the accepted combat line is now long enough to lag
+  slightly behind the stage marker in tmux capture
