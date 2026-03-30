@@ -5792,6 +5792,51 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 80: Rich Foundation Gate Runner
+
+### Summary
+
+Added a conflict-free richer gate path that keeps the accepted aggregate
+foundation selftest stable while also requiring the separate skillunit probe.
+
+### Files
+
+- `tools/ci/playerbot-foundation-smoke.sh`
+
+### What Changed
+
+- Added two new commands:
+  - `run-rich`
+  - `check-rich`
+- `run-rich` now:
+  1. runs the normal aggregate foundation gate (`run`)
+  2. runs a separate skillunit-gate cycle:
+     - arms `playerbot-combat-skillunit-smoke`
+     - launches OpenKore
+     - waits for `playerbot_combat_skillunit_probe`
+     - requires `result=1`
+- `check-rich` now validates the latest skillunit probe line and prints the
+  existing skillunit trace/audit summary from
+  `tools/ci/playerbot-combat-skillunit-smoke.sh check`.
+- Added a shared `launch_kore` helper to avoid duplicated tmux launch logic.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- observed:
+  - aggregate foundation pass (`foundation pass ok`)
+  - separate skillunit probe pass (`playerbot_combat_skillunit_probe ... result=1`)
+  - rich gate pass (`rich gate pass ok`)
+
+### Notes
+
+- We intentionally did **not** merge skillunit probe execution into the main
+  `PlayerbotFoundationSelftest` stage chain because it shares the same combat bot
+  and introduces lifecycle collisions with the accepted combat selftest.
+- The richer gate is promoted through a separate cycle to keep core baseline
+  determinism.
+
 ## Slice 79: Add playerbot mail-send mechanic proof
 
 Date: 2026-03-29

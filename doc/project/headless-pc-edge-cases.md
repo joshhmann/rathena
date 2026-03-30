@@ -2851,3 +2851,16 @@ Mail participation now has an accepted mechanic-proof rule:
 - the aggregate foundation checker must wait for the final combat selftest line
   after `stage=done`, because the accepted combat line is now long enough to lag
   slightly behind the stage marker in tmux capture
+
+Richer combat/event promotion now has a sequencing guardrail:
+
+- running the main combat selftest and the skillunit probe in the same
+  foundation stage chain is not currently deterministic
+- both flows operate on the same `quick_combat_open` bot lifecycle and can race
+  state transitions when sequenced too tightly
+- accepted promotion model on the current baseline:
+  - keep aggregate combat acceptance on the proven `playerbot_combat_selftest`
+  - require skillunit proof in a separate cycle via
+    `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- `run-rich` is the required gate when validating richer combat/event promotion
+  changes; plain `run` remains the baseline core gate

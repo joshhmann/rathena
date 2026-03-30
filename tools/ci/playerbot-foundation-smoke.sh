@@ -9,15 +9,19 @@ TEST_AID="${TEST_AID:-2000004}"
 
 usage() {
 	cat <<EOF
-Usage: bash tools/ci/playerbot-foundation-smoke.sh [arm|run|check]
+Usage: bash tools/ci/playerbot-foundation-smoke.sh [arm|run|run-rich|check|check-rich]
 
 Commands:
   arm    arm the sequenced foundation selftest for the next test-account login,
          then restart the repo stack
   run    arm the selftest, launch the codex OpenKore harness in tmux, wait for
          the sequenced pass to finish, then run check
+  run-rich  run the normal foundation gate, then run a separate skillunit probe
+         gate (separate restart/login cycle) and require both to pass
   check  print recent foundation stage lines plus selftest results and a compact
          foundation audit summary
+  check-rich  require a passing skillunit probe line and print its trace/audit
+         summary
 
 Workflow:
   1. bash tools/ci/playerbot-foundation-smoke.sh arm
@@ -70,6 +74,12 @@ wait_for_all_selftests() {
 	return 1
 }
 
+launch_kore() {
+	tmux kill-session -t playerbot-foundation-kore 2>/dev/null || true
+	tmux new-session -d -s playerbot-foundation-kore 'cd /root/testing/openkore && perl openkore.pl --control=/root/testing/openkore-control-codex'
+	printf '[playerbot-foundation-smoke] Launched OpenKore in tmux session playerbot-foundation-kore.\n'
+}
+
 arm() {
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
 REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
@@ -104,9 +114,7 @@ EOF
 
 run() {
 	arm
-	tmux kill-session -t playerbot-foundation-kore 2>/dev/null || true
-	tmux new-session -d -s playerbot-foundation-kore 'cd /root/testing/openkore && perl openkore.pl --control=/root/testing/openkore-control-codex'
-	printf '[playerbot-foundation-smoke] Launched OpenKore in tmux session playerbot-foundation-kore.\n'
+	launch_kore
 	if ! wait_for_stage_done 150; then
 		printf '[playerbot-foundation-smoke] foundation pass did not reach stage=done within timeout.\n' >&2
 		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
@@ -115,6 +123,38 @@ run() {
 	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
 	wait_for_all_selftests 180 || true
 	check
+}
+
+check_rich() {
+	local pane line
+	wait_for_selftest_line 'playerbot_combat_skillunit_probe:' 90 || true
+	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 \; save-buffer - 2>/dev/null | tail -n 2400 || true)"
+	line="$(printf '%s\n' "$pane" | grep 'playerbot_combat_skillunit_probe:' | tail -n 1 || true)"
+	printf '%s\n' "$line"
+	if [[ -z "$line" ]]; then
+		printf '[playerbot-foundation-smoke] missing skillunit probe line\n' >&2
+		bash tools/ci/playerbot-combat-skillunit-smoke.sh check || true
+		return 1
+	fi
+	if [[ "$line" != *"result=1"* ]]; then
+		printf '[playerbot-foundation-smoke] skillunit probe did not pass: %s\n' "$line" >&2
+		bash tools/ci/playerbot-combat-skillunit-smoke.sh check || true
+		return 1
+	fi
+	bash tools/ci/playerbot-combat-skillunit-smoke.sh check
+	printf '\n[playerbot-foundation-smoke] rich gate pass ok.\n'
+}
+
+run_rich() {
+	run
+	bash tools/ci/playerbot-combat-skillunit-smoke.sh arm
+	launch_kore
+	if ! wait_for_selftest_line 'playerbot_combat_skillunit_probe:' 180; then
+		printf '[playerbot-foundation-smoke] rich gate did not observe skillunit probe within timeout.\n' >&2
+		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
+		return 1
+	fi
+	check_rich
 }
 
 check() {
@@ -178,7 +218,9 @@ main() {
 	case "${1:-arm}" in
 		arm) arm ;;
 		run) run ;;
+		run-rich) run_rich ;;
 		check) check ;;
+		check-rich) check_rich ;;
 		-h|--help|help) usage ;;
 		*)
 			usage
