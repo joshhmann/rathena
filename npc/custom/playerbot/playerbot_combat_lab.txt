@@ -707,19 +707,45 @@ S_Run:
 	killmonster "alberta", strnpcinfo(3) + "::OnDummyDead";
 	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
 	playerbot_attackstop(.bot_key$);
-	monster "alberta", 186, 144, "Quit Skill Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
-	sleep 600;
-	.@quit_skill_gid = $@mobid[0];
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@quit_skill_reset_ok = 1;
+			break;
+		}
+	}
+	if (.@quit_skill_reset_ok) {
+		.@quit_spawn_ack = headlesspc_spawnack(.char_id);
+		headlesspc_spawn(.char_id, "prt_fild08", 187, 218);
+		for (.@i = 0; .@i < 12; ++.@i) {
+			sleep 500;
+			if (headlesspc_spawnack(.char_id) > .@quit_spawn_ack && headlesspc_status(.char_id) == 2) {
+				.@quit_skill_field_move_ok = 1;
+				break;
+			}
+			if (headlesspc_status(.char_id) == 2) {
+				.@quit_skill_field_move_ok = 1;
+				break;
+			}
+		}
+	}
+	if (.@quit_skill_field_move_ok)
+		sleep 1400;
+	.@quit_skill_id = 25; // AL_PNEUMA
+	.@quit_cast_x = 189;
+	.@quit_cast_y = 218;
 	query_sql(
 		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` "
 		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
-		+ "AND `target_type` = 'skill' AND `target_id` = '" + .skill_test_id + "'",
+		+ "AND `target_type` = 'skill_pos' AND `target_id` = '" + .@quit_skill_id + "'",
 		.@quit_skill_trace_before);
 	callsub S_RefillBotVitals;
+	.@quit_skill_grant_ok = playerbot_skillgrant(.bot_key$, .@quit_skill_id, 1);
 	.@quit_skill_req_ok = 0;
 	for (.@q = 0; .@q < 3; ++.@q) {
-		if (.@quit_anchor_ok && .@quit_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@quit_skill_gid)
-			&& playerbot_skilluse(.bot_key$, .@quit_skill_gid, .skill_test_id, 1, 5000)) {
+		if (.@quit_skill_field_move_ok && .@quit_skill_grant_ok
+			&& playerbot_skillusepos(.bot_key$, .@quit_cast_x, .@quit_cast_y, .@quit_skill_id, 1, 0)) {
 			.@quit_skill_req_ok = 1;
 			break;
 		}
@@ -729,20 +755,23 @@ S_Run:
 	}
 	for (.@i = 0; .@i < 5; ++.@i) {
 		sleep 200;
-		if (.@quit_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
-			.@quit_skill_cast_live_ok = 1;
+		if (.@quit_skill_req_ok && playerbot_skillunitcount(.bot_key$, .@quit_skill_id) >= 1) {
+			.@quit_skill_unit_ok = 1;
 			break;
 		}
 	}
 	query_sql(
 		"SELECT COUNT(*) FROM `bot_trace_event` "
 		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
-		+ "AND `target_type` = 'skill' AND `target_id` = '" + .skill_test_id + "' "
+		+ "AND `target_type` = 'skill_pos' AND `target_id` = '" + .@quit_skill_id + "' "
 		+ "AND `action` = 'combat.completed' AND `result` = 'ok' "
 		+ "AND `id` > '" + .@quit_skill_trace_before + "'",
 		.@quit_skill_trace_ok_count);
-	.@quit_skill_cast_ok = (.@quit_skill_req_ok && (.@quit_skill_cast_live_ok || .@quit_skill_trace_ok_count > 0));
-	.@quit_bank_open_ok = playerbot_bankopen(.bot_key$);
+	.@quit_skill_cast_ok = (.@quit_skill_req_ok && (.@quit_skill_unit_ok || .@quit_skill_trace_ok_count > 0));
+	.@quit_skill_return_ok = headlesspc_setpos(.char_id, "alberta", 182, 144);
+	if (.@quit_skill_return_ok)
+		sleep 900;
+	.@quit_bank_open_ok = (.@quit_skill_return_ok && playerbot_bankopen(.bot_key$));
 	.@quit_search_open_ok = playerbot_searchopen(.bot_key$, 2, 0, "this");
 	.@quit_session_arm_ok = (.@quit_bank_open_ok && .@quit_search_open_ok && playerbot_sessionarm(.bot_key$, "all"));
 	headlesspc_remove(.char_id);

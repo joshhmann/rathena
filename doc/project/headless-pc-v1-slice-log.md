@@ -5841,6 +5841,54 @@ This slice does not promote aggregate quit-skill casting to a hard gate. The
 existing quit-skill probes remain observational while richer skillunit lanes
 continue to provide first-class cleanup coverage.
 
+## Slice 62: Aggregate Combat Quit-Skill Continuity Promotion
+
+### Summary
+
+Promoted the aggregate combat quit-skill probe from flaky observational behavior
+to deterministic success by aligning its setup flow with the proven skillunit
+lane (field respawn before cast attempt).
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Reworked aggregate quit-skill setup in `PlayerbotCombatSelftest`:
+  - replaced direct `setpos` prep with explicit despawn + respawn into
+    `prt_fild08` before attempting the cast
+  - waits for respawn ack/state before casting
+- Switched the quit-skill probe to a deterministic ground-skill path:
+  - uses `AL_PNEUMA` (`skill_id=25`) with `playerbot_skillusepos`
+  - validates cast via either skillunit presence or successful `skill_pos`
+    trace rows
+- Added explicit return step back to Alberta before bank/search/session checks,
+  so downstream quit-session checks run from known state.
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- `bash tools/ci/playerbot-foundation-smoke.sh check-rich`
+
+Observed result:
+
+- aggregate combat line now reports:
+  - `quit_skill_req_ok=1`
+  - `quit_skill_cast_ok=1`
+  - `result=1`
+- standard foundation gate passes (`foundation pass ok`)
+- rich gate passes (`rich gate pass ok`)
+
+### Deferrals
+
+This slice does not yet promote standalone `sunit_*` counters in the aggregate
+line; first-class skillunit continuity remains covered by the dedicated
+skillunit probe and precheck lanes in the rich gate.
+
 ## Slice 75: Buyingstore Denial Semantics And Market Continuity Hardening
 
 ### Summary
