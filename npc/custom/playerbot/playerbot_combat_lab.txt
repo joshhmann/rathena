@@ -3,7 +3,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 	mes "Drive the combat/status/death/respawn foundation hooks.";
 	next;
 
-	switch(select("Run combat selftest:Run skillunit probe:Inspect quick combat bot:Inspect combat trace summary:Inspect combat audit summary:Close")) {
+	switch(select("Run combat selftest:Run skillunit probe:Run skillunit precheck:Inspect quick combat bot:Inspect combat trace summary:Inspect combat audit summary:Close")) {
 	case 1:
 		setd("$PBCST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotCombatSelftest::OnManualStart";
@@ -19,6 +19,13 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		mes "Check the map-server log for the final result line.";
 		close;
 	case 3:
+		setd("$PBCSPC_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotCombatSkillunitPrecheck::OnManualStart";
+		mes "[Playerbot Combat Lab]";
+		mes "Skillunit precheck started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	case 4:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
 			mes "[Playerbot Combat Lab]";
 			mes "Quick combat bot not provisioned yet.";
@@ -34,7 +41,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		mes "Casting active: " + playerbot_skillcastactive(.bot_key$);
 		mes "Blessing active: " + playerbot_statusactive(.bot_key$, SC_BLESSING);
 		close;
-	case 4:
+	case 5:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
 			mes "[Playerbot Combat Lab]";
 			mes "Quick combat bot not provisioned yet.";
@@ -54,7 +61,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		for (.@i = 0; .@i < getarraysize(.@action$); ++.@i)
 			mes .@action$[.@i] + " / " + .@target_type$[.@i] + " / " + .@reason$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
 		close;
-	case 5:
+	case 6:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
 			mes "[Playerbot Combat Lab]";
 			mes "Quick combat bot not provisioned yet.";
@@ -1018,6 +1025,218 @@ S_Run:
 		&& .@quit_apply_ok && .@quit_unit_ok && .@park_ok
 		&& .@trace_ok && .@audit_ok);
 	debugmes "playerbot_combat_skillunit_probe: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " claim_ok=" + .@claim_ok + " skill_id=" + .@skill_id + " grant_ok=" + .@grant_ok + " apply_ok=" + .@apply_ok + " active_ok=" + .@active_ok + " move_ok=" + .@move_ok + " move_clear_ok=" + .@move_clear_ok + " return_ok=" + .@return_ok + " death_apply_ok=" + .@death_apply_ok + " death_unit_ok=" + .@death_unit_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " respawn_fresh_ok=" + .@respawn_fresh_ok + " quit_apply_ok=" + .@quit_apply_ok + " quit_unit_ok=" + .@quit_unit_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " state$=" + playerbot_combatstate(.bot_key$) + " result=" + .@result + ".";
+	detachrid;
+	return;
+}
+
+-	script	PlayerbotCombatSkillunitPrecheck	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBCSPC_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBCSPC_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBCSPC_MANUAL_AID;
+	callsub S_Run;
+	end;
+
+S_Heal:
+	if (!attachrid(.account_id))
+		return 0;
+	percentheal 100, 100;
+	detachrid;
+	return 1;
+
+S_PrepareBot:
+	if (headlesspc_status(.char_id) == 2)
+		headlesspc_claim(.char_id, .owner$);
+	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+	playerbot_attackstop(.bot_key$);
+	playerbot_participationrecover(.bot_key$);
+	if (callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) > 0)
+		playerbot_itemunequip(.bot_key$, 1201);
+	playerbot_loadoutclear(.bot_key$);
+	.@knife_inv = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201);
+	if (.@knife_inv > 0)
+		playerbot_itemremove(.bot_key$, 1201, .@knife_inv);
+	stand .display_name$;
+	sleep 500;
+	callsub S_Heal;
+	sleep 300;
+	return 1;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_combat_open";
+	.display_name$ = "QuickCombatOpen";
+	.owner$ = "PlayerbotCombatSkillunitPrecheck";
+	.field_map$ = "prt_fild08";
+	.field_x = 187;
+	.field_y = 218;
+	.cast_x = 189;
+	.cast_y = 218;
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_combat_skillunit_precheck: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.account_id = $@pbbot_account_id;
+	.@summary_ok = ($@pbbot_found && .char_id > 0 && .account_id > 0);
+	if (!.@summary_ok) {
+		debugmes "playerbot_combat_skillunit_precheck: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+
+	.@spawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, .field_map$, .field_x, .field_y);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@spawn_ack && headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+	}
+	if (!.@spawn_ok) {
+		debugmes "playerbot_combat_skillunit_precheck: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	sleep 1600;
+	.@claim_ok = headlesspc_claim(.char_id, .owner$);
+	sleep 300;
+
+	callsub S_PrepareBot;
+	.@skill_id = 25; // AL_PNEUMA
+	.@grant_ok = playerbot_skillgrant(.bot_key$, .@skill_id, 1);
+
+	.@low_sp_seed_ok = (.@grant_ok && playerbot_statusstart(.bot_key$, SC__IGNORANCE, 1, 60000));
+	.@low_sp_before = playerbot_skillunitcount(.bot_key$, .@skill_id);
+	.@low_sp_apply_ok = (.@low_sp_seed_ok && !playerbot_skillusepos(.bot_key$, .cast_x, .cast_y, .@skill_id, 1, 0));
+	sleep 300;
+	.@low_sp_unit_ok = (.@low_sp_apply_ok && playerbot_skillunitcount(.bot_key$, .@skill_id) == .@low_sp_before);
+	.@low_sp_clear_ok = (.@low_sp_unit_ok && playerbot_statusclear(.bot_key$, SC__IGNORANCE));
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `target_type` = 'skill_pos' "
+		+ "AND `action` = 'combat.failed' AND `error_detail` IN ('caster.ignorance','skill.not_started') "
+		+ "AND UNIX_TIMESTAMP() - `ts` <= 180",
+		.@low_sp_trace_rows);
+	.@low_sp_trace_ok = (.@low_sp_trace_rows > 0 && .@low_sp_clear_ok);
+
+	callsub S_PrepareBot;
+	.@range_before = playerbot_skillunitcount(.bot_key$, .@skill_id);
+	.@range_apply_ok = !playerbot_skillusepos(.bot_key$, -1, .cast_y, .@skill_id, 1, 0);
+	sleep 300;
+	.@range_unit_ok = (.@range_apply_ok && playerbot_skillunitcount(.bot_key$, .@skill_id) == .@range_before);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `target_type` = 'skill_pos' "
+		+ "AND `action` = 'combat.failed' AND `error_detail` = 'target.invalid' "
+		+ "AND UNIX_TIMESTAMP() - `ts` <= 180",
+		.@range_trace_rows);
+	.@range_trace_ok = (.@range_trace_rows > 0);
+
+	.@cell_move_ok = headlesspc_setpos(.char_id, "alberta", 178, 135);
+	if (.@cell_move_ok)
+		sleep 900;
+	callsub S_Heal;
+	sleep 300;
+	.@cell_before = playerbot_skillunitcount(.bot_key$, .@skill_id);
+	.@cell_apply_ok = (.@cell_move_ok && !playerbot_skillusepos(.bot_key$, 178, 135, .@skill_id, 1, 0));
+	sleep 300;
+	.@cell_unit_ok = (.@cell_apply_ok && playerbot_skillunitcount(.bot_key$, .@skill_id) == .@cell_before);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `target_type` = 'skill_pos' "
+		+ "AND `action` = 'combat.failed' AND `error_detail` IN ('near_npc.denied','castbegin.denied','skill.not_started','target.invalid') "
+		+ "AND UNIX_TIMESTAMP() - `ts` <= 180",
+		.@cell_trace_rows);
+	.@cell_trace_ok = (.@cell_trace_rows > 0);
+
+	.@success_move_ok = (.@cell_trace_ok && headlesspc_setpos(.char_id, .field_map$, .field_x, .field_y));
+	if (.@success_move_ok)
+		sleep 900;
+	callsub S_PrepareBot;
+	if (.@success_move_ok) {
+		for (.@i = 0; .@i < 6; ++.@i) {
+			.@success_apply_ok = playerbot_skilluseself(.bot_key$, .@skill_id, 1, 0);
+			sleep 300;
+			if (.@success_apply_ok)
+				break;
+			playerbot_skillcastcancel(.bot_key$);
+			callsub S_Heal;
+			sleep 300;
+		}
+	}
+	for (.@i = 0; .@i < 5; ++.@i) {
+		sleep 200;
+		if (.@success_apply_ok && playerbot_skillunitcount(.bot_key$, .@skill_id) >= 1) {
+			.@success_unit_ok = 1;
+			break;
+		}
+	}
+
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `target_type` IN ('skill_pos','skillunit') "
+		+ "AND UNIX_TIMESTAMP() - `ts` <= 1800",
+		.@trace_rows);
+	.@trace_ok = (.@trace_rows >= 6);
+
+	.@result = (.@summary_ok && .@spawn_ok && .@claim_ok && .@grant_ok
+		&& .@low_sp_seed_ok && .@low_sp_apply_ok && .@low_sp_unit_ok && .@low_sp_trace_ok
+		&& .@range_apply_ok && .@range_unit_ok && .@range_trace_ok
+		&& .@cell_move_ok && .@cell_apply_ok && .@cell_unit_ok && .@cell_trace_ok
+		&& .@park_ok && .@trace_ok);
+	debugmes "playerbot_combat_skillunit_precheck: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " claim_ok=" + .@claim_ok + " skill_id=" + .@skill_id + " grant_ok=" + .@grant_ok + " low_sp_seed_ok=" + .@low_sp_seed_ok + " low_sp_apply_ok=" + .@low_sp_apply_ok + " low_sp_unit_ok=" + .@low_sp_unit_ok + " low_sp_trace_ok=" + .@low_sp_trace_ok + " range_apply_ok=" + .@range_apply_ok + " range_unit_ok=" + .@range_unit_ok + " range_trace_ok=" + .@range_trace_ok + " cell_move_ok=" + .@cell_move_ok + " cell_apply_ok=" + .@cell_apply_ok + " cell_unit_ok=" + .@cell_unit_ok + " cell_trace_ok=" + .@cell_trace_ok + " success_move_ok=" + .@success_move_ok + " success_apply_ok=" + .@success_apply_ok + " success_unit_ok=" + .@success_unit_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

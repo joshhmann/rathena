@@ -104,7 +104,7 @@ EOF
 			;;
 		combat-skillunit-promotion-precheck)
 			cat <<'EOF'
-Validate that the bot correctly evaluates pre-conditions before placing a ground skill unit — confirming that insufficient SP, out-of-range targets, and invalid cell flags all block placement and leave no orphaned skillunit state.
+Validate that the bot correctly evaluates blocked cast pre-conditions before placing a ground skill unit — confirming that cast-condition denials, invalid targets, and near-NPC/cell contexts all block placement and leave no orphaned skillunit state.
 EOF
 			;;
 		status-continuity)
@@ -164,7 +164,7 @@ EOF
 			;;
 		foundation-rich-gate)
 			cat <<'EOF'
-Validate the promoted richer foundation gate: aggregate foundation pass plus separate passing skillunit probe cycle.
+Validate the promoted richer foundation gate: aggregate foundation pass plus separate passing skillunit probe and skillunit precheck cycles.
 EOF
 			;;
 		*)
@@ -230,15 +230,15 @@ EOF
 			;;
 		combat-skillunit-promotion-precheck)
 			cat <<'EOF'
-- set the test actor's SP below the cost threshold for a ground skill
-- attempt to promote a skillunit placement via the combat frontier
-- confirm the placement is blocked and no skillunit record is created
-- restore SP to a legal value and attempt again with an out-of-range target
-- confirm the placement is blocked and no skillunit record is created
-- restore range and attempt with a cell flagged as skill-blocked
-- confirm the placement is blocked and no skillunit record is created
-- perform one successful placement with all conditions met
-- confirm `playerbot_skillunitcount(...)` becomes positive and `skillunit.precheck / ok` is present in the trace
+- arm the dedicated skillunit precheck helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check`
+- confirm the first cast-condition precheck attempt is denied (`low_sp_apply_ok=1`) with no unit created
+- confirm invalid-target attempt is denied (`range_apply_ok=1`) with no unit created
+- confirm near-NPC/cell attempt is denied (`cell_apply_ok=1`) with no unit created
+- confirm the probe line ends with `result=1`
+- note: successful control placement remains covered by the dedicated
+  `playerbot-combat-skillunit-smoke.sh` probe lane
 EOF
 			;;
 		status-continuity)
@@ -343,6 +343,7 @@ EOF
   - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
 - confirm the aggregate foundation gate passes first
 - confirm the separate skillunit probe cycle passes
+- confirm the separate skillunit precheck cycle passes
 - confirm the final line reports `rich gate pass ok`
 EOF
 			;;
@@ -371,11 +372,12 @@ EOF
 			;;
 		combat-skillunit-promotion-precheck)
 			cat <<'EOF'
-- each blocked attempt produces a `skillunit.precheck / denied / <reason>` trace row
-- `playerbot_skillunitcount(...)` remains zero for all denied attempts
-- one successful placement produces `skillunit.precheck / ok` in the trace
-- `playerbot_skillunitcount(...)` becomes positive for the successful attempt
-- no orphaned skillunit ownership or pending placement rows exist after blocked attempts
+- `playerbot_combat_skillunit_precheck ... result=1` is present
+- `low_sp_apply_ok=1`, `range_apply_ok=1`, and `cell_apply_ok=1` are present
+- denied attempts keep skillunit count unchanged (`*_unit_ok=1`)
+- recent `skill_pos` traces show denied rows with precheck detail coverage
+- successful control placement is verified separately by
+  `playerbot_combat_skillunit_probe`
 EOF
 			;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity)
@@ -432,6 +434,7 @@ EOF
 			cat <<'EOF'
 - `[playerbot-foundation-smoke] foundation pass ok.` is present
 - `playerbot_combat_skillunit_probe ... result=1` is present in the rich cycle
+- `playerbot_combat_skillunit_precheck ... result=1` is present in the rich cycle
 - `[playerbot-foundation-smoke] rich gate pass ok.` is present
 EOF
 			;;
@@ -462,13 +465,12 @@ EOF
 			;;
 		combat-skillunit-promotion-precheck)
 			cat <<'EOF'
-This scenario is a skeleton runbook definition — there is no automated smoke
-helper yet. It documents the pre-condition validation surface that must be
-confirmed before the combat skillunit frontier can promote to a wider gate.
+This scenario is now backed by the dedicated precheck helper:
+`tools/ci/playerbot-combat-skillunit-precheck-smoke.sh`.
 
-Once the skillunit precheck hook is implemented in the runtime layer, this
-scenario should be backed by a dedicated smoke helper and its launcher field
-populated.
+It is the accepted gate for blocked skillunit placement preconditions
+(insufficient cast conditions, invalid target/cell contexts) before the
+successful control placement.
 EOF
 			;;
 		item-loadout-continuity)
@@ -511,9 +513,10 @@ EOF
 This scenario is backed by the integrated richer gate command:
 `bash tools/ci/playerbot-foundation-smoke.sh run-rich`.
 
-It is intentionally two-phase:
+It is intentionally three-phase:
 1. aggregate foundation gate (`run`)
 2. separate skillunit probe gate
+3. separate skillunit precheck gate
 
 That split preserves aggregate determinism while still requiring richer
 skillunit proof as part of promoted foundation validation.
@@ -534,7 +537,7 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-smoke.sh check'
 			;;
 		combat-skillunit-promotion-precheck)
-			return 1
+			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'

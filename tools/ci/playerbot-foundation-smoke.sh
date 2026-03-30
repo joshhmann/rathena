@@ -17,7 +17,8 @@ Commands:
   run    arm the selftest, launch the codex OpenKore harness in tmux, wait for
          the sequenced pass to finish, then run check
   run-rich  run the normal foundation gate, then run a separate skillunit probe
-         gate (separate restart/login cycle) and require both to pass
+         gate and a separate skillunit precheck gate (each in separate
+         restart/login cycles) and require all to pass
   check  print recent foundation stage lines plus selftest results and a compact
          foundation audit summary
   check-rich  require a passing skillunit probe line and print its trace/audit
@@ -126,22 +127,19 @@ run() {
 }
 
 check_rich() {
-	local pane line
+	local failed=0
 	wait_for_selftest_line 'playerbot_combat_skillunit_probe:' 90 || true
-	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 \; save-buffer - 2>/dev/null | tail -n 2400 || true)"
-	line="$(printf '%s\n' "$pane" | grep 'playerbot_combat_skillunit_probe:' | tail -n 1 || true)"
-	printf '%s\n' "$line"
-	if [[ -z "$line" ]]; then
-		printf '[playerbot-foundation-smoke] missing skillunit probe line\n' >&2
-		bash tools/ci/playerbot-combat-skillunit-smoke.sh check || true
+	if ! bash tools/ci/playerbot-combat-skillunit-smoke.sh check; then
+		failed=1
+	fi
+	wait_for_selftest_line 'playerbot_combat_skillunit_precheck:' 90 || true
+	if ! bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check; then
+		failed=1
+	fi
+	if (( failed > 0 )); then
+		printf '\n[playerbot-foundation-smoke] rich gate failed.\n' >&2
 		return 1
 	fi
-	if [[ "$line" != *"result=1"* ]]; then
-		printf '[playerbot-foundation-smoke] skillunit probe did not pass: %s\n' "$line" >&2
-		bash tools/ci/playerbot-combat-skillunit-smoke.sh check || true
-		return 1
-	fi
-	bash tools/ci/playerbot-combat-skillunit-smoke.sh check
 	printf '\n[playerbot-foundation-smoke] rich gate pass ok.\n'
 }
 
@@ -151,6 +149,16 @@ run_rich() {
 	launch_kore
 	if ! wait_for_selftest_line 'playerbot_combat_skillunit_probe:' 180; then
 		printf '[playerbot-foundation-smoke] rich gate did not observe skillunit probe within timeout.\n' >&2
+		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
+		return 1
+	fi
+	if ! bash tools/ci/playerbot-combat-skillunit-smoke.sh check; then
+		return 1
+	fi
+	bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm
+	launch_kore
+	if ! wait_for_selftest_line 'playerbot_combat_skillunit_precheck:' 180; then
+		printf '[playerbot-foundation-smoke] rich gate did not observe skillunit precheck within timeout.\n' >&2
 		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
 		return 1
 	fi

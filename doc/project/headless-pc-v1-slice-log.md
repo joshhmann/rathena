@@ -5792,6 +5792,63 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 84: Skillunit Precheck Gate Promotion
+
+### Summary
+
+Promoted `combat-skillunit-promotion-precheck` from a scenario skeleton into a
+runtime-backed launcher/check gate, and folded that precheck cycle into the
+rich foundation gate.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-skillunit-precheck-smoke.sh` (new)
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added hidden runtime selftest `PlayerbotCombatSkillunitPrecheck` with one
+  deterministic precheck sequence:
+  - cast-condition denied placement (`caster.ignorance`) with no unit created
+  - invalid-target denied placement (no unit created)
+  - near-NPC/cell-context denied placement (no unit created)
+  - diagnostic control-placement attempt (reported but not gate-authoritative)
+- Added manual trigger surface in `Playerbot Combat Lab`:
+  - `Run skillunit precheck`
+- Added dedicated smoke helper:
+  - `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh run`
+  - `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check`
+- Promoted scenario launcher:
+  - `combat-skillunit-promotion-precheck` now has a concrete launcher in
+    `playerbot-scenario-catalog.sh`
+- Rich gate promotion:
+  - `tools/ci/playerbot-foundation-smoke.sh run-rich` now requires:
+    1. aggregate foundation pass
+    2. skillunit probe pass
+    3. skillunit precheck pass
+
+### Validation
+
+- `bash -n tools/ci/playerbot-combat-skillunit-precheck-smoke.sh`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh --help`
+- `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run combat-skillunit-promotion-precheck`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- `bash tools/ci/playerbot-foundation-smoke.sh check-rich`
+
+### Deferrals
+
+This slice promotes precheck coverage and gate wiring. It does not expand into
+full skill-rotation or broader combat AI behavior.
+
 ## Slice 82: Market Scenario Automation Gate
 
 ### Summary

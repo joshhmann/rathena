@@ -2860,7 +2860,7 @@ Richer combat/event promotion now has a sequencing guardrail:
   state transitions when sequenced too tightly
 - accepted promotion model on the current baseline:
   - keep aggregate combat acceptance on the proven `playerbot_combat_selftest`
-  - require skillunit proof in a separate cycle via
+  - require skillunit probe and skillunit precheck proof in separate cycles via
     `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
 - `run-rich` is the required gate when validating richer combat/event promotion
   changes; plain `run` remains the baseline core gate
@@ -2870,8 +2870,26 @@ Scenario governance for this promotion boundary is now explicit:
 - `foundation-rich-gate` is part of the repo-local scenario catalog
 - launcher:
   - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- the richer gate now requires all three pass lines:
+  - aggregate foundation pass
+  - `playerbot_combat_skillunit_probe ... result=1`
+  - `playerbot_combat_skillunit_precheck ... result=1`
 - this makes the richer gate discoverable in the same interface as the other
   foundation runbooks and reduces drift between runtime validation and docs
+
+Skillunit promotion precheck scenario governance is now explicit:
+
+- `combat-skillunit-promotion-precheck` is now backed by:
+  - `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check`
+- accepted precheck signals now require one passing precheck line with:
+  - `low_sp_apply_ok=1` and `low_sp_unit_ok=1`
+  - `range_apply_ok=1` and `range_unit_ok=1`
+  - `cell_apply_ok=1` and `cell_unit_ok=1`
+  - `result=1`
+- successful control placement remains verified by the dedicated
+  `playerbot_combat_skillunit_probe` lane
+- this closes the former precheck launcher gap in the scenario catalog
 
 Market continuity scenario governance is now explicit too:
 

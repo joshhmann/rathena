@@ -44,7 +44,7 @@ The current catalog contains:
 - `combat-skillunit-mapchange-cleanup`
 - `combat-skillunit-death-cleanup`
 - `combat-skillunit-quit-cleanup`
-- `combat-skillunit-promotion-precheck` *(skeleton — no launcher yet)*
+- `combat-skillunit-promotion-precheck`
 - `status-continuity`
 - `status-death-cleanup`
 - `status-map-continuity`
@@ -73,6 +73,7 @@ These split into two groups:
   - `combat-skillunit-mapchange-cleanup`
   - `combat-skillunit-death-cleanup`
   - `combat-skillunit-quit-cleanup`
+  - `combat-skillunit-promotion-precheck`
   - `status-continuity`
   - `status-death-cleanup`
   - `status-map-continuity`
@@ -85,26 +86,20 @@ These split into two groups:
   - `market-buyingstore-partial-fill`
   - `market-buyingstore-reopen`
 
-- skeleton runbook definitions (no launcher yet):
-  - `combat-skillunit-promotion-precheck`
-
 The runbook-backed scenarios use:
 
 - `tools/ci/playerbot-combat-smoke.sh`
 - `tools/ci/playerbot-combat-skillunit-smoke.sh`
+- `tools/ci/playerbot-combat-skillunit-precheck-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
 - `tools/ci/playerbot-participation-smoke.sh`
 - `tools/ci/playerbot-market-smoke.sh`
-
-The skeleton scenarios define the next-frontier acceptance surface. When the
-corresponding runtime hooks exist, each should be backed by a smoke helper and
-the kind field promoted from skeleton to runbook.
 
 Highest-value missing additions after this expansion:
 
 - scenario coverage for status persistence across repeated deaths or sequential
   handoffs
-- smoke automation for the remaining skeleton scenarios once their runtime frontier ships
+- richer scenario automation for deeper runtime fronts beyond current acceptance gates
 
 ## CLI Contract
 
@@ -121,6 +116,7 @@ bash tools/ci/playerbot-scenario.sh run mechanic-cleanup
 bash tools/ci/playerbot-scenario.sh run combat-baseline
 bash tools/ci/playerbot-scenario.sh run market-buyingstore-partial-fill
 bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
+bash tools/ci/playerbot-scenario.sh run combat-skillunit-promotion-precheck
 ```
 
 Expected behavior:
