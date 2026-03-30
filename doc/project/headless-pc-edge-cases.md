@@ -2872,3 +2872,37 @@ Scenario governance for this promotion boundary is now explicit:
   - `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
 - this makes the richer gate discoverable in the same interface as the other
   foundation runbooks and reduces drift between runtime validation and docs
+
+Market continuity scenario governance is now explicit too:
+
+- both market scenarios are now backed by:
+  - `bash tools/ci/playerbot-market-smoke.sh arm`
+  - `bash tools/ci/playerbot-market-smoke.sh check`
+- accepted market signals are no longer "manual-only" wording; they now require
+  one passing merchant selftest line with:
+  - `buying_partial_ok=1`
+  - `buying_reopen_ok=1`
+  - `market_trace_ok=1`
+  - `result=1`
+- scenario runbooks now surface a concrete launcher for:
+  - `market-buyingstore-partial-fill`
+  - `market-buyingstore-reopen`
+- this closes one of the remaining catalog-only gaps in the foundation scenario
+  layer without changing runtime merchant semantics
+
+Loadout denied/recover scenario governance is now explicit:
+
+- `loadout-denied-recover` is now backed by:
+  - `bash tools/ci/playerbot-item-smoke.sh arm`
+  - `bash tools/ci/playerbot-item-smoke.sh check-denied`
+- accepted denial/recovery signals now require one passing item selftest line
+  with:
+  - `loadout_denied_ok=1`
+  - `loadout_recover_ok=1`
+  - `loadout_conflict_cleared_ok=1`
+  - `loadout_audit_ok=1`
+  - `result=1`
+- the check path also requires item-audit evidence for denied and
+  slot-conflict-clear details
+- this closes another former launcher gap in the scenario catalog while keeping
+  runtime item semantics unchanged

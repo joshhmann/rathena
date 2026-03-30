@@ -300,14 +300,12 @@ EOF
 			;;
 		loadout-denied-recover)
 			cat <<'EOF'
-- define an intended loadout that includes at least one item that will be rejected (wrong job class or weight over limit)
-- spawn or respawn the actor and trigger the equip reconciliation pass
-- confirm the engine rejects the equip attempt and logs the denial
-- verify the intended loadout record still lists the rejected item as pending
-- verify no orphaned equip claim or phantom ownership row was created
-- fix the blocking condition (change job or reduce weight) and trigger a second reconciliation pass
-- confirm the item is now equipped and the intended loadout record transitions to filled
-- confirm `loadout.denied / recover / ok` is present in the trace
+- arm the item smoke helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-item-smoke.sh check-denied`
+- confirm the selftest line contains `loadout_denied_ok=1` and `loadout_recover_ok=1`
+- confirm `loadout_conflict_cleared_ok=1`, `loadout_audit_ok=1`, and `result=1` are present
+- confirm the printed item-audit summary includes denied and slot-conflict-clear rows
 EOF
 			;;
 		mechanic-cleanup)
@@ -321,24 +319,22 @@ EOF
 			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
-- open a buying store on the test actor with zeny sufficient for only a fraction of the target quantity
-- have a second actor (or direct item injection) supply a partial quantity of the wanted item
-- confirm the purchased quantity is deducted from the store and zeny is consumed accordingly
-- confirm the store remains open for the remainder
-- verify the market session state reflects partial fill (items_bought < items_wanted)
-- confirm no stale full-completion or reservation rows exist for the unfilled remainder
-- confirm `market.fill / partial / ok` is present in the trace
+- arm the market smoke helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-market-smoke.sh check`
+- confirm the selftest line contains `buying_sell_first_ok=1` and `buying_partial_ok=1`
+- confirm `result=1` and `market_trace_ok=1` are present on the same line
+- confirm the printed interaction summary includes `buyingtrade` and `buyingstore` rows
 EOF
 			;;
 		market-buyingstore-reopen)
 			cat <<'EOF'
-- open a buying store on the test actor and let it exhaust its zeny (full or operator close)
-- confirm the store session closes and the market reservation is released
-- confirm zeny/reservation state for the closed session shows no remaining open claim
-- trigger the reopen path via the controller scheduler or direct `@playerbotopen` command
-- confirm a new buying store session starts cleanly with a fresh reservation
-- confirm no double-reservation or orphaned store record from the previous session
-- confirm `market.session / reopen / ok` is present in the trace
+- arm the market smoke helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-market-smoke.sh check`
+- confirm the selftest line contains `buying_reopen_ok=1`, `buying_close_ok=1`, and `buying_closed_ok=1`
+- confirm `result=1` and `market_trace_ok=1` are present on the same line
+- confirm the printed interaction summary includes `buyingstore` close/open lifecycle rows
 EOF
 			;;
 		foundation-rich-gate)
@@ -402,11 +398,10 @@ EOF
 			;;
 		loadout-denied-recover)
 			cat <<'EOF'
-- `loadout.denied / <reason>` trace row is present for the rejected item
-- no orphaned equip claim or phantom ownership row exists after the denial
-- intended loadout record still shows the item as pending after the first pass
-- `loadout.denied / recover / ok` trace row is present after the second reconciliation pass
-- intended loadout record shows the item as filled after successful equip
+- `playerbot_item_selftest ... loadout_denied_ok=1 ... loadout_recover_ok=1 ... result=1` is present
+- `loadout_conflict_ok=1` and `loadout_conflict_cleared_ok=1` are present
+- `loadout_audit_ok=1` is present
+- recent `bot_item_audit` summary shows one denied detail row (`loadout.manual.*.denied`) and `loadout.manual.slot_conflict.clear`
 EOF
 			;;
 		mechanic-cleanup)
@@ -419,19 +414,18 @@ EOF
 			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
-- `market.fill / partial / ok` trace row is present
-- bought quantity matches the injected supply (less than total wanted)
-- zeny consumed matches the per-item price times the bought quantity
-- buying store remains open with correct remaining quantity and zeny
-- no full-completion or stale reservation row for the unfilled remainder
+- `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
+- `buying_sell_first_ok=1` and `buying_sell_ok=1` are both present
+- `market_trace_ok=1` is present
+- recent interaction summary shows `buyingtrade` and `buyingstore` target rows
 EOF
 			;;
 		market-buyingstore-reopen)
 			cat <<'EOF'
-- prior session shows closed status and released reservation in the trace
-- no open zeny reservation or store claim from the previous session
-- `market.session / reopen / ok` trace row is present for the new session
-- new session starts with a fresh reservation and no orphaned records from prior session
+- `playerbot_merchant_selftest ... buying_reopen_ok=1 ... result=1` is present
+- `buying_close_ok=1` and `buying_closed_ok=1` are both present
+- `market_trace_ok=1` is present
+- recent interaction summary shows `buyingstore` lifecycle target rows
 EOF
 			;;
 		foundation-rich-gate)
@@ -487,14 +481,11 @@ EOF
 			;;
 		loadout-denied-recover)
 			cat <<'EOF'
-This scenario is a skeleton runbook definition — there is no automated smoke
-helper yet. It documents the denial and recovery surface for the equipment
-continuity frontier.
+This scenario is now backed by the item smoke helper:
+`tools/ci/playerbot-item-smoke.sh` with `check-denied`.
 
-It is intended to be run after the base item-loadout-continuity scenario
-confirms the happy path. Once the loadout denial hook and recovery path are
-implemented, this scenario should be backed by an extension of
-`tools/ci/playerbot-item-smoke.sh` and its launcher field populated.
+It extends the base item continuity proof with explicit denial/recovery checks
+and required item-audit signals for the loadout reconcile frontier.
 EOF
 			;;
 		mechanic-cleanup)
@@ -508,14 +499,11 @@ EOF
 			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen)
 			cat <<'EOF'
-These scenarios are skeleton runbook definitions — there is no automated smoke
-helper yet. They document the buying store session lifecycle surface for the
-market continuity frontier.
+These scenarios are now backed by the market smoke helper:
+`tools/ci/playerbot-market-smoke.sh`.
 
-Both scenarios extend the accepted participation baseline (mechanic-cleanup) to
-cover the richer market session state: partial fills, zeny depletion, and
-session reopen. Once the market session continuity hooks are implemented, these
-should be backed by a dedicated market smoke helper.
+The accepted proof uses the merchant selftest result line plus interaction trace
+summary to prove partial-fill and reopen continuity in one deterministic path.
 EOF
 			;;
 		foundation-rich-gate)
@@ -555,13 +543,13 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check'
 			;;
 		loadout-denied-recover)
-			return 1
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied'
 			;;
 		mechanic-cleanup)
 			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
 			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen)
-			return 1
+			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-market-smoke.sh check'
 			;;
 		foundation-rich-gate)
 			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run-rich'

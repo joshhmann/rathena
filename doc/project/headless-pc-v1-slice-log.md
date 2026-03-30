@@ -5792,6 +5792,111 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 82: Market Scenario Automation Gate
+
+### Summary
+
+Promoted the market continuity scenarios from catalog-only definitions to a
+deterministic automated smoke gate using the existing merchant selftest path.
+
+### Files
+
+- `tools/ci/playerbot-market-smoke.sh` (new)
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added a dedicated market smoke helper:
+  - `bash tools/ci/playerbot-market-smoke.sh arm`
+  - `bash tools/ci/playerbot-market-smoke.sh run`
+  - `bash tools/ci/playerbot-market-smoke.sh check`
+- `check` now requires one passing merchant selftest line and enforces the
+  critical continuity signals:
+  - `buying_partial_ok=1`
+  - `buying_reopen_ok=1`
+  - `market_trace_ok=1`
+  - `result=1`
+- `check` now also prints a compact interaction trace summary for:
+  - `vending`
+  - `vendlist`
+  - `buyingstore`
+  - `buyinglist`
+  - `buyingtrade`
+- Scenario catalog promotion:
+  - `market-buyingstore-partial-fill` now has a concrete launcher
+  - `market-buyingstore-reopen` now has a concrete launcher
+  - scenario notes and expected signals now reference real selftest/trace output
+    instead of "no helper yet" text
+- Scenario-runner docs now list both market scenarios as runbook-backed and
+  include the new market smoke helper in the launcher inventory.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-market-smoke.sh`
+- `bash tools/ci/playerbot-market-smoke.sh --help`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-scenario.sh --no-color run market-buyingstore-partial-fill`
+- `bash tools/ci/playerbot-scenario.sh --no-color run market-buyingstore-reopen`
+
+### Deferrals
+
+This slice does not add new runtime market semantics. It promotes the existing
+merchant selftest coverage into a first-class scenario launcher/check surface.
+
+## Slice 83: Loadout Denied/Recover Scenario Automation
+
+### Summary
+
+Promoted the `loadout-denied-recover` scenario from a catalog skeleton to a
+deterministic automated gate using the existing item selftest denial/recovery
+signals.
+
+### Files
+
+- `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-edge-cases.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended item smoke helper with:
+  - `run` (arm + OpenKore launch + wait + strict check)
+  - `check-denied` (strict loadout denial/recovery validation)
+- `check-denied` now requires one passing item selftest line with:
+  - `loadout_denied_ok=1`
+  - `loadout_recover_ok=1`
+  - `loadout_conflict_cleared_ok=1`
+  - `loadout_audit_ok=1`
+  - `result=1`
+- `check-denied` now prints a compact item-audit summary for:
+  - `loadout.manual.missing`
+  - `loadout.manual.denied`
+  - `loadout.manual.slot_conflict.clear`
+  - `loadout.manual.slot_conflict.denied`
+- Scenario catalog promotion:
+  - `loadout-denied-recover` now has a concrete launcher
+  - checklist/expected/notes now reference concrete helper output
+- Scenario-runner docs now list `loadout-denied-recover` as runbook-backed.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash tools/ci/playerbot-item-smoke.sh --help`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-scenario.sh --no-color run loadout-denied-recover`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-item-smoke.sh check-denied`
+
+### Deferrals
+
+This slice does not add new runtime item semantics. It promotes existing
+loadout denial/recovery signals into a dedicated scenario launcher/check path.
+
 ## Slice 80: Rich Foundation Gate Runner
 
 ### Summary

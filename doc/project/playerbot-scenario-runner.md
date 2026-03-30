@@ -52,10 +52,10 @@ The current catalog contains:
 - `status-recovery-integrity`
 - `death-respawn`
 - `item-loadout-continuity`
-- `loadout-denied-recover` *(skeleton — no launcher yet)*
+- `loadout-denied-recover`
 - `mechanic-cleanup`
-- `market-buyingstore-partial-fill` *(skeleton — no launcher yet)*
-- `market-buyingstore-reopen` *(skeleton — no launcher yet)*
+- `market-buyingstore-partial-fill`
+- `market-buyingstore-reopen`
 
 Current phase labels used by the catalog:
 
@@ -80,13 +80,13 @@ These split into two groups:
   - `status-recovery-integrity`
   - `death-respawn`
   - `item-loadout-continuity`
+  - `loadout-denied-recover`
   - `mechanic-cleanup`
+  - `market-buyingstore-partial-fill`
+  - `market-buyingstore-reopen`
 
 - skeleton runbook definitions (no launcher yet):
   - `combat-skillunit-promotion-precheck`
-  - `loadout-denied-recover`
-  - `market-buyingstore-partial-fill`
-  - `market-buyingstore-reopen`
 
 The runbook-backed scenarios use:
 
@@ -94,6 +94,7 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-combat-skillunit-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
 - `tools/ci/playerbot-participation-smoke.sh`
+- `tools/ci/playerbot-market-smoke.sh`
 
 The skeleton scenarios define the next-frontier acceptance surface. When the
 corresponding runtime hooks exist, each should be backed by a smoke helper and
@@ -103,7 +104,7 @@ Highest-value missing additions after this expansion:
 
 - scenario coverage for status persistence across repeated deaths or sequential
   handoffs
-- smoke automation for the skeleton scenarios once their runtime frontier ships
+- smoke automation for the remaining skeleton scenarios once their runtime frontier ships
 
 ## CLI Contract
 
@@ -118,6 +119,8 @@ bash tools/ci/playerbot-scenario.sh describe item-loadout-continuity
 bash tools/ci/playerbot-scenario.sh template combat-baseline
 bash tools/ci/playerbot-scenario.sh run mechanic-cleanup
 bash tools/ci/playerbot-scenario.sh run combat-baseline
+bash tools/ci/playerbot-scenario.sh run market-buyingstore-partial-fill
+bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
 ```
 
 Expected behavior:
