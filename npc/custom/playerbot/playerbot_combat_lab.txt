@@ -323,15 +323,28 @@ S_Run:
 	monster "alberta", 186, 144, "Warp Skill Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
 	sleep 600;
 	.@warp_skill_gid = $@mobid[0];
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` = 'skill' AND `target_id` = '" + .skill_test_id + "'",
+		.@warp_skill_trace_before);
 	callsub S_RefillBotVitals;
-		.@warp_skill_req_ok = (.@warp_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@warp_skill_gid) && playerbot_skilluse(.bot_key$, .@warp_skill_gid, .skill_test_id, 1, 5000));
+	.@warp_skill_req_ok = (.@warp_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@warp_skill_gid) && playerbot_skilluse(.bot_key$, .@warp_skill_gid, .skill_test_id, 1, 5000));
 	for (.@i = 0; .@i < 5; ++.@i) {
 		sleep 200;
 		if (.@warp_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
-			.@warp_skill_cast_ok = 1;
+			.@warp_skill_cast_live_ok = 1;
 			break;
 		}
 	}
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` = 'skill' AND `target_id` = '" + .skill_test_id + "' "
+		+ "AND `action` = 'combat.completed' AND `result` = 'ok' "
+		+ "AND `id` > '" + .@warp_skill_trace_before + "'",
+		.@warp_skill_trace_ok_count);
+	.@warp_skill_cast_ok = (.@warp_skill_req_ok && (.@warp_skill_cast_live_ok || .@warp_skill_trace_ok_count > 0));
 	.@warp_skill_move_ok = (.@warp_skill_cast_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
 	if (.@warp_skill_move_ok)
 		sleep 900;
@@ -697,15 +710,38 @@ S_Run:
 	monster "alberta", 186, 144, "Quit Skill Dummy", 1002, 1, strnpcinfo(3) + "::OnDummyDead";
 	sleep 600;
 	.@quit_skill_gid = $@mobid[0];
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` = 'skill' AND `target_id` = '" + .skill_test_id + "'",
+		.@quit_skill_trace_before);
 	callsub S_RefillBotVitals;
-	.@quit_skill_req_ok = (.@quit_anchor_ok && .@quit_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@quit_skill_gid) && playerbot_skilluse(.bot_key$, .@quit_skill_gid, .skill_test_id, 1, 5000));
+	.@quit_skill_req_ok = 0;
+	for (.@q = 0; .@q < 3; ++.@q) {
+		if (.@quit_anchor_ok && .@quit_skill_gid > 0 && playerbot_targetvalid(.bot_key$, .@quit_skill_gid)
+			&& playerbot_skilluse(.bot_key$, .@quit_skill_gid, .skill_test_id, 1, 5000)) {
+			.@quit_skill_req_ok = 1;
+			break;
+		}
+		sleep 250;
+		playerbot_participationrecover(.bot_key$);
+		callsub S_RefillBotVitals;
+	}
 	for (.@i = 0; .@i < 5; ++.@i) {
 		sleep 200;
 		if (.@quit_skill_req_ok && playerbot_skillcastactive(.bot_key$)) {
-			.@quit_skill_cast_ok = 1;
+			.@quit_skill_cast_live_ok = 1;
 			break;
 		}
 	}
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `phase` = 'combat' "
+		+ "AND `target_type` = 'skill' AND `target_id` = '" + .skill_test_id + "' "
+		+ "AND `action` = 'combat.completed' AND `result` = 'ok' "
+		+ "AND `id` > '" + .@quit_skill_trace_before + "'",
+		.@quit_skill_trace_ok_count);
+	.@quit_skill_cast_ok = (.@quit_skill_req_ok && (.@quit_skill_cast_live_ok || .@quit_skill_trace_ok_count > 0));
 	.@quit_bank_open_ok = playerbot_bankopen(.bot_key$);
 	.@quit_search_open_ok = playerbot_searchopen(.bot_key$, 2, 0, "this");
 	.@quit_session_arm_ok = (.@quit_bank_open_ok && .@quit_search_open_ok && playerbot_sessionarm(.bot_key$, "all"));
@@ -741,6 +777,8 @@ S_Run:
 		&& .@session_mail_open_ok && .@mail_send_ok && .@mail_delivery_ok
 		&& .@session_barter_open_ok && .@session_laphine_open_ok
 		&& .@session_mail_close_ok && .@session_barter_close_ok && .@session_laphine_close_ok
+		&& .@warp_skill_req_ok && .@warp_skill_cast_ok && .@warp_skill_move_ok
+		&& .@warp_skill_clear_ok && .@warp_skill_return_ok
 		&& .@warp_npc_anchor_ok && .@warp_npc_start_ok && .@warp_npc_reserve_id > 0 && .@warp_npc_move_ok && .@warp_npc_clear_ok
 		&& .@warp_npc_return_ok && .@warp_storage_open_ok && .@warp_storage_active_ok
 		&& .@warp_storage_move_ok && .@warp_storage_clear_ok && .@warp_storage_return_ok

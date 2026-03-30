@@ -5863,6 +5863,63 @@ This slice does not add:
 - additional reason-code enum surface dedicated to buyingstore-specific failure
   classes
 
+## Slice 76: Combat Warp-Skill Promotion In Aggregate Gate
+
+### Summary
+
+Promoted warp-skill continuity into the aggregate combat selftest gate using a
+trace-backed cast-success check, while keeping quit-skill probes observational
+until that path is stable.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Warp-skill flow in `PlayerbotCombatSelftest` now captures a pre-attempt trace
+  cursor and accepts cast success if either:
+  - cast timer becomes active, or
+  - a new `combat.completed / skill / target_id=skill_test_id / ok` row appears
+    after the attempt.
+- Added explicit trace-window queries for both warp-skill and quit-skill
+  attempts so instant or short cast windows are still observable.
+- Promoted the warp-skill chain into the aggregate result gate:
+  - `warp_skill_req_ok`
+  - `warp_skill_cast_ok`
+  - `warp_skill_move_ok`
+  - `warp_skill_clear_ok`
+  - `warp_skill_return_ok`
+- Added retry semantics to quit-skill request attempt for better diagnostics,
+  but left quit-skill flags out of aggregate pass criteria because the request
+  remains intermittently `skill.not_started` in this scenario.
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Observed result highlights:
+
+- aggregate combat selftest now reports:
+  - `warp_skill_req_ok=1`
+  - `warp_skill_cast_ok=1`
+  - `warp_skill_move_ok=1`
+  - `warp_skill_clear_ok=1`
+  - `warp_skill_return_ok=1`
+- aggregate combat selftest remains pass:
+  - `playerbot_combat_selftest ... result=1`
+- aggregate foundation gate remains pass:
+  - `[playerbot-foundation-smoke] foundation pass ok.`
+
+### Deferrals
+
+This slice does not add:
+
+- quit-skill cast promotion into aggregate pass criteria
+- additional runtime semantic changes for the intermittent
+  `combat.failed / skill / skill.not_started` quit-skill attempt
+
 ## Slice 88: Real Playerbot Enchantgrade Execution Baseline
 
 ### Summary
