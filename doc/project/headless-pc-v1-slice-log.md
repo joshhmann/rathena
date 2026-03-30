@@ -5792,6 +5792,77 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 75: Buyingstore Denial Semantics And Market Continuity Hardening
+
+### Summary
+
+Hardened buyer-side market continuity with explicit buyingstore denial
+semantics in runtime C++, deterministic merchant selftest denial-path checks,
+and a stronger market smoke gate.
+
+### Files
+
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- `playerbot_buyingstoresell` now performs explicit preflight denials before
+  calling `buyingstore_trade`:
+  - item not requested by the buyer store (`item.not_requested`)
+  - requested amount over remaining demand (`item.over_requested`)
+  - buyer inventory over-amount (`buyer.inventory.full`)
+  - buyer zeny limit insufficient (`buyer.zeny_limit`)
+- Post-trade failure classification is now less opaque:
+  - unchanged inventory/zeny deltas -> `target.invalid` / `denied`
+  - inconsistent/partial mutation path -> `script.busy` / `aborted`
+- Merchant selftest now proves denial continuity explicitly:
+  - wrong-item sell denied
+  - overfill sell denied
+  - buyer and viewer session state remains active after denials
+  - legal partial-fill and close/reopen lifecycle still succeeds afterward
+- Vendlist-clear handling in merchant selftest was made deterministic:
+  - poll for map-change clear
+  - fallback to explicit `playerbot_vendlistclose` when map-clear is late
+- Market smoke check now waits for a successful merchant result line
+  (`result=1`) and requires denial continuity keys:
+  - `buying_wrong_item_denied_ok=1`
+  - `buying_overfill_denied_ok=1`
+  - `buying_denied_state_ok=1`
+- Scenario catalog now includes:
+  - `market-buyingstore-denial-continuity`
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash -n tools/ci/playerbot-market-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Observed result highlights:
+
+- merchant selftest line includes:
+  - `buying_wrong_item_denied_ok=1`
+  - `buying_overfill_denied_ok=1`
+  - `buying_denied_state_ok=1`
+  - `result=1`
+- market trace summary now shows explicit denied `buyingtrade` rows under
+  `target.invalid` alongside completed rows.
+- aggregate foundation smoke remains green (`foundation pass ok`).
+
+### Deferrals
+
+This slice does not add:
+
+- full multi-actor live commerce negotiation beyond current selftest coverage
+- broader buyingstore business logic expansion beyond deny/continue semantics
+- additional reason-code enum surface dedicated to buyingstore-specific failure
+  classes
+
 ## Slice 88: Real Playerbot Enchantgrade Execution Baseline
 
 ### Summary

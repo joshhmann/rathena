@@ -16,8 +16,8 @@ Commands:
          then restart the repo stack
   run    arm, launch the codex OpenKore harness in tmux, wait for merchant
          selftest output, then run check
-  check  require a passing merchant selftest line with partial-fill + reopen
-         signals, then print market interaction trace summary
+  check  require a passing merchant selftest line with denial-path continuity,
+         partial-fill + reopen signals, then print market interaction trace summary
 EOF
 }
 
@@ -31,6 +31,27 @@ wait_for_merchant_result_line() {
 		sleep 1
 		elapsed=$((elapsed + 1))
 	done
+	return 1
+}
+
+wait_for_merchant_success_line() {
+	local timeout_s="${1:-210}" elapsed=0 pane line latest=""
+	while (( elapsed < timeout_s )); do
+		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -3200 \; save-buffer - 2>/dev/null | tail -n 3200 || true)"
+		line="$(printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
+		if [[ -n "$line" ]]; then
+			latest="$line"
+			if [[ "$line" == *"result=1"* ]]; then
+				printf '%s\n' "$line"
+				return 0
+			fi
+		fi
+		sleep 1
+		elapsed=$((elapsed + 1))
+	done
+	if [[ -n "$latest" ]]; then
+		printf '%s\n' "$latest"
+	fi
 	return 1
 }
 
@@ -63,17 +84,19 @@ EOF
 
 check() {
 	local pane line key failures=0
-	wait_for_merchant_result_line 180 || true
+	line="$(wait_for_merchant_success_line 240 || true)"
 	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -3200 \; save-buffer - 2>/dev/null | tail -n 3200 || true)"
 	printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest:' | tail -n 4 || true
-	line="$(printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
+	if [[ -z "$line" ]]; then
+		line="$(printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
+	fi
 
 	if [[ -z "$line" ]]; then
 		printf '[playerbot-market-smoke] missing merchant selftest line.\n' >&2
 		return 1
 	fi
 
-	for key in result=1 market_trace_ok=1 buying_sell_first_ok=1 buying_partial_ok=1 buying_sell_ok=1 buying_buyer_close_ok=1 buying_reopen_ok=1 buying_close_ok=1 buying_closed_ok=1 park_ok=1; do
+	for key in result=1 market_trace_ok=1 buying_wrong_item_denied_ok=1 buying_overfill_denied_ok=1 buying_denied_state_ok=1 buying_sell_first_ok=1 buying_partial_ok=1 buying_sell_ok=1 buying_buyer_close_ok=1 buying_reopen_ok=1 buying_close_ok=1 buying_closed_ok=1 park_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[playerbot-market-smoke] required signal missing: %s\n' "$key" >&2
 			failures=$((failures + 1))
@@ -102,11 +125,6 @@ EOF
 run() {
 	arm
 	launch_kore
-	if ! wait_for_merchant_result_line 300; then
-		printf '[playerbot-market-smoke] merchant selftest line not observed within timeout.\n' >&2
-		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
-		return 1
-	fi
 	check
 }
 

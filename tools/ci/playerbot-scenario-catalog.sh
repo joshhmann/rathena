@@ -18,6 +18,7 @@ playerbot_scenario_ids() {
 		'mechanic-cleanup' \
 		'market-buyingstore-partial-fill' \
 		'market-buyingstore-reopen' \
+		'market-buyingstore-denial-continuity' \
 		'foundation-rich-gate'
 }
 
@@ -39,6 +40,7 @@ playerbot_scenario_title() {
 		mechanic-cleanup) printf '%s\n' 'Mechanic Cleanup' ;;
 		market-buyingstore-partial-fill) printf '%s\n' 'Market Buyingstore Partial Fill' ;;
 		market-buyingstore-reopen) printf '%s\n' 'Market Buyingstore Reopen' ;;
+		market-buyingstore-denial-continuity) printf '%s\n' 'Market Buyingstore Denial Continuity' ;;
 		foundation-rich-gate) printf '%s\n' 'Foundation Rich Gate' ;;
 		*) return 1 ;;
 	esac
@@ -51,7 +53,7 @@ playerbot_scenario_phase() {
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup) printf '%s\n' 'participation' ;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen) printf '%s\n' 'market' ;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity) printf '%s\n' 'market' ;;
 		foundation-rich-gate) printf '%s\n' 'foundation' ;;
 		*) return 1 ;;
 	esac
@@ -68,7 +70,7 @@ playerbot_scenario_kind() {
 		mechanic-cleanup)
 			printf '%s\n' 'runbook'
 			;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen)
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
 			printf '%s\n' 'runbook'
 			;;
 		foundation-rich-gate)
@@ -162,6 +164,11 @@ EOF
 Validate that a buying store session that was closed (zeny depleted or operator stop) can be reopened cleanly — confirming that the prior session's zeny/reservation state is fully released before the new session starts and that no double-reservation or orphaned store record exists.
 EOF
 			;;
+		market-buyingstore-denial-continuity)
+			cat <<'EOF'
+Validate that buyingstore sell denials for wrong-item and overfill attempts do not tear down either side of the market session and that the same session can still continue into legal partial-fill and close/reopen flow.
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 Validate the promoted richer foundation gate: aggregate foundation pass plus separate passing skillunit probe and skillunit precheck cycles.
@@ -175,7 +182,7 @@ EOF
 
 playerbot_scenario_prereqs() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|mechanic-cleanup|market-buyingstore-partial-fill|market-buyingstore-reopen|foundation-rich-gate)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|mechanic-cleanup|market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|foundation-rich-gate)
 			cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
@@ -340,6 +347,16 @@ EOF
 - confirm the printed interaction summary includes `buyingstore` close/open lifecycle rows
 EOF
 			;;
+		market-buyingstore-denial-continuity)
+			cat <<'EOF'
+- arm the market smoke helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-market-smoke.sh check`
+- confirm the selftest line contains `buying_wrong_item_denied_ok=1`, `buying_overfill_denied_ok=1`, and `buying_denied_state_ok=1`
+- confirm `result=1`, `buying_partial_ok=1`, and `buying_reopen_ok=1` remain present on the same line
+- confirm the printed interaction summary includes `buyingtrade` denials and completed rows in the same test window
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 - run the canonical richer gate command:
@@ -435,6 +452,14 @@ EOF
 - recent interaction summary shows `buyingstore` lifecycle target rows
 EOF
 			;;
+		market-buyingstore-denial-continuity)
+			cat <<'EOF'
+- `playerbot_merchant_selftest ... buying_wrong_item_denied_ok=1 ... buying_overfill_denied_ok=1 ... buying_denied_state_ok=1 ... result=1` is present
+- `buying_partial_ok=1` and `buying_reopen_ok=1` are both still present
+- `market_trace_ok=1` is present
+- recent interaction summary shows denied and completed `buyingtrade` rows within the same run
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 - `[playerbot-foundation-smoke] foundation pass ok.` is present
@@ -504,7 +529,7 @@ It is the accepted runbook for interrupted participation cleanup across dialog,
 storage, trade, reservations, and quit/remove cleanup on the current baseline.
 EOF
 			;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen)
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
 			cat <<'EOF'
 These scenarios are now backed by the market smoke helper:
 `tools/ci/playerbot-market-smoke.sh`.
@@ -556,7 +581,7 @@ playerbot_scenario_launcher() {
 		mechanic-cleanup)
 			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
 			;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen)
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-market-smoke.sh check'
 			;;
 		foundation-rich-gate)

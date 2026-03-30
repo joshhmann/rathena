@@ -15541,6 +15541,35 @@ BUILDIN_FUNC(playerbot_buyingstoresell)
 		return SCRIPT_CMD_SUCCESS;
 	}
 
+	int32 listidx = -1;
+	for (uint32 i = 0; i < buyer_sd->buyingstore.slots && i < MAX_BUYINGSTORE_SLOTS; ++i) {
+		if (buyer_sd->buyingstore.items[i].nameid == nameid && buyer_sd->buyingstore.items[i].amount > 0) {
+			listidx = static_cast<int32>(i);
+			break;
+		}
+	}
+	if (listidx < 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), "target.invalid", "denied", "buyingtrade.sell", "item.not_requested");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (buyer_sd->buyingstore.items[listidx].amount < amount) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), "target.invalid", "denied", "buyingtrade.sell", "item.over_requested");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if (pc_checkadditem(buyer_sd, nameid, amount) == CHKADDITEM_OVERAMOUNT) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), "target.invalid", "denied", "buyingtrade.sell", "buyer.inventory.full");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+	int64 price_total = static_cast<int64>(amount) * static_cast<int64>(buyer_sd->buyingstore.items[listidx].price);
+	if (price_total > buyer_sd->buyingstore.zenylimit) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), "target.invalid", "denied", "buyingtrade.sell", "buyer.zeny_limit");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
 	int16 index = pc_search_inventory(sd, nameid);
 	if (index < 0 || sd->inventory.u.items_inventory[index].amount < amount) {
 		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), "target.invalid", "denied", "buyingtrade.sell", "inventory.missing");
@@ -15565,7 +15594,19 @@ BUILDIN_FUNC(playerbot_buyingstoresell)
 	if (buyer_sd->state.buyingstore && buyer_sd->buyer_id != 0)
 		playerbot_buyinglist_refresh(sd, buyer_sd, true);
 	bool ok = (after_seller == before_seller - amount && after_buyer >= before_buyer + amount && after_limit < before_limit);
-	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "buyingtrade", std::to_string(nameid).c_str(), ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "buyingtrade.sell", ok ? playerbot_buyinglist_state(sd).c_str() : ("seller=" + std::to_string(after_seller) + ",buyer=" + std::to_string(after_buyer)).c_str());
+	bool unchanged = (after_seller == before_seller && after_buyer == before_buyer && after_limit == before_limit);
+	std::string fail_state = "seller=" + std::to_string(after_seller)
+		+ ",buyer=" + std::to_string(after_buyer)
+		+ ",limit=" + std::to_string(after_limit);
+	playerbot_trace_interaction(
+		bot_id, char_id, account_id, sd,
+		ok ? "interaction.completed" : "interaction.failed",
+		"buyingtrade",
+		std::to_string(nameid).c_str(),
+		ok ? "operator.start" : (unchanged ? "target.invalid" : "script.busy"),
+		ok ? "ok" : (unchanged ? "denied" : "aborted"),
+		ok ? "" : "buyingtrade.sell",
+		ok ? playerbot_buyinglist_state(sd).c_str() : fail_state.c_str());
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
