@@ -5792,6 +5792,57 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 76: Item Mechanic Denial Continuity Expansion
+
+### Summary
+
+Expanded the item/loadout denial-recovery lane so refine/reform/enchantgrade are
+not only validated for successful execution, but also for denied execution
+continuity with explicit session-clear and audit proof.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added explicit denied execution checks in `PlayerbotItemSelftest`:
+  - `refine_deny_ok` and `refine_deny_clear_ok`
+  - `reform_deny_ok` and `reform_deny_clear_ok`
+  - `enchant_deny_ok` and `enchant_deny_clear_ok`
+- Kept existing successful execution checks in the same run and required both
+  denied and successful paths to coexist without leaking session state.
+- Added denied-audit requirements in the item selftest:
+  - `refine_denied_audit_ok`
+  - `reform_denied_audit_ok`
+  - `enchant_denied_audit_ok`
+- Updated `tools/ci/playerbot-item-smoke.sh check-denied` to require the new
+  denied continuity signals and denied audit rows.
+- Updated scenario catalog language/proof for `loadout-denied-recover` to
+  include refine/reform/enchantgrade denied continuity semantics.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+
+Integrated result:
+
+- `playerbot_item_selftest ... refine_deny_ok=1 ... reform_deny_ok=1 ... enchant_deny_ok=1 ... refine_denied_audit_ok=1 ... reform_denied_audit_ok=1 ... enchant_denied_audit_ok=1 ... result=1`
+- `[playerbot-item-smoke] loadout denial/recovery check passed.`
+- `[playerbot-foundation-smoke] rich gate pass ok.`
+
+### Deferrals
+
+This slice strengthens execution/denial continuity gates and audit proof, but
+does not introduce new refine/reform/enchantgrade C++ business rules beyond the
+existing runtime APIs.
+
 ## Slice 75: Merchant Denial Continuity Gate Expansion
 
 ### Summary

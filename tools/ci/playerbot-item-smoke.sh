@@ -16,7 +16,8 @@ Commands:
   run    arm, launch the codex OpenKore harness in tmux, wait for item selftest
          output, then run check-denied
   check  show recent item selftest lines and latest item audit rows
-  check-denied  require passing loadout denial/recovery continuity signals
+  check-denied  require passing loadout denial/recovery plus refine/reform/
+         enchantgrade denied-execution continuity signals
 EOF
 }
 
@@ -83,20 +84,23 @@ check_denied() {
 		printf '[playerbot-item-smoke] missing item selftest result line.\n' >&2
 		return 1
 	fi
-	for key in result=1 phracon_grant_ok=1 refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 refine_session_clear_ok=1 refine_audit_ok=1 reform_exec_ok=1 reform_result_ok=1 reform_session_clear_ok=1 reform_audit_ok=1 enchant_exec_ok=1 enchant_material_ok=1 enchant_zeny_ok=1 enchant_session_clear_ok=1 enchant_audit_ok=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
+	for key in result=1 refine_deny_ok=1 refine_deny_clear_ok=1 phracon_grant_ok=1 refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 refine_session_clear_ok=1 refine_audit_ok=1 refine_denied_audit_ok=1 reform_deny_ok=1 reform_deny_clear_ok=1 reform_exec_ok=1 reform_result_ok=1 reform_session_clear_ok=1 reform_audit_ok=1 reform_denied_audit_ok=1 enchant_deny_ok=1 enchant_deny_clear_ok=1 enchant_exec_ok=1 enchant_material_ok=1 enchant_zeny_ok=1 enchant_session_clear_ok=1 enchant_audit_ok=1 enchant_denied_audit_ok=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[playerbot-item-smoke] required signal missing: %s\n' "$key" >&2
 			failures=$((failures + 1))
 		fi
 	done
-	read -r denied_rows conflict_clear_rows refine_rows reform_rows enchant_rows < <(
+	read -r denied_rows conflict_clear_rows refine_rows reform_rows enchant_rows refine_denied_rows reform_denied_rows enchant_denied_rows < <(
 		mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
 SELECT
   COALESCE(SUM(CASE WHEN \`detail\` LIKE 'loadout.manual.%.denied' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN \`detail\` = 'loadout.manual.slot_conflict.clear' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN \`action\` = 'refine' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN \`action\` = 'reform' THEN 1 ELSE 0 END), 0),
-  COALESCE(SUM(CASE WHEN \`action\` = 'enchantgrade' THEN 1 ELSE 0 END), 0)
+  COALESCE(SUM(CASE WHEN \`action\` = 'enchantgrade' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`action\` = 'refine' AND \`result\` = 'denied' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`action\` = 'reform' AND \`result\` = 'denied' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`action\` = 'enchantgrade' AND \`result\` = 'denied' THEN 1 ELSE 0 END), 0)
 FROM \`bot_item_audit\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800;
 EOF
@@ -119,6 +123,18 @@ EOF
 	fi
 	if (( enchant_rows < 1 )); then
 		printf '[playerbot-item-smoke] missing enchantgrade item-audit row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( refine_denied_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing denied refine item-audit row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( reform_denied_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing denied reform item-audit row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( enchant_denied_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing denied enchantgrade item-audit row.\n' >&2
 		failures=$((failures + 1))
 	fi
 	local mapchange_loadout_audits=0
@@ -155,6 +171,9 @@ EOF
 	printf '[playerbot-item-smoke] refine item-audit rows (last 30m): %s\n' "$refine_rows"
 	printf '[playerbot-item-smoke] reform item-audit rows (last 30m): %s\n' "$reform_rows"
 	printf '[playerbot-item-smoke] enchantgrade item-audit rows (last 30m): %s\n' "$enchant_rows"
+	printf '[playerbot-item-smoke] denied refine item-audit rows (last 30m): %s\n' "$refine_denied_rows"
+	printf '[playerbot-item-smoke] denied reform item-audit rows (last 30m): %s\n' "$reform_denied_rows"
+	printf '[playerbot-item-smoke] denied enchantgrade item-audit rows (last 30m): %s\n' "$enchant_denied_rows"
 	if (( failures > 0 )); then
 		printf '\n[playerbot-item-smoke] loadout denial/recovery check failed with %d missing signal(s).\n' "$failures" >&2
 		return 1
