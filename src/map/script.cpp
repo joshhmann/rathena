@@ -13828,6 +13828,144 @@ BUILDIN_FUNC(playerbot_reform)
 }
 
 /*==========================================
+ * Execute one real enchantgrade attempt for a live playerbot item.
+ * Returns 1 when attempt executed (success/fail/break/downgrade),
+ * or 0 when denied by preconditions.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_enchantgrade)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid item_nameid = script_getnum(st, 3);
+	uint16 material_index = static_cast<uint16>(script_getnum(st, 4));
+	uint16 blessing_steps = script_hasdata(st, 5) ? static_cast<uint16>(cap_value(script_getnum(st, 5), 0, 1000)) : 0;
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "enchantgrade", std::to_string(item_nameid).c_str(), "operator.start", "ok", "", "");
+
+#if !( PACKETVER_MAIN_NUM >= 20200916 || PACKETVER_RE_NUM >= 20200724 )
+	playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "denied", "enchantgrade.unsupported_packetver");
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", "enchantgrade.unsupported_packetver");
+	script_pushint(st, 0);
+	return SCRIPT_CMD_SUCCESS;
+#else
+	if (sd == nullptr || item_nameid == 0) {
+		const char* detail = sd == nullptr ? "bot.offline" : "item.invalid";
+		playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "invalid", detail);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", detail);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 idx = playerbot_find_inventory_index(sd, item_nameid, false);
+	if (idx < 0 || sd->inventory_data[idx] == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "missing", "inventory.missing");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", "inventory.missing");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::shared_ptr<s_enchantgrade> enchantgrade = enchantgrade_db.find(sd->inventory_data[idx]->type);
+	if (enchantgrade == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "denied", "enchantgrade.unsupported_type");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", "enchantgrade.unsupported_type");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	uint16 level = 0;
+	if (sd->inventory_data[idx]->type == IT_WEAPON)
+		level = sd->inventory_data[idx]->weapon_level;
+	else if (sd->inventory_data[idx]->type == IT_ARMOR)
+		level = sd->inventory_data[idx]->armor_level;
+
+	const auto& enchantgrade_levels = enchantgrade->levels.find(level);
+	if (enchantgrade_levels == enchantgrade->levels.end()) {
+		playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "denied", "enchantgrade.level_unsupported");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", "enchantgrade.level_unsupported");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::shared_ptr<s_enchantgradelevel> grade_level = util::map_find(enchantgrade_levels->second, static_cast<e_enchantgrade>(sd->inventory.u.items_inventory[idx].enchantgrade));
+	if (grade_level == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "denied", "enchantgrade.max_grade");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", "enchantgrade.max_grade");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	std::shared_ptr<s_enchantgradeoption> option = util::map_find(grade_level->options, material_index);
+	if (option == nullptr) {
+		playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, 0, "inventory", "denied", "enchantgrade.option_invalid");
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "enchantgrade", std::to_string(item_nameid).c_str(), "target.invalid", "denied", "enchantgrade.execute", "enchantgrade.option_invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool opened_here = false;
+	if (!sd->state.enchantgrade_open) {
+		clif_ui_open(*sd, OUT_UI_ENCHANTGRADE, 0);
+		opened_here = sd->state.enchantgrade_open;
+	}
+
+	int32 before_material = playerbot_inventory_amount(sd, option->item, false);
+	int32 before_zeny = sd->status.zeny;
+	int32 before_grade = sd->inventory.u.items_inventory[idx].enchantgrade;
+	int32 before_refine = sd->inventory.u.items_inventory[idx].refine;
+	e_enchantgrade_attempt_result outcome = clif_enchantgrade_attempt(sd, static_cast<uint16>(idx), material_index, blessing_steps > 0, blessing_steps);
+	int32 after_material = playerbot_inventory_amount(sd, option->item, false);
+	int32 after_zeny = sd->status.zeny;
+	bool item_exists_after = (sd->inventory.u.items_inventory[idx].nameid == item_nameid);
+	int32 after_grade = item_exists_after ? sd->inventory.u.items_inventory[idx].enchantgrade : -1;
+	int32 after_refine = item_exists_after ? sd->inventory.u.items_inventory[idx].refine : -1;
+
+	std::string detail;
+	switch (outcome) {
+	case ENCHANTGRADE_ATTEMPT_SUCCESS:
+		detail = "enchantgrade.success";
+		break;
+	case ENCHANTGRADE_ATTEMPT_FAILED:
+		detail = "enchantgrade.failed";
+		break;
+	case ENCHANTGRADE_ATTEMPT_DOWNGRADE:
+		detail = "enchantgrade.downgrade";
+		break;
+	case ENCHANTGRADE_ATTEMPT_BREAK:
+		detail = "enchantgrade.broke";
+		break;
+	default:
+		detail = "enchantgrade.denied";
+		break;
+	}
+	detail += " before_grade=" + std::to_string(before_grade)
+		+ " after_grade=" + std::to_string(after_grade)
+		+ " refine=" + std::to_string(before_refine) + "->" + std::to_string(after_refine)
+		+ " mat=" + std::to_string(option->item) + ":" + std::to_string(before_material) + "->" + std::to_string(after_material)
+		+ " zeny=" + std::to_string(before_zeny) + "->" + std::to_string(after_zeny);
+
+	bool attempted = (outcome != ENCHANTGRADE_ATTEMPT_DENIED);
+	playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, attempted ? 1 : 0, "inventory", attempted ? "ok" : "denied", detail.c_str());
+	playerbot_trace_interaction(
+		bot_id,
+		char_id,
+		account_id,
+		sd,
+		attempted ? "interaction.completed" : "interaction.failed",
+		"enchantgrade",
+		std::to_string(item_nameid).c_str(),
+		attempted ? "operator.start" : "target.invalid",
+		attempted ? "ok" : "denied",
+		attempted ? "" : "enchantgrade.execute",
+		detail.c_str());
+	if (opened_here)
+		sd->state.enchantgrade_open = false;
+	script_pushint(st, attempted ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+#endif
+}
+
+/*==========================================
  * Count one item amount for a playerbot by location.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_itemcount)
@@ -33190,6 +33328,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_itemuse,"si"),
 	BUILDIN_DEF(playerbot_refine,"sii?"),
 	BUILDIN_DEF(playerbot_reform,"sii"),
+	BUILDIN_DEF(playerbot_enchantgrade,"sii?"),
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),

@@ -5792,6 +5792,76 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 88: Real Playerbot Enchantgrade Execution Baseline
+
+### Summary
+
+Extended the item execution foundation from refine+reform to include real
+enchantgrade attempts for live playerbots, with deterministic selftest/smoke
+signals and full rich-gate validation.
+
+### Files
+
+- `src/map/clif.hpp`
+- `src/map/clif.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260330_playerbot_item_enchantgrade.sql` (new)
+- `doc/project/bot-state-schema.md`
+
+### What Changed
+
+- Added reusable map-server helper:
+  - `clif_enchantgrade_attempt(sd, index, material_index, blessing_flag, blessing_amount)`
+  - centralizes legality checks, material/zeny consumption, and result
+    handling (success/fail/downgrade/break)
+- Refactored `clif_parse_enchantgrade_start` to call the shared helper so
+  packet path and script path use identical runtime semantics.
+- Added new playerbot buildin:
+  - `playerbot_enchantgrade(<bot_key>, <item_id>, <material_option>{,<blessing_steps>})`
+  - emits trace + `bot_item_audit` rows
+  - returns 1 for executed attempts (including fail/break paths), 0 for denied
+    preconditions
+  - clears transient enchantgrade session state when opened by the buildin
+- Expanded item selftest with deterministic enchantgrade branch:
+  - grants `Reinforced Knife (510021)` at `+20` via attached `getitem2`
+  - grants option material `Etel_Skyblue_Jewel (1000325)`
+  - executes `playerbot_enchantgrade(..., material_option=0)`
+  - requires material and zeny consumption, session cleanup, and
+    `action='enchantgrade'` audit presence
+- Extended item smoke acceptance to require enchantgrade signals:
+  - `enchant_exec_ok=1`
+  - `enchant_material_ok=1`
+  - `enchant_zeny_ok=1`
+  - `enchant_session_clear_ok=1`
+  - `enchant_audit_ok=1`
+  - plus at least one recent `action='enchantgrade'` audit row
+- Extended `bot_item_audit.action` enum with `enchantgrade` in schema + upgrade
+  artifact.
+- Updated schema docs for the new action + migration reference.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+
+Observed pass signals:
+
+- `playerbot_item_selftest ... enchant_exec_ok=1 ... enchant_audit_ok=1 ... result=1`
+- `[playerbot-item-smoke] loadout denial/recovery check passed.`
+- `[playerbot-foundation-smoke] rich gate pass ok.`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- multi-option enchantgrade strategy logic (option 0 is the current baseline)
+- blessing-step optimization policy
+- promotion of enchantgrade business behavior into higher-level controllers
+
 ## Slice 87: Real Playerbot Reform Execution Baseline
 
 ### Summary

@@ -617,6 +617,7 @@ Committed fields:
   - `consume`
   - `refine`
   - `reform`
+  - `enchantgrade`
 - `item_id`
 - `amount`
 - `location`
@@ -653,6 +654,8 @@ Status:
   `sql-files/upgrades/upgrade_20260330_playerbot_item_refine.sql`
 - enum extended for reform participation in:
   `sql-files/upgrades/upgrade_20260330_playerbot_item_reform.sql`
+- enum extended for enchantgrade participation in:
+  `sql-files/upgrades/upgrade_20260330_playerbot_item_enchantgrade.sql`
 
 ## Runtime Ownership
 

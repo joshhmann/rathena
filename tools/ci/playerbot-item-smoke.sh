@@ -83,19 +83,20 @@ check_denied() {
 		printf '[playerbot-item-smoke] missing item selftest result line.\n' >&2
 		return 1
 	fi
-	for key in result=1 phracon_grant_ok=1 refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 refine_session_clear_ok=1 refine_audit_ok=1 reform_exec_ok=1 reform_result_ok=1 reform_session_clear_ok=1 reform_audit_ok=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
+	for key in result=1 phracon_grant_ok=1 refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 refine_session_clear_ok=1 refine_audit_ok=1 reform_exec_ok=1 reform_result_ok=1 reform_session_clear_ok=1 reform_audit_ok=1 enchant_exec_ok=1 enchant_material_ok=1 enchant_zeny_ok=1 enchant_session_clear_ok=1 enchant_audit_ok=1 loadout_denied_set_ok=1 loadout_denied_ok=1 loadout_recover_clear_ok=1 loadout_recover_ok=1 loadout_conflict_ok=1 loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 loadout_map_cont_ok=1 loadout_map_return_ok=1 loadout_map_return_cont_ok=1 loadout_audit_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[playerbot-item-smoke] required signal missing: %s\n' "$key" >&2
 			failures=$((failures + 1))
 		fi
 	done
-	read -r denied_rows conflict_clear_rows refine_rows reform_rows < <(
+	read -r denied_rows conflict_clear_rows refine_rows reform_rows enchant_rows < <(
 		mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
 SELECT
   COALESCE(SUM(CASE WHEN \`detail\` LIKE 'loadout.manual.%.denied' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN \`detail\` = 'loadout.manual.slot_conflict.clear' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN \`action\` = 'refine' THEN 1 ELSE 0 END), 0),
-  COALESCE(SUM(CASE WHEN \`action\` = 'reform' THEN 1 ELSE 0 END), 0)
+  COALESCE(SUM(CASE WHEN \`action\` = 'reform' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`action\` = 'enchantgrade' THEN 1 ELSE 0 END), 0)
 FROM \`bot_item_audit\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800;
 EOF
@@ -114,6 +115,10 @@ EOF
 	fi
 	if (( reform_rows < 1 )); then
 		printf '[playerbot-item-smoke] missing reform item-audit row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( enchant_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing enchantgrade item-audit row.\n' >&2
 		failures=$((failures + 1))
 	fi
 	local mapchange_loadout_audits=0
@@ -149,6 +154,7 @@ EOF
 	printf '\n[playerbot-item-smoke] loadout.mapchange reconcile rows (last 30m): %s\n' "$mapchange_loadout_audits"
 	printf '[playerbot-item-smoke] refine item-audit rows (last 30m): %s\n' "$refine_rows"
 	printf '[playerbot-item-smoke] reform item-audit rows (last 30m): %s\n' "$reform_rows"
+	printf '[playerbot-item-smoke] enchantgrade item-audit rows (last 30m): %s\n' "$enchant_rows"
 	if (( failures > 0 )); then
 		printf '\n[playerbot-item-smoke] loadout denial/recovery check failed with %d missing signal(s).\n' "$failures" >&2
 		return 1

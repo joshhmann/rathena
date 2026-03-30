@@ -24122,27 +24122,23 @@ void clif_enchantgrade_announce( map_session_data& sd, struct item& item, bool s
 #endif
 }
 
-void clif_parse_enchantgrade_start( int32 fd, map_session_data* sd ){
+e_enchantgrade_attempt_result clif_enchantgrade_attempt( map_session_data* sd, uint16 index, uint16 material_index, bool blessing_flag, uint16 blessing_amount ){
 #if PACKETVER_MAIN_NUM >= 20200916 || PACKETVER_RE_NUM >= 20200724
-	nullpo_retv( sd );
+	nullpo_retr( ENCHANTGRADE_ATTEMPT_DENIED, sd );
 
 	if( !sd->state.enchantgrade_open ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
-	const PACKET_CZ_GRADE_ENCHANT_REQUEST* p = reinterpret_cast<PACKET_CZ_GRADE_ENCHANT_REQUEST*>( RFIFOP( fd, 0 ) );
-
-	uint16 index = server_index( p->index );
-
 	if( index >= MAX_INVENTORY || sd->inventory_data[index] == nullptr ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
 	std::shared_ptr<s_enchantgrade> enchantgrade = enchantgrade_db.find( sd->inventory_data[index]->type );
 
 	// Unsupported item type - no answer
 	if( enchantgrade == nullptr ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
 	uint16 level = 0;
@@ -24157,112 +24153,112 @@ void clif_parse_enchantgrade_start( int32 fd, map_session_data* sd ){
 
 	// Cannot upgrade this weapon or armor level - no answer
 	if( enchantgradelevels == enchantgrade->levels.end() ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
 	std::shared_ptr<s_enchantgradelevel> enchantgradelevel = util::map_find( enchantgradelevels->second, (e_enchantgrade)sd->inventory.u.items_inventory[index].enchantgrade );
 
 	// Cannot increase enchantgrade any further - no answer
 	if( enchantgradelevel == nullptr ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
 	uint16 totalChance = enchantgradelevel->chances[sd->inventory.u.items_inventory[index].refine];
 
 	// No chance to increase the enchantgrade
 	if( totalChance == 0 ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
-	std::shared_ptr<s_enchantgradeoption> option = util::map_find( enchantgradelevel->options, (uint16)p->material_index );
+	std::shared_ptr<s_enchantgradeoption> option = util::map_find( enchantgradelevel->options, material_index );
 
 	// Unknown option id - no answer
 	if( option == nullptr ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
 	// Not enough zeny
 	if( sd->status.zeny < option->zeny ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
-	uint16 steps = min( p->blessing_amount, enchantgradelevel->catalyst.maximumSteps );
+	uint16 steps = min( blessing_amount, enchantgradelevel->catalyst.maximumSteps );
 	std::unordered_map<uint16, uint16> requiredItems;
 
-	if( p->blessing_flag ){
+	if( blessing_flag ){
 		// If the catalysator item is the same as the option item build the sum of amounts
 		if( enchantgradelevel->catalyst.item == option->item ){
 			uint16 amount = enchantgradelevel->catalyst.amountPerStep * steps + option->amount;
 
-			int16 index = pc_search_inventory( sd, enchantgradelevel->catalyst.item );
+			int16 catalyst_index = pc_search_inventory( sd, enchantgradelevel->catalyst.item );
 
-			if( index < 0 ){
-				return;
+			if( catalyst_index < 0 ){
+				return ENCHANTGRADE_ATTEMPT_DENIED;
 			}
 
-			if( sd->inventory.u.items_inventory[index].amount < amount ){
-				return;
+			if( sd->inventory.u.items_inventory[catalyst_index].amount < amount ){
+				return ENCHANTGRADE_ATTEMPT_DENIED;
 			}
 
-			requiredItems[index] = amount;
+			requiredItems[catalyst_index] = amount;
 		}else{
 			uint16 amount = enchantgradelevel->catalyst.amountPerStep * steps;
 
 			// Check catalysator item
-			int16 index = pc_search_inventory( sd, enchantgradelevel->catalyst.item );
+			int16 catalyst_index = pc_search_inventory( sd, enchantgradelevel->catalyst.item );
 
-			if( index < 0 ){
-				return;
+			if( catalyst_index < 0 ){
+				return ENCHANTGRADE_ATTEMPT_DENIED;
 			}
 
-			if( sd->inventory.u.items_inventory[index].amount < amount ){
-				return;
+			if( sd->inventory.u.items_inventory[catalyst_index].amount < amount ){
+				return ENCHANTGRADE_ATTEMPT_DENIED;
 			}
 
-			requiredItems[index] = amount;
+			requiredItems[catalyst_index] = amount;
 
 			// Check option item
-			index = pc_search_inventory( sd, option->item );
+			int16 option_index = pc_search_inventory( sd, option->item );
 
-			if( index < 0 ){
-				return;
+			if( option_index < 0 ){
+				return ENCHANTGRADE_ATTEMPT_DENIED;
 			}
 
-			if( sd->inventory.u.items_inventory[index].amount < option->amount ){
-				return;
+			if( sd->inventory.u.items_inventory[option_index].amount < option->amount ){
+				return ENCHANTGRADE_ATTEMPT_DENIED;
 			}
 
-			requiredItems[index] = option->amount;
+			requiredItems[option_index] = option->amount;
 		}
 
 		totalChance += steps * enchantgradelevel->catalyst.chanceIncrease;
 	}else{
 		// Check option item
-		int16 index = pc_search_inventory( sd, option->item );
+		int16 option_index = pc_search_inventory( sd, option->item );
 
-		if( index < 0 ){
-			return;
+		if( option_index < 0 ){
+			return ENCHANTGRADE_ATTEMPT_DENIED;
 		}
 
-		if( sd->inventory.u.items_inventory[index].amount < option->amount ){
-			return;
+		if( sd->inventory.u.items_inventory[option_index].amount < option->amount ){
+			return ENCHANTGRADE_ATTEMPT_DENIED;
 		}
 
-		requiredItems[index] = option->amount;
+		requiredItems[option_index] = option->amount;
 	}
 
 	// All items should be there, start deleting
 	for( const auto& pair : requiredItems ){
 		if( pc_delitem( sd, pair.first, pair.second, 0, 0, LOG_TYPE_ENCHANTGRADE ) != 0 ){
-			return;
+			return ENCHANTGRADE_ATTEMPT_DENIED;
 		}
 	}
 
 	if( pc_payzeny( sd, option->zeny, LOG_TYPE_ENCHANTGRADE ) > 0 ){
-		return;
+		return ENCHANTGRADE_ATTEMPT_DENIED;
 	}
 
-	if( rnd()%10000 < totalChance ){
+	if( rnd() % 10000 < totalChance ){
 		// Log removal of item
 		log_pick_pc( sd, LOG_TYPE_ENCHANTGRADE, -1, &sd->inventory.u.items_inventory[index] );
 		// Increase enchantgrade
@@ -24278,33 +24274,58 @@ void clif_parse_enchantgrade_start( int32 fd, map_session_data* sd ){
 		if( enchantgradelevel->announceSuccess ){
 			clif_enchantgrade_announce( *sd, sd->inventory.u.items_inventory[index], true );
 		}
-	}else{
-		// Check if it has to be announced (has to be done before deleting the item from inventory)
-		if( enchantgradelevel->announceFail ){
-			clif_enchantgrade_announce( *sd, sd->inventory.u.items_inventory[index], false );
-		}
 
-		// Delete the item if it is breakable
-		if( option->breaking_rate > 0 && ( rnd() % 10000 ) < option->breaking_rate ){
-			// Delete the item
-			pc_delitem( sd, index, 1, 0, 0, LOG_TYPE_ENCHANTGRADE );
-			// Show failure
-			clif_enchantgrade_result( *sd, index, ENCHANTGRADE_UPGRADE_BREAK );
-		// Downgrade the item if necessary
-		}else if( option->downgrade_amount > 0 ){
-			// Log removal of item
-			log_pick_pc( sd, LOG_TYPE_ENCHANTGRADE, -1, &sd->inventory.u.items_inventory[index] );
-			// Decrease refine level
-			sd->inventory.u.items_inventory[index].refine = cap_value( sd->inventory.u.items_inventory[index].refine - option->downgrade_amount, 0, MAX_REFINE );
-			// Log retrieving the item again -> with the new refine
-			log_pick_pc( sd, LOG_TYPE_ENCHANTGRADE, 1, &sd->inventory.u.items_inventory[index] );
-			// Show downgrade
-			clif_enchantgrade_result( *sd, index, ENCHANTGRADE_UPGRADE_DOWNGRADE );
-		// Only show failure, but dont do anything
-		}else{
-			clif_enchantgrade_result( *sd, index, ENCHANTGRADE_UPGRADE_FAILED );
-		}
+		return ENCHANTGRADE_ATTEMPT_SUCCESS;
 	}
+
+	// Check if it has to be announced (has to be done before deleting the item from inventory)
+	if( enchantgradelevel->announceFail ){
+		clif_enchantgrade_announce( *sd, sd->inventory.u.items_inventory[index], false );
+	}
+
+	// Delete the item if it is breakable
+	if( option->breaking_rate > 0 && ( rnd() % 10000 ) < option->breaking_rate ){
+		// Delete the item
+		pc_delitem( sd, index, 1, 0, 0, LOG_TYPE_ENCHANTGRADE );
+		// Show failure
+		clif_enchantgrade_result( *sd, index, ENCHANTGRADE_UPGRADE_BREAK );
+		return ENCHANTGRADE_ATTEMPT_BREAK;
+	}
+
+	// Downgrade the item if necessary
+	if( option->downgrade_amount > 0 ){
+		// Log removal of item
+		log_pick_pc( sd, LOG_TYPE_ENCHANTGRADE, -1, &sd->inventory.u.items_inventory[index] );
+		// Decrease refine level
+		sd->inventory.u.items_inventory[index].refine = cap_value( sd->inventory.u.items_inventory[index].refine - option->downgrade_amount, 0, MAX_REFINE );
+		// Log retrieving the item again -> with the new refine
+		log_pick_pc( sd, LOG_TYPE_ENCHANTGRADE, 1, &sd->inventory.u.items_inventory[index] );
+		// Show downgrade
+		clif_enchantgrade_result( *sd, index, ENCHANTGRADE_UPGRADE_DOWNGRADE );
+		return ENCHANTGRADE_ATTEMPT_DOWNGRADE;
+	}
+
+	// Only show failure, but dont do anything
+	clif_enchantgrade_result( *sd, index, ENCHANTGRADE_UPGRADE_FAILED );
+	return ENCHANTGRADE_ATTEMPT_FAILED;
+#else
+	return ENCHANTGRADE_ATTEMPT_DENIED;
+#endif
+}
+
+void clif_parse_enchantgrade_start( int32 fd, map_session_data* sd ){
+#if PACKETVER_MAIN_NUM >= 20200916 || PACKETVER_RE_NUM >= 20200724
+	nullpo_retv( sd );
+
+	if( !sd->state.enchantgrade_open ){
+		return;
+	}
+
+	const PACKET_CZ_GRADE_ENCHANT_REQUEST* p = reinterpret_cast<PACKET_CZ_GRADE_ENCHANT_REQUEST*>( RFIFOP( fd, 0 ) );
+
+	uint16 index = server_index( p->index );
+
+	clif_enchantgrade_attempt( sd, index, static_cast<uint16>( p->material_index ), p->blessing_flag, p->blessing_amount );
 #endif
 }
 

@@ -1371,6 +1371,14 @@ enum e_refineui_attempt_result : int16 {
 	REFINEUI_ATTEMPT_DOWNGRADE,
 };
 e_refineui_attempt_result clif_refineui_attempt( map_session_data* sd, uint16 index, t_itemid material, bool use_blacksmith_blessing );
+enum e_enchantgrade_attempt_result : int16 {
+	ENCHANTGRADE_ATTEMPT_DENIED = 0,
+	ENCHANTGRADE_ATTEMPT_SUCCESS,
+	ENCHANTGRADE_ATTEMPT_FAILED,
+	ENCHANTGRADE_ATTEMPT_DOWNGRADE,
+	ENCHANTGRADE_ATTEMPT_BREAK,
+};
+e_enchantgrade_attempt_result clif_enchantgrade_attempt( map_session_data* sd, uint16 index, uint16 material_index, bool blessing_flag, uint16 blessing_amount );
 
 /**
  * Color Table
