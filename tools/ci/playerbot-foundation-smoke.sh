@@ -2,6 +2,8 @@
 set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/playerbot-smoke-common.sh"
 PB_SMOKE_LABEL="playerbot-foundation-smoke"
+PB_STREAM_MAP="${PB_STREAM_MAP:-0}"
+PB_MAP_STREAM_PID=""
 
 usage() {
 	cat <<EOF
@@ -45,6 +47,41 @@ wait_for_all_selftests() {
 	return 1
 }
 
+start_map_stream() {
+	if (( PB_STREAM_MAP == 0 )); then
+		return 1
+	fi
+	if [[ -n "$PB_MAP_STREAM_PID" ]] && kill -0 "$PB_MAP_STREAM_PID" 2>/dev/null; then
+		return 0
+	fi
+	(
+		local last_sig=""
+		printf '[%s] map-stream: enabled (poll=2s, pane=rathena-dev-map-server)\n' "$PB_SMOKE_LABEL"
+		while true; do
+			local pane sig
+			pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -120 2>/dev/null || true)"
+			sig="$(printf '%s' "$pane" | cksum | awk '{print $1 ":" $2}')"
+			if [[ -n "$pane" && "$sig" != "$last_sig" ]]; then
+				printf '[%s] map-stream snapshot >>>\n' "$PB_SMOKE_LABEL"
+				printf '%s\n' "$pane"
+				printf '[%s] map-stream snapshot <<<\n' "$PB_SMOKE_LABEL"
+				last_sig="$sig"
+			fi
+			sleep 2
+		done
+	) &
+	PB_MAP_STREAM_PID="$!"
+	return 0
+}
+
+stop_map_stream() {
+	if [[ -n "$PB_MAP_STREAM_PID" ]]; then
+		kill "$PB_MAP_STREAM_PID" 2>/dev/null || true
+		wait "$PB_MAP_STREAM_PID" 2>/dev/null || true
+		PB_MAP_STREAM_PID=""
+	fi
+}
+
 arm() {
 	pb_smoke_arm_restart_wait "$PB_SMOKE_LABEL" \
 		"('\$PBFNST_AUTORUN_AID', 0, '$TEST_AID'),
@@ -65,15 +102,21 @@ arm() {
 }
 
 run() {
+	local stream_started=0
 	arm
 	pb_smoke_launch_kore playerbot-foundation-kore
+	if start_map_stream; then
+		stream_started=1
+	fi
 	if ! pb_smoke_wait_pattern 'playerbot_foundation_selftest: stage=done' 300; then
+		(( stream_started > 0 )) && stop_map_stream
 		printf '[%s] foundation pass did not reach stage=done within timeout.\n' "$PB_SMOKE_LABEL" >&2
 		pb_smoke_capture 80 >&2
 		return 1
 	fi
 	pb_smoke_wait_pattern 'playerbot_combat_selftest:' 60 || true
 	wait_for_all_selftests 180 || true
+	(( stream_started > 0 )) && stop_map_stream
 	check
 }
 
@@ -95,24 +138,35 @@ check_rich() {
 }
 
 run_rich() {
+	local stream_started=0
 	run
 	bash tools/ci/playerbot-combat-skillunit-smoke.sh arm
 	pb_smoke_launch_kore playerbot-foundation-kore
+	if start_map_stream; then
+		stream_started=1
+	fi
 	if ! pb_smoke_wait_pattern 'playerbot_combat_skillunit_probe:' 180; then
+		(( stream_started > 0 )) && stop_map_stream
 		printf '[%s] rich gate did not observe skillunit probe within timeout.\n' "$PB_SMOKE_LABEL" >&2
 		pb_smoke_capture 80 >&2
 		return 1
 	fi
+	(( stream_started > 0 )) && stop_map_stream
 	if ! bash tools/ci/playerbot-combat-skillunit-smoke.sh check; then
 		return 1
 	fi
 	bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm
 	pb_smoke_launch_kore playerbot-foundation-kore
+	if start_map_stream; then
+		stream_started=1
+	fi
 	if ! pb_smoke_wait_pattern 'playerbot_combat_skillunit_precheck:' 180; then
+		(( stream_started > 0 )) && stop_map_stream
 		printf '[%s] rich gate did not observe skillunit precheck within timeout.\n' "$PB_SMOKE_LABEL" >&2
 		pb_smoke_capture 80 >&2
 		return 1
 	fi
+	(( stream_started > 0 )) && stop_map_stream
 	check_rich
 }
 
