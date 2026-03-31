@@ -5911,6 +5911,49 @@ This slice improves execution observability semantics, not deeper mechanic
 business strategy (e.g. policy-driven material selection or adaptive retry
 logic).
 
+## Slice 71: Market Mail Continuity Coverage
+
+### Summary
+
+Expanded market foundation coverage to include mail behavior during active
+buyingstore sessions, with continuity-first acceptance semantics.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Merchant selftest now executes a mail attempt while buyingstore is active.
+- Added continuity semantics:
+  - mail may be allowed (`mail_send_ok=1`) or denied (`mail_denied_ok=1`)
+  - in both cases, market continuity must persist (`mail_continuity_ok=1`)
+    by requiring buyingstore to remain active after the mail attempt.
+- Added trace validation:
+  - `mail_trace_ok=1` now requires at least one matching interaction trace for
+    the in-window mail attempt (`mail.sent` or `mail.invalid_operation`).
+- Promoted these keys into `playerbot-market-smoke.sh` required signals.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-market-smoke.sh`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result highlights:
+
+- `playerbot_merchant_selftest ... mail_continuity_ok=1 ... mail_trace_ok=1 ... result=1`
+- market smoke passes with new mail continuity keys required
+- full foundation smoke remains green
+
+### Deferrals
+
+This slice validates continuity around mail+market coexistence; it does not add
+deeper mail business workflows (inbox parsing, attachment routing, or campaign
+logic).
+
 ## Slice 68: Foundation Closeout Checklist And Gate Tooling
 
 ### Summary
