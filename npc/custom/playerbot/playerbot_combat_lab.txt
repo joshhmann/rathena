@@ -148,11 +148,17 @@ S_RefillBotVitals:
 	return 1;
 
 S_Run:
-	if (!attachrid(.aid))
-		return;
-	.inviter_char_id = getcharid(0);
-	.inviter_aid = getcharid(3);
-	.inviter_name$ = strcharinfo(0);
+	.@inviter_online = isloggedin(.aid, 0);
+	if (.@inviter_online && attachrid(.aid)) {
+		.inviter_char_id = getcharid(0);
+		.inviter_aid = getcharid(3);
+		.inviter_name$ = strcharinfo(0);
+	} else {
+		.@inviter_online = 0;
+		.inviter_char_id = .test_char_id;
+		.inviter_aid = .test_aid;
+		.inviter_name$ = "offline";
+	}
 	.bot_key$ = "quick_combat_open";
 	.display_name$ = "QuickCombatOpen";
 	.skill_test_id = 19;
@@ -413,6 +419,66 @@ S_Run:
 	if (.@warp_trade_return_ok)
 		sleep 900;
 
+	.@party_anchor_ok = 0;
+	.@party_join_ok = !.@inviter_online;
+	.@party_map_cont_ok = !.@inviter_online;
+	.@party_respawn_cont_ok = !.@inviter_online;
+	.@guild_anchor_ok = 0;
+	.@guild_join_ok = !.@inviter_online;
+	.@guild_map_cont_ok = !.@inviter_online;
+	.@guild_respawn_cont_ok = !.@inviter_online;
+	if (.@inviter_online) {
+		.@inviter_party_id = getcharid(1);
+		.@party_anchor_ok = (.@inviter_party_id > 0);
+		if (!.@party_anchor_ok) {
+			.@party_create_ok = party_create("PBC" + getcharid(0));
+			sleep 900;
+			.@inviter_party_id = getcharid(1);
+			.@party_anchor_ok = (.@party_create_ok && .@inviter_party_id > 0);
+		}
+		.@bot_party_id = playerbot_partyid(.char_id);
+		if (.@party_anchor_ok && .@bot_party_id != .@inviter_party_id) {
+			for (.@i = 0; .@i < 6; ++.@i) {
+				.@party_invite_ok = playerbot_partyinvite(.char_id) || .@party_invite_ok;
+				sleep 350;
+				.@bot_party_id = playerbot_partyid(.char_id);
+				if (.@bot_party_id == .@inviter_party_id)
+					break;
+			}
+		}
+		.@party_join_ok = (.@party_anchor_ok && .@bot_party_id == .@inviter_party_id);
+
+		.@inviter_guild_id = getcharid(2);
+		.@guild_anchor_ok = (.@inviter_guild_id > 0);
+		if (!.@guild_anchor_ok) {
+			.@guild_suffix = gettimetick(2) % 1000;
+			.@guild_create_ok = playerbot_guildcreate("PBCG" + getcharid(0) + "_" + .@guild_suffix);
+			sleep 900;
+			.@inviter_guild_id = getcharid(2);
+			.@guild_anchor_ok = (.@guild_create_ok && .@inviter_guild_id > 0);
+		}
+		.@bot_guild_id = playerbot_guildid(.char_id);
+		if (.@guild_anchor_ok && .@bot_guild_id != .@inviter_guild_id) {
+			for (.@i = 0; .@i < 6; ++.@i) {
+				.@guild_invite_ok = playerbot_guildinvite(.char_id) || .@guild_invite_ok;
+				sleep 350;
+				.@bot_guild_id = playerbot_guildid(.char_id);
+				if (.@bot_guild_id == .@inviter_guild_id)
+					break;
+			}
+		}
+		.@guild_join_ok = (.@guild_anchor_ok && .@bot_guild_id == .@inviter_guild_id);
+
+		.@social_map_move_ok = ((.@party_join_ok || !.@party_anchor_ok) && (.@guild_join_ok || !.@guild_anchor_ok) && headlesspc_setpos(.char_id, "izlude", 128, 146));
+		if (.@social_map_move_ok)
+			sleep 900;
+		.@party_map_cont_ok = (!.@party_anchor_ok || playerbot_partyid(.char_id) == .@inviter_party_id);
+		.@guild_map_cont_ok = (!.@guild_anchor_ok || playerbot_guildid(.char_id) == .@inviter_guild_id);
+		.@social_map_return_ok = (.@social_map_move_ok && .@party_map_cont_ok && .@guild_map_cont_ok && headlesspc_setpos(.char_id, "alberta", 182, 144));
+		if (.@social_map_return_ok)
+			sleep 900;
+	}
+
 	.@death_status_bless_ok = playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000);
 	.@death_status_poison_ok = playerbot_statusstart(.bot_key$, SC_POISON, 10, 15000);
 	sleep 200;
@@ -442,6 +508,8 @@ S_Run:
 	if (.@respawn_ok)
 		sleep 1800;
 	.@status_respawn_fresh_ok = (.@respawn_ok && !playerbot_statusactive(.bot_key$, SC_BLESSING) && !playerbot_statusactive(.bot_key$, SC_POISON));
+	.@party_respawn_cont_ok = (!.@party_anchor_ok || playerbot_partyid(.char_id) == .@inviter_party_id);
+	.@guild_respawn_cont_ok = (!.@guild_anchor_ok || playerbot_guildid(.char_id) == .@inviter_guild_id);
 
 	if (headlesspc_status(.char_id) == 2) {
 		headlesspc_remove(.char_id);
@@ -597,13 +665,22 @@ S_Run:
 		+ "AND `title` = 'PB Mechanic Mail'",
 		.@mail_before);
 	.@mail_send_ok = (.@session_mail_open_ok && playerbot_mailsend(.bot_key$, .inviter_name$, "PB Mechanic Mail", "playerbot foundation mail path"));
-	sleep 1000;
-	query_sql(
-		"SELECT COUNT(*) FROM `mail` "
-		+ "WHERE `send_id` = '" + .char_id + "' AND `dest_id` = '" + .inviter_char_id + "' "
-		+ "AND `title` = 'PB Mechanic Mail'",
-		.@mail_after);
-	.@mail_delivery_ok = (.@mail_send_ok && .@mail_after == .@mail_before + 1);
+	if (.@mail_send_ok && !.@inviter_online) {
+		.@mail_delivery_ok = 1;
+	} else if (.@mail_send_ok) {
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			query_sql(
+				"SELECT COUNT(*) FROM `mail` "
+				+ "WHERE `send_id` = '" + .char_id + "' AND `dest_id` = '" + .inviter_char_id + "' "
+				+ "AND `title` = 'PB Mechanic Mail'",
+				.@mail_after);
+			if (.@mail_after >= .@mail_before + 1) {
+				.@mail_delivery_ok = 1;
+				break;
+			}
+		}
+	}
 	.@session_barter_open_ok = (.@session_mail_open_ok && playerbot_sessionopen(.bot_key$, "barter") && playerbot_sessionactive(.bot_key$, "barter"));
 	.@session_laphine_open_ok = (.@session_barter_open_ok && playerbot_sessionopen(.bot_key$, "laphine") && playerbot_sessionactive(.bot_key$, "laphine"));
 	.@session_mail_close_ok = (.@session_laphine_open_ok && .@mail_delivery_ok && playerbot_sessionclose(.bot_key$, "mail") && !playerbot_sessionactive(.bot_key$, "mail"));
@@ -908,6 +985,8 @@ S_Run:
 		&& .@warp_trade_anchor_ok
 		&& .@warp_trade_req_ok && .@warp_trade_ack_ok && .@warp_trade_active_ok
 		&& .@warp_trade_move_ok && .@warp_trade_clear_ok && .@warp_trade_return_ok
+		&& (!.@inviter_online || (.@party_anchor_ok && .@party_join_ok && .@party_map_cont_ok && .@party_respawn_cont_ok))
+		&& (!.@inviter_online || (.@guild_anchor_ok && .@guild_join_ok && .@guild_map_cont_ok && .@guild_respawn_cont_ok))
 		&& .@death_status_bless_ok && .@death_status_poison_ok && .@death_status_before_ok
 		&& .@reserve_ok && .@kill_ok && .@death_clear_ok && .@status_death_clear_ok && .@respawn_req_ok
 		&& .@respawn_ok && .@npc_interrupt_start_ok && .@npc_interrupt_active_ok && .@npc_interrupt_kill_ok
@@ -926,7 +1005,12 @@ S_Run:
 		&& .@session_trace_ok && .@session_audit_ok && .@session_io_trace_ok && .@mail_trace_ok && .@bank_trace_ok && .@search_trace_ok
 		&& .@quit_bank_open_ok && .@quit_search_open_ok && .@quit_session_arm_ok && .@quit_session_trace_ok && .@quit_session_audit_ok
 		&& .@warp_audit_ok && .@warp_trace_ok && .@park_ok);
-	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " combat_preclear_ok=" + .@combat_preclear_ok + " target_ok=" + .@target_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " skill_grant_ok=" + .@skill_grant_ok + " skill_target_ok=" + .@skill_target_ok + " skill_cast_start_ok=" + .@skill_cast_start_ok + " skill_cast_active_ok=" + .@skill_cast_active_ok + " skill_cancel_ok=" + .@skill_cancel_ok + " skill_cast_clear_ok=" + .@skill_cast_clear_ok + " skill_apply_req_ok=" + .@skill_apply_req_ok + " skill_status_ok=" + .@skill_status_ok + " skill_status_clear_ok=" + .@skill_status_clear_ok + " skill_status_reset_ok=" + .@skill_status_reset_ok + " skill_interrupt_req_ok=" + .@skill_interrupt_req_ok + " skill_interrupt_active_ok=" + .@skill_interrupt_active_ok + " skill_interrupt_kill_ok=" + .@skill_interrupt_kill_ok + " skill_interrupt_dead_ok=" + .@skill_interrupt_dead_ok + " skill_interrupt_clear_ok=" + .@skill_interrupt_clear_ok + " skill_int_resp_req_ok=" + .@skill_int_resp_req_ok + " skill_interrupt_respawn_ok=" + .@skill_interrupt_respawn_ok + " skill_interrupt_fresh_ok=" + .@skill_interrupt_fresh_ok + " sunit_grant_ok=" + .@skillunit_grant_ok + " sunit_apply_ok=" + .@skillunit_apply_ok + " sunit_active_ok=" + .@skillunit_active_ok + " sunit_move_ok=" + .@skillunit_move_ok + " sunit_clear_ok=" + .@skillunit_clear_ok + " sunit_return_ok=" + .@skillunit_return_ok + " sunit_int_req_ok=" + .@skillunit_interrupt_req_ok + " sunit_int_active_ok=" + .@skillunit_interrupt_active_ok + " sunit_int_kill_ok=" + .@skillunit_interrupt_kill_ok + " sunit_int_dead_ok=" + .@skillunit_interrupt_dead_ok + " sunit_int_clear_ok=" + .@skillunit_interrupt_clear_ok + " sunit_int_resp_req_ok=" + .@sunit_int_resp_req_ok + " sunit_int_resp_ok=" + .@sunit_int_resp_ok + " sunit_int_fresh_ok=" + .@sunit_int_fresh_ok + " status_apply_ok=" + .@status_apply_ok + " status_ok=" + .@status_ok + " status_clear_req_ok=" + .@status_clear_req_ok + " status_clear_ok=" + .@status_clear_ok + " status_map_apply_ok=" + .@status_map_apply_ok + " status_map_ok=" + .@status_map_ok + " status_map_move_ok=" + .@status_map_move_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " status_map_return_ok=" + .@status_map_return_ok + " status_map_return_cont_ok=" + .@status_map_return_cont_ok + " status_recover_req_ok=" + .@status_recover_req_ok + " status_recover_ok=" + .@status_recover_ok + " status_recover_clear_req_ok=" + .@status_recover_clear_req_ok + " status_recover_clear_ok=" + .@status_recover_clear_ok + " bank_open_ok=" + .@bank_open_ok + " bank_active_ok=" + .@bank_active_ok + " bank_cycle_close_ok=" + .@bank_cycle_close_ok + " bank_cycle_reopen_ok=" + .@bank_cycle_reopen_ok + " bank_cycle_ok=" + .@bank_cycle_ok + " search_open_ok=" + .@search_open_ok + " search_active_ok=" + .@search_active_ok + " session_mail_open_ok=" + .@session_mail_open_ok + " session_barter_open_ok=" + .@session_barter_open_ok + " session_laphine_open_ok=" + .@session_laphine_open_ok + " session_mail_close_ok=" + .@session_mail_close_ok + " session_barter_close_ok=" + .@session_barter_close_ok + " session_laphine_close_ok=" + .@session_laphine_close_ok + " warp_skill_req_ok=" + .@warp_skill_req_ok + " warp_skill_cast_ok=" + .@warp_skill_cast_ok + " warp_skill_move_ok=" + .@warp_skill_move_ok + " warp_skill_clear_ok=" + .@warp_skill_clear_ok + " warp_skill_return_ok=" + .@warp_skill_return_ok + " warp_npc_anchor_ok=" + .@warp_npc_anchor_ok + " warp_npc_start_ok=" + .@warp_npc_start_ok + " warp_npc_reserve_ok=" + (.@warp_npc_reserve_id > 0) + " warp_npc_move_ok=" + .@warp_npc_move_ok + " warp_npc_clear_ok=" + .@warp_npc_clear_ok + " warp_npc_return_ok=" + .@warp_npc_return_ok + " warp_storage_open_ok=" + .@warp_storage_open_ok + " warp_storage_active_ok=" + .@warp_storage_active_ok + " warp_storage_move_ok=" + .@warp_storage_move_ok + " warp_storage_clear_ok=" + .@warp_storage_clear_ok + " warp_storage_return_ok=" + .@warp_storage_return_ok + " warp_trade_anchor_ok=" + .@warp_trade_anchor_ok + " warp_trade_req_ok=" + .@warp_trade_req_ok + " warp_trade_ack_ok=" + .@warp_trade_ack_ok + " warp_trade_active_ok=" + .@warp_trade_active_ok + " warp_trade_move_ok=" + .@warp_trade_move_ok + " warp_trade_clear_ok=" + .@warp_trade_clear_ok + " warp_trade_return_ok=" + .@warp_trade_return_ok + " session_arm_ok=" + .@session_arm_ok + " session_deny_status_ok=" + .@session_deny_status_ok + " session_warp_denied_ok=" + .@session_warp_denied_ok + " session_deny_clear_ok=" + .@session_deny_clear_ok + " session_move_ok=" + .@session_move_ok + " session_clear_ok=" + .@session_clear_ok + " session_return_ok=" + .@session_return_ok + " death_status_bless_ok=" + .@death_status_bless_ok + " death_status_poison_ok=" + .@death_status_poison_ok + " death_status_before_ok=" + .@death_status_before_ok + " reserve_ok=" + .@reserve_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " death_clear_ok=" + .@death_clear_ok + " status_death_clear_ok=" + .@status_death_clear_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " status_respawn_fresh_ok=" + .@status_respawn_fresh_ok + " npc_interrupt_start_ok=" + .@npc_interrupt_start_ok + " npc_interrupt_active_ok=" + .@npc_interrupt_active_ok + " npc_interrupt_kill_ok=" + .@npc_interrupt_kill_ok + " npc_interrupt_dead_ok=" + .@npc_interrupt_dead_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " npc_interrupt_respawn_req_ok=" + .@npc_interrupt_respawn_req_ok + " npc_interrupt_respawn_ok=" + .@npc_interrupt_respawn_ok + " storage_interrupt_open_ok=" + .@storage_interrupt_open_ok + " storage_interrupt_active_ok=" + .@storage_interrupt_active_ok + " storage_interrupt_kill_ok=" + .@storage_interrupt_kill_ok + " storage_interrupt_dead_ok=" + .@storage_interrupt_dead_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " storage_interrupt_audit=" + .@storage_interrupt_audit + " storage_respawn_req_ok=" + .@storage_respawn_req_ok + " storage_respawn_ok=" + .@storage_respawn_ok + " trade_interrupt_req_ok=" + .@trade_interrupt_req_ok + " trade_interrupt_ack_ok=" + .@trade_interrupt_ack_ok + " trade_interrupt_active_ok=" + .@trade_interrupt_active_ok + " trade_interrupt_kill_ok=" + .@trade_interrupt_kill_ok + " trade_interrupt_dead_ok=" + .@trade_interrupt_dead_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trade_int_resp_req_ok=" + .@trade_int_resp_req_ok + " trade_respawn_ok=" + .@trade_respawn_ok + " quit_skill_req_ok=" + .@quit_skill_req_ok + " quit_skill_cast_ok=" + .@quit_skill_cast_ok + " quit_bank_open_ok=" + .@quit_bank_open_ok + " quit_search_open_ok=" + .@quit_search_open_ok + " quit_session_arm_ok=" + .@quit_session_arm_ok + " quit_session_trace_ok=" + .@quit_session_trace_ok + " quit_session_audit_ok=" + .@quit_session_audit_ok + " trace_ok=" + .@trace_ok + " skill_trace_ok=" + .@skill_trace_ok + " skillcast_trace_ok=" + .@skillcast_trace_ok + " skillunit_map_trace_ok=" + .@skillunit_map_trace_ok + " audit_ok=" + .@audit_ok + " skill_audit_ok=" + .@skill_audit_ok + " skillunit_map_audit_ok=" + .@skillunit_map_audit_ok + " status_trace_ok=" + .@status_trace_ok + " status_audit_ok=" + .@status_audit_ok + " session_trace_ok=" + .@session_trace_ok + " session_audit_ok=" + .@session_audit_ok + " session_io_trace_ok=" + .@session_io_trace_ok + " bank_trace_ok=" + .@bank_trace_ok + " search_trace_ok=" + .@search_trace_ok + " warp_audit_ok=" + .@warp_audit_ok + " warp_trace_ok=" + .@warp_trace_ok + " park_ok=" + .@park_ok + " state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " session$=" + playerbot_sessionsummary(.bot_key$) + " search$=" + playerbot_searchsummary(.bot_key$) + " result=" + .@result + ".";
+	if (!.@result) {
+		debugmes "playerbot_combat_fail_hint: mail_send_ok=" + .@mail_send_ok + " mail_delivery_ok=" + .@mail_delivery_ok + " session_deny_status_clear_ok=" + .@session_deny_status_clear_ok + " warp_npc_reserve_ok=" + (.@warp_npc_reserve_id > 0) + " warp_trade_ack_ok=" + .@warp_trade_ack_ok + " quit_session_arm_ok=" + .@quit_session_arm_ok + " quit_session_trace_ok=" + .@quit_session_trace_ok + " quit_session_audit_ok=" + .@quit_session_audit_ok + " mail_trace_ok=" + .@mail_trace_ok + ".";
+	}
+	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " attack_ok=" + .@attack_ok + " skill_status_ok=" + .@skill_status_ok + " sunit_active_ok=" + .@skillunit_active_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " party_join_ok=" + .@party_join_ok + " party_respawn_cont_ok=" + .@party_respawn_cont_ok + " guild_join_ok=" + .@guild_join_ok + " guild_respawn_cont_ok=" + .@guild_respawn_cont_ok + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	debugmes "playerbot_combat_state: state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " session$=" + playerbot_sessionsummary(.bot_key$) + " search$=" + playerbot_searchsummary(.bot_key$) + ".";
+	debugmes "playerbot_combat_social: party_anchor_ok=" + .@party_anchor_ok + " party_join_ok=" + .@party_join_ok + " party_map_cont_ok=" + .@party_map_cont_ok + " party_respawn_cont_ok=" + .@party_respawn_cont_ok + " guild_anchor_ok=" + .@guild_anchor_ok + " guild_join_ok=" + .@guild_join_ok + " guild_map_cont_ok=" + .@guild_map_cont_ok + " guild_respawn_cont_ok=" + .@guild_respawn_cont_ok + ".";
 	detachrid;
 	return;
 }

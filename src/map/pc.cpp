@@ -10084,6 +10084,7 @@ static int32 pc_playerbot_session_count(const map_session_data* sd)
 		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
 		+ ((sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement) ? 1 : 0)
 		+ (sd->searchstore.open ? 1 : 0)
+		+ (sd->state.vending ? 1 : 0)
 		+ (sd->vended_id != 0 ? 1 : 0)
 		+ (sd->state.buyingstore ? 1 : 0)
 		+ (sd->state.mail_writing ? 1 : 0)
@@ -10113,6 +10114,7 @@ static std::string pc_playerbot_session_state(const map_session_data* sd)
 		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
 		+ ",itemkeep=" + std::to_string(sd->skillitem_keep_requirement ? 1 : 0)
 		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
+		+ ",vending=" + std::to_string(sd->state.vending ? 1 : 0)
 		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
 		+ ",buyingstore=" + std::to_string(sd->state.buyingstore ? 1 : 0)
 		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
@@ -10214,6 +10216,8 @@ static void pc_playerbot_force_clear_session(map_session_data* sd)
 		searchstore_close(*sd);
 	else
 		searchstore_clearremote(*sd);
+	if (sd->state.vending)
+		vending_closevending(sd);
 	sd->vended_id = 0;
 	if (sd->state.buyingstore)
 		buyingstore_close(sd);

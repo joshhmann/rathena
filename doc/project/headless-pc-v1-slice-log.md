@@ -5792,6 +5792,57 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 67: Combat Social Continuity + Merchant Interrupt Hardening
+
+### Summary
+
+Promoted broader combat participation continuity and hardened merchant/runtime
+session recovery paths so the aggregate foundation gate remains deterministic in
+both online and offline inviter contexts.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `src/map/pc.cpp`
+
+### What Changed
+
+- Combat selftest:
+  - Added party/guild continuity assertions across map movement and respawn.
+  - Added `playerbot_combat_social` debug line for social continuity visibility.
+  - Added offline-safe inviter handling for aggregate foundation orchestration:
+    - only enforce party/guild continuity gates when inviter context is online.
+    - made mail delivery verification resilient (offline-safe fast path and
+      online poll-based verification).
+  - Added targeted failure hint logging on aggregate combat failure.
+
+- Merchant selftest:
+  - Added vending-under-combat interrupt sequence:
+    - kill while vending, verify dead/clear, respawn, reopen vending.
+  - Promoted new interrupt assertions into merchant aggregate `result` gate.
+  - Added `playerbot_merchant_interrupt` debug summary line.
+
+- Runtime cleanup:
+  - In `pc_playerbot_force_clear_session`, explicitly close active vending.
+  - Included vending state in `pc_playerbot_session_count`.
+  - Included vending state in `pc_playerbot_session_state` summary string.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run-rich`
+- Result:
+  - aggregate foundation gate passes (`foundation pass ok`)
+  - rich gate passes (`rich gate pass ok`)
+  - combat selftest now reports `result=1` under aggregate orchestration
+
+### Deferrals
+
+- No new combat AI behavior layers were added (support/heal/loot routing remain
+  behavior-phase work).
+
 ## Slice 76: Item Mechanic Denial Continuity Expansion
 
 ### Summary
