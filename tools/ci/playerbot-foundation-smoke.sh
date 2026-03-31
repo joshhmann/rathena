@@ -203,6 +203,11 @@ check() {
 		if [[ "$key" == "item" && "$line" != *"loadout_continuity_ok=1"* ]]; then
 			printf '[playerbot-foundation-smoke] item loadout continuity gate failed: %s\n' "$line" >&2
 			failures=$((failures + 1))
+			continue
+		fi
+		if [[ "$key" == "item" && "$line" != *"mechanic_rollback_ok=1"* ]]; then
+			printf '[playerbot-foundation-smoke] item mechanic rollback gate failed: %s\n' "$line" >&2
+			failures=$((failures + 1))
 		fi
 	done
 	printf '\n[playerbot-foundation-smoke] Recent recovery audit summary\n'

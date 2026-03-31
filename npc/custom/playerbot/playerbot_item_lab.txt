@@ -322,6 +322,70 @@ S_Run:
 	.@enchant_material_ok = (.@enchant_exec_ok && .@enchant_mat_after + 1 == .@enchant_mat_before);
 	.@enchant_zeny_ok = (.@enchant_exec_ok && .@enchant_zeny_after < .@enchant_zeny_before);
 	.@enchant_session_clear_ok = (countstr(playerbot_sessionsummary(.bot_key$), "enchantgrade=0") > 0);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` WHERE `char_id` = '" + .char_id + "'",
+		.@mech_trace_before);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_recovery_audit` WHERE `bot_id` = '" + .bot_id + "'",
+		.@mech_audit_before);
+	.@mech_refine_open_ok = (playerbot_sessionopen(.bot_key$, "refine") && playerbot_sessionactive(.bot_key$, "refine"));
+	.@mech_reform_open_ok = (playerbot_sessionopen(.bot_key$, "reform") && playerbot_sessionactive(.bot_key$, "reform"));
+	.@mech_enchant_open_ok = (playerbot_sessionopen(.bot_key$, "enchantgrade") && playerbot_sessionactive(.bot_key$, "enchantgrade"));
+	.@mech_seed_ok = (.@mech_refine_open_ok && .@mech_reform_open_ok && .@mech_enchant_open_ok);
+	.@mech_kill_ok = (.@mech_seed_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@mech_dead_ok = 1;
+			break;
+		}
+	}
+	.@mech_death_clear_ok = (.@mech_dead_ok
+		&& !playerbot_sessionactive(.bot_key$, "refine")
+		&& !playerbot_sessionactive(.bot_key$, "reform")
+		&& !playerbot_sessionactive(.bot_key$, "enchantgrade"));
+	.@mech_respawn_req_ok = (.@mech_dead_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && headlesspc_status(.char_id) == 2) {
+			.@mech_respawn_ok = 1;
+			break;
+		}
+	}
+	if (.@mech_respawn_ok)
+		sleep 900;
+	.@mech_map_refine_ok = (playerbot_sessionopen(.bot_key$, "refine") && playerbot_sessionactive(.bot_key$, "refine"));
+	.@mech_map_reform_ok = (playerbot_sessionopen(.bot_key$, "reform") && playerbot_sessionactive(.bot_key$, "reform"));
+	.@mech_map_enchant_ok = (playerbot_sessionopen(.bot_key$, "enchantgrade") && playerbot_sessionactive(.bot_key$, "enchantgrade"));
+	.@mech_map_seed_ok = (.@mech_respawn_ok && .@mech_map_refine_ok && .@mech_map_reform_ok && .@mech_map_enchant_ok);
+	.@mech_map_move_ok = (.@mech_map_seed_ok && headlesspc_setpos(.char_id, "prontera", 156, 191));
+	if (.@mech_map_move_ok)
+		sleep 900;
+	.@mech_map_clear_ok = (.@mech_map_move_ok
+		&& !playerbot_sessionactive(.bot_key$, "refine")
+		&& !playerbot_sessionactive(.bot_key$, "reform")
+		&& !playerbot_sessionactive(.bot_key$, "enchantgrade"));
+	.@mech_map_return_ok = (.@mech_map_clear_ok && headlesspc_setpos(.char_id, "alberta", 163, 144));
+	if (.@mech_map_return_ok)
+		sleep 900;
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `id` > '" + .@mech_trace_before + "' "
+		+ "AND `phase` IN ('combat','reconcile') AND `target_type` IN ('refine','reform','enchantgrade') "
+		+ "AND `action` IN ('combat.completed','reconcile.fixed') "
+		+ "AND (`error_detail` LIKE '%session.scope=refine%' OR `error_detail` LIKE '%session.scope=reform%' OR `error_detail` LIKE '%session.scope=enchantgrade%')",
+		.@mech_trace_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `id` > '" + .@mech_audit_before + "' "
+		+ "AND `scope` IN ('session.refine','session.reform','session.enchantgrade') "
+		+ "AND `action` = 'interrupt' "
+		+ "AND (`detail` LIKE 'combat.death.interrupt%' OR `detail` LIKE 'mapchange.session%')",
+		.@mech_audit_count);
+	.@mechanic_rollback_ok = (.@mech_seed_ok && .@mech_kill_ok && .@mech_dead_ok && .@mech_death_clear_ok
+		&& .@mech_respawn_req_ok && .@mech_respawn_ok
+		&& .@mech_map_seed_ok && .@mech_map_move_ok && .@mech_map_clear_ok && .@mech_map_return_ok
+		&& .@mech_trace_count >= 3 && .@mech_audit_count >= 3);
 	.@consume_ok = playerbot_itemuse(.bot_key$, 501);
 	.@deposit_ok = playerbot_storagedeposit(.bot_key$, 501, 2);
 	.@withdraw_ok = playerbot_storagewithdraw(.bot_key$, 501, 1);
@@ -603,6 +667,7 @@ S_Run:
 		&& .@refine_deny_ok && .@refine_deny_clear_ok && .@phracon_grant_ok && .@refine_exec_ok && .@refine_material_ok && .@refine_level_ok && .@refine_session_clear_ok
 		&& .@reform_trigger_ok && .@reform_ring_ok && .@reform_jellopy_ok && .@reform_fluff_ok && .@reform_deny_ok && .@reform_deny_clear_ok && .@reform_exec_ok && .@reform_result_ok && .@reform_session_clear_ok
 		&& .@enchant_grant_ok && .@enchant_deny_ok && .@enchant_deny_clear_ok && .@enchant_material_grant_ok && .@enchant_exec_ok && .@enchant_material_ok && .@enchant_zeny_ok && .@enchant_session_clear_ok
+		&& .@mechanic_rollback_ok
 		&& .@consume_ok
 		&& .@deposit_ok && .@withdraw_ok && .@remove_ok && .@regrant_ok
 		&& .@loadout_set_ok && .@loadout_rows_ok && .@knife_removed_ok && .@loadout_missing_ok
@@ -613,7 +678,7 @@ S_Run:
 		&& .@loadout_map_move_ok && .@loadout_map_cont_ok && .@loadout_map_return_ok && .@loadout_map_return_cont_ok
 		&& .@loadout_continuity_ok
 		&& .@knife_eq >= 1 && .@pot_inv == 1 && .@pot_storage == 1 && .@audit_ok && .@loadout_audit_ok && .@park_ok);
-	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " refine_deny_ok=" + .@refine_deny_ok + " refine_deny_clear_ok=" + .@refine_deny_clear_ok + " phracon_grant_ok=" + .@phracon_grant_ok + " refine_exec_ok=" + .@refine_exec_ok + " refine_material_ok=" + .@refine_material_ok + " refine_level=" + .@refine_level + " refine_level_ok=" + .@refine_level_ok + " refine_session_clear_ok=" + .@refine_session_clear_ok + " reform_trigger_ok=" + .@reform_trigger_ok + " reform_ring_ok=" + .@reform_ring_ok + " reform_jellopy_ok=" + .@reform_jellopy_ok + " reform_fluff_ok=" + .@reform_fluff_ok + " reform_deny_ok=" + .@reform_deny_ok + " reform_deny_clear_ok=" + .@reform_deny_clear_ok + " reform_exec_ok=" + .@reform_exec_ok + " reform_result_ok=" + .@reform_result_ok + " reform_session_clear_ok=" + .@reform_session_clear_ok + " enchant_grant_ok=" + .@enchant_grant_ok + " enchant_deny_ok=" + .@enchant_deny_ok + " enchant_deny_clear_ok=" + .@enchant_deny_clear_ok + " enchant_material_grant_ok=" + .@enchant_material_grant_ok + " enchant_exec_ok=" + .@enchant_exec_ok + " enchant_material_ok=" + .@enchant_material_ok + " enchant_zeny_ok=" + .@enchant_zeny_ok + " enchant_session_clear_ok=" + .@enchant_session_clear_ok + " consume_ok=" + .@consume_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " loadout_rows_ok=" + .@loadout_rows_ok + " knife_removed_ok=" + .@knife_removed_ok + " loadout_missing_ok=" + .@loadout_missing_ok + " knife_regrant_ok=" + .@knife_regrant_ok + " denied_item_id=" + .@denied_item_id + " denied_grant_ok=" + .@denied_grant_ok + " loadout_denied_set_ok=" + .@loadout_denied_set_ok + " loadout_denied_ok=" + .@loadout_denied_ok + " loadout_recover_clear_ok=" + .@loadout_recover_clear_ok + " loadout_recover_ok=" + .@loadout_recover_ok + " conflict_preclear_ok=" + .@conflict_preclear_ok + " conflict_item_id=" + .@conflict_item_id + " conflict_grant_ok=" + .@conflict_grant_ok + " conflict_equip_ok=" + .@conflict_equip_ok + " loadout_conflict_ok=" + .@loadout_conflict_ok + " loadout_conflict_cleared_ok=" + .@loadout_conflict_cleared_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " loadout_map_move_ok=" + .@loadout_map_move_ok + " loadout_map_cont_ok=" + .@loadout_map_cont_ok + " loadout_map_return_ok=" + .@loadout_map_return_ok + " loadout_map_return_cont_ok=" + .@loadout_map_return_cont_ok + " loadout_continuity_ok=" + .@loadout_continuity_ok + " loadout_cycle_count=" + .@loadout_cycle_count + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " refine_audit_ok=" + .@refine_audit_ok + " refine_denied_audit_ok=" + .@refine_denied_aud_ok + " reform_audit_ok=" + .@reform_audit_ok + " reform_denied_audit_ok=" + .@reform_denied_aud_ok + " enchant_audit_ok=" + .@enchant_audit_ok + " enchant_denied_audit_ok=" + .@enchant_denied_aud_ok + " loadout_mapchange_audits=" + .@loadout_mapchange_audits + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " refine_deny_ok=" + .@refine_deny_ok + " refine_deny_clear_ok=" + .@refine_deny_clear_ok + " phracon_grant_ok=" + .@phracon_grant_ok + " refine_exec_ok=" + .@refine_exec_ok + " refine_material_ok=" + .@refine_material_ok + " refine_level=" + .@refine_level + " refine_level_ok=" + .@refine_level_ok + " refine_session_clear_ok=" + .@refine_session_clear_ok + " reform_trigger_ok=" + .@reform_trigger_ok + " reform_ring_ok=" + .@reform_ring_ok + " reform_jellopy_ok=" + .@reform_jellopy_ok + " reform_fluff_ok=" + .@reform_fluff_ok + " reform_deny_ok=" + .@reform_deny_ok + " reform_deny_clear_ok=" + .@reform_deny_clear_ok + " reform_exec_ok=" + .@reform_exec_ok + " reform_result_ok=" + .@reform_result_ok + " reform_session_clear_ok=" + .@reform_session_clear_ok + " enchant_grant_ok=" + .@enchant_grant_ok + " enchant_deny_ok=" + .@enchant_deny_ok + " enchant_deny_clear_ok=" + .@enchant_deny_clear_ok + " enchant_material_grant_ok=" + .@enchant_material_grant_ok + " enchant_exec_ok=" + .@enchant_exec_ok + " enchant_material_ok=" + .@enchant_material_ok + " enchant_zeny_ok=" + .@enchant_zeny_ok + " enchant_session_clear_ok=" + .@enchant_session_clear_ok + " mechanic_rollback_ok=" + .@mechanic_rollback_ok + " mech_seed_ok=" + .@mech_seed_ok + " mech_death_clear_ok=" + .@mech_death_clear_ok + " mech_map_clear_ok=" + .@mech_map_clear_ok + " mech_trace_count=" + .@mech_trace_count + " mech_audit_count=" + .@mech_audit_count + " consume_ok=" + .@consume_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " loadout_rows_ok=" + .@loadout_rows_ok + " knife_removed_ok=" + .@knife_removed_ok + " loadout_missing_ok=" + .@loadout_missing_ok + " knife_regrant_ok=" + .@knife_regrant_ok + " denied_item_id=" + .@denied_item_id + " denied_grant_ok=" + .@denied_grant_ok + " loadout_denied_set_ok=" + .@loadout_denied_set_ok + " loadout_denied_ok=" + .@loadout_denied_ok + " loadout_recover_clear_ok=" + .@loadout_recover_clear_ok + " loadout_recover_ok=" + .@loadout_recover_ok + " conflict_preclear_ok=" + .@conflict_preclear_ok + " conflict_item_id=" + .@conflict_item_id + " conflict_grant_ok=" + .@conflict_grant_ok + " conflict_equip_ok=" + .@conflict_equip_ok + " loadout_conflict_ok=" + .@loadout_conflict_ok + " loadout_conflict_cleared_ok=" + .@loadout_conflict_cleared_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " loadout_map_move_ok=" + .@loadout_map_move_ok + " loadout_map_cont_ok=" + .@loadout_map_cont_ok + " loadout_map_return_ok=" + .@loadout_map_return_ok + " loadout_map_return_cont_ok=" + .@loadout_map_return_cont_ok + " loadout_continuity_ok=" + .@loadout_continuity_ok + " loadout_cycle_count=" + .@loadout_cycle_count + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " refine_audit_ok=" + .@refine_audit_ok + " refine_denied_audit_ok=" + .@refine_denied_aud_ok + " reform_audit_ok=" + .@reform_audit_ok + " reform_denied_audit_ok=" + .@reform_denied_aud_ok + " enchant_audit_ok=" + .@enchant_audit_ok + " enchant_denied_audit_ok=" + .@enchant_denied_aud_ok + " loadout_mapchange_audits=" + .@loadout_mapchange_audits + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	playerbot_loadoutclear(.bot_key$);
 	detachrid;
 	return;

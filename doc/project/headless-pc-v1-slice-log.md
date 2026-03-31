@@ -5897,6 +5897,62 @@ This slice does not add:
 - Role-specific weapon switching behavior
 - Combat AI decisioning for loadout changes
 
+## Slice 77: Mechanic Session Rollback Gate
+
+### Summary
+
+Promoted mechanic rollback semantics for refine/reform/enchantgrade from
+implicit assumptions to explicit item-lane proof under death/mapchange
+transitions, with aggregate gate enforcement.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended `PlayerbotItemSelftest` with a dedicated mechanic rollback block:
+  - open `refine`, `reform`, and `enchantgrade` session scopes explicitly
+  - force death and require all three scopes clear
+  - respawn, reopen all three scopes, mapchange, and require all three clear
+  - return to anchor and continue the rest of the item lane
+- Added per-run rollback signal checks:
+  - `bot_trace_event` delta count for `target_type IN ('refine','reform','enchantgrade')`
+    with session-scope interrupt detail
+  - `bot_recovery_audit` delta count for
+    `scope IN ('session.refine','session.reform','session.enchantgrade')`
+- Added new item selftest signal:
+  - `mechanic_rollback_ok`
+  - plus debug counters (`mech_trace_count`, `mech_audit_count`) for fast triage
+- Tightened smoke gates:
+  - `playerbot-item-smoke.sh check-denied` now requires
+    `mechanic_rollback_ok=1`
+  - `playerbot-foundation-smoke.sh check` now requires
+    `mechanic_rollback_ok=1` on the item selftest line
+
+### Validation
+
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-item-smoke.sh check-denied`
+
+Integrated result:
+
+- `playerbot_item_selftest ... mechanic_rollback_ok=1 ... result=1`
+- aggregate foundation smoke remains green with rollback gate enforced
+
+### Deferrals
+
+This slice does not add:
+
+- New refine/reform/enchantgrade business logic
+- Multi-step market commerce semantics
+- Behavior-layer mechanic planning
+
 ## Slice 69: Session Scope Cleanup Traces For Market Continuity
 
 ### Summary
