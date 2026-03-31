@@ -5852,6 +5852,65 @@ This slice improves cleanup observability and continuity gating only; it does
 not add new market business semantics (mail composition logic, multi-item
 negotiation strategy, or deeper commerce decision logic).
 
+## Slice 70: Mechanic Execution Outcome Trace Semantics
+
+### Summary
+
+Promoted refine/reform/enchantgrade execution outcomes from detail-only strings
+to explicit structured trace semantics, and added item smoke checks that gate
+those outcome traces.
+
+### Files
+
+- `src/map/script.cpp`
+- `tools/ci/playerbot-item-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Updated playerbot mechanic execution buildins:
+  - `playerbot_refine`
+  - `playerbot_reform`
+  - `playerbot_enchantgrade`
+
+- Refine/enchantgrade outcome semantics:
+  - successful execution now emits `interaction.completed`
+  - non-success executed outcomes emit `interaction.failed` with `result=aborted`
+  - denied precondition paths remain `result=denied`
+  - execution outcome traces now use explicit `error_code` channels:
+    - `refine.outcome` / `enchantgrade.outcome`
+    - denied precondition paths keep `refine.execute` / `enchantgrade.execute`
+
+- Reform outcome semantics:
+  - successful execution emits `error_code=reform.outcome`
+  - denied preconditions emit `error_code=reform.execute`
+
+- Extended `playerbot-item-smoke.sh check-denied`:
+  - keeps prior item-audit continuity checks
+  - adds trace-level gating for mechanic execution outcome rows and denied rows
+    across refine/reform/enchantgrade
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result highlights:
+
+- item smoke now reports non-zero trace gates:
+  - `refine execution outcome trace rows`
+  - `reform success trace rows`
+  - `enchantgrade execution outcome trace rows`
+- full foundation smoke remains green end-to-end
+
+### Deferrals
+
+This slice improves execution observability semantics, not deeper mechanic
+business strategy (e.g. policy-driven material selection or adaptive retry
+logic).
+
 ## Slice 68: Foundation Closeout Checklist And Gate Tooling
 
 ### Summary

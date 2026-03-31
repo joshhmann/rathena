@@ -13708,19 +13708,34 @@ BUILDIN_FUNC(playerbot_refine)
 		+ " zeny=" + std::to_string(before_zeny) + "->" + std::to_string(after_zeny);
 
 	bool attempted = (outcome != REFINEUI_ATTEMPT_DENIED);
+	const char* outcome_result = attempted ? "aborted" : "denied";
+	switch (outcome) {
+	case REFINEUI_ATTEMPT_SUCCESS:
+		outcome_result = "ok";
+		break;
+	case REFINEUI_ATTEMPT_FAILED:
+		break;
+	case REFINEUI_ATTEMPT_BROKE:
+		break;
+	case REFINEUI_ATTEMPT_DOWNGRADE:
+		break;
+	default:
+		outcome_result = "denied";
+		break;
+	}
 	playerbot_item_audit(bot_id, char_id, account_id, "refine", item_nameid, attempted ? 1 : 0, "inventory", attempted ? "ok" : "denied", detail.c_str());
 	playerbot_trace_interaction(
 		bot_id,
 		char_id,
 		account_id,
 		sd,
-		attempted ? "interaction.completed" : "interaction.failed",
+		(outcome == REFINEUI_ATTEMPT_SUCCESS) ? "interaction.completed" : "interaction.failed",
 		"refine",
 		std::to_string(item_nameid).c_str(),
 		attempted ? "operator.start" : "target.invalid",
-			attempted ? "ok" : "denied",
-			attempted ? "" : "refine.execute",
-			detail.c_str());
+		outcome_result,
+		attempted ? "refine.outcome" : "refine.execute",
+		detail.c_str());
 	if (opened_here)
 		sd->state.refineui_open = false;
 	script_pushint(st, attempted ? 1 : 0);
@@ -13818,7 +13833,7 @@ BUILDIN_FUNC(playerbot_reform)
 		std::to_string(base_item).c_str(),
 		attempted ? "operator.start" : "target.invalid",
 		attempted ? "ok" : "denied",
-		attempted ? "" : "reform.execute",
+		attempted ? "reform.outcome" : "reform.execute",
 		detail.c_str());
 	if (opened_here)
 		sd->state.item_reform = 0;
@@ -13945,18 +13960,33 @@ BUILDIN_FUNC(playerbot_enchantgrade)
 		+ " zeny=" + std::to_string(before_zeny) + "->" + std::to_string(after_zeny);
 
 	bool attempted = (outcome != ENCHANTGRADE_ATTEMPT_DENIED);
+	const char* outcome_result = attempted ? "aborted" : "denied";
+	switch (outcome) {
+	case ENCHANTGRADE_ATTEMPT_SUCCESS:
+		outcome_result = "ok";
+		break;
+	case ENCHANTGRADE_ATTEMPT_FAILED:
+		break;
+	case ENCHANTGRADE_ATTEMPT_DOWNGRADE:
+		break;
+	case ENCHANTGRADE_ATTEMPT_BREAK:
+		break;
+	default:
+		outcome_result = "denied";
+		break;
+	}
 	playerbot_item_audit(bot_id, char_id, account_id, "enchantgrade", item_nameid, attempted ? 1 : 0, "inventory", attempted ? "ok" : "denied", detail.c_str());
 	playerbot_trace_interaction(
 		bot_id,
 		char_id,
 		account_id,
 		sd,
-		attempted ? "interaction.completed" : "interaction.failed",
+		(outcome == ENCHANTGRADE_ATTEMPT_SUCCESS) ? "interaction.completed" : "interaction.failed",
 		"enchantgrade",
 		std::to_string(item_nameid).c_str(),
 		attempted ? "operator.start" : "target.invalid",
-		attempted ? "ok" : "denied",
-		attempted ? "" : "enchantgrade.execute",
+		outcome_result,
+		attempted ? "enchantgrade.outcome" : "enchantgrade.execute",
 		detail.c_str());
 	if (opened_here)
 		sd->state.enchantgrade_open = false;

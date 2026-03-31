@@ -105,6 +105,21 @@ FROM \`bot_item_audit\`
 WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800;
 EOF
 	)
+	local refine_exec_trace_rows=0 refine_denied_trace_rows=0 reform_success_trace_rows=0 reform_denied_trace_rows=0 enchant_exec_trace_rows=0 enchant_denied_trace_rows=0
+	read -r refine_exec_trace_rows refine_denied_trace_rows reform_success_trace_rows reform_denied_trace_rows enchant_exec_trace_rows enchant_denied_trace_rows < <(
+		mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
+SELECT
+  COALESCE(SUM(CASE WHEN \`target_type\` = 'refine' AND \`error_code\` = 'refine.outcome' AND \`error_detail\` LIKE 'refine.%' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`target_type\` = 'refine' AND \`error_code\` = 'refine.execute' AND \`result\` = 'denied' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`target_type\` = 'reform' AND \`error_code\` = 'reform.outcome' AND \`result\` = 'ok' AND \`error_detail\` LIKE 'reform.success%' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`target_type\` = 'reform' AND \`error_code\` = 'reform.execute' AND \`result\` = 'denied' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`target_type\` = 'enchantgrade' AND \`error_code\` = 'enchantgrade.outcome' AND \`error_detail\` LIKE 'enchantgrade.%' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`target_type\` = 'enchantgrade' AND \`error_code\` = 'enchantgrade.execute' AND \`result\` = 'denied' THEN 1 ELSE 0 END), 0)
+FROM \`bot_trace_event\`
+WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
+  AND \`phase\` = 'interaction';
+EOF
+	)
 	if (( denied_rows < 1 )); then
 		printf '[playerbot-item-smoke] missing denied item-audit detail row (loadout.manual.*.denied).\n' >&2
 		failures=$((failures + 1))
@@ -135,6 +150,30 @@ EOF
 	fi
 	if (( enchant_denied_rows < 1 )); then
 		printf '[playerbot-item-smoke] missing denied enchantgrade item-audit row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( refine_exec_trace_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing refine execution outcome trace row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( refine_denied_trace_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing denied refine trace row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( reform_success_trace_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing reform success trace row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( reform_denied_trace_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing denied reform trace row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( enchant_exec_trace_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing enchantgrade execution outcome trace row.\n' >&2
+		failures=$((failures + 1))
+	fi
+	if (( enchant_denied_trace_rows < 1 )); then
+		printf '[playerbot-item-smoke] missing denied enchantgrade trace row.\n' >&2
 		failures=$((failures + 1))
 	fi
 	local mapchange_loadout_audits=0
@@ -174,6 +213,12 @@ EOF
 	printf '[playerbot-item-smoke] denied refine item-audit rows (last 30m): %s\n' "$refine_denied_rows"
 	printf '[playerbot-item-smoke] denied reform item-audit rows (last 30m): %s\n' "$reform_denied_rows"
 	printf '[playerbot-item-smoke] denied enchantgrade item-audit rows (last 30m): %s\n' "$enchant_denied_rows"
+	printf '[playerbot-item-smoke] refine execution outcome trace rows (last 30m): %s\n' "$refine_exec_trace_rows"
+	printf '[playerbot-item-smoke] denied refine trace rows (last 30m): %s\n' "$refine_denied_trace_rows"
+	printf '[playerbot-item-smoke] reform success trace rows (last 30m): %s\n' "$reform_success_trace_rows"
+	printf '[playerbot-item-smoke] denied reform trace rows (last 30m): %s\n' "$reform_denied_trace_rows"
+	printf '[playerbot-item-smoke] enchantgrade execution outcome trace rows (last 30m): %s\n' "$enchant_exec_trace_rows"
+	printf '[playerbot-item-smoke] denied enchantgrade trace rows (last 30m): %s\n' "$enchant_denied_trace_rows"
 	if (( failures > 0 )); then
 		printf '\n[playerbot-item-smoke] loadout denial/recovery check failed with %d missing signal(s).\n' "$failures" >&2
 		return 1
