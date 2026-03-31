@@ -193,6 +193,11 @@ check() {
 		if [[ "$line" != *"result=1"* ]]; then
 			printf '[playerbot-foundation-smoke] %s selftest did not pass: %s\n' "$key" "$line" >&2
 			failures=$((failures + 1))
+			continue
+		fi
+		if [[ "$key" == "combat" && "$line" != *"continuity_loop_ok=1"* ]]; then
+			printf '[playerbot-foundation-smoke] combat continuity loop gate failed: %s\n' "$line" >&2
+			failures=$((failures + 1))
 		fi
 	done
 	printf '\n[playerbot-foundation-smoke] Recent recovery audit summary\n'

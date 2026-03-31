@@ -5792,6 +5792,56 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 75: Combat Transition Continuity Loop Gate
+
+### Summary
+
+Hardened the combat foundation lane with a deterministic multi-cycle transition
+gate that repeatedly exercises status/death/respawn/map-change continuity, then
+requires per-run trace/audit deltas before the combat selftest can pass.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended `PlayerbotCombatSelftest` with a two-cycle continuity loop:
+  - seed status effects
+  - kill and verify death cleanup
+  - respawn and verify fresh status state
+  - apply status and verify map-change continuity across `alberta <-> izlude`
+  - clear status and continue to next cycle
+- Added explicit per-run baseline/delta checks:
+  - `bot_trace_event` deltas for `death.observed` / `respawn.completed`
+  - `status` trace deltas for applied/cleanup/reconcile transitions
+  - `bot_recovery_audit` deltas for `combat` death/respawn and `status`
+    cleanup/reconcile scopes
+- Added `continuity_loop_ok` and `continuity_loop_count` to combat selftest
+  output and fail hints.
+- Tightened smoke gating:
+  - `playerbot-combat-smoke.sh check` now fails if combat line is missing, if
+    `continuity_loop_ok=1` is absent, or if `result=1` is absent.
+  - `playerbot-foundation-smoke.sh check` now requires
+    `continuity_loop_ok=1` on the combat selftest line.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-combat-smoke.sh check`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+### Deferrals
+
+This slice does not add:
+
+- New combat AI behavior logic
+- Skill-rotation policy changes
+- Loot-routing behavior
+
 ## Slice 69: Session Scope Cleanup Traces For Market Continuity
 
 ### Summary

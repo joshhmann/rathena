@@ -30,7 +30,22 @@ EOF
 }
 
 check() {
-	tmux capture-pane -J -pt rathena-dev-map-server -S -220 \; save-buffer - 2>/dev/null | tail -n 220 | grep 'playerbot_combat_selftest' || true
+	local line
+	line="$(tmux capture-pane -J -pt rathena-dev-map-server -S -260 \; save-buffer - 2>/dev/null | tail -n 260 | grep 'playerbot_combat_selftest' | tail -n 1 || true)"
+	if [[ -n "$line" ]]; then
+		printf '%s\n' "$line"
+	else
+		printf '[playerbot-combat-smoke] missing playerbot_combat_selftest line\n' >&2
+		return 1
+	fi
+	if [[ "$line" != *"continuity_loop_ok=1"* ]]; then
+		printf '[playerbot-combat-smoke] continuity loop gate failed: %s\n' "$line" >&2
+		return 1
+	fi
+	if [[ "$line" != *"result=1"* ]]; then
+		printf '[playerbot-combat-smoke] combat selftest did not pass: %s\n' "$line" >&2
+		return 1
+	fi
 	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
 SELECT \`phase\`, \`action\`, \`target_type\`, \`reason_code\`, \`result\`, \`error_detail\`
 FROM \`bot_trace_event\`
