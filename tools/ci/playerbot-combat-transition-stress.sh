@@ -67,7 +67,7 @@ check_output_signals() {
 	item_line="$(printf '%s\n' "$output" | grep 'playerbot_item_selftest:' | tail -n 1 || true)"
 	market_line="$(printf '%s\n' "$output" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
 
-	if [[ -z "$combat_line" || "$combat_line" != *"continuity_loop_ok=1"* || "$combat_line" != *"result=1"* ]]; then
+	if [[ -z "$combat_line" || "$combat_line" != *"continuity_loop_ok=1"* || "$combat_line" != *"continuity_loop_count=3"* || "$combat_line" != *"result=1"* ]]; then
 		printf '[%s] missing/failed combat continuity signal.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi

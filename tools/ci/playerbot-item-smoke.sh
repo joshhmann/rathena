@@ -47,7 +47,7 @@ EOF
 }
 
 check_denied() {
-	local pane line failures=0
+	local pane line mech_line failures=0
 	pb_smoke_wait_pattern 'playerbot_item_selftest: provision_ok=' 180 2200 || true
 	pane="$(pb_smoke_capture 3200)"
 	printf '%s\n' "$pane" | grep 'playerbot_item_selftest:' | tail -n 2 || true
@@ -56,6 +56,12 @@ check_denied() {
 		printf '[%s] missing item selftest result line.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi
+	mech_line="$(printf '%s\n' "$pane" | grep 'playerbot_item_selftest_mech_reexec:' | tail -n 1 || true)"
+	if [[ -z "$mech_line" ]]; then
+		printf '[%s] missing item mech reexec line.\n' "$PB_SMOKE_LABEL" >&2
+		return 1
+	fi
+	local signal_failures=0
 	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" \
 		result=1 refine_deny_ok=1 refine_deny_clear_ok=1 phracon_grant_ok=1 \
 		refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 \
@@ -72,7 +78,13 @@ check_denied() {
 		loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 \
 		loadout_map_cont_ok=1 loadout_map_return_ok=1 \
 		loadout_map_return_cont_ok=1 loadout_continuity_ok=1 \
-		loadout_audit_ok=1 || failures=$?
+		loadout_audit_ok=1 || signal_failures=$?
+	failures=$((failures + signal_failures))
+	signal_failures=0
+	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$mech_line" \
+		reform_regrant_ok=1 reform_reexec_ok=1 reform_reexec_clear_ok=1 \
+		enchant_regrant_ok=1 enchant_reexec_ok=1 enchant_reexec_clear_ok=1 || signal_failures=$?
+	failures=$((failures + signal_failures))
 
 	local denied_rows=0 conflict_clear_rows=0 refine_rows=0 reform_rows=0 enchant_rows=0
 	local refine_denied_rows=0 reform_denied_rows=0 enchant_denied_rows=0

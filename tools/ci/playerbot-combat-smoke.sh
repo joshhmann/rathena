@@ -26,7 +26,7 @@ check() {
 		return 1
 	fi
 	printf '%s\n' "$line"
-	if ! pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" continuity_loop_ok=1 result=1; then
+	if ! pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" continuity_loop_ok=1 continuity_loop_count=3 result=1; then
 		return 1
 	fi
 	pb_smoke_sql_heredoc <<'EOF'

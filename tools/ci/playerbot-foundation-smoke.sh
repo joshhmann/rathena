@@ -151,6 +151,11 @@ check() {
 			failures=$((failures + 1))
 			continue
 		fi
+		if [[ "$key" == "combat" && "$line" != *"continuity_loop_count=3"* ]]; then
+			printf '[%s] combat continuity loop depth gate failed: %s\n' "$PB_SMOKE_LABEL" "$line" >&2
+			failures=$((failures + 1))
+			continue
+		fi
 		if [[ "$key" == "item" && "$line" != *"loadout_continuity_ok=1"* ]]; then
 			printf '[%s] item loadout continuity gate failed: %s\n' "$PB_SMOKE_LABEL" "$line" >&2
 			failures=$((failures + 1))

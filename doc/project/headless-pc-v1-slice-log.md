@@ -5891,6 +5891,77 @@ cycles also assert consumable inventory/storage stability.
 
 Both passed with `loadout_continuity_ok=1` and stable potion counts.
 
+## Slice 72: Full Mechanic Re-Execution After Rollback
+
+### Summary
+
+Extended post-rollback mechanic proof from refine-only re-execution to full
+refine + reform + enchantgrade re-execution with explicit session-clear checks.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added post-rollback reform re-execution checks:
+  - `mech_reform_regrant_ok`
+  - `mech_reform_reexec_ok`
+  - `mech_reform_reexec_clear_ok`
+- Added post-rollback enchantgrade re-execution checks:
+  - `mech_enchant_regrant_ok`
+  - `mech_enchant_reexec_ok`
+  - `mech_enchant_reexec_clear_ok`
+- Stabilized enchantgrade re-exec setup by:
+  - cleaning prior `510021` test items for the bot char
+  - seeding minimum zeny before re-granting enchant test item
+- Added dedicated debug summary line:
+  - `playerbot_item_selftest_mech_reexec: ...`
+- Updated item smoke to require reform/enchant re-exec signals from the new
+  mech reexec line.
+
+### Validation
+
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Both passed with:
+- `playerbot_item_selftest ... result=1`
+- `playerbot_item_selftest_mech_reexec ... refine/reform/enchant all =1`
+
+## Slice 73: Combat Continuity Loop Depth Promotion
+
+### Summary
+
+Promoted broader repeated combat-event continuity by increasing aggregate combat
+selftest loop depth and gating the exact loop count in smoke acceptance.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `tools/ci/playerbot-combat-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `tools/ci/playerbot-combat-transition-stress.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Increased combat continuity loop depth:
+  - `continuity_cycles` from `2` to `3` in combat selftest.
+- Hardened smoke gates to require explicit loop depth:
+  - `continuity_loop_count=3` in combat smoke check.
+  - `continuity_loop_count=3` in aggregate foundation smoke combat gate.
+  - repeated-transition stress gate now also requires `continuity_loop_count=3`.
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Pass included:
+- `playerbot_combat_selftest ... continuity_loop_ok=1 continuity_loop_count=3 ... result=1`
+
 ## Slice 61: Foundation Gate Workflow + Market Commit Accounting
 
 ### Summary
