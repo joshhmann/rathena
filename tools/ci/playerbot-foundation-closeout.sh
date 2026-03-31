@@ -2,6 +2,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LOG_DIR="${PB_TEST_LOG_DIR:-$REPO_ROOT/logs/playerbot-tests}"
+RUN_TS="$(date +%Y%m%d-%H%M%S)"
+LOG_FILE=""
 
 RUN_COUNT=10
 RICH_COUNT=5
@@ -21,7 +24,7 @@ Options:
   -h, --help            Show this help
 
 Notes:
-  - This script executes the foundation closeout stability gate.
+  - This script executes the foundation closeout stability gate (integration/smoke).
   - It validates scenario-definition presence for key closeout fronts.
   - It does not replace manual semantic review of traces/audits for new slices.
 EOF
@@ -77,6 +80,17 @@ check_cmd() {
 	command -v "$1" >/dev/null 2>&1
 }
 
+init_log() {
+	mkdir -p "$LOG_DIR"
+	LOG_FILE="$LOG_DIR/foundation-closeout-${RUN_TS}.log"
+	exec > >(tee -a "$LOG_FILE") 2>&1
+	echo "[foundation-closeout] log=${LOG_FILE}"
+	echo "[foundation-closeout] started=${RUN_TS}"
+	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
+}
+
+init_log
+
 for dep in bash cmake tmux mysql; do
 	if ! check_cmd "$dep"; then
 		echo "Missing required dependency: $dep" >&2
@@ -111,6 +125,7 @@ SCENARIOS=(
 )
 
 if (( CHECK_SCENARIOS > 0 )); then
+	echo "[foundation-closeout] phase=scenario-definition-check"
 	echo "[foundation-closeout] Verifying required scenario definitions..."
 	for id in "${SCENARIOS[@]}"; do
 		if ! bash tools/ci/playerbot-scenario.sh --no-color describe "$id" >/dev/null; then
@@ -120,6 +135,7 @@ if (( CHECK_SCENARIOS > 0 )); then
 	done
 fi
 
+echo "[foundation-closeout] phase=build-map-server"
 echo "[foundation-closeout] Building map-server..."
 cmake --build build --target map-server -j4
 
@@ -130,6 +146,7 @@ run_loop() {
 	local i
 	local passed=0
 	local failed=0
+	local start_ts end_ts elapsed_s
 
 	if (( count == 0 )); then
 		echo "[foundation-closeout] Skipping ${label}."
@@ -138,12 +155,19 @@ run_loop() {
 	fi
 
 	for i in $(seq 1 "$count"); do
-		echo "[foundation-closeout] ${label} ${i}/${count}"
+		start_ts="$(date +%s)"
+		echo "[foundation-closeout] phase=${label} iteration=${i}/${count}"
+		echo "[foundation-closeout] test_cmd=${cmd}"
 		if eval "$cmd"; then
 			passed=$((passed + 1))
+			end_ts="$(date +%s)"
+			elapsed_s=$((end_ts - start_ts))
+			echo "[foundation-closeout] ${label} iteration ${i} PASS elapsed=${elapsed_s}s"
 		else
 			failed=$((failed + 1))
-			echo "[foundation-closeout] ${label} failed at iteration ${i}." >&2
+			end_ts="$(date +%s)"
+			elapsed_s=$((end_ts - start_ts))
+			echo "[foundation-closeout] ${label} iteration ${i} FAIL elapsed=${elapsed_s}s." >&2
 			if (( STOP_ON_FAIL > 0 )); then
 				echo "${label}:${passed}:${failed}"
 				return 1
