@@ -20,6 +20,12 @@ Recommended end-to-end path from the repo root:
 bash tools/ci/playerbot-foundation-smoke.sh run
 ```
 
+Foundation closeout stability gate (repeat-run acceptance):
+
+```bash
+bash tools/ci/playerbot-foundation-closeout.sh
+```
+
 Manual split path:
 
 ```bash

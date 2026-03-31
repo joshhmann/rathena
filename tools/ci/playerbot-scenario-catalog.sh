@@ -7,6 +7,7 @@ playerbot_scenario_ids() {
 		'combat-skillunit-death-cleanup' \
 		'combat-skillunit-quit-cleanup' \
 		'combat-skillunit-promotion-precheck' \
+		'combat-repeated-transition-stress' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -15,10 +16,14 @@ playerbot_scenario_ids() {
 		'death-respawn' \
 		'item-loadout-continuity' \
 		'loadout-denied-recover' \
+		'loadout-overlap-continuity' \
 		'mechanic-cleanup' \
+		'mechanic-execution-rollback' \
 		'market-buyingstore-partial-fill' \
 		'market-buyingstore-reopen' \
 		'market-buyingstore-denial-continuity' \
+		'market-mail-delivery-integrity' \
+		'market-session-restart-continuity' \
 		'foundation-rich-gate'
 }
 
@@ -29,6 +34,7 @@ playerbot_scenario_title() {
 		combat-skillunit-death-cleanup) printf '%s\n' 'Combat Skillunit Death Cleanup' ;;
 		combat-skillunit-quit-cleanup) printf '%s\n' 'Combat Skillunit Quit Cleanup' ;;
 		combat-skillunit-promotion-precheck) printf '%s\n' 'Combat Skillunit Promotion Precheck' ;;
+		combat-repeated-transition-stress) printf '%s\n' 'Combat Repeated Transition Stress' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -37,10 +43,14 @@ playerbot_scenario_title() {
 		death-respawn) printf '%s\n' 'Death / Respawn Continuity' ;;
 		item-loadout-continuity) printf '%s\n' 'Item / Loadout Continuity' ;;
 		loadout-denied-recover) printf '%s\n' 'Loadout Denied / Recover' ;;
+		loadout-overlap-continuity) printf '%s\n' 'Loadout Overlap Continuity' ;;
 		mechanic-cleanup) printf '%s\n' 'Mechanic Cleanup' ;;
+		mechanic-execution-rollback) printf '%s\n' 'Mechanic Execution Rollback' ;;
 		market-buyingstore-partial-fill) printf '%s\n' 'Market Buyingstore Partial Fill' ;;
 		market-buyingstore-reopen) printf '%s\n' 'Market Buyingstore Reopen' ;;
 		market-buyingstore-denial-continuity) printf '%s\n' 'Market Buyingstore Denial Continuity' ;;
+		market-mail-delivery-integrity) printf '%s\n' 'Market Mail Delivery Integrity' ;;
+		market-session-restart-continuity) printf '%s\n' 'Market Session Restart Continuity' ;;
 		foundation-rich-gate) printf '%s\n' 'Foundation Rich Gate' ;;
 		*) return 1 ;;
 	esac
@@ -48,12 +58,12 @@ playerbot_scenario_title() {
 
 playerbot_scenario_phase() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck) printf '%s\n' 'combat' ;;
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-repeated-transition-stress) printf '%s\n' 'combat' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
-		item-loadout-continuity|loadout-denied-recover) printf '%s\n' 'equipment' ;;
-		mechanic-cleanup) printf '%s\n' 'participation' ;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity) printf '%s\n' 'market' ;;
+		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
+		mechanic-cleanup|mechanic-execution-rollback) printf '%s\n' 'participation' ;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity) printf '%s\n' 'market' ;;
 		foundation-rich-gate) printf '%s\n' 'foundation' ;;
 		*) return 1 ;;
 	esac
@@ -61,16 +71,16 @@ playerbot_scenario_phase() {
 
 playerbot_scenario_kind() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-repeated-transition-stress|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
 			printf '%s\n' 'runbook'
 			;;
-		item-loadout-continuity|loadout-denied-recover)
+		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity)
 			printf '%s\n' 'runbook'
 			;;
-		mechanic-cleanup)
+		mechanic-cleanup|mechanic-execution-rollback)
 			printf '%s\n' 'runbook'
 			;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity)
 			printf '%s\n' 'runbook'
 			;;
 		foundation-rich-gate)
@@ -107,6 +117,11 @@ EOF
 		combat-skillunit-promotion-precheck)
 			cat <<'EOF'
 Validate that the bot correctly evaluates blocked cast pre-conditions before placing a ground skill unit — confirming that cast-condition denials, invalid targets, and near-NPC/cell contexts all block placement and leave no orphaned skillunit state.
+EOF
+			;;
+		combat-repeated-transition-stress)
+			cat <<'EOF'
+Validate repeated sequential combat/status/death/respawn transitions stay deterministic and do not leak stale combat/session state across loops.
 EOF
 			;;
 		status-continuity)
@@ -149,9 +164,19 @@ EOF
 Validate that when a legal equip attempt is rejected by the engine (wrong job, weight over limit, item locked), and when refine/reform/enchantgrade execution is denied by preconditions, session ownership still clears cleanly and the next reconcile/execute attempt recovers without duplicate ownership or phantom state.
 EOF
 			;;
+		loadout-overlap-continuity)
+			cat <<'EOF'
+Validate that intended loadout and item ownership remain correct when equipment/use flows overlap with combat/session/mechanic transitions.
+EOF
+			;;
 		mechanic-cleanup)
 			cat <<'EOF'
 Validate that interrupted NPC, trade, storage, and participation flows clean up their claims and runtime state.
+EOF
+			;;
+		mechanic-execution-rollback)
+			cat <<'EOF'
+Validate that denied or interrupted refine/reform/enchantgrade execution rolls back safely and leaves clean session ownership for the next legal attempt.
 EOF
 			;;
 		market-buyingstore-partial-fill)
@@ -169,6 +194,16 @@ EOF
 Validate that buyingstore sell denials for browse-inactive, wrong-item, overfill, and zeny-limit attempts do not tear down either side of the market session and that continuity still reaches legal partial-fill and close/reopen flow.
 EOF
 			;;
+		market-mail-delivery-integrity)
+			cat <<'EOF'
+Validate market-adjacent mail/session continuity so send/delivery checks remain deterministic and do not block legal session close/recover paths.
+EOF
+			;;
+		market-session-restart-continuity)
+			cat <<'EOF'
+Validate market/session state remains consistent across restart/reconnect cycles without orphaned reservations, stale opens, or split ownership.
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 Validate the promoted richer foundation gate: aggregate foundation pass plus separate passing skillunit probe and skillunit precheck cycles.
@@ -182,7 +217,7 @@ EOF
 
 playerbot_scenario_prereqs() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|mechanic-cleanup|market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|foundation-rich-gate)
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-repeated-transition-stress|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity|mechanic-cleanup|mechanic-execution-rollback|market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity|foundation-rich-gate)
 			cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
@@ -246,6 +281,14 @@ EOF
 - confirm the probe line ends with `result=1`
 - note: successful control placement remains covered by the dedicated
   `playerbot-combat-skillunit-smoke.sh` probe lane
+EOF
+			;;
+		combat-repeated-transition-stress)
+			cat <<'EOF'
+- run repeated aggregate foundation cycles (`run`) in a single window
+- verify each cycle reports pass without manual cleanup between loops
+- verify no drift in recovery/audit signal counts across early and late loops
+- verify restart/respawn/cleanup transitions remain deterministic end-to-end
 EOF
 			;;
 		status-continuity)
@@ -319,6 +362,14 @@ EOF
 - confirm the printed item-audit summary includes denied and slot-conflict-clear rows
 EOF
 			;;
+		loadout-overlap-continuity)
+			cat <<'EOF'
+- run `check-denied` to establish denied/recover baseline and clean ownership
+- run aggregate foundation smoke immediately after item lane completion
+- rerun `check-denied` and verify the same denied/recover proofs remain green
+- confirm no duplicate ownership, stale session claims, or phantom item state appears between passes
+EOF
+			;;
 		mechanic-cleanup)
 			cat <<'EOF'
 - arm the participation smoke helper
@@ -326,6 +377,14 @@ EOF
 - verify the selftest drives interrupted NPC/dialog, storage, trade, and reservation flows
 - confirm the cleanup path releases claims and clears runtime state for each case
 - confirm the recovery surface records each interruption cleanly
+EOF
+			;;
+		mechanic-execution-rollback)
+			cat <<'EOF'
+- run item denied/recover execution checks (`check-denied`) in one window
+- verify denied refine/reform/enchantgrade attempts clear execution/session ownership
+- verify the next legal execution attempt succeeds and session ownership clears again
+- verify rollback leaves no stuck participation/session state
 EOF
 			;;
 		market-buyingstore-partial-fill)
@@ -356,6 +415,20 @@ EOF
 - confirm the selftest line contains `buying_browse_inactive_denied_ok=1`, `buying_wrong_item_denied_ok=1`, `buying_overfill_denied_ok=1`, `buying_zeny_limit_denied_ok=1`, and `buying_denial_trace_ok=1`
 - confirm `result=1`, `buying_partial_ok=1`, and `buying_reopen_ok=1` remain present on the same line
 - confirm the printed interaction summary includes `buyingtrade` denials and completed rows in the same test window
+EOF
+			;;
+		market-mail-delivery-integrity)
+			cat <<'EOF'
+- run aggregate foundation smoke and capture market/session trace output
+- verify mail-related market/session transitions do not leave stale reservations
+- verify market session close/recover paths still pass after mail activity
+EOF
+			;;
+		market-session-restart-continuity)
+			cat <<'EOF'
+- run the market smoke restart-oriented cycle
+- verify market session state remains consistent across restart/reconnect boundary
+- verify no orphaned reservation or stale open-session state remains after restart
 EOF
 			;;
 		foundation-rich-gate)
@@ -389,6 +462,13 @@ EOF
 - `playerbot_skillunitcount(...)` becomes positive during the probe
 - `scope = 'skillunit'` recovery audits are emitted for the targeted transition
 - the trace output shows both the `skill_pos` request/completion and the `skillunit` cleanup event
+EOF
+			;;
+		combat-repeated-transition-stress)
+			cat <<'EOF'
+- repeated closeout loops pass without manual intervention
+- recovery/audit signals stay stable across loop progression
+- no stale combat or participation/session ownership appears after loops
 EOF
 			;;
 		combat-skillunit-promotion-precheck)
@@ -430,12 +510,26 @@ EOF
 - recent `bot_item_audit` summary shows one denied detail row (`loadout.manual.*.denied`), `loadout.manual.slot_conflict.clear`, and denied rows for `refine`, `reform`, and `enchantgrade`
 EOF
 			;;
+		loadout-overlap-continuity)
+			cat <<'EOF'
+- denied/recover item proofs remain green before and after aggregate foundation runs
+- loadout/session ownership remains single-owner (no duplicates/split claims)
+- no phantom item state appears after overlap transitions
+EOF
+			;;
 		mechanic-cleanup)
 			cat <<'EOF'
 - `playerbot_participation_selftest ... result=1` is present
 - interrupted dialog, storage, trade, reservation, and quit flows leave a clean recovery/audit trail
 - claims and runtime state are released for each interrupted session
 - recent `interaction` trace rows show the participation targets completing or failing cleanly
+EOF
+			;;
+		mechanic-execution-rollback)
+			cat <<'EOF'
+- denied refine/reform/enchantgrade attempts emit rollback-clean ownership signals
+- next legal execution attempt succeeds and clears ownership cleanly
+- no stuck execution/session state remains after denial/retry sequence
 EOF
 			;;
 		market-buyingstore-partial-fill)
@@ -462,6 +556,20 @@ EOF
 - recent interaction summary shows denied and completed `buyingtrade` rows within the same run
 EOF
 			;;
+		market-mail-delivery-integrity)
+			cat <<'EOF'
+- mail/session operations do not orphan market reservations
+- market close/recover continuity remains green after mail activity
+- no stale market session ownership remains in trace/audit outputs
+EOF
+			;;
+		market-session-restart-continuity)
+			cat <<'EOF'
+- restart/reconnect preserves consistent market session ownership
+- no orphaned reservations remain after restart window
+- market session open/close lifecycle remains deterministic post-restart
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 - `[playerbot-foundation-smoke] foundation pass ok.` is present
@@ -483,6 +591,15 @@ playerbot_scenario_notes() {
 This scenario now has a repo-local smoke helper through
 `tools/ci/playerbot-combat-smoke.sh`. The scenario runner remains the canonical
 runbook layer, while the smoke helper is the concrete launcher/check surface.
+EOF
+			;;
+		combat-repeated-transition-stress)
+			cat <<'EOF'
+This scenario uses the closeout loop helper:
+`tools/ci/playerbot-foundation-closeout.sh`.
+
+It is the promoted stability gate for repeated aggregate transitions across a
+single process window.
 EOF
 			;;
 		combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup)
@@ -540,6 +657,12 @@ The accepted proof uses the merchant selftest result line plus interaction trace
 summary to prove partial-fill and reopen continuity in one deterministic path.
 EOF
 			;;
+		market-mail-delivery-integrity|market-session-restart-continuity)
+			cat <<'EOF'
+These scenarios extend market/session continuity coverage through aggregate
+foundation and restart windows, where session drift is most likely.
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 This scenario is backed by the integrated richer gate command:
@@ -571,6 +694,9 @@ playerbot_scenario_launcher() {
 		combat-skillunit-promotion-precheck)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check'
 			;;
+		combat-repeated-transition-stress)
+			printf '%s\n' 'bash tools/ci/playerbot-foundation-closeout.sh --run-count 10 --rich-count 0 --no-scenario-check'
+			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
 			;;
@@ -580,11 +706,23 @@ playerbot_scenario_launcher() {
 		loadout-denied-recover)
 			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied'
 			;;
+		loadout-overlap-continuity)
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied && bash tools/ci/playerbot-foundation-smoke.sh run'
+			;;
 		mechanic-cleanup)
 			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
 			;;
+		mechanic-execution-rollback)
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied'
+			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-market-smoke.sh check'
+			;;
+		market-mail-delivery-integrity)
+			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run'
+			;;
+		market-session-restart-continuity)
+			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh run'
 			;;
 		foundation-rich-gate)
 			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run-rich'

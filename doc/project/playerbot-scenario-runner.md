@@ -45,6 +45,7 @@ The current catalog contains:
 - `combat-skillunit-death-cleanup`
 - `combat-skillunit-quit-cleanup`
 - `combat-skillunit-promotion-precheck`
+- `combat-repeated-transition-stress`
 - `status-continuity`
 - `status-death-cleanup`
 - `status-map-continuity`
@@ -53,9 +54,15 @@ The current catalog contains:
 - `death-respawn`
 - `item-loadout-continuity`
 - `loadout-denied-recover`
+- `loadout-overlap-continuity`
 - `mechanic-cleanup`
+- `mechanic-execution-rollback`
 - `market-buyingstore-partial-fill`
 - `market-buyingstore-reopen`
+- `market-buyingstore-denial-continuity`
+- `market-mail-delivery-integrity`
+- `market-session-restart-continuity`
+- `foundation-rich-gate`
 
 Current phase labels used by the catalog:
 
@@ -74,6 +81,7 @@ These split into two groups:
   - `combat-skillunit-death-cleanup`
   - `combat-skillunit-quit-cleanup`
   - `combat-skillunit-promotion-precheck`
+  - `combat-repeated-transition-stress`
   - `status-continuity`
   - `status-death-cleanup`
   - `status-map-continuity`
@@ -82,9 +90,15 @@ These split into two groups:
   - `death-respawn`
   - `item-loadout-continuity`
   - `loadout-denied-recover`
+  - `loadout-overlap-continuity`
   - `mechanic-cleanup`
+  - `mechanic-execution-rollback`
   - `market-buyingstore-partial-fill`
   - `market-buyingstore-reopen`
+  - `market-buyingstore-denial-continuity`
+  - `market-mail-delivery-integrity`
+  - `market-session-restart-continuity`
+  - `foundation-rich-gate`
 
 The runbook-backed scenarios use:
 
@@ -97,9 +111,8 @@ The runbook-backed scenarios use:
 
 Highest-value missing additions after this expansion:
 
-- scenario coverage for status persistence across repeated deaths or sequential
-  handoffs
-- richer scenario automation for deeper runtime fronts beyond current acceptance gates
+- closeout-focused stress coverage for repeated transition windows
+- richer scenario automation for remaining open market/item/mechanic fronts
 
 ## CLI Contract
 
@@ -117,6 +130,10 @@ bash tools/ci/playerbot-scenario.sh run combat-baseline
 bash tools/ci/playerbot-scenario.sh run market-buyingstore-partial-fill
 bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
 bash tools/ci/playerbot-scenario.sh run combat-skillunit-promotion-precheck
+bash tools/ci/playerbot-scenario.sh run market-mail-delivery-integrity
+bash tools/ci/playerbot-scenario.sh run loadout-overlap-continuity
+bash tools/ci/playerbot-scenario.sh run combat-repeated-transition-stress
+bash tools/ci/playerbot-scenario.sh run foundation-rich-gate
 ```
 
 Expected behavior:
@@ -160,9 +177,9 @@ definition, the minimum validation should cover:
 - `describe <scenario>`
 - `checklist <scenario>`
 
-For the next mechanic-participation frontier, the scenario catalog should
-expand in the same order as the gap audit:
+For closeout, the scenario catalog should stay aligned with the gap audit and
+the foundation closeout checklist:
 
-- equip / use / consume continuity
-- broader combat-event participation
-- later market/session continuity beyond the current participation smoke lane
+- market/session execution depth
+- equip/use/consume continuity depth
+- combat-event repeated-transition continuity

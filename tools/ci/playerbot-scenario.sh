@@ -70,6 +70,7 @@ Current catalog:
   combat-skillunit-death-cleanup
   combat-skillunit-quit-cleanup
   combat-skillunit-promotion-precheck
+  combat-repeated-transition-stress
   status-continuity
   status-death-cleanup
   status-map-continuity
@@ -78,9 +79,14 @@ Current catalog:
   status-recovery-integrity
   item-loadout-continuity
   loadout-denied-recover
+  loadout-overlap-continuity
   mechanic-cleanup
+  mechanic-execution-rollback
   market-buyingstore-partial-fill
   market-buyingstore-reopen
+  market-buyingstore-denial-continuity
+  market-mail-delivery-integrity
+  market-session-restart-continuity
   foundation-rich-gate
 EOF
 }

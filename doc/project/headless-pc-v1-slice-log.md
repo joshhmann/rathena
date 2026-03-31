@@ -5792,6 +5792,66 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 68: Foundation Closeout Checklist And Gate Tooling
+
+### Summary
+
+Added a concrete foundation closeout checklist and a repo-local closeout gate
+runner so "remaining foundation checks" are executable and repeatable, not just
+discussion items.
+
+### Files
+
+- `tools/ci/playerbot-foundation-closeout.sh` (new)
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `tools/ci/playerbot-scenario.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md` (new)
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/playerbot-foundation-smoke.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `playerbot-foundation-closeout.sh`:
+  - runs repeated aggregate/rich foundation gates (`10x run`, `5x run-rich` by
+    default)
+  - validates required closeout scenario definitions exist
+  - builds `map-server` before closeout loops
+  - supports stop-on-first-fail and continue-on-fail modes
+
+- Added canonical closeout checklist doc:
+  - explicit required checks before behavior-phase pivot
+  - scenario coverage set for remaining open foundation fronts
+  - behavior-readiness rule
+
+- Expanded scenario catalog for remaining closeout fronts:
+  - `combat-repeated-transition-stress`
+  - `loadout-overlap-continuity`
+  - `mechanic-execution-rollback`
+  - `market-mail-delivery-integrity`
+  - `market-session-restart-continuity`
+  - each includes purpose, checklist, expected signals, notes, and launcher
+
+- Updated scenario runner and foundation smoke docs so the new closeout flow is
+  discoverable from canonical docs.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-foundation-closeout.sh`
+- `bash tools/ci/playerbot-foundation-closeout.sh --help`
+- `bash tools/ci/playerbot-scenario.sh --no-color list`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe combat-repeated-transition-stress`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe loadout-overlap-continuity`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe mechanic-execution-rollback`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe market-mail-delivery-integrity`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe market-session-restart-continuity`
+
+### Deferrals
+
+- This slice does not itself add new runtime semantics in `src/map/*`.
+- Closeout gating is now explicit, but semantic gap-closure still requires
+  subsequent runtime slices.
+
 ## Slice 67: Combat Social Continuity + Merchant Interrupt Hardening
 
 ### Summary
