@@ -5792,6 +5792,66 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 69: Session Scope Cleanup Traces For Market Continuity
+
+### Summary
+
+Expanded playerbot session interrupt cleanup from aggregate-only signaling to
+per-scope trace/audit signaling, and promoted that signal into merchant smoke
+acceptance.
+
+### Files
+
+- `src/map/pc.cpp`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added session-scope decomposition in runtime cleanup:
+  - introduced `s_playerbot_session_flags` and unified flag collection for
+    session state/count surfaces
+  - kept aggregate `session` recovery/trace rows
+  - added per-scope recovery/trace rows for active session scopes during
+    cleanup (`vending`, `vendlist`, `buyingstore`, `mail`, `refine`,
+    `reform`, `enchantgrade`, and related scopes)
+  - per-scope rows now include `error_detail` marker
+    `session.scope=<scope>` for deterministic SQL filtering
+
+- Updated merchant selftest to gate on new market-session cleanup visibility:
+  - added `market_session_trace_ok`
+  - verifies session-scope cleanup traces exist in `phase IN ('combat','reconcile')`
+    with action `combat.completed`/`reconcile.fixed`
+  - requires deterministic minimum signal (`vending >= 1` and total market
+    session-scope rows `>= 2`)
+
+- Updated market smoke checker to require:
+  - `market_session_trace_ok=1`
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash -n tools/ci/playerbot-market-smoke.sh`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result highlights:
+
+- `playerbot_merchant_selftest ... market_session_trace_ok=1 ... result=1`
+- market smoke passes with new required key
+- full foundation smoke remains green
+- structured trace summary now includes session-scope rows (example):
+  - `reconcile.fixed mail operator.stop ok`
+  - `reconcile.fixed buyingstore operator.stop ok`
+  - `reconcile.fixed vendlist map.changed ok`
+
+### Deferrals
+
+This slice improves cleanup observability and continuity gating only; it does
+not add new market business semantics (mail composition logic, multi-item
+negotiation strategy, or deeper commerce decision logic).
+
 ## Slice 68: Foundation Closeout Checklist And Gate Tooling
 
 ### Summary

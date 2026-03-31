@@ -6904,10 +6904,37 @@ struct s_playerbot_session_cleanup {
 	bool ok = true;
 	int32 count = 0;
 };
+struct s_playerbot_session_flags {
+	bool progress = false;
+	bool menuskill = false;
+	bool skillitem = false;
+	bool itemkeep = false;
+	bool searchstore = false;
+	bool vending = false;
+	bool vendlist = false;
+	bool buyingstore = false;
+	bool mail = false;
+	bool roulette = false;
+	bool enchantgrade = false;
+	bool reform = false;
+	bool itemenchant = false;
+	bool refine = false;
+	bool stylist = false;
+	bool expand = false;
+	bool barter = false;
+	bool barterx = false;
+	bool laphsyn = false;
+	bool laphup = false;
+	bool bank = false;
+	bool itemctx = false;
+};
 void pc_playerbot_handle_quit_cleanup(map_session_data* sd);
 static void pc_playerbot_handle_mapchange_cleanup(map_session_data* sd);
 static void pc_playerbot_finalize_mapchange_status(map_session_data* sd, const char* status_before);
 static struct s_playerbot_session_cleanup pc_playerbot_cleanup_session_state(map_session_data* sd, uint32 bot_id, uint32 char_id, uint32 account_id, const char* phase, const char* action, const char* reason_code, const char* detail, const char* state_before_override);
+static s_playerbot_session_flags pc_playerbot_session_flags(const map_session_data* sd);
+static int32 pc_playerbot_session_count_from_flags(const s_playerbot_session_flags& flags);
+static void pc_playerbot_trace_session_scope_cleanup(uint32 bot_id, uint32 char_id, uint32 account_id, map_session_data* sd, const char* phase, const char* action, const char* reason_code, const char* detail, const s_playerbot_session_flags& before, const s_playerbot_session_flags& after);
 static bool pc_playerbot_lookup_identity(const map_session_data* sd, uint32* bot_id, uint32* char_id, uint32* account_id);
 static std::string pc_playerbot_status_state(const map_session_data* sd);
 static std::string pc_playerbot_session_state(const map_session_data* sd);
@@ -10077,30 +10104,7 @@ static bool pc_playerbot_item_context_active(const map_session_data* sd)
 
 static int32 pc_playerbot_session_count(const map_session_data* sd)
 {
-	if (sd == nullptr)
-		return 0;
-
-	return (sd->progressbar.npc_id != 0 ? 1 : 0)
-		+ ((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
-		+ ((sd->skillitem != 0 || sd->skillitemlv != 0 || sd->skillitem_keep_requirement) ? 1 : 0)
-		+ (sd->searchstore.open ? 1 : 0)
-		+ (sd->state.vending ? 1 : 0)
-		+ (sd->vended_id != 0 ? 1 : 0)
-		+ (sd->state.buyingstore ? 1 : 0)
-		+ (sd->state.mail_writing ? 1 : 0)
-		+ (sd->state.roulette_open ? 1 : 0)
-		+ (sd->state.enchantgrade_open ? 1 : 0)
-		+ (sd->state.item_reform != 0 ? 1 : 0)
-		+ (sd->state.item_enchant_index != 0 ? 1 : 0)
-		+ (sd->state.refineui_open ? 1 : 0)
-		+ (sd->state.stylist_open ? 1 : 0)
-		+ (sd->state.inventory_expansion_confirmation != 0 ? 1 : 0)
-		+ (sd->state.barter_open ? 1 : 0)
-		+ (sd->state.barter_extended_open ? 1 : 0)
-		+ (sd->state.laphine_synthesis != 0 ? 1 : 0)
-		+ (sd->state.laphine_upgrade != 0 ? 1 : 0)
-		+ (sd->state.banking ? 1 : 0)
-		+ (pc_playerbot_item_context_active(sd) ? 1 : 0);
+	return pc_playerbot_session_count_from_flags(pc_playerbot_session_flags(sd));
 }
 
 static std::string pc_playerbot_session_state(const map_session_data* sd)
@@ -10108,29 +10112,30 @@ static std::string pc_playerbot_session_state(const map_session_data* sd)
 	if (sd == nullptr)
 		return "offline";
 
-	return "count=" + std::to_string(pc_playerbot_session_count(sd))
-		+ ",progress=" + std::to_string(sd->progressbar.npc_id != 0 ? 1 : 0)
-		+ ",menuskill=" + std::to_string((sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0) ? 1 : 0)
-		+ ",skillitem=" + std::to_string((sd->skillitem != 0 || sd->skillitemlv != 0) ? 1 : 0)
-		+ ",itemkeep=" + std::to_string(sd->skillitem_keep_requirement ? 1 : 0)
-		+ ",searchstore=" + std::to_string(sd->searchstore.open ? 1 : 0)
-		+ ",vending=" + std::to_string(sd->state.vending ? 1 : 0)
-		+ ",vendlist=" + std::to_string(sd->vended_id != 0 ? 1 : 0)
-		+ ",buyingstore=" + std::to_string(sd->state.buyingstore ? 1 : 0)
-		+ ",mail=" + std::to_string(sd->state.mail_writing ? 1 : 0)
-		+ ",roulette=" + std::to_string(sd->state.roulette_open ? 1 : 0)
-		+ ",enchantgrade=" + std::to_string(sd->state.enchantgrade_open ? 1 : 0)
-		+ ",reform=" + std::to_string(sd->state.item_reform != 0 ? 1 : 0)
-		+ ",itemenchant=" + std::to_string(sd->state.item_enchant_index != 0 ? 1 : 0)
-		+ ",refine=" + std::to_string(sd->state.refineui_open ? 1 : 0)
-		+ ",stylist=" + std::to_string(sd->state.stylist_open ? 1 : 0)
-		+ ",expand=" + std::to_string(sd->state.inventory_expansion_confirmation != 0 ? 1 : 0)
-		+ ",barter=" + std::to_string(sd->state.barter_open ? 1 : 0)
-		+ ",barterx=" + std::to_string(sd->state.barter_extended_open ? 1 : 0)
-		+ ",laphsyn=" + std::to_string(sd->state.laphine_synthesis != 0 ? 1 : 0)
-		+ ",laphup=" + std::to_string(sd->state.laphine_upgrade != 0 ? 1 : 0)
-		+ ",bank=" + std::to_string(sd->state.banking ? 1 : 0)
-		+ ",itemctx=" + std::to_string(pc_playerbot_item_context_active(sd) ? 1 : 0);
+	s_playerbot_session_flags flags = pc_playerbot_session_flags(sd);
+	return "count=" + std::to_string(pc_playerbot_session_count_from_flags(flags))
+		+ ",progress=" + std::to_string(flags.progress ? 1 : 0)
+		+ ",menuskill=" + std::to_string(flags.menuskill ? 1 : 0)
+		+ ",skillitem=" + std::to_string(flags.skillitem ? 1 : 0)
+		+ ",itemkeep=" + std::to_string(flags.itemkeep ? 1 : 0)
+		+ ",searchstore=" + std::to_string(flags.searchstore ? 1 : 0)
+		+ ",vending=" + std::to_string(flags.vending ? 1 : 0)
+		+ ",vendlist=" + std::to_string(flags.vendlist ? 1 : 0)
+		+ ",buyingstore=" + std::to_string(flags.buyingstore ? 1 : 0)
+		+ ",mail=" + std::to_string(flags.mail ? 1 : 0)
+		+ ",roulette=" + std::to_string(flags.roulette ? 1 : 0)
+		+ ",enchantgrade=" + std::to_string(flags.enchantgrade ? 1 : 0)
+		+ ",reform=" + std::to_string(flags.reform ? 1 : 0)
+		+ ",itemenchant=" + std::to_string(flags.itemenchant ? 1 : 0)
+		+ ",refine=" + std::to_string(flags.refine ? 1 : 0)
+		+ ",stylist=" + std::to_string(flags.stylist ? 1 : 0)
+		+ ",expand=" + std::to_string(flags.expand ? 1 : 0)
+		+ ",barter=" + std::to_string(flags.barter ? 1 : 0)
+		+ ",barterx=" + std::to_string(flags.barterx ? 1 : 0)
+		+ ",laphsyn=" + std::to_string(flags.laphsyn ? 1 : 0)
+		+ ",laphup=" + std::to_string(flags.laphup ? 1 : 0)
+		+ ",bank=" + std::to_string(flags.bank ? 1 : 0)
+		+ ",itemctx=" + std::to_string(flags.itemctx ? 1 : 0);
 }
 
 static bool pc_playerbot_force_recover_npc(map_session_data* sd)
@@ -10184,6 +10189,105 @@ struct s_playerbot_skillunit_cleanup {
 	bool ok = true;
 	int32 count = 0;
 };
+
+static s_playerbot_session_flags pc_playerbot_session_flags(const map_session_data* sd)
+{
+	s_playerbot_session_flags flags = {};
+	if (sd == nullptr)
+		return flags;
+
+	flags.progress = (sd->progressbar.npc_id != 0);
+	flags.menuskill = (sd->menuskill_id != 0 || sd->menuskill_val != 0 || sd->menuskill_val2 != 0);
+	flags.skillitem = (sd->skillitem != 0 || sd->skillitemlv != 0);
+	flags.itemkeep = sd->skillitem_keep_requirement;
+	flags.searchstore = sd->searchstore.open;
+	flags.vending = sd->state.vending;
+	flags.vendlist = (sd->vended_id != 0);
+	flags.buyingstore = sd->state.buyingstore;
+	flags.mail = sd->state.mail_writing;
+	flags.roulette = sd->state.roulette_open;
+	flags.enchantgrade = sd->state.enchantgrade_open;
+	flags.reform = (sd->state.item_reform != 0);
+	flags.itemenchant = (sd->state.item_enchant_index != 0);
+	flags.refine = sd->state.refineui_open;
+	flags.stylist = sd->state.stylist_open;
+	flags.expand = (sd->state.inventory_expansion_confirmation != 0);
+	flags.barter = sd->state.barter_open;
+	flags.barterx = sd->state.barter_extended_open;
+	flags.laphsyn = (sd->state.laphine_synthesis != 0);
+	flags.laphup = (sd->state.laphine_upgrade != 0);
+	flags.bank = sd->state.banking;
+	flags.itemctx = pc_playerbot_item_context_active(sd);
+	return flags;
+}
+
+static int32 pc_playerbot_session_count_from_flags(const s_playerbot_session_flags& flags)
+{
+	return (flags.progress ? 1 : 0)
+		+ (flags.menuskill ? 1 : 0)
+		+ (flags.skillitem ? 1 : 0)
+		+ (flags.itemkeep ? 1 : 0)
+		+ (flags.searchstore ? 1 : 0)
+		+ (flags.vending ? 1 : 0)
+		+ (flags.vendlist ? 1 : 0)
+		+ (flags.buyingstore ? 1 : 0)
+		+ (flags.mail ? 1 : 0)
+		+ (flags.roulette ? 1 : 0)
+		+ (flags.enchantgrade ? 1 : 0)
+		+ (flags.reform ? 1 : 0)
+		+ (flags.itemenchant ? 1 : 0)
+		+ (flags.refine ? 1 : 0)
+		+ (flags.stylist ? 1 : 0)
+		+ (flags.expand ? 1 : 0)
+		+ (flags.barter ? 1 : 0)
+		+ (flags.barterx ? 1 : 0)
+		+ (flags.laphsyn ? 1 : 0)
+		+ (flags.laphup ? 1 : 0)
+		+ (flags.bank ? 1 : 0)
+		+ (flags.itemctx ? 1 : 0);
+}
+
+static void pc_playerbot_trace_session_scope_cleanup(uint32 bot_id, uint32 char_id, uint32 account_id, map_session_data* sd, const char* phase, const char* action, const char* reason_code, const char* detail, const s_playerbot_session_flags& before, const s_playerbot_session_flags& after)
+{
+	auto emit_scope = [&](const char* scope, bool had, bool cleared) {
+		if (!had)
+			return;
+		std::string detail_s = detail != nullptr ? detail : "session.interrupt";
+		detail_s += " session.scope=";
+		detail_s += scope != nullptr ? scope : "unknown";
+		if (!cleared)
+			detail_s += ".still_active";
+		std::string scope_before = "active=" + std::to_string(had ? 1 : 0);
+		std::string scope_after = "active=" + std::to_string(cleared ? 0 : 1);
+		std::string scope_name = "session.";
+		scope_name += scope != nullptr ? scope : "unknown";
+		pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", scope_name.c_str(), "interrupt", scope_before.c_str(), scope_after.c_str(), cleared ? "ok" : "aborted", detail_s.c_str());
+		pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, cleared ? action : "reconcile.failed", scope, "", reason_code != nullptr ? reason_code : "restart.recovery", cleared ? "ok" : "aborted", cleared ? "" : "interrupt.cleanup", detail_s.c_str());
+	};
+
+	emit_scope("progress", before.progress, !after.progress);
+	emit_scope("menuskill", before.menuskill, !after.menuskill);
+	emit_scope("skillitem", before.skillitem, !after.skillitem);
+	emit_scope("itemkeep", before.itemkeep, !after.itemkeep);
+	emit_scope("searchstore", before.searchstore, !after.searchstore);
+	emit_scope("vending", before.vending, !after.vending);
+	emit_scope("vendlist", before.vendlist, !after.vendlist);
+	emit_scope("buyingstore", before.buyingstore, !after.buyingstore);
+	emit_scope("mail", before.mail, !after.mail);
+	emit_scope("roulette", before.roulette, !after.roulette);
+	emit_scope("enchantgrade", before.enchantgrade, !after.enchantgrade);
+	emit_scope("reform", before.reform, !after.reform);
+	emit_scope("itemenchant", before.itemenchant, !after.itemenchant);
+	emit_scope("refine", before.refine, !after.refine);
+	emit_scope("stylist", before.stylist, !after.stylist);
+	emit_scope("expand", before.expand, !after.expand);
+	emit_scope("barter", before.barter, !after.barter);
+	emit_scope("barterx", before.barterx, !after.barterx);
+	emit_scope("laphsyn", before.laphsyn, !after.laphsyn);
+	emit_scope("laphup", before.laphup, !after.laphup);
+	emit_scope("bank", before.bank, !after.bank);
+	emit_scope("itemctx", before.itemctx, !after.itemctx);
+}
 
 static const char* pc_playerbot_interrupt_failure_suffix(const char* scope)
 {
@@ -10313,15 +10417,17 @@ static s_playerbot_session_cleanup pc_playerbot_cleanup_session_state(map_sessio
 	if (sd == nullptr)
 		return cleanup;
 
+	s_playerbot_session_flags before_flags = pc_playerbot_session_flags(sd);
 	std::string before = state_before_override != nullptr && *state_before_override != '\0' ? state_before_override : pc_playerbot_session_state(sd);
-	cleanup.count = pc_playerbot_session_count(sd);
+	cleanup.count = pc_playerbot_session_count_from_flags(before_flags);
 	cleanup.had = cleanup.count > 0;
 	if (!cleanup.had)
 		return cleanup;
 
 	pc_playerbot_force_clear_session(sd);
+	s_playerbot_session_flags after_flags = pc_playerbot_session_flags(sd);
 	std::string after = pc_playerbot_session_state(sd);
-	cleanup.ok = (pc_playerbot_session_count(sd) == 0);
+	cleanup.ok = (pc_playerbot_session_count_from_flags(after_flags) == 0);
 	std::string detail_s = detail != nullptr ? detail : "session.interrupt";
 	detail_s += " count=" + std::to_string(cleanup.count);
 	if (!cleanup.ok)
@@ -10329,6 +10435,7 @@ static s_playerbot_session_cleanup pc_playerbot_cleanup_session_state(map_sessio
 
 	pc_playerbot_recovery_audit(bot_id, char_id, account_id, "live_world_actor_state", "session", "interrupt", before.c_str(), after.c_str(), cleanup.ok ? "ok" : "aborted", detail_s.c_str());
 	pc_playerbot_trace_event(bot_id, char_id, account_id, sd, phase, cleanup.ok ? action : "reconcile.failed", "session", "", reason_code != nullptr ? reason_code : "restart.recovery", cleanup.ok ? "ok" : "aborted", cleanup.ok ? "" : "interrupt.cleanup", detail_s.c_str());
+	pc_playerbot_trace_session_scope_cleanup(bot_id, char_id, account_id, sd, phase, action, reason_code, detail, before_flags, after_flags);
 	return cleanup;
 }
 
