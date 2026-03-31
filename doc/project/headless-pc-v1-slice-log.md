@@ -5792,6 +5792,313 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
+
+### Summary
+
+Fixed a reentry race that could start `PlayerbotMerchantSelftest` twice in the
+same restarted market run, then hardened market smoke checks to fail fast if
+duplicate result lines regress.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `.running` guard state to `PlayerbotMerchantSelftest`.
+- Updated event gates:
+  - `OnPCLoginEvent` now exits when `.running` is set.
+  - `OnInterIfInitOnce` now exits when `.ran` or `.running` is set and also
+    re-checks both states inside the login polling loop before launching.
+  - `OnManualStart` / `OnRun` now honor `.running` to prevent overlapping runs.
+- Added duplicate-result detection in `tools/ci/playerbot-market-smoke.sh`:
+  - `check` now counts `playerbot_merchant_selftest: bot_id=` lines from the
+    current restarted pane capture and fails when count > 1.
+
+### Validation
+
+- `bash tools/ci/playerbot-market-smoke.sh run` (pass, single clean result line)
+- `bash tools/ci/playerbot-market-session-stress.sh --cycles 2` (pass)
+- `bash tools/ci/playerbot-foundation-gate.sh quick` (pass)
+
+### Deferrals
+
+This slice does not change merchant market semantics; it only enforces
+single-run determinism and stronger smoke failure detection.
+
+## Slice 70: Market Idle-Mail Continuity Promotion
+
+### Summary
+
+Expanded market selftest semantics to cover post-session mail behavior, not just
+mail/session ownership while buyingstore is active.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `tools/ci/playerbot-market-session-stress.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added idle mail assertions in merchant selftest after buyingstore closes:
+  - `mail_idle_send_ok`
+  - `mail_idle_delivery_ok`
+  - `mail_idle_state_ok`
+- Folded the new idle-mail checks into merchant selftest `result`.
+- Updated market smoke/stress scripts to require the new `mail_idle_*` signals.
+
+### Validation
+
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-market-session-stress.sh --cycles 1`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+All passed with `mail_idle_send_ok=1 mail_idle_delivery_ok=1 mail_idle_state_ok=1`.
+
+## Slice 71: Loadout/Consume Drift Guard In Overlap Continuity Loop
+
+### Summary
+
+Extended item continuity checks so overlapping death/respawn/mapchange loadout
+cycles also assert consumable inventory/storage stability.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Captured expected potion counts before overlap loops:
+  - `loadout_pot_inv_expected`
+  - `loadout_pot_storage_expected`
+- Added per-cycle checks in the overlap loop:
+  - `loop_pot_inv_ok`
+  - `loop_pot_storage_ok`
+- Folded these into each loop pass condition so any consume/storage drift fails
+  `loadout_continuity_ok`.
+- Exposed expected potion counts in the selftest debug summary line.
+
+### Validation
+
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Both passed with `loadout_continuity_ok=1` and stable potion counts.
+
+## Slice 61: Foundation Gate Workflow + Market Commit Accounting
+
+### Summary
+
+Standardized foundation validation around a two-tier gate (`quick` and `full`)
+and tightened merchant/buyingstore semantics by asserting first-fill and
+total-fill commit accounting (inventory and zeny deltas) in the market selftest.
+
+### Files
+
+- `tools/ci/playerbot-foundation-gate.sh` (new)
+- `tools/ci/playerbot-smoke-common.sh`
+- `tools/ci/playerbot-market-smoke.sh`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `doc/project/playerbot-foundation-program.md`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+- `doc/project/playerbot-contributor-workflow.md`
+- `doc/project/playerbot-merge-guardrails.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `tools/ci/playerbot-foundation-gate.sh`:
+  - `quick`: syntax + scenario sanity + one aggregate foundation run
+  - `full`: delegates to `playerbot-foundation-closeout.sh` for matrix runs
+- Hardened shared smoke dispatcher argument handling in
+  `playerbot-smoke-common.sh`.
+- Promoted the two-tier gate model into foundation workflow docs and merge
+  guardrails.
+- Extended `F_PB_MerchantSelftest_Run` market checks with commit accounting:
+  - `buying_commit_first_ok`:
+    - first successful sell increments expected item count and decreases zeny
+      by expected minimum
+  - `buying_commit_total_ok`:
+    - total successful fills produce expected combined item/zeny deltas
+- Updated `playerbot-market-smoke.sh` to require:
+  - `buying_commit_first_ok=1`
+  - `buying_commit_total_ok=1`
+
+### Validation
+
+- `git diff --check`
+- `bash -n tools/ci/playerbot-foundation-gate.sh`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- `bash tools/ci/playerbot-foundation-gate.sh full --run-count 1 --rich-count 0 --no-scenario-check`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+
+Integrated result:
+
+- market selftest includes `buying_commit_first_ok=1` and
+  `buying_commit_total_ok=1`
+- `playerbot-market-smoke.sh` passes with stricter required signals
+- aggregate foundation gate remains green (`quick: pass`)
+
+### Deferrals
+
+This slice does not add:
+
+- full mail composition/business semantics beyond continuity/trace coverage
+- market strategy or behavior-layer policy logic
+- companion system support (pet/homunculus/mercenary/elemental)
+
+## Slice 62: Mechanic Re-Execution Proof After Rollback
+
+### Summary
+
+Extended the item/mechanic foundation selftest so mechanic rollback is no longer
+only a cleanup proof; it now also proves re-execution viability for real engine
+flow after death/map interruption recovery.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added post-rollback refine re-execution checks in `PlayerbotItemSelftest`:
+  - `mech_refine_regrant_ok`
+  - `mech_refine_reexec_ok`
+  - `mech_refine_reexec_clear_ok`
+- Folded those checks into the item selftest pass condition (`result=1` path).
+- Added the same signals to `playerbot-item-smoke.sh check-denied` required
+  signal set so CI fails if rollback cleanup succeeds but re-execution fails.
+
+### Validation
+
+- `git diff --check`
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Integrated result:
+
+- item selftest includes:
+  - `mech_refine_regrant_ok=1`
+  - `mech_refine_reexec_ok=1`
+  - `mech_refine_reexec_clear_ok=1`
+- item smoke passes with stricter mechanic execution semantics
+- aggregate foundation quick gate remains green
+
+### Deferrals
+
+This slice does not yet add:
+
+- re-execution proof loops for reform and enchantgrade post-rollback
+- behavior-layer mechanic policy or optimization logic
+
+## Slice 63: Combat/Event Repeated Transition Stress Gate
+
+### Summary
+
+Added a dedicated repeated-transition stress gate for combat/status/death/respawn
+continuity and wired the corresponding scenario launcher to this new command.
+
+### Files
+
+- `tools/ci/playerbot-combat-transition-stress.sh` (new)
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `playerbot-combat-transition-stress.sh` with:
+  - looped aggregate runs (`--runs N`)
+  - required signal checks per run:
+    - combat continuity (`continuity_loop_ok=1`)
+    - item mechanic re-execution (`mech_refine_reexec_ok=1`)
+    - market commit continuity (`buying_commit_total_ok=1`)
+  - per-run trace/audit delta reporting
+  - optional drift enforcement (`--strict-drift`)
+- Updated scenario launcher for `combat-repeated-transition-stress` to:
+  - `bash tools/ci/playerbot-combat-transition-stress.sh --runs 10`
+- Updated scenario runner doc to include the new stress helper in the
+  runbook-backed tool list.
+
+### Validation
+
+- `git diff --check`
+- `bash -n tools/ci/playerbot-combat-transition-stress.sh`
+- `bash tools/ci/playerbot-combat-transition-stress.sh --help`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe combat-repeated-transition-stress`
+- `bash tools/ci/playerbot-combat-transition-stress.sh --runs 2`
+
+Integrated result:
+
+- repeated transition stress command passes with stable per-run deltas
+- scenario launcher now points to the dedicated stress gate command
+
+### Deferrals
+
+This slice does not add:
+
+- automatic rich-gate inclusion inside stress loops
+- automatic failure triage output beyond the captured signal checks and deltas
+
+## Slice 64: Item/Loadout Overlap Stress Gate
+
+### Summary
+
+Added a dedicated overlap stress helper so loadout overlap continuity has a
+single executable launcher instead of a manual multi-command runbook.
+
+### Files
+
+- `tools/ci/playerbot-item-overlap-stress.sh` (new)
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `playerbot-item-overlap-stress.sh` with cycle orchestration:
+  1. item denied/recover pass
+  2. aggregate foundation pass
+  3. item denied/recover pass again
+- Added required overlap signal checks on pre/post item passes:
+  - `loadout_denied_ok=1`
+  - `loadout_recover_ok=1`
+  - `loadout_conflict_cleared_ok=1`
+  - `mech_refine_reexec_ok=1`
+  - `loadout_continuity_ok=1`
+- Repointed scenario launcher for `loadout-overlap-continuity` to:
+  - `bash tools/ci/playerbot-item-overlap-stress.sh --cycles 1`
+- Updated scenario runner doc tool list with the new helper.
+
+### Validation
+
+- `git diff --check`
+- `bash -n tools/ci/playerbot-item-overlap-stress.sh`
+- `bash tools/ci/playerbot-item-overlap-stress.sh --help`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe loadout-overlap-continuity`
+- `bash tools/ci/playerbot-item-overlap-stress.sh --cycles 1`
+
+Integrated result:
+
+- overlap stress helper completes successfully in repo-local runs
+- scenario runner now points to the dedicated overlap launcher
+
+### Deferrals
+
+This slice does not add:
+
+- high-cycle overlap stress defaults (left to explicit `--cycles N`)
+- strict drift math beyond per-cycle pass/fail signal enforcement
+
 ## Slice 75: Combat Transition Continuity Loop Gate
 
 ### Summary

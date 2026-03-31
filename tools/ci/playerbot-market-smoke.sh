@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DB_NAME="${DB_NAME:-rathena}"
-DB_USER="${DB_USER:-rathena}"
-DB_PASS="${RATHENA_DB_PASS:-rathena_secure_2024}"
-TEST_AID="${TEST_AID:-2000004}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/playerbot-smoke-common.sh"
+PB_SMOKE_LABEL="playerbot-market-smoke"
 
 usage() {
 	cat <<EOF
@@ -22,124 +18,70 @@ Commands:
 EOF
 }
 
-wait_for_merchant_result_line() {
-	local timeout_s="${1:-210}" elapsed=0 pane
-	while (( elapsed < timeout_s )); do
-		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2200 2>/dev/null || true)"
-		if printf '%s\n' "$pane" | grep -q 'playerbot_merchant_selftest: bot_id='; then
-			return 0
-		fi
-		sleep 1
-		elapsed=$((elapsed + 1))
-	done
-	return 1
-}
-
-wait_for_merchant_success_line() {
-	local timeout_s="${1:-210}" elapsed=0 pane line latest=""
-	while (( elapsed < timeout_s )); do
-		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -3200 \; save-buffer - 2>/dev/null | tail -n 3200 || true)"
-		line="$(printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
-		if [[ -n "$line" ]]; then
-			latest="$line"
-			if [[ "$line" == *"result=1"* ]]; then
-				printf '%s\n' "$line"
-				return 0
-			fi
-		fi
-		sleep 1
-		elapsed=$((elapsed + 1))
-	done
-	if [[ -n "$latest" ]]; then
-		printf '%s\n' "$latest"
-	fi
-	return 1
-}
-
-launch_kore() {
-	tmux kill-session -t playerbot-market-kore 2>/dev/null || true
-	tmux new-session -d -s playerbot-market-kore 'cd /root/testing/openkore && perl openkore.pl --control=/root/testing/openkore-control-codex'
-	printf '[playerbot-market-smoke] Launched OpenKore in tmux session playerbot-market-kore.\n'
-}
-
 arm() {
-	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
-REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
-('\$PBMST_AUTORUN_AID', 0, '$TEST_AID'),
+	pb_smoke_arm_restart_wait "$PB_SMOKE_LABEL" \
+		"('\$PBMST_AUTORUN_AID', 0, '$TEST_AID'),
 ('\$PBMST_MANUAL_AID', 0, '0'),
 ('\$PBFNST_AUTORUN_AID', 0, '0'),
-('\$PBFNST_ACTIVE', 0, '0');
-EOF
-
-	cd "$REPO_ROOT"
-	bash tools/dev/playerbot-dev.sh restart
-	for _ in $(seq 1 20); do
-		if tmux capture-pane -J -pt rathena-dev-map-server -S -80 2>/dev/null | grep -q "Map Server is now online."; then
-			break
-		fi
-		sleep 1
-	done
-	printf '\n[playerbot-market-smoke] Armed merchant/market selftest for account %s.\n' "$TEST_AID"
-	printf '[playerbot-market-smoke] Next step: log in once with the codex OpenKore profile, then run this script with check.\n'
+('\$PBFNST_ACTIVE', 0, '0')"
 }
 
 check() {
-	local pane line key failures=0
-	line="$(wait_for_merchant_success_line 240 || true)"
-	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -3200 \; save-buffer - 2>/dev/null | tail -n 3200 || true)"
+	local pane line failures=0 line_count=0
+	line="$(pb_smoke_wait_result_line 'playerbot_merchant_selftest: bot_id=' 240 || true)"
+	pane="$(pb_smoke_capture 3200)"
+	line_count="$(printf '%s\n' "$pane" | grep -c 'playerbot_merchant_selftest: bot_id=' || true)"
 	printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest:' | tail -n 4 || true
 	if [[ -z "$line" ]]; then
 		line="$(printf '%s\n' "$pane" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
 	fi
 
 	if [[ -z "$line" ]]; then
-		printf '[playerbot-market-smoke] missing merchant selftest line.\n' >&2
+		printf '[%s] missing merchant selftest line.\n' "$PB_SMOKE_LABEL" >&2
+		return 1
+	fi
+	if (( line_count > 1 )); then
+		printf '[%s] duplicate merchant selftest result lines detected in one run (%d).\n' "$PB_SMOKE_LABEL" "$line_count" >&2
 		return 1
 	fi
 
-	for key in result=1 market_trace_ok=1 market_session_trace_ok=1 buying_denial_trace_ok=1 mail_delivery_ok=1 mail_continuity_ok=1 mail_trace_ok=1 buying_browse_inactive_denied_ok=1 buying_browse_reopen_ok=1 buying_wrong_item_denied_ok=1 buying_overfill_denied_ok=1 buying_denied_state_ok=1 buying_sell_first_ok=1 buying_partial_ok=1 buying_sell_ok=1 buying_buyer_close_ok=1 buying_zeny_limit_denied_ok=1 buying_zeny_denied_state_ok=1 buying_zeny_close_ok=1 buying_reopen_ok=1 buying_close_ok=1 buying_closed_ok=1 park_ok=1; do
-		if [[ "$line" != *"$key"* ]]; then
-			printf '[playerbot-market-smoke] required signal missing: %s\n' "$key" >&2
-			failures=$((failures + 1))
-		fi
-	done
+	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" \
+		result=1 market_trace_ok=1 market_session_trace_ok=1 \
+		buying_denial_trace_ok=1 mail_delivery_ok=1 mail_continuity_ok=1 \
+		mail_idle_send_ok=1 mail_idle_delivery_ok=1 mail_idle_state_ok=1 \
+		mail_trace_ok=1 buying_browse_inactive_denied_ok=1 \
+		buying_browse_reopen_ok=1 buying_wrong_item_denied_ok=1 \
+		buying_overfill_denied_ok=1 buying_denied_state_ok=1 \
+		buying_sell_first_ok=1 buying_commit_first_ok=1 \
+		buying_partial_ok=1 buying_sell_ok=1 buying_commit_total_ok=1 \
+		buying_buyer_close_ok=1 buying_zeny_limit_denied_ok=1 \
+		buying_zeny_denied_state_ok=1 buying_zeny_close_ok=1 \
+		buying_reopen_ok=1 buying_close_ok=1 buying_closed_ok=1 \
+		park_ok=1 || failures=$?
 
-	printf '\n[playerbot-market-smoke] Recent market interaction trace summary\n'
-	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
-SELECT \`action\`, \`target_type\`, \`reason_code\`, \`result\`, COUNT(*)
-FROM \`bot_trace_event\`
-WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
-  AND \`phase\` = 'interaction'
-  AND \`target_type\` IN ('vending','vendlist','buyingstore','buyinglist','buyingtrade')
-GROUP BY \`action\`, \`target_type\`, \`reason_code\`, \`result\`
-ORDER BY MAX(\`id\`) DESC
+	printf '\n[%s] Recent market interaction trace summary\n' "$PB_SMOKE_LABEL"
+	pb_smoke_sql_heredoc <<'EOF'
+SELECT `action`, `target_type`, `reason_code`, `result`, COUNT(*)
+FROM `bot_trace_event`
+WHERE UNIX_TIMESTAMP() - `ts` <= 1800
+  AND `phase` = 'interaction'
+  AND `target_type` IN ('vending','vendlist','buyingstore','buyinglist','buyingtrade')
+GROUP BY `action`, `target_type`, `reason_code`, `result`
+ORDER BY MAX(`id`) DESC
 LIMIT 24;
 EOF
 
 	if (( failures > 0 )); then
-		printf '\n[playerbot-market-smoke] market continuity check failed with %d missing signal(s).\n' "$failures" >&2
+		printf '\n[%s] market continuity check failed with %d missing signal(s).\n' "$PB_SMOKE_LABEL" "$failures" >&2
 		return 1
 	fi
-	printf '\n[playerbot-market-smoke] market continuity check passed.\n'
+	printf '\n[%s] market continuity check passed.\n' "$PB_SMOKE_LABEL"
 }
 
 run() {
 	arm
-	launch_kore
+	pb_smoke_launch_kore playerbot-market-kore
 	check
 }
 
-main() {
-	case "${1:-arm}" in
-		arm) arm ;;
-		run) run ;;
-		check) check ;;
-		-h|--help|help) usage ;;
-		*)
-			usage
-			exit 1
-			;;
-	esac
-}
-
-main "$@"
+pb_smoke_main "$@"

@@ -150,6 +150,8 @@ function	script	F_PB_MerchantSelftest_Run	{
 	.@buying_wrong_item_denied_ok = 0;
 	.@buying_overfill_denied_ok = 0;
 	.@buying_denied_state_ok = 0;
+	.@buying_commit_first_ok = 0;
+	.@buying_commit_total_ok = 0;
 	.@buying_sell_ok = 0;
 	.@buying_buyer_close_ok = 0;
 	.@buyinglist_clear_ok = 0;
@@ -170,6 +172,9 @@ function	script	F_PB_MerchantSelftest_Run	{
 	.@mail_send_ok = 0;
 	.@mail_delivery_ok = 0;
 	.@mail_continuity_ok = 0;
+	.@mail_idle_send_ok = 0;
+	.@mail_idle_delivery_ok = 0;
+	.@mail_idle_state_ok = 0;
 	.@mail_trace_ok = 0;
 	.@market_trace_ok = 0;
 	.@market_session_trace_ok = 0;
@@ -357,10 +362,37 @@ function	script	F_PB_MerchantSelftest_Run	{
 							.@buying_wrong_item_denied_ok = (.@buying_browse_reopen_ok && !playerbot_buyingstoresell(.@viewer_key$, .@seller_char_id, 911, 1));
 							.@buying_overfill_denied_ok = (.@buying_wrong_item_denied_ok && !playerbot_buyingstoresell(.@viewer_key$, .@seller_char_id, 909, 2));
 							.@buying_denied_state_ok = (.@buying_overfill_denied_ok && playerbot_buyingstoreactive(.@bot_key$) && playerbot_buyinglistactive(.@viewer_key$) && countstr(playerbot_buyinglistsummary(.@viewer_key$), "results=2") > 0);
+							.@seller_inv909_pre_first = playerbot_itemcount(.@bot_key$, "inventory", 909);
+							.@seller_inv910_pre_first = playerbot_itemcount(.@bot_key$, "inventory", 910);
+							.@seller_zeny_pre_first = 0;
+							if (attachrid(.@seller_account_id)) {
+								.@seller_zeny_pre_first = Zeny;
+								detachrid;
+							}
 							.@buying_sell_first_ok = (.@buying_denied_state_ok && playerbot_buyingstoresell(.@viewer_key$, .@seller_char_id, 909, 1));
-							.@buying_partial_ok = (.@buying_sell_first_ok && playerbot_buyingstoreactive(.@bot_key$) && playerbot_buyinglistactive(.@viewer_key$) && countstr(playerbot_buyinglistsummary(.@viewer_key$), "results=1") > 0);
+							.@seller_inv909_after_first = playerbot_itemcount(.@bot_key$, "inventory", 909);
+							.@seller_zeny_after_first = 0;
+							if (attachrid(.@seller_account_id)) {
+								.@seller_zeny_after_first = Zeny;
+								detachrid;
+							}
+							.@buying_commit_first_ok = (.@buying_sell_first_ok
+								&& .@seller_inv909_after_first >= .@seller_inv909_pre_first + 1
+								&& .@seller_zeny_after_first <= .@seller_zeny_pre_first - 50);
+							.@buying_partial_ok = (.@buying_commit_first_ok && playerbot_buyingstoreactive(.@bot_key$) && playerbot_buyinglistactive(.@viewer_key$) && countstr(playerbot_buyinglistsummary(.@viewer_key$), "results=1") > 0);
 							.@buying_sell_ok = (.@buying_partial_ok && playerbot_buyingstoresell(.@viewer_key$, .@seller_char_id, 910, 2));
-							.@buying_buyer_close_ok = (.@buying_sell_ok && !playerbot_buyingstoreactive(.@bot_key$));
+							.@seller_inv909_after_total = playerbot_itemcount(.@bot_key$, "inventory", 909);
+							.@seller_inv910_after_total = playerbot_itemcount(.@bot_key$, "inventory", 910);
+							.@seller_zeny_after_total = 0;
+							if (attachrid(.@seller_account_id)) {
+								.@seller_zeny_after_total = Zeny;
+								detachrid;
+							}
+							.@buying_commit_total_ok = (.@buying_sell_ok
+								&& .@seller_inv909_after_total >= .@seller_inv909_pre_first + 1
+								&& .@seller_inv910_after_total >= .@seller_inv910_pre_first + 2
+								&& .@seller_zeny_after_total <= .@seller_zeny_pre_first - 100);
+							.@buying_buyer_close_ok = (.@buying_commit_total_ok && !playerbot_buyingstoreactive(.@bot_key$));
 							.@buyinglist_clear_ok = (.@buying_buyer_close_ok && !playerbot_buyinglistactive(.@viewer_key$));
 							.@buying_move_ok = (.@buyinglist_clear_ok && headlesspc_setpos(.@seller_char_id, "izlude", 128, 146));
 							if (.@buying_move_ok)
@@ -387,6 +419,32 @@ function	script	F_PB_MerchantSelftest_Run	{
 							.@buying_reopen_ok = (.@buying_zeny_close_ok && .@buying_reopen_limit > 0 && playerbot_buyingstoreopen2(.@bot_key$, "PB Buying Test", 909, 1, 50, 910, 2, 25, .@buying_reopen_limit));
 							.@buying_close_ok = (.@buying_reopen_ok && playerbot_buyingstoreclose(.@bot_key$));
 							.@buying_closed_ok = (.@buying_close_ok && !playerbot_buyingstoreactive(.@bot_key$));
+							query_sql(
+								"DELETE FROM `mail` "
+								+ "WHERE `send_id` = '" + .@seller_char_id + "' AND `dest_id` = '" + .@viewer_char_id + "' "
+								+ "AND `title` = 'PB Market Idle'",
+								.@mail_idle_cleanup);
+							query_sql(
+								"SELECT COUNT(*) FROM `mail` "
+								+ "WHERE `send_id` = '" + .@seller_char_id + "' AND `dest_id` = '" + .@viewer_char_id + "' "
+								+ "AND `title` = 'PB Market Idle'",
+								.@mail_idle_before);
+							.@mail_idle_send_ok = (.@buying_closed_ok && playerbot_mailsend(.@bot_key$, .@viewer_name$, "PB Market Idle", "mail_after_buyingstore_close"));
+							if (.@mail_idle_send_ok) {
+								for (.@i = 0; .@i < 10; ++.@i) {
+									sleep 250;
+									query_sql(
+										"SELECT COUNT(*) FROM `mail` "
+										+ "WHERE `send_id` = '" + .@seller_char_id + "' AND `dest_id` = '" + .@viewer_char_id + "' "
+										+ "AND `title` = 'PB Market Idle'",
+										.@mail_idle_after);
+									if (.@mail_idle_after >= .@mail_idle_before + 1) {
+										.@mail_idle_delivery_ok = 1;
+										break;
+									}
+								}
+							}
+							.@mail_idle_state_ok = (.@mail_idle_delivery_ok && !playerbot_buyingstoreactive(.@bot_key$));
 						}
 						.@market_trace_rows = query_sql(
 							"SELECT COUNT(*) "
@@ -457,8 +515,8 @@ function	script	F_PB_MerchantSelftest_Run	{
 		}
 	}
 	.@reload_ok = 1;
-	.@result = (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vending_int_kill_ok && .@vending_int_dead_ok && .@vending_int_clear_ok && .@vending_int_respawn_req_ok && .@vending_int_respawn_ok && .@vending_reopen_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@buying_seed_ok && .@buying_open_ok && .@buying_active_ok && .@mail_delivery_ok && .@mail_continuity_ok && .@buyinglist_open_ok && .@buyinglist_active_ok && .@buyinglist_multi_ok && .@buying_browse_close_ok && .@buying_brw_inact_denied_ok && .@buying_browse_reopen_ok && .@buying_wrong_item_denied_ok && .@buying_overfill_denied_ok && .@buying_denied_state_ok && .@buying_sell_first_ok && .@buying_partial_ok && .@buying_sell_ok && .@buying_buyer_close_ok && .@buyinglist_clear_ok && .@buying_move_ok && .@buying_clear_ok && .@buying_return_ok && .@buying_zeny_open_ok && .@buying_zeny_list_open_ok && .@buying_zeny_list_active_ok && .@buying_zeny_lim_denied_ok && .@buying_zeny_denied_state_ok && .@buying_zeny_list_close_ok && .@buying_zeny_close_ok && .@buying_reopen_ok && .@buying_close_ok && .@buying_closed_ok && .@market_trace_ok && .@market_session_trace_ok && .@buying_denial_trace_ok && .@mail_trace_ok && .@park_ok && .@reload_ok);
-	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_mapclear_ok=" + .@vendlist_mapclear_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " buying_seed_ok=" + .@buying_seed_ok + " buying_open_ok=" + .@buying_open_ok + " buying_active_ok=" + .@buying_active_ok + " mail_denied_ok=" + .@mail_denied_ok + " mail_send_ok=" + .@mail_send_ok + " mail_delivery_ok=" + .@mail_delivery_ok + " mail_continuity_ok=" + .@mail_continuity_ok + " buyinglist_open_ok=" + .@buyinglist_open_ok + " buyinglist_active_ok=" + .@buyinglist_active_ok + " buyinglist_multi_ok=" + .@buyinglist_multi_ok + " buying_browse_close_ok=" + .@buying_browse_close_ok + " buying_browse_inactive_denied_ok=" + .@buying_brw_inact_denied_ok + " buying_browse_reopen_ok=" + .@buying_browse_reopen_ok + " buying_wrong_item_denied_ok=" + .@buying_wrong_item_denied_ok + " buying_overfill_denied_ok=" + .@buying_overfill_denied_ok + " buying_denied_state_ok=" + .@buying_denied_state_ok + " buying_sell_first_ok=" + .@buying_sell_first_ok + " buying_partial_ok=" + .@buying_partial_ok + " buying_sell_ok=" + .@buying_sell_ok + " buying_buyer_close_ok=" + .@buying_buyer_close_ok + " buyinglist_clear_ok=" + .@buyinglist_clear_ok + " buying_move_ok=" + .@buying_move_ok + " buying_clear_ok=" + .@buying_clear_ok + " buying_return_ok=" + .@buying_return_ok + " buying_zeny_open_ok=" + .@buying_zeny_open_ok + " buying_zeny_list_open_ok=" + .@buying_zeny_list_open_ok + " buying_zeny_list_active_ok=" + .@buying_zeny_list_active_ok + " buying_zeny_limit_denied_ok=" + .@buying_zeny_lim_denied_ok + " buying_zeny_denied_state_ok=" + .@buying_zeny_denied_state_ok + " buying_zeny_list_close_ok=" + .@buying_zeny_list_close_ok + " buying_zeny_close_ok=" + .@buying_zeny_close_ok + " buying_reopen_ok=" + .@buying_reopen_ok + " buying_close_ok=" + .@buying_close_ok + " buying_closed_ok=" + .@buying_closed_ok + " market_trace_ok=" + .@market_trace_ok + " market_session_trace_ok=" + .@market_session_trace_ok + " buying_denial_trace_ok=" + .@buying_denial_trace_ok + " mail_trace_ok=" + .@mail_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + .@result + ".";
+	.@result = (.@base_ok && .@spawn_ok && .@bootstrap_ok && .@shop_ok && .@activity_ok && .@market_spawn_ok && .@vending_open_ok && .@vending_active_ok && .@vending_int_kill_ok && .@vending_int_dead_ok && .@vending_int_clear_ok && .@vending_int_respawn_req_ok && .@vending_int_respawn_ok && .@vending_reopen_ok && .@vendlist_open_ok && .@vendlist_active_ok && .@vendlist_move_ok && .@vendlist_clear_ok && .@vendlist_return_ok && .@vending_close_ok && .@vending_closed_ok && .@buying_seed_ok && .@buying_open_ok && .@buying_active_ok && .@mail_delivery_ok && .@mail_continuity_ok && .@mail_idle_send_ok && .@mail_idle_delivery_ok && .@mail_idle_state_ok && .@buyinglist_open_ok && .@buyinglist_active_ok && .@buyinglist_multi_ok && .@buying_browse_close_ok && .@buying_brw_inact_denied_ok && .@buying_browse_reopen_ok && .@buying_wrong_item_denied_ok && .@buying_overfill_denied_ok && .@buying_denied_state_ok && .@buying_sell_first_ok && .@buying_commit_first_ok && .@buying_partial_ok && .@buying_sell_ok && .@buying_commit_total_ok && .@buying_buyer_close_ok && .@buyinglist_clear_ok && .@buying_move_ok && .@buying_clear_ok && .@buying_return_ok && .@buying_zeny_open_ok && .@buying_zeny_list_open_ok && .@buying_zeny_list_active_ok && .@buying_zeny_lim_denied_ok && .@buying_zeny_denied_state_ok && .@buying_zeny_list_close_ok && .@buying_zeny_close_ok && .@buying_reopen_ok && .@buying_close_ok && .@buying_closed_ok && .@market_trace_ok && .@market_session_trace_ok && .@buying_denial_trace_ok && .@mail_trace_ok && .@park_ok && .@reload_ok);
+	debugmes "playerbot_merchant_selftest: bot_id=" + .@bot_id + " base_ok=" + .@base_ok + " spawn_ok=" + .@spawn_ok + " bootstrap_ok=" + .@bootstrap_ok + " shop_ok=" + .@shop_ok + " activity_ok=" + .@activity_ok + " market_spawn_ok=" + .@market_spawn_ok + " vending_open_ok=" + .@vending_open_ok + " vending_active_ok=" + .@vending_active_ok + " vendlist_open_ok=" + .@vendlist_open_ok + " vendlist_active_ok=" + .@vendlist_active_ok + " vendlist_move_ok=" + .@vendlist_move_ok + " vendlist_mapclear_ok=" + .@vendlist_mapclear_ok + " vendlist_clear_ok=" + .@vendlist_clear_ok + " vendlist_return_ok=" + .@vendlist_return_ok + " vending_close_ok=" + .@vending_close_ok + " vending_closed_ok=" + .@vending_closed_ok + " buying_seed_ok=" + .@buying_seed_ok + " buying_open_ok=" + .@buying_open_ok + " buying_active_ok=" + .@buying_active_ok + " mail_denied_ok=" + .@mail_denied_ok + " mail_send_ok=" + .@mail_send_ok + " mail_delivery_ok=" + .@mail_delivery_ok + " mail_continuity_ok=" + .@mail_continuity_ok + " mail_idle_send_ok=" + .@mail_idle_send_ok + " mail_idle_delivery_ok=" + .@mail_idle_delivery_ok + " mail_idle_state_ok=" + .@mail_idle_state_ok + " buyinglist_open_ok=" + .@buyinglist_open_ok + " buyinglist_active_ok=" + .@buyinglist_active_ok + " buyinglist_multi_ok=" + .@buyinglist_multi_ok + " buying_browse_close_ok=" + .@buying_browse_close_ok + " buying_browse_inactive_denied_ok=" + .@buying_brw_inact_denied_ok + " buying_browse_reopen_ok=" + .@buying_browse_reopen_ok + " buying_wrong_item_denied_ok=" + .@buying_wrong_item_denied_ok + " buying_overfill_denied_ok=" + .@buying_overfill_denied_ok + " buying_denied_state_ok=" + .@buying_denied_state_ok + " buying_sell_first_ok=" + .@buying_sell_first_ok + " buying_commit_first_ok=" + .@buying_commit_first_ok + " buying_partial_ok=" + .@buying_partial_ok + " buying_sell_ok=" + .@buying_sell_ok + " buying_commit_total_ok=" + .@buying_commit_total_ok + " buying_buyer_close_ok=" + .@buying_buyer_close_ok + " buyinglist_clear_ok=" + .@buyinglist_clear_ok + " buying_move_ok=" + .@buying_move_ok + " buying_clear_ok=" + .@buying_clear_ok + " buying_return_ok=" + .@buying_return_ok + " buying_zeny_open_ok=" + .@buying_zeny_open_ok + " buying_zeny_list_open_ok=" + .@buying_zeny_list_open_ok + " buying_zeny_list_active_ok=" + .@buying_zeny_list_active_ok + " buying_zeny_limit_denied_ok=" + .@buying_zeny_lim_denied_ok + " buying_zeny_denied_state_ok=" + .@buying_zeny_denied_state_ok + " buying_zeny_list_close_ok=" + .@buying_zeny_list_close_ok + " buying_zeny_close_ok=" + .@buying_zeny_close_ok + " buying_reopen_ok=" + .@buying_reopen_ok + " buying_close_ok=" + .@buying_close_ok + " buying_closed_ok=" + .@buying_closed_ok + " market_trace_ok=" + .@market_trace_ok + " market_session_trace_ok=" + .@market_session_trace_ok + " buying_denial_trace_ok=" + .@buying_denial_trace_ok + " mail_trace_ok=" + .@mail_trace_ok + " park_ok=" + .@park_ok + " reload_ok=" + .@reload_ok + " result=" + .@result + ".";
 	debugmes "playerbot_merchant_interrupt: vending_int_kill_ok=" + .@vending_int_kill_ok + " vending_int_dead_ok=" + .@vending_int_dead_ok + " vending_int_clear_ok=" + .@vending_int_clear_ok + " vending_int_respawn_req_ok=" + .@vending_int_respawn_req_ok + " vending_int_respawn_ok=" + .@vending_int_respawn_ok + " vending_reopen_ok=" + .@vending_reopen_ok + ".";
 	return .@result;
 }
@@ -472,6 +530,7 @@ OnInit:
 	.test_aid = 2000004;
 	.test_char_id = 150001;
 	.ran = 0;
+	.running = 0;
 	end;
 
 OnPCLoginEvent:
@@ -479,30 +538,38 @@ OnPCLoginEvent:
 		end;
 	if (.ran)
 		end;
+	if (.running)
+		end;
 	if (!.autorun && $PBMST_AUTORUN_AID != getcharid(3))
 		end;
 	if (getcharid(0) != .test_char_id)
 		end;
 	.ran = 1;
+	.running = 1;
 	.aid = getcharid(3);
 	if ($PBMST_AUTORUN_AID == .aid)
 		setd("$PBMST_AUTORUN_AID", 0);
 	callfunc "F_PB_MerchantSelftest_Run";
+	.running = 0;
 	end;
 
 OnInterIfInitOnce:
 	sleep 2500;
-	if (!.enabled || .ran)
+	if (!.enabled || .ran || .running)
 		end;
 	if (!.autorun && $PBMST_AUTORUN_AID != .test_aid)
 		end;
 	for (.@i = 0; .@i < 10; ++.@i) {
+		if (.ran || .running)
+			end;
 		if (isloggedin(.test_aid, .test_char_id)) {
 			.ran = 1;
+			.running = 1;
 			.aid = .test_aid;
 			if ($PBMST_AUTORUN_AID == .aid)
 				setd("$PBMST_AUTORUN_AID", 0);
 			callfunc "F_PB_MerchantSelftest_Run";
+			.running = 0;
 			end;
 		}
 		sleep 1000;
@@ -510,12 +577,20 @@ OnInterIfInitOnce:
 	end;
 
 OnManualStart:
+	if (.running)
+		end;
+	.running = 1;
 	.aid = $PBMST_MANUAL_AID;
 	callfunc "F_PB_MerchantSelftest_Run";
+	.running = 0;
 	end;
 
 OnRun:
+	if (.running)
+		end;
+	.running = 1;
 	callfunc "F_PB_MerchantSelftest_Run";
+	.running = 0;
 	end;
 }
 
