@@ -147,10 +147,12 @@ run_loop() {
 	local passed=0
 	local failed=0
 	local start_ts end_ts elapsed_s
+	RUN_LOOP_SUMMARY=""
 
 	if (( count == 0 )); then
 		echo "[foundation-closeout] Skipping ${label}."
-		echo "${label}:0:0"
+		RUN_LOOP_SUMMARY="${label}:0:0"
+		echo "$RUN_LOOP_SUMMARY"
 		return 0
 	fi
 
@@ -169,27 +171,29 @@ run_loop() {
 			elapsed_s=$((end_ts - start_ts))
 			echo "[foundation-closeout] ${label} iteration ${i} FAIL elapsed=${elapsed_s}s." >&2
 			if (( STOP_ON_FAIL > 0 )); then
-				echo "${label}:${passed}:${failed}"
+				RUN_LOOP_SUMMARY="${label}:${passed}:${failed}"
+				echo "$RUN_LOOP_SUMMARY"
 				return 1
 			fi
 		fi
 	done
 
-	echo "${label}:${passed}:${failed}"
+	RUN_LOOP_SUMMARY="${label}:${passed}:${failed}"
+	echo "$RUN_LOOP_SUMMARY"
 	return 0
 }
 
-run_summary="$(run_loop "foundation-run" "bash tools/ci/playerbot-foundation-smoke.sh run" "$RUN_COUNT")" || {
-	echo "$run_summary"
+run_loop "foundation-run" "bash tools/ci/playerbot-foundation-smoke.sh run" "$RUN_COUNT" || {
+	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }
-echo "$run_summary"
+echo "$RUN_LOOP_SUMMARY"
 
-rich_summary="$(run_loop "foundation-run-rich" "bash tools/ci/playerbot-foundation-smoke.sh run-rich" "$RICH_COUNT")" || {
-	echo "$rich_summary"
+run_loop "foundation-run-rich" "bash tools/ci/playerbot-foundation-smoke.sh run-rich" "$RICH_COUNT" || {
+	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }
-echo "$rich_summary"
+echo "$RUN_LOOP_SUMMARY"
 
 echo "[foundation-closeout] Done."
 echo "[foundation-closeout] Manual follow-up: inspect recent trace/audit summaries for any unexpected reason/result drift."
