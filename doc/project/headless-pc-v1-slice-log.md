@@ -5842,6 +5842,61 @@ This slice does not add:
 - Skill-rotation policy changes
 - Loot-routing behavior
 
+## Slice 76: Loadout Continuity Loop Gate
+
+### Summary
+
+Hardened item/loadout continuity with a deterministic multi-cycle gate that
+repeats unequip -> death -> respawn -> map-change transitions and requires
+loadout reconcile trace/audit deltas for the same run.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended `PlayerbotItemSelftest` with a 2-cycle loadout continuity loop:
+  - force unequip of knife loadout slot
+  - kill and respawn bot
+  - require loadout re-apply on respawn
+  - require loadout continuity across `alberta <-> prontera` map changes
+- Added per-run delta gating in item selftest:
+  - `bot_trace_event` reconcile rows with `loadout.respawn` / `loadout.mapchange`
+  - `bot_recovery_audit` reconcile rows for `loadout.respawn` and
+    `loadout.mapchange`
+- Added new selftest signals:
+  - `loadout_continuity_ok`
+  - `loadout_cycle_count`
+- Tightened smoke checks:
+  - `playerbot-item-smoke.sh check-denied` now requires
+    `loadout_continuity_ok=1`.
+  - `playerbot-foundation-smoke.sh check` now requires
+    `loadout_continuity_ok=1` on item selftest line.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-item-smoke.sh`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-item-smoke.sh check-denied`
+
+Integrated result:
+
+- `playerbot_item_selftest ... loadout_continuity_ok=1 loadout_cycle_count=2 result=1`
+- aggregate foundation smoke remains pass with new item continuity gate enabled
+
+### Deferrals
+
+This slice does not add:
+
+- New loadout selection policies
+- Role-specific weapon switching behavior
+- Combat AI decisioning for loadout changes
+
 ## Slice 69: Session Scope Cleanup Traces For Market Continuity
 
 ### Summary
