@@ -5953,6 +5953,57 @@ This slice does not add:
 - Multi-step market commerce semantics
 - Behavior-layer mechanic planning
 
+## Slice 78: Market Mail Delivery Integrity Gate
+
+### Summary
+
+Closed the remaining market mail-integrity gap by requiring actual mail row
+persistence (not just session continuity) during active buyingstore flows.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-market-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended merchant selftest mail block to verify delivery semantics:
+  - clear prior `PB Market Hold` rows for seller->viewer pair
+  - capture pre-send row count
+  - after successful `playerbot_mailsend`, poll for row-count increment
+  - set new `mail_delivery_ok` signal
+- Kept denied path valid:
+  - if send is denied in the current state, delivery check resolves through
+    `mail_denied_ok` path (no false red on denial branch)
+- Tightened result gate in merchant selftest:
+  - `mail_delivery_ok` is now required for `result=1`
+- Tightened smoke gates:
+  - `playerbot-market-smoke.sh check` now requires `mail_delivery_ok=1`
+  - aggregate `playerbot-foundation-smoke.sh check` now requires
+    `mail_delivery_ok=1` on merchant selftest line
+
+### Validation
+
+- `bash -n tools/ci/playerbot-market-smoke.sh`
+- `bash -n tools/ci/playerbot-foundation-smoke.sh`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Integrated result:
+
+- `playerbot_merchant_selftest ... mail_delivery_ok=1 ... result=1`
+- market smoke and aggregate foundation smoke remain green
+
+### Deferrals
+
+This slice does not add:
+
+- Mail attachment/send-item semantics
+- Mail inbox consumption/reply behavior
+- Higher-level market strategy behavior
+
 ## Slice 69: Session Scope Cleanup Traces For Market Continuity
 
 ### Summary

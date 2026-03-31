@@ -97,7 +97,7 @@ check() {
 		return 1
 	fi
 
-	for key in result=1 market_trace_ok=1 market_session_trace_ok=1 buying_denial_trace_ok=1 mail_continuity_ok=1 mail_trace_ok=1 buying_browse_inactive_denied_ok=1 buying_browse_reopen_ok=1 buying_wrong_item_denied_ok=1 buying_overfill_denied_ok=1 buying_denied_state_ok=1 buying_sell_first_ok=1 buying_partial_ok=1 buying_sell_ok=1 buying_buyer_close_ok=1 buying_zeny_limit_denied_ok=1 buying_zeny_denied_state_ok=1 buying_zeny_close_ok=1 buying_reopen_ok=1 buying_close_ok=1 buying_closed_ok=1 park_ok=1; do
+	for key in result=1 market_trace_ok=1 market_session_trace_ok=1 buying_denial_trace_ok=1 mail_delivery_ok=1 mail_continuity_ok=1 mail_trace_ok=1 buying_browse_inactive_denied_ok=1 buying_browse_reopen_ok=1 buying_wrong_item_denied_ok=1 buying_overfill_denied_ok=1 buying_denied_state_ok=1 buying_sell_first_ok=1 buying_partial_ok=1 buying_sell_ok=1 buying_buyer_close_ok=1 buying_zeny_limit_denied_ok=1 buying_zeny_denied_state_ok=1 buying_zeny_close_ok=1 buying_reopen_ok=1 buying_close_ok=1 buying_closed_ok=1 park_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[playerbot-market-smoke] required signal missing: %s\n' "$key" >&2
 			failures=$((failures + 1))
