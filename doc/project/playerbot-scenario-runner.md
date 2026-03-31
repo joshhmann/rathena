@@ -106,8 +106,11 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-combat-skillunit-smoke.sh`
 - `tools/ci/playerbot-combat-skillunit-precheck-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
+- `tools/ci/playerbot-item-overlap-stress.sh`
 - `tools/ci/playerbot-participation-smoke.sh`
 - `tools/ci/playerbot-market-smoke.sh`
+- `tools/ci/playerbot-market-session-stress.sh`
+- `tools/ci/playerbot-combat-transition-stress.sh`
 
 Highest-value missing additions after this expansion:
 

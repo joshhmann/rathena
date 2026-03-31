@@ -70,26 +70,7 @@ playerbot_scenario_phase() {
 }
 
 playerbot_scenario_kind() {
-	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-repeated-transition-stress|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn)
-			printf '%s\n' 'runbook'
-			;;
-		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity)
-			printf '%s\n' 'runbook'
-			;;
-		mechanic-cleanup|mechanic-execution-rollback)
-			printf '%s\n' 'runbook'
-			;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity)
-			printf '%s\n' 'runbook'
-			;;
-		foundation-rich-gate)
-			printf '%s\n' 'runbook'
-			;;
-		*)
-			return 1
-			;;
-	esac
+	playerbot_scenario_ids | grep -qx "${1:-}" && printf '%s\n' 'runbook' || return 1
 }
 
 playerbot_scenario_purpose() {
@@ -216,18 +197,12 @@ EOF
 }
 
 playerbot_scenario_prereqs() {
-	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-repeated-transition-stress|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity|death-respawn|item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity|mechanic-cleanup|mechanic-execution-rollback|market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity|foundation-rich-gate)
-			cat <<'EOF'
+	playerbot_scenario_ids | grep -qx "${1:-}" || return 1
+	cat <<'EOF'
 - repo-local dev stack is restarted
 - current foundation smoke remains green
 - OpenKore login harness is available for CLI observation if needed
 EOF
-			;;
-		*)
-			return 1
-			;;
-	esac
 }
 
 playerbot_scenario_steps() {
@@ -695,7 +670,7 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check'
 			;;
 		combat-repeated-transition-stress)
-			printf '%s\n' 'bash tools/ci/playerbot-foundation-closeout.sh --run-count 10 --rich-count 0 --no-scenario-check'
+			printf '%s\n' 'bash tools/ci/playerbot-combat-transition-stress.sh --runs 10'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
@@ -707,7 +682,7 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied'
 			;;
 		loadout-overlap-continuity)
-			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied && bash tools/ci/playerbot-foundation-smoke.sh run'
+			printf '%s\n' 'bash tools/ci/playerbot-item-overlap-stress.sh --cycles 1'
 			;;
 		mechanic-cleanup)
 			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
@@ -719,10 +694,10 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-market-smoke.sh check'
 			;;
 		market-mail-delivery-integrity)
-			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run'
+			printf '%s\n' 'bash tools/ci/playerbot-market-session-stress.sh --cycles 1'
 			;;
 		market-session-restart-continuity)
-			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh run'
+			printf '%s\n' 'bash tools/ci/playerbot-market-session-stress.sh --cycles 2'
 			;;
 		foundation-rich-gate)
 			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run-rich'

@@ -26,7 +26,7 @@ The following baseline is already accepted:
 Run the canonical closeout executor:
 
 ```bash
-bash tools/ci/playerbot-foundation-closeout.sh
+bash tools/ci/playerbot-foundation-gate.sh full
 ```
 
 Defaults:
@@ -34,6 +34,18 @@ Defaults:
 - 10x aggregate gate (`run`)
 - 5x richer gate (`run-rich`)
 - required scenario definition checks for closeout fronts
+
+Day-to-day pre-merge gate:
+
+```bash
+bash tools/ci/playerbot-foundation-gate.sh quick
+```
+
+Default workflow:
+
+1. run `quick` for each candidate slice/branch
+2. fix any failing lane before review-ready
+3. run `full` at closeout checkpoints and major merge windows
 
 ## Required Checks
 
@@ -46,6 +58,19 @@ The foundation phase is not complete until all items below are true.
 5. Broader combat-event continuity under repeated transitions
 6. Scenario coverage for all remaining open fronts
 7. Trace/audit reason/result quality and debuggability
+
+## Remaining Work Sequence
+
+Execute the remaining closeout fronts in this order:
+
+1. broader market/session execution semantics
+2. mechanic execution semantics beyond session ownership
+3. deeper equip/use/consume continuity under overlapping transitions
+4. broader combat-event continuity under repeated transitions
+5. richer scenario coverage and trace/audit clarity for those fronts
+
+The companion system lane (pet/homunculus/mercenary/elemental) remains a
+separate future foundation extension after this closeout sequence is green.
 
 ## Scenario Coverage Set
 

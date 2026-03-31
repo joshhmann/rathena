@@ -107,6 +107,18 @@ Do not say "ready to merge" unless:
 
 ## Validation Requirements
 
+## Two-Tier Foundation Gates
+
+Foundation validation now has two standard levels:
+
+- quick gate (every candidate branch before review-ready)
+- full gate (closeout checkpoints and major merges)
+
+Commands:
+
+- quick gate: `bash tools/ci/playerbot-foundation-gate.sh quick`
+- full gate: `bash tools/ci/playerbot-foundation-gate.sh full`
+
 ### Runtime branches
 
 Minimum:
@@ -114,7 +126,8 @@ Minimum:
 - `cmake --build build --target map-server -j4`
 - `git diff --check`
 - `bash tools/dev/playerbot-dev.sh restart`
-- `bash tools/ci/playerbot-foundation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- `bash tools/ci/playerbot-foundation-gate.sh full` (for closeout checkpoints and major merges)
 
 ### Side-lane tooling branches
 
@@ -125,6 +138,7 @@ Minimum:
 - one focused command
 - clean exit codes
 - clean worktree after commit
+- if touching aggregate smoke/gate tooling, include `bash tools/ci/playerbot-foundation-gate.sh quick`
 
 ### Docs-only branches
 

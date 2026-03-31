@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DB_NAME="${DB_NAME:-rathena}"
-DB_USER="${DB_USER:-rathena}"
-DB_PASS="${RATHENA_DB_PASS:-rathena_secure_2024}"
-TEST_AID="${TEST_AID:-2000004}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/playerbot-smoke-common.sh"
+PB_SMOKE_LABEL="playerbot-foundation-smoke"
 
 usage() {
 	cat <<EOF
@@ -31,32 +27,6 @@ Workflow:
 EOF
 }
 
-wait_for_stage_done() {
-	local timeout_s="${1:-240}" elapsed=0 pane
-	while (( elapsed < timeout_s )); do
-		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 2>/dev/null || true)"
-		if printf '%s\n' "$pane" | grep -q 'playerbot_foundation_selftest: stage=done'; then
-			return 0
-		fi
-		sleep 1
-		elapsed=$((elapsed + 1))
-	done
-	return 1
-}
-
-wait_for_selftest_line() {
-	local pattern="${1:?pattern required}" timeout_s="${2:-60}" elapsed=0 pane
-	while (( elapsed < timeout_s )); do
-		pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -800 2>/dev/null || true)"
-		if printf '%s\n' "$pane" | grep -q "$pattern"; then
-			return 0
-		fi
-		sleep 1
-		elapsed=$((elapsed + 1))
-	done
-	return 1
-}
-
 wait_for_all_selftests() {
 	local timeout_s="${1:-120}" elapsed=0 pane
 	while (( elapsed < timeout_s )); do
@@ -75,16 +45,9 @@ wait_for_all_selftests() {
 	return 1
 }
 
-launch_kore() {
-	tmux kill-session -t playerbot-foundation-kore 2>/dev/null || true
-	tmux new-session -d -s playerbot-foundation-kore 'cd /root/testing/openkore && perl openkore.pl --control=/root/testing/openkore-control-codex'
-	printf '[playerbot-foundation-smoke] Launched OpenKore in tmux session playerbot-foundation-kore.\n'
-}
-
 arm() {
-	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" <<EOF
-REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
-('\$PBFNST_AUTORUN_AID', 0, '$TEST_AID'),
+	pb_smoke_arm_restart_wait "$PB_SMOKE_LABEL" \
+		"('\$PBFNST_AUTORUN_AID', 0, '$TEST_AID'),
 ('\$PBFNST_ACTIVE', 0, '0'),
 ('\$PBCST_AUTORUN_AID', 0, '0'),
 ('\$PBGST_AUTORUN_AID', 0, '0'),
@@ -98,68 +61,56 @@ REPLACE INTO \`mapreg\` (\`varname\`, \`index\`, \`value\`) VALUES
 ('\$PBITST_MANUAL_AID', 0, '0'),
 ('\$PBMST_MANUAL_AID', 0, '0'),
 ('\$PBPST_MANUAL_AID', 0, '0'),
-('\$PBSTAT_MANUAL_AID', 0, '0');
-EOF
-
-	cd "$REPO_ROOT"
-	bash tools/dev/playerbot-dev.sh restart
-	for _ in $(seq 1 20); do
-		if tmux capture-pane -J -pt rathena-dev-map-server -S -80 2>/dev/null | grep -q "Map Server is now online."; then
-			break
-		fi
-		sleep 1
-	done
-	printf '\n[playerbot-foundation-smoke] Armed foundation selftests for account %s.\n' "$TEST_AID"
-	printf '[playerbot-foundation-smoke] Next step: log in once with the codex OpenKore profile, then run this script with check.\n'
+('\$PBSTAT_MANUAL_AID', 0, '0')"
 }
 
 run() {
 	arm
-	launch_kore
-	if ! wait_for_stage_done 300; then
-		printf '[playerbot-foundation-smoke] foundation pass did not reach stage=done within timeout.\n' >&2
-		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
+	pb_smoke_launch_kore playerbot-foundation-kore
+	if ! pb_smoke_wait_pattern 'playerbot_foundation_selftest: stage=done' 300; then
+		printf '[%s] foundation pass did not reach stage=done within timeout.\n' "$PB_SMOKE_LABEL" >&2
+		pb_smoke_capture 80 >&2
 		return 1
 	fi
-	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
+	pb_smoke_wait_pattern 'playerbot_combat_selftest:' 60 || true
 	wait_for_all_selftests 180 || true
 	check
 }
 
 check_rich() {
 	local failed=0
-	wait_for_selftest_line 'playerbot_combat_skillunit_probe:' 90 || true
+	pb_smoke_wait_pattern 'playerbot_combat_skillunit_probe:' 90 || true
 	if ! bash tools/ci/playerbot-combat-skillunit-smoke.sh check; then
 		failed=1
 	fi
-	wait_for_selftest_line 'playerbot_combat_skillunit_precheck:' 90 || true
+	pb_smoke_wait_pattern 'playerbot_combat_skillunit_precheck:' 90 || true
 	if ! bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check; then
 		failed=1
 	fi
 	if (( failed > 0 )); then
-		printf '\n[playerbot-foundation-smoke] rich gate failed.\n' >&2
+		printf '\n[%s] rich gate failed.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi
-	printf '\n[playerbot-foundation-smoke] rich gate pass ok.\n'
+	printf '\n[%s] rich gate pass ok.\n' "$PB_SMOKE_LABEL"
 }
 
 run_rich() {
 	run
 	bash tools/ci/playerbot-combat-skillunit-smoke.sh arm
-	launch_kore
-	if ! wait_for_selftest_line 'playerbot_combat_skillunit_probe:' 180; then
-		printf '[playerbot-foundation-smoke] rich gate did not observe skillunit probe within timeout.\n' >&2
-		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
+	pb_smoke_launch_kore playerbot-foundation-kore
+	if ! pb_smoke_wait_pattern 'playerbot_combat_skillunit_probe:' 180; then
+		printf '[%s] rich gate did not observe skillunit probe within timeout.\n' "$PB_SMOKE_LABEL" >&2
+		pb_smoke_capture 80 >&2
 		return 1
 	fi
 	if ! bash tools/ci/playerbot-combat-skillunit-smoke.sh check; then
 		return 1
 	fi
 	bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm
-	launch_kore
-	if ! wait_for_selftest_line 'playerbot_combat_skillunit_precheck:' 180; then
-		printf '[playerbot-foundation-smoke] rich gate did not observe skillunit precheck within timeout.\n' >&2
-		tmux capture-pane -J -pt rathena-dev-map-server -S -220 | tail -n 80 >&2 || true
+	pb_smoke_launch_kore playerbot-foundation-kore
+	if ! pb_smoke_wait_pattern 'playerbot_combat_skillunit_precheck:' 180; then
+		printf '[%s] rich gate did not observe skillunit precheck within timeout.\n' "$PB_SMOKE_LABEL" >&2
+		pb_smoke_capture 80 >&2
 		return 1
 	fi
 	check_rich
@@ -175,10 +126,10 @@ check() {
 		[combat]='playerbot_combat_selftest:'
 	)
 	local pane lines line key failures=0
-	wait_for_stage_done 30 || true
-	wait_for_selftest_line 'playerbot_combat_selftest:' 60 || true
+	pb_smoke_wait_pattern 'playerbot_foundation_selftest: stage=done' 30 || true
+	pb_smoke_wait_pattern 'playerbot_combat_selftest:' 60 || true
 	wait_for_all_selftests 120 || true
-	pane="$(tmux capture-pane -J -pt rathena-dev-map-server -S -2400 \; save-buffer - 2>/dev/null | tail -n 2400 || true)"
+	pane="$(pb_smoke_capture 2400)"
 	printf '%s\n' "$pane" | grep 'playerbot_foundation_selftest:' | tail -n 12 || true
 	printf '\n'
 	lines="$(printf '%s\n' "$pane" | grep -E 'playerbot_(guild|item|merchant|participation|state|combat)_selftest' || true)"
@@ -186,75 +137,60 @@ check() {
 	for key in guild item merchant participation state combat; do
 		line="$(printf '%s\n' "$lines" | grep "${patterns[$key]}" | tail -n 1 || true)"
 		if [[ -z "$line" ]]; then
-			printf '[playerbot-foundation-smoke] missing %s selftest line\n' "$key" >&2
+			printf '[%s] missing %s selftest line\n' "$PB_SMOKE_LABEL" "$key" >&2
 			failures=$((failures + 1))
 			continue
 		fi
 		if [[ "$line" != *"result=1"* ]]; then
-			printf '[playerbot-foundation-smoke] %s selftest did not pass: %s\n' "$key" "$line" >&2
+			printf '[%s] %s selftest did not pass: %s\n' "$PB_SMOKE_LABEL" "$key" "$line" >&2
 			failures=$((failures + 1))
 			continue
 		fi
 		if [[ "$key" == "combat" && "$line" != *"continuity_loop_ok=1"* ]]; then
-			printf '[playerbot-foundation-smoke] combat continuity loop gate failed: %s\n' "$line" >&2
+			printf '[%s] combat continuity loop gate failed: %s\n' "$PB_SMOKE_LABEL" "$line" >&2
 			failures=$((failures + 1))
 			continue
 		fi
 		if [[ "$key" == "item" && "$line" != *"loadout_continuity_ok=1"* ]]; then
-			printf '[playerbot-foundation-smoke] item loadout continuity gate failed: %s\n' "$line" >&2
+			printf '[%s] item loadout continuity gate failed: %s\n' "$PB_SMOKE_LABEL" "$line" >&2
 			failures=$((failures + 1))
 			continue
 		fi
 		if [[ "$key" == "item" && "$line" != *"mechanic_rollback_ok=1"* ]]; then
-			printf '[playerbot-foundation-smoke] item mechanic rollback gate failed: %s\n' "$line" >&2
+			printf '[%s] item mechanic rollback gate failed: %s\n' "$PB_SMOKE_LABEL" "$line" >&2
 			failures=$((failures + 1))
 			continue
 		fi
 		if [[ "$key" == "merchant" && "$line" != *"mail_delivery_ok=1"* ]]; then
-			printf '[playerbot-foundation-smoke] merchant mail delivery gate failed: %s\n' "$line" >&2
+			printf '[%s] merchant mail delivery gate failed: %s\n' "$PB_SMOKE_LABEL" "$line" >&2
 			failures=$((failures + 1))
 		fi
 	done
-	printf '\n[playerbot-foundation-smoke] Recent recovery audit summary\n'
-	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
-SELECT \`scope\`, \`action\`, \`result\`, \`detail\`, COUNT(*)
-FROM \`bot_recovery_audit\`
-WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
-  AND \`scope\` IN ('combat','loadout','npc','storage','trade','skillunit','participation','reservation','ownership')
-GROUP BY \`scope\`, \`action\`, \`result\`, \`detail\`
-ORDER BY MAX(\`id\`) DESC
+	printf '\n[%s] Recent recovery audit summary\n' "$PB_SMOKE_LABEL"
+	pb_smoke_sql_heredoc <<'EOF'
+SELECT `scope`, `action`, `result`, `detail`, COUNT(*)
+FROM `bot_recovery_audit`
+WHERE UNIX_TIMESTAMP() - `ts` <= 1800
+  AND `scope` IN ('combat','loadout','npc','storage','trade','skillunit','participation','reservation','ownership')
+GROUP BY `scope`, `action`, `result`, `detail`
+ORDER BY MAX(`id`) DESC
 LIMIT 16;
 EOF
-	printf '\n[playerbot-foundation-smoke] Recent structured trace summary\n'
-	mysql -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" -N -B <<EOF
-SELECT \`action\`, \`target_type\`, \`reason_code\`, \`result\`, COUNT(*)
-FROM \`bot_trace_event\`
-WHERE UNIX_TIMESTAMP() - \`ts\` <= 1800
-  AND \`phase\` IN ('interaction','reservation','reconcile','combat')
-GROUP BY \`action\`, \`target_type\`, \`reason_code\`, \`result\`
-ORDER BY MAX(\`id\`) DESC
+	printf '\n[%s] Recent structured trace summary\n' "$PB_SMOKE_LABEL"
+	pb_smoke_sql_heredoc <<'EOF'
+SELECT `action`, `target_type`, `reason_code`, `result`, COUNT(*)
+FROM `bot_trace_event`
+WHERE UNIX_TIMESTAMP() - `ts` <= 1800
+  AND `phase` IN ('interaction','reservation','reconcile','combat')
+GROUP BY `action`, `target_type`, `reason_code`, `result`
+ORDER BY MAX(`id`) DESC
 LIMIT 20;
 EOF
 	if (( failures > 0 )); then
-		printf '\n[playerbot-foundation-smoke] foundation pass failed with %d missing/failing selftest(s).\n' "$failures" >&2
+		printf '\n[%s] foundation pass failed with %d missing/failing selftest(s).\n' "$PB_SMOKE_LABEL" "$failures" >&2
 		return 1
 	fi
-	printf '\n[playerbot-foundation-smoke] foundation pass ok.\n'
+	printf '\n[%s] foundation pass ok.\n' "$PB_SMOKE_LABEL"
 }
 
-main() {
-	case "${1:-arm}" in
-		arm) arm ;;
-		run) run ;;
-		run-rich) run_rich ;;
-		check) check ;;
-		check-rich) check_rich ;;
-		-h|--help|help) usage ;;
-		*)
-			usage
-			exit 1
-			;;
-	esac
-}
-
-main "$@"
+pb_smoke_main "$@"

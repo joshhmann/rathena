@@ -29,6 +29,13 @@ The primary foundation order is:
 5. transactional inventory / equipment / storage foundation
 6. broader player-system participation hooks
 
+Foundation validation now uses a two-tier gate model:
+
+- quick gate (every candidate branch before review-ready):
+  `bash tools/ci/playerbot-foundation-gate.sh quick`
+- full gate (closeout checkpoints and major merges):
+  `bash tools/ci/playerbot-foundation-gate.sh full`
+
 The next foundation frontier after that wave is defined in:
 
 - `doc/project/playerbot-combat-frontier-contract.md`
@@ -165,6 +172,19 @@ Do not parallelize:
 See `doc/project/playerbot-mechanic-gap-audit.md` for the next unresolved
 mechanic-participation gaps after combat, loadout, and status continuity.
 That audit is the authoritative list for the next non-runtime foundation slice.
+
+Current closeout order for the remaining foundation fronts:
+
+1. broader market/session execution semantics
+2. mechanic execution semantics beyond session ownership
+3. deeper equip/use/consume continuity under overlapping transitions
+4. broader combat-event continuity under repeated transitions
+5. richer scenario coverage and trace/audit debuggability for the open fronts
+
+After those closeout fronts are green, the next named foundation extension is:
+
+- companion unblock (pet/homunculus/mercenary/elemental) with explicit
+  lifecycle and recovery coverage
 
 ## Acceptance Gate Before Behavior Expansion
 

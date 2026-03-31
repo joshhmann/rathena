@@ -45,6 +45,7 @@ A branch is not merge-ready unless all are true:
 - validation commands passed
 - no unexplained file drift
 - no stale slice-log overwrite
+- quick foundation gate passed when runtime or aggregate tooling is touched
 
 ## Runtime-Truth Guardrail
 
@@ -106,5 +107,9 @@ For the remaining foundation frontier:
 - the richer skillunit path is still a separate proof lane
 - outside contributors should not unilaterally promote probe-only paths into
   aggregate acceptance
+- quick gate command for review readiness:
+  `bash tools/ci/playerbot-foundation-gate.sh quick`
+- full closeout command for milestone acceptance:
+  `bash tools/ci/playerbot-foundation-gate.sh full`
 
 That promotion belongs to the primary runtime lane.
