@@ -6167,6 +6167,42 @@ evidence in the SQL delta window.
 - Advances closeout front #5 by enforcing repeated combat-event interrupt
   continuity in the promoted stress gate, not only one-shot aggregate checks.
 
+## Slice 98: Promote Market Session Stress Into Closeout Matrix
+
+### Summary
+
+Promoted market session stress into the full closeout matrix so market/mail
+continuity is executed as part of closeout, not only scenario-runbook coverage.
+
+### Files
+
+- `tools/ci/playerbot-foundation-closeout.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Added closeout options:
+  - `--market-cycles N` (default `1`)
+  - `--no-market`
+- Added market session stress checkpoint to full closeout sequence:
+  1. aggregate runs
+  2. rich runs
+  3. combat-transition stress
+  4. item-overlap stress
+  5. market-session stress
+- Included market cycle count in closeout config output banner.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-foundation-closeout.sh`
+- `bash tools/ci/playerbot-market-session-stress.sh --cycles 1`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+### Roadmap Impact
+
+- Advances closeout front #2 by requiring executed market continuity coverage
+  in the closeout matrix.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary
