@@ -6244,6 +6244,40 @@ trace/audit debuggability regressions fail the matrix automatically.
 - Advances closeout front #7 by turning trace/audit quality expectations into an
   executable gate in full closeout.
 
+## Slice 100: Expand Combat Failure Hints For Hidden Gating Signals
+
+### Summary
+
+Expanded combat selftest fail diagnostics so `result=0` cases expose the
+secondary gating groups that are not visible in the compact selftest summary.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Added `playerbot_combat_fail_hint2` debug line emitted when
+  `playerbot_combat_selftest` fails:
+  - includes hidden groups:
+    - preclear/target/engage/stop signals
+    - session trace/audit groups
+    - skill/skillunit trace/audit groups
+    - bank/search trace groups
+    - warp trace/audit groups
+- Kept pass/fail semantics unchanged.
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- Confirmed aggregate run still passes and no semantic acceptance change.
+
+### Roadmap Impact
+
+- Advances closeout front #7 by improving deterministic diagnosis for rare
+  combat `result=0` flakes without loosening gates.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

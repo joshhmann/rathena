@@ -65,6 +65,8 @@ Current closeout status:
    - closeout matrix now executes a trace-quality checkpoint that fails on
      malformed failure metadata (`error_code`/`error_detail`/`reason_code`)
      and missing interrupt audit detail
+   - combat selftest now emits expanded fail hints for hidden gating signals
+     (session/trace/audit/warp groups) when `result=0`
 
 ## Closeout Gate
 
