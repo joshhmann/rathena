@@ -5942,6 +5942,45 @@ Observed:
 This slice does not alter core trade protocol semantics or closeout matrix
 thresholds. It targets script-side readiness/cleanup stability only.
 
+## Slice 71: Merchant Bootstrap Cold-Start Retry Hardening
+
+### Summary
+
+Addressed a remaining aggregate flake where merchant selftest reached
+`spawn_ok=1` but bootstrap intermittently returned `seeded=0` in early startup
+windows, collapsing all downstream merchant checks.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Expanded merchant bootstrap retry window after spawn (`12` attempts with
+  short wait).
+- Added one explicit respawn-and-retry fallback when bootstrap remains cold:
+  - remove merchant actor
+  - wait for offline status
+  - respawn with spawn-ack check
+  - retry bootstrap (`8` attempts)
+- Kept existing spawn hardening from Slice 70 intact.
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Observed:
+
+- aggregate foundation sequence reached `stage=done`
+- merchant selftest passed with `bootstrap_ok=1` and `result=1`
+- quick gate returned `quick: pass`
+
+### Deferrals
+
+This slice does not change merchant runtime policy or market semantics. It
+targets cold-start bootstrap determinism only.
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

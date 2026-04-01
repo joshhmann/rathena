@@ -224,10 +224,30 @@ function	script	F_PB_MerchantSelftest_Run	{
 			if (.@spawn_ok) {
 				debugmes "playerbot_merchant_selftest: step=bootstrap.";
 				.@seeded = 0;
-				for (.@boot_try = 0; .@boot_try < 4 && .@seeded <= 0; ++.@boot_try) {
+				for (.@boot_try = 0; .@boot_try < 12 && .@seeded <= 0; ++.@boot_try) {
 					.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .@bot_key$);
 					if (.@seeded <= 0)
 						sleep 500;
+				}
+				if (.@seeded <= 0) {
+					headlesspc_remove($@pbbot_char_id);
+					for (.@i = 0; .@i < 12; ++.@i) {
+						sleep 250;
+						if (headlesspc_status($@pbbot_char_id) != 2)
+							break;
+					}
+					.@respawn_ack = headlesspc_spawnack($@pbbot_char_id);
+					headlesspc_spawn($@pbbot_char_id, $@pbbot_market_map$, $@pbbot_market_x, $@pbbot_market_y);
+					for (.@i = 0; .@i < 30; ++.@i) {
+						sleep 400;
+						if (headlesspc_status($@pbbot_char_id) == 2 && headlesspc_spawnack($@pbbot_char_id) > .@respawn_ack)
+							break;
+					}
+					for (.@boot_try = 0; .@boot_try < 8 && .@seeded <= 0; ++.@boot_try) {
+						.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .@bot_key$);
+						if (.@seeded <= 0)
+							sleep 500;
+					}
 				}
 				debugmes "playerbot_merchant_selftest: step=bootstrap seeded=" + .@seeded + ".";
 			if (attachrid($@pbbot_account_id)) {
