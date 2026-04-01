@@ -50,7 +50,7 @@ Layer labels:
 | Park / offline lifecycle | ✓ | foundation | Parked pool, offline state |
 | Remove / save | ✓ | foundation | Sequence-tracked, ack-persisted |
 | Reconcile / stale-state recovery | ✓ | foundation | Targeted reconcile-and-retry lane |
-| Despawn grace window | ✗ | foundation | Map empties → instant despawn today; grace window is documented as preferred but not implemented |
+| Despawn grace window | ~ | foundation | Controller grace now writes runtime `park_state='grace'` and `despawn_grace_until` for live actors; still no dedicated automated closeout helper proving expiry/park behavior end-to-end |
 | Spawn-failure cleanup | ✓ | foundation | `map_addblock` failure now rolls back partial headless load state and stops pre-ready follow-on reconcile work |
 | Companion state at spawn | ✗ (blocked) | foundation | Pet / homunculus / mercenary / elemental presence rejects spawn — see Companions section |
 

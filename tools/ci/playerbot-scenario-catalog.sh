@@ -192,12 +192,12 @@ EOF
 			;;
 		lifecycle-spawn-failure-cleanup)
 			cat <<'EOF'
-Document the current spawn-failure bring-up hole: if headless load reaches map-side visibility setup and fails before spawn-ready completion, cleanup is not yet promoted to a dedicated deterministic validation surface.
+Validate the explicit spawn-failure cleanup path now covered in runtime: if headless load reaches map-side visibility setup and fails before spawn-ready completion, partial runtime state must roll back and spawn-time follow-on reconcile must stop.
 EOF
 			;;
 		lifecycle-despawn-grace-window)
 			cat <<'EOF'
-Document the currently preferred but not-yet-implemented demand-drop behavior where controller-owned actors should linger for a short grace window instead of despawning immediately when a map empties.
+Validate the runtime-visible grace-window behavior for controller-owned actors: demand drop should mark live actors as `park_state='grace'` with a `despawn_grace_until` deadline before final park/remove, even though no dedicated automated helper proves expiry yet.
 EOF
 			;;
 		foundation-rich-gate)
@@ -425,13 +425,14 @@ EOF
 			cat <<'EOF'
 - inspect the current headless bring-up failure contract in:
   - `src/map/clif.cpp`
+  - `src/map/pc.cpp`
   - `doc/project/headless-pc-edge-cases.md`
   - `doc/project/playerbot-rathena-system-coverage.md`
-- confirm spawn-ready completion is the only accepted success boundary today
-- confirm the documented failure case remains partial/manual, not a passing automated smoke
-- capture the concrete failure example currently called out by the runtime:
+- confirm spawn-ready completion remains the only accepted success boundary
+- confirm the runtime now aborts partial spawn state on the documented failure path:
   - `map_addblock(sd)` failure before `chrif_headlesspc_mark_spawn_ready(...)`
-- treat this scenario as documentation/manual-audit only until a dedicated runtime helper lands
+- confirm spawn-time loadout reconcile does not run after failed headless load
+- treat this scenario as manual/runbook verification until a dedicated failure-injection helper lands
 EOF
 			;;
 		lifecycle-despawn-grace-window)
@@ -440,9 +441,12 @@ EOF
   - `doc/project/headless-pc-edge-cases.md`
   - `doc/project/playerbot-rathena-system-coverage.md`
   - scheduler/playerbot closeout docs
-- confirm the preferred behavior is still a short grace window followed by clean release/park
-- confirm no automated smoke helper currently proves this behavior
-- treat this scenario as documentation/manual-audit only until scheduler/runtime semantics land
+- confirm demand-drop now writes runtime grace state:
+  - `park_state='grace'`
+  - `despawn_grace_until > now`
+- confirm final park/remove still clears runtime state back to parked/offline
+- confirm no automated smoke helper currently proves grace expiry end-to-end
+- treat this scenario as manual/runbook verification until grace expiry is observable through a dedicated helper
 EOF
 			;;
 		foundation-rich-gate)
@@ -586,16 +590,16 @@ EOF
 			;;
 		lifecycle-spawn-failure-cleanup)
 			cat <<'EOF'
-- the documented runtime hole points at a pre-spawn-ready failure path, not a completed green smoke proof
-- current evidence still relies on source/document audit rather than an automated launcher
-- the scenario remains open until explicit rollback/cleanup semantics and a dedicated validation helper land
+- the runtime explicitly rolls back partial spawn state on the documented `map_addblock` failure path
+- spawn-time loadout reconcile does not continue after failed headless load
+- current evidence still relies on source/manual audit rather than a dedicated failure-injection launcher
 EOF
 			;;
 		lifecycle-despawn-grace-window)
 			cat <<'EOF'
-- the preferred grace-window behavior is documented, but no runtime helper or automated launcher currently proves it
-- current evidence still relies on source/document audit rather than a passing smoke
-- the scenario remains open until scheduler/runtime behavior makes grace expiry observable and testable
+- controller grace is now runtime-visible through `park_state='grace'` and `despawn_grace_until`
+- current evidence still relies on source/manual audit rather than a passing smoke/helper that proves grace expiry
+- the scenario remains open until scheduler/runtime behavior makes grace expiry observable and testable end-to-end
 EOF
 			;;
 		foundation-rich-gate)

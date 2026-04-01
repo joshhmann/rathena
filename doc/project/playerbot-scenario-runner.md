@@ -107,9 +107,10 @@ These split into two groups:
   - `lifecycle-spawn-failure-cleanup`
   - `lifecycle-despawn-grace-window`
 
-Those two lifecycle entries are intentionally documentation-only today. They
-track the remaining spawn-failure cleanup and despawn-grace gaps without
-claiming that the current smoke stack already proves them.
+Those two lifecycle entries remain manual/runbook-focused today. Spawn-failure
+cleanup is now runtime-backed, and despawn grace is now runtime-visible through
+`park_state='grace'` / `despawn_grace_until`, but the current smoke stack still
+does not prove either lifecycle front through a dedicated automated helper.
 
 The runbook-backed scenarios use:
 
@@ -126,7 +127,7 @@ The runbook-backed scenarios use:
 Highest-value missing additions after this expansion:
 
 - repo-local lifecycle helpers that can promote spawn-failure cleanup and
-  despawn grace from documented runbooks into passing automated checks
+  despawn grace from runtime-backed runbooks into passing automated checks
 - richer scenario automation for remaining open market/item/mechanic/lifecycle
   fronts
 

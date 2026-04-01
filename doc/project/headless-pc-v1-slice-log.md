@@ -5981,6 +5981,59 @@ Observed:
 This slice does not change merchant runtime policy or market semantics. It
 targets cold-start bootstrap determinism only.
 
+## Slice 72: Runtime-Visible Despawn Grace State
+
+### Summary
+
+Activated the existing controller grace policy as a visible runtime lifecycle
+state by writing `park_state='grace'` and `despawn_grace_until` for live actors
+when demand drops, while preserving current foundation stability.
+
+### Files
+
+- `npc/custom/living_world/_common.txt`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-rathena-system-coverage.md`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended `F_PB_DB_SetRuntimeStateByChar` to explicitly clear/set
+  `despawn_grace_until`.
+- Added `F_PB_DB_SetRuntimeParkStateByChar` for park-state-only transitions
+  without rewriting current runtime state.
+- Added `F_LW_HPC_DefCountGrace` and surfaced runtime grace actor counts in
+  controller status output.
+- Updated `F_LW_HPC_ControllerShouldRun` so controller grace transitions now:
+  - set runtime `park_state='grace'`
+  - set `despawn_grace_until`
+  - emit scheduler trace rows on grace enter / demand recovery
+- Updated `F_LW_HPC_DefStop` so final park/remove clears grace deadline and
+  persists `offline/parked`.
+- Updated lifecycle runbook/catalog/coverage docs to reflect:
+  - spawn-failure cleanup is covered
+  - despawn grace is now runtime-visible
+  - grace expiry still lacks a dedicated automated helper
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe lifecycle-spawn-failure-cleanup`
+- `bash tools/ci/playerbot-scenario.sh --no-color describe lifecycle-despawn-grace-window`
+
+Observed:
+
+- aggregate foundation gate remained green after the grace-state patch
+- lifecycle scenario catalog now describes spawn-failure as runtime-covered and
+  despawn grace as runtime-visible but not yet fully automated
+
+### Deferrals
+
+This slice does not add a dedicated automated grace-expiry smoke/helper and does
+not change the underlying controller grace timer length/policy semantics.
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

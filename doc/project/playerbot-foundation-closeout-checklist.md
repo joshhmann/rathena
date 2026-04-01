@@ -124,8 +124,8 @@ separate future foundation extension after this closeout sequence is green.
 The remaining lifecycle-specific open fronts are tracked separately from the
 currently automated closeout executor:
 
-- spawn-failure cleanup still lacks a dedicated automated validation helper
-- despawn grace is still a documented preferred behavior, not a landed runtime
+- spawn-failure cleanup is now covered in runtime, but still lacks a dedicated automated validation helper
+- despawn grace is now runtime-visible through `park_state='grace'` / `despawn_grace_until`, but still lacks an automated expiry/park closeout helper
   guarantee
 
 ## Scenario Coverage Set
