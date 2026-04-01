@@ -11,6 +11,8 @@ RICH_COUNT=5
 STRESS_RUNS=3
 OVERLAP_CYCLES=1
 MARKET_CYCLES=1
+TRACE_QUALITY_MINUTES=180
+TRACE_QUALITY_RUNS=1
 STOP_ON_FAIL=1
 CHECK_SCENARIOS=1
 
@@ -24,10 +26,12 @@ Options:
   --stress-runs N       Number of repeated-transition stress runs (default: 3)
   --overlap-cycles N    Number of loadout-overlap stress cycles (default: 1)
   --market-cycles N     Number of market-session stress cycles (default: 1)
+  --trace-quality-min N Trace quality lookback window in minutes (default: 180)
   --no-rich             Skip rich runs
   --no-stress           Skip repeated-transition stress check
   --no-overlap          Skip loadout-overlap stress check
   --no-market           Skip market-session stress check
+  --no-trace-quality    Skip trace quality checkpoint
   --no-scenario-check   Skip scenario catalog presence checks
   --continue-on-fail    Continue after failures (default: stop on first failure)
   -h, --help            Show this help
@@ -77,6 +81,14 @@ while [[ $# -gt 0 ]]; do
 			MARKET_CYCLES=0
 			shift
 			;;
+		--trace-quality-min)
+			TRACE_QUALITY_MINUTES="${2:?missing value for --trace-quality-min}"
+			shift 2
+			;;
+		--no-trace-quality)
+			TRACE_QUALITY_RUNS=0
+			shift
+			;;
 		--no-scenario-check)
 			CHECK_SCENARIOS=0
 			shift
@@ -122,6 +134,11 @@ if ! [[ "$MARKET_CYCLES" =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
+if ! [[ "$TRACE_QUALITY_MINUTES" =~ ^[0-9]+$ ]]; then
+	echo "--trace-quality-min must be a non-negative integer" >&2
+	exit 1
+fi
+
 cd "$REPO_ROOT"
 
 check_cmd() {
@@ -134,7 +151,7 @@ init_log() {
 	exec > >(tee -a "$LOG_FILE") 2>&1
 	echo "[foundation-closeout] log=${LOG_FILE}"
 	echo "[foundation-closeout] started=${RUN_TS}"
-	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} overlap_cycles=${OVERLAP_CYCLES} market_cycles=${MARKET_CYCLES} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
+	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} overlap_cycles=${OVERLAP_CYCLES} market_cycles=${MARKET_CYCLES} trace_quality_runs=${TRACE_QUALITY_RUNS} trace_quality_min=${TRACE_QUALITY_MINUTES} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
 }
 
 init_log
@@ -256,6 +273,12 @@ run_loop "item-overlap-stress" "bash tools/ci/playerbot-item-overlap-stress.sh -
 echo "$RUN_LOOP_SUMMARY"
 
 run_loop "market-session-stress" "bash tools/ci/playerbot-market-session-stress.sh --cycles ${MARKET_CYCLES}" 1 || {
+	echo "$RUN_LOOP_SUMMARY"
+	exit 1
+}
+echo "$RUN_LOOP_SUMMARY"
+
+run_loop "trace-quality" "bash tools/ci/playerbot-trace-quality.sh --since ${TRACE_QUALITY_MINUTES}" "${TRACE_QUALITY_RUNS}" || {
 	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }

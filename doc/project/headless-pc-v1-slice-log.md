@@ -6203,6 +6203,47 @@ continuity is executed as part of closeout, not only scenario-runbook coverage.
 - Advances closeout front #2 by requiring executed market continuity coverage
   in the closeout matrix.
 
+## Slice 99: Add Trace Quality Gate And Promote Into Closeout Matrix
+
+### Summary
+
+Added a dedicated trace quality checker and promoted it into full closeout so
+trace/audit debuggability regressions fail the matrix automatically.
+
+### Files
+
+- `tools/ci/playerbot-trace-quality.sh` (new)
+- `tools/ci/playerbot-foundation-closeout.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Added `tools/ci/playerbot-trace-quality.sh`:
+  - checks recent failure rows for:
+    - missing `error_code`
+    - missing `error_detail`
+    - `reason_code=none` on failed/denied rows
+  - checks interrupt audit rows for missing `detail`
+  - prints top failure-reason and interrupt-detail summaries for operator use
+- Promoted trace quality into full closeout:
+  - new options:
+    - `--trace-quality-min N` (default `180`)
+    - `--no-trace-quality`
+  - closeout sequence now includes `trace-quality` checkpoint after market
+    stress.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-trace-quality.sh`
+- `bash tools/ci/playerbot-trace-quality.sh --since 120`
+- `bash -n tools/ci/playerbot-foundation-closeout.sh`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+### Roadmap Impact
+
+- Advances closeout front #7 by turning trace/audit quality expectations into an
+  executable gate in full closeout.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary
