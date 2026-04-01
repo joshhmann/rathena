@@ -12,6 +12,9 @@ STRESS_RUNS=3
 OVERLAP_CYCLES=1
 MARKET_CYCLES=1
 TRACE_QUALITY_MINUTES=180
+STRESS_CHECK_RUNS=1
+OVERLAP_CHECK_RUNS=1
+MARKET_CHECK_RUNS=1
 TRACE_QUALITY_RUNS=1
 STOP_ON_FAIL=1
 CHECK_SCENARIOS=1
@@ -63,6 +66,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--no-stress)
 			STRESS_RUNS=0
+			STRESS_CHECK_RUNS=0
 			shift
 			;;
 		--overlap-cycles)
@@ -71,6 +75,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--no-overlap)
 			OVERLAP_CYCLES=0
+			OVERLAP_CHECK_RUNS=0
 			shift
 			;;
 		--market-cycles)
@@ -79,6 +84,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--no-market)
 			MARKET_CYCLES=0
+			MARKET_CHECK_RUNS=0
 			shift
 			;;
 		--trace-quality-min)
@@ -151,7 +157,7 @@ init_log() {
 	exec > >(tee -a "$LOG_FILE") 2>&1
 	echo "[foundation-closeout] log=${LOG_FILE}"
 	echo "[foundation-closeout] started=${RUN_TS}"
-	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} overlap_cycles=${OVERLAP_CYCLES} market_cycles=${MARKET_CYCLES} trace_quality_runs=${TRACE_QUALITY_RUNS} trace_quality_min=${TRACE_QUALITY_MINUTES} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
+	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} stress_check_runs=${STRESS_CHECK_RUNS} overlap_cycles=${OVERLAP_CYCLES} overlap_check_runs=${OVERLAP_CHECK_RUNS} market_cycles=${MARKET_CYCLES} market_check_runs=${MARKET_CHECK_RUNS} trace_quality_runs=${TRACE_QUALITY_RUNS} trace_quality_min=${TRACE_QUALITY_MINUTES} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
 }
 
 init_log
@@ -260,19 +266,19 @@ run_loop "foundation-run-rich" "bash tools/ci/playerbot-foundation-smoke.sh run-
 }
 echo "$RUN_LOOP_SUMMARY"
 
-run_loop "combat-transition-stress" "bash tools/ci/playerbot-combat-transition-stress.sh --runs ${STRESS_RUNS} --strict-drift" 1 || {
+run_loop "combat-transition-stress" "bash tools/ci/playerbot-combat-transition-stress.sh --runs ${STRESS_RUNS} --strict-drift" "${STRESS_CHECK_RUNS}" || {
 	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }
 echo "$RUN_LOOP_SUMMARY"
 
-run_loop "item-overlap-stress" "bash tools/ci/playerbot-item-overlap-stress.sh --cycles ${OVERLAP_CYCLES}" 1 || {
+run_loop "item-overlap-stress" "bash tools/ci/playerbot-item-overlap-stress.sh --cycles ${OVERLAP_CYCLES}" "${OVERLAP_CHECK_RUNS}" || {
 	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }
 echo "$RUN_LOOP_SUMMARY"
 
-run_loop "market-session-stress" "bash tools/ci/playerbot-market-session-stress.sh --cycles ${MARKET_CYCLES}" 1 || {
+run_loop "market-session-stress" "bash tools/ci/playerbot-market-session-stress.sh --cycles ${MARKET_CYCLES}" "${MARKET_CHECK_RUNS}" || {
 	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }

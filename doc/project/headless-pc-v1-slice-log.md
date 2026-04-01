@@ -6278,6 +6278,40 @@ secondary gating groups that are not visible in the compact selftest summary.
 - Advances closeout front #7 by improving deterministic diagnosis for rare
   combat `result=0` flakes without loosening gates.
 
+## Slice 101: Fix Closeout Skip-Flag Execution Semantics
+
+### Summary
+
+Fixed `playerbot-foundation-closeout.sh` so `--no-stress`, `--no-overlap`, and
+`--no-market` correctly skip their checkpoints instead of invoking sub-scripts
+with zero-cycle arguments.
+
+### Files
+
+- `tools/ci/playerbot-foundation-closeout.sh`
+
+### What Changed
+
+- Added explicit run toggles:
+  - `STRESS_CHECK_RUNS`
+  - `OVERLAP_CHECK_RUNS`
+  - `MARKET_CHECK_RUNS`
+- `--no-stress|--no-overlap|--no-market` now disable execution by setting the
+  corresponding check-run toggle to `0`.
+- Updated closeout config banner to print both cycle values and check-run
+  toggles for clarity.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-foundation-closeout.sh`
+- `bash tools/ci/playerbot-foundation-closeout.sh --run-count 0 --no-rich --no-stress --no-overlap --no-market --no-trace-quality`
+- Verified all optional checkpoints are explicitly skipped with `:0:0` summaries.
+
+### Roadmap Impact
+
+- Improves gate runner determinism and operator control during focused
+  closeout probes.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary
