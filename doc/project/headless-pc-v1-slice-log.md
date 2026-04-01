@@ -6071,6 +6071,57 @@ to prevent downstream cascade failures in aggregate foundation runs.
 - Improves closeout front #1 determinism by reducing cascade failures from
   stage-exit timing races.
 
+## Slice 96: Promote Loadout Overlap Stress Into Closeout Matrix
+
+### Summary
+
+Strengthened the dedicated overlap stress verifier and promoted it into the full
+closeout matrix so front #4 is exercised as an explicit gate.
+
+### Files
+
+- `tools/ci/playerbot-item-overlap-stress.sh`
+- `tools/ci/playerbot-foundation-closeout.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Tightened overlap stress required signals:
+  - item line must include:
+    - `result=1`
+    - `loadout_continuity_ok=1`
+    - `loadout_cycle_count=3`
+    - `park_ok=1`
+    - denied/recover/conflict continuity signals
+  - mech line must include:
+    - `refine_reexec_ok=1`
+    - `reform_reexec_ok=1`
+    - `enchant_reexec_ok=1`
+    - `enchant_reexec_clear_ok=1`
+- Increased overlap stress default depth:
+  - `playerbot-item-overlap-stress.sh --cycles` default: `2`
+- Promoted overlap stress into full closeout:
+  - new options in `playerbot-foundation-closeout.sh`:
+    - `--overlap-cycles N` (default `1`)
+    - `--no-overlap`
+  - full closeout now runs:
+    1. aggregate loops
+    2. rich loops
+    3. repeated-transition stress
+    4. item-overlap stress
+
+### Validation
+
+- `bash -n tools/ci/playerbot-item-overlap-stress.sh`
+- `bash -n tools/ci/playerbot-foundation-closeout.sh`
+- `bash tools/ci/playerbot-item-overlap-stress.sh --cycles 1`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+### Roadmap Impact
+
+- Advances closeout front #4 from scenario-catalog presence to executed matrix
+  coverage in full closeout.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

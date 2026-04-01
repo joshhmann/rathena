@@ -49,6 +49,8 @@ Current closeout status:
    - each cycle now proves overlap actions (storage withdraw/deposit and
      equip re-toggle) while preserving loadout + consumable invariants
    - item smoke now requires `loadout_cycle_count=3`
+   - full closeout matrix now executes `playerbot-item-overlap-stress`
+     (`pre item` -> `aggregate` -> `post item`) as a dedicated overlap check
 5. Broader combat-event continuity under repeated transitions: in progress
    - repeated-transition stress now checks combat continuity + market commit +
      item loadout continuity + full mechanic re-exec (refine/reform/enchant)

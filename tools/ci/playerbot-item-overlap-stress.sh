@@ -4,14 +4,14 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/playerbot-smoke-common.sh"
 PB_SMOKE_LABEL="playerbot-item-overlap-stress"
 
-CYCLES=1
+CYCLES=2
 
 usage() {
 	cat <<'EOF'
 Usage: bash tools/ci/playerbot-item-overlap-stress.sh [options]
 
 Options:
-  --cycles N       Number of overlap cycles to run (default: 1)
+  --cycles N       Number of overlap cycles to run (default: 2)
   -h, --help       Show this help
 
 Each cycle executes:
@@ -48,18 +48,32 @@ cd "$REPO_ROOT"
 
 check_item_signals() {
 	local output="$1"
-	local line
+	local line mech_line
 	line="$(printf '%s\n' "$output" | grep 'playerbot_item_selftest: provision_ok=' | tail -n 1 || true)"
+	mech_line="$(printf '%s\n' "$output" | grep 'playerbot_item_selftest_mech_reexec:' | tail -n 1 || true)"
 	if [[ -z "$line" ]]; then
 		printf '[%s] missing item selftest line.\n' "$PB_SMOKE_LABEL" >&2
+		return 1
+	fi
+	if [[ -z "$mech_line" ]]; then
+		printf '[%s] missing item mech-reexec line.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi
 	for key in \
 		result=1 loadout_denied_ok=1 loadout_recover_ok=1 \
 		loadout_conflict_cleared_ok=1 mech_refine_reexec_ok=1 \
-		loadout_continuity_ok=1; do
+		loadout_continuity_ok=1 loadout_cycle_count=3 \
+		park_ok=1; do
 		if [[ "$line" != *"$key"* ]]; then
 			printf '[%s] required item overlap signal missing: %s\n' "$PB_SMOKE_LABEL" "$key" >&2
+			return 1
+		fi
+	done
+	for key in \
+		refine_reexec_ok=1 reform_reexec_ok=1 enchant_reexec_ok=1 \
+		enchant_reexec_clear_ok=1; do
+		if [[ "$mech_line" != *"$key"* ]]; then
+			printf '[%s] required item mech-overlap signal missing: %s\n' "$PB_SMOKE_LABEL" "$key" >&2
 			return 1
 		fi
 	done

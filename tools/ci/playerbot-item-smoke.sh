@@ -51,6 +51,7 @@ check_denied() {
 	pb_smoke_wait_pattern 'playerbot_item_selftest: provision_ok=' 180 2200 || true
 	pane="$(pb_smoke_capture 3200)"
 	printf '%s\n' "$pane" | grep 'playerbot_item_selftest:' | tail -n 2 || true
+	printf '%s\n' "$pane" | grep 'playerbot_item_selftest_mech_reexec:' | tail -n 1 || true
 	line="$(printf '%s\n' "$pane" | grep 'playerbot_item_selftest: provision_ok=' | tail -n 1 || true)"
 	if [[ -z "$line" ]]; then
 		printf '[%s] missing item selftest result line.\n' "$PB_SMOKE_LABEL" >&2
