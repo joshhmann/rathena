@@ -5942,6 +5942,50 @@ mail-denial outcomes.
 - Continues closeout front #1 (`broader market/session execution semantics`)
   by increasing evidence quality without introducing new gate flake risk.
 
+## Slice 93: Enchant Re-Execution Requires Real Effect In Mechanic Continuity Gate
+
+### Summary
+
+Tightened the mechanic continuity gate so enchant re-execution is only accepted
+when a real execution effect occurred, and fixed setup so the re-exec path runs
+against a clean live item state.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Removed trace-only acceptance for mechanic enchant re-exec:
+  - previous: pass allowed when `enchant_trace_count >= 1` even if call/effect failed
+  - now: requires all of:
+    - `enchant_reexec_call_ok=1`
+    - `enchant_trace_count >= 1`
+    - concrete effect (`material delta` or `zeny delta`)
+- Added explicit re-exec telemetry:
+  - `enchant_mat_before/after`
+  - `enchant_zeny_before/after`
+  - `enchant_reexec_effect_ok`
+- Replaced DB-only item cleanup with live actor cleanup before regrant:
+  - unequip/remove existing `510021` copies from the bot actor state
+  - then grant fresh item/material for re-exec path
+  - avoids stale grade-1 state contaminating re-exec setup
+
+### Validation
+
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- Observed:
+  - `playerbot_item_selftest ... result=1`
+  - `playerbot_item_selftest_mech_reexec ... enchant_reexec_call_ok=1 ... enchant_reexec_effect_ok=1 enchant_reexec_ok=1 enchant_reexec_clear_ok=1`
+  - `[foundation-gate] quick: pass`
+
+### Roadmap Impact
+
+- Advances closeout front #2 (`mechanic execution semantics beyond session ownership`)
+  by enforcing real execution semantics in the accepted aggregate gate.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

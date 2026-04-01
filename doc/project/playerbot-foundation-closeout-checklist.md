@@ -38,7 +38,11 @@ Current closeout status:
 2. Market execution semantics beyond ownership continuity: in progress
    - merchant market selftest now emits vend-phase mail integrity telemetry
    - pass criteria for new vend-mail signals intentionally deferred until denial semantics are deterministic
-3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: pending
+3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: in progress
+   - item selftest mech re-exec now requires concrete enchant execution effect
+     (material or zeny delta), not trace-only acceptance
+   - mech re-exec setup now resets live enchant item state before regrant
+   - aggregate quick gate is green with `enchant_reexec_ok=1` and `enchant_reexec_clear_ok=1`
 4. Deeper equip/use/consume continuity under overlapping transitions: pending
 5. Broader combat-event continuity under repeated transitions: pending
 6. Scenario coverage for all remaining open fronts: in progress
