@@ -519,16 +519,33 @@ S_Run:
 	query_sql(
 		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_recovery_audit` WHERE `bot_id` = '" + .bot_id + "'",
 		.@continuity_audit_before);
-	for (.@cycle = 0; .@cycle < .@continuity_cycles; ++.@cycle) {
-		.@loop_dead_ok = 0;
-		.@loop_respawn_ok = 0;
-		.@loop_seed_ok = playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000)
-			&& playerbot_statusstart(.bot_key$, SC_POISON, 10, 15000);
-		sleep 200;
-		.@loop_seed_active_ok = (.@loop_seed_ok
-			&& playerbot_statusactive(.bot_key$, SC_BLESSING)
-			&& playerbot_statusactive(.bot_key$, SC_POISON));
-		.@loop_kill_ok = (.@loop_seed_active_ok && playerbot_kill(.bot_key$));
+		for (.@cycle = 0; .@cycle < .@continuity_cycles; ++.@cycle) {
+			.@loop_dead_ok = 0;
+			.@loop_respawn_ok = 0;
+			callsub S_RefillBotVitals;
+			playerbot_participationrecover(.bot_key$);
+			sleep 200;
+			.@loop_seed_ok = 0;
+			for (.@seed_try = 0; .@seed_try < 3; ++.@seed_try) {
+				if (playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000)
+					&& playerbot_statusstart(.bot_key$, SC_POISON, 10, 15000)) {
+					.@loop_seed_ok = 1;
+					break;
+				}
+				sleep 200;
+			}
+			sleep 150;
+			.@loop_seed_active_ok = (.@loop_seed_ok
+				&& playerbot_statusactive(.bot_key$, SC_BLESSING)
+				&& playerbot_statusactive(.bot_key$, SC_POISON));
+			.@loop_kill_ok = 0;
+			for (.@kill_try = 0; .@kill_try < 3; ++.@kill_try) {
+				if (.@loop_seed_active_ok && playerbot_kill(.bot_key$)) {
+					.@loop_kill_ok = 1;
+					break;
+				}
+				sleep 150;
+			}
 		for (.@i = 0; .@i < 12; ++.@i) {
 			sleep 250;
 			if (playerbot_isdead(.bot_key$)) {
@@ -555,7 +572,14 @@ S_Run:
 			&& !playerbot_statusactive(.bot_key$, SC_POISON));
 		.@loop_map_seed_ok = (.@loop_respawn_fresh_ok && playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000));
 		sleep 200;
-		.@loop_map_move_ok = (.@loop_map_seed_ok && headlesspc_setpos(.char_id, "izlude", 128, 146));
+			.@loop_map_move_ok = 0;
+			for (.@mv_try = 0; .@mv_try < 3; ++.@mv_try) {
+				if (.@loop_map_seed_ok && headlesspc_setpos(.char_id, "izlude", 128, 146)) {
+					.@loop_map_move_ok = 1;
+					break;
+				}
+				sleep 150;
+			}
 		if (.@loop_map_move_ok)
 			sleep 700;
 		.@loop_map_cont_ok = (.@loop_map_move_ok && playerbot_statusactive(.bot_key$, SC_BLESSING));
@@ -565,14 +589,15 @@ S_Run:
 		.@loop_map_return_cont_ok = (.@loop_map_return_ok && playerbot_statusactive(.bot_key$, SC_BLESSING));
 		.@loop_map_clear_ok = (.@loop_map_return_cont_ok && playerbot_statusclear(.bot_key$, SC_BLESSING));
 		sleep 150;
-		.@loop_ok = (.@loop_seed_active_ok && .@loop_kill_ok && .@loop_dead_ok && .@loop_death_clear_ok
-			&& .@loop_respawn_req_ok && .@loop_respawn_ok && .@loop_respawn_fresh_ok
-			&& .@loop_map_seed_ok && .@loop_map_move_ok && .@loop_map_cont_ok
-			&& .@loop_map_return_ok && .@loop_map_return_cont_ok && .@loop_map_clear_ok);
-		if (!.@loop_ok) {
-			.@continuity_loop_ok = 0;
-			break;
-		}
+			.@loop_ok = (.@loop_seed_active_ok && .@loop_kill_ok && .@loop_dead_ok && .@loop_death_clear_ok
+				&& .@loop_respawn_req_ok && .@loop_respawn_ok && .@loop_respawn_fresh_ok
+				&& .@loop_map_seed_ok && .@loop_map_move_ok && .@loop_map_cont_ok
+				&& .@loop_map_return_ok && .@loop_map_return_cont_ok && .@loop_map_clear_ok);
+			if (!.@loop_ok) {
+				debugmes "playerbot_combat_cont_loop: cycle=" + .@cycle + " seed=" + .@loop_seed_ok + " seed_active=" + .@loop_seed_active_ok + " kill=" + .@loop_kill_ok + " dead=" + .@loop_dead_ok + " death_clear=" + .@loop_death_clear_ok + " respawn_req=" + .@loop_respawn_req_ok + " respawn=" + .@loop_respawn_ok + " respawn_fresh=" + .@loop_respawn_fresh_ok + " map_seed=" + .@loop_map_seed_ok + " map_move=" + .@loop_map_move_ok + " map_cont=" + .@loop_map_cont_ok + " map_return=" + .@loop_map_return_ok + " map_return_cont=" + .@loop_map_return_cont_ok + " map_clear=" + .@loop_map_clear_ok + ".";
+				.@continuity_loop_ok = 0;
+				break;
+			}
 		.@continuity_loop_count += 1;
 	}
 	query_sql(

@@ -21,6 +21,27 @@ The following baseline is already accepted:
 - integrated combat selftest is green in aggregate foundation orchestration
 - market/item/participation/state/guild stages are green in aggregate runs
 
+## Current Roadmap Status (2026-03-31)
+
+Recently stabilized in `master`:
+
+- participation trade lane no longer flakes in aggregate runs
+  (`trade_ok`, `trade_recover_ok`, `trade_force_clear_ok` are green)
+- combat selftest no longer emits overlong local-var `set_reg` warnings
+- aggregate foundation check is green after both fixes
+
+Current closeout status:
+
+1. Gate stability and determinism: in progress
+   - full gate run reached `4/10` then failed at `5/10` on combat continuity loop flake
+   - continuity loop retry hardening applied; quick gate is green again
+2. Market execution semantics beyond ownership continuity: next primary target
+3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: pending
+4. Deeper equip/use/consume continuity under overlapping transitions: pending
+5. Broader combat-event continuity under repeated transitions: pending
+6. Scenario coverage for all remaining open fronts: in progress
+7. Trace/audit reason/result quality and debuggability: in progress
+
 ## Closeout Gate
 
 Run the canonical closeout executor:

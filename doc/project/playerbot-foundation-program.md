@@ -186,6 +186,27 @@ After those closeout fronts are green, the next named foundation extension is:
 - companion unblock (pet/homunculus/mercenary/elemental) with explicit
   lifecycle and recovery coverage
 
+## Current Progress Snapshot (2026-03-31)
+
+Latest integrated status:
+
+- aggregate foundation smoke is currently green in `master`
+- participation trade continuity flake has been stabilized
+- combat selftest script-local variable overflow warning has been removed
+
+Primary remaining execution order (unchanged):
+
+1. broader market/session execution semantics
+2. mechanic execution semantics beyond session ownership
+3. deeper equip/use/consume continuity under overlapping transitions
+4. broader combat-event continuity under repeated transitions
+5. richer scenario coverage and trace/audit debuggability for open fronts
+
+Immediate next action:
+
+- run full closeout gate (`bash tools/ci/playerbot-foundation-gate.sh full`)
+- continue into market/session execution semantics as the next primary slice
+
 ## Acceptance Gate Before Behavior Expansion
 
 Do not treat the foundation phase as complete until the following are true:
