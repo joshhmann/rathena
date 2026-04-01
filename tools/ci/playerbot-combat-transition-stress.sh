@@ -68,7 +68,7 @@ check_output_signals() {
 	mech_line="$(printf '%s\n' "$output" | grep 'playerbot_item_selftest_mech_reexec:' | tail -n 1 || true)"
 	market_line="$(printf '%s\n' "$output" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
 
-	if [[ -z "$combat_line" || "$combat_line" != *"continuity_loop_ok=1"* || "$combat_line" != *"continuity_loop_count=3"* || "$combat_line" != *"result=1"* ]]; then
+	if [[ -z "$combat_line" || "$combat_line" != *"continuity_loop_ok=1"* || "$combat_line" != *"continuity_loop_count=3"* || "$combat_line" != *"npc_interrupt_clear_ok=1"* || "$combat_line" != *"storage_interrupt_clear_ok=1"* || "$combat_line" != *"trade_interrupt_clear_ok=1"* || "$combat_line" != *"trace_ok=1"* || "$combat_line" != *"audit_ok=1"* || "$combat_line" != *"result=1"* ]]; then
 		printf '[%s] missing/failed combat continuity signal.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi
@@ -115,10 +115,29 @@ for i in $(seq 1 "$RUNS"); do
 		FROM \`bot_recovery_audit\`
 		WHERE \`id\` > ${audit_before}
 		  AND \`scope\` IN ('combat','loadout','npc','storage','trade','skillunit','participation');")"
+	read -r npc_interrupt_count storage_interrupt_count trade_interrupt_count skillunit_interrupt_count < <(
+		pb_smoke_sql_heredoc <<EOF
+SELECT
+  COALESCE(SUM(CASE WHEN \`scope\` = 'npc' AND \`action\` = 'interrupt' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`scope\` = 'storage' AND \`action\` = 'interrupt' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`scope\` = 'trade' AND \`action\` = 'interrupt' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN \`scope\` = 'skillunit' AND \`action\` = 'interrupt' THEN 1 ELSE 0 END), 0)
+FROM \`bot_recovery_audit\`
+WHERE \`id\` > ${audit_before};
+EOF
+	)
+	if (( npc_interrupt_count < 1 || storage_interrupt_count < 1 || trade_interrupt_count < 1 || skillunit_interrupt_count < 1 )); then
+		printf '[%s] missing interrupt audit evidence at run %d (npc=%s storage=%s trade=%s skillunit=%s).\n' \
+			"$PB_SMOKE_LABEL" "$i" "$npc_interrupt_count" "$storage_interrupt_count" "$trade_interrupt_count" "$skillunit_interrupt_count" >&2
+		failures=$((failures + 1))
+		continue
+	fi
 
 	trace_deltas+=("$trace_delta")
 	audit_deltas+=("$audit_delta")
-	printf '[%s] run %d deltas: trace=%s audit=%s\n' "$PB_SMOKE_LABEL" "$i" "$trace_delta" "$audit_delta"
+	printf '[%s] run %d deltas: trace=%s audit=%s interrupts(npc/storage/trade/skillunit)=%s/%s/%s/%s\n' \
+		"$PB_SMOKE_LABEL" "$i" "$trace_delta" "$audit_delta" \
+		"$npc_interrupt_count" "$storage_interrupt_count" "$trade_interrupt_count" "$skillunit_interrupt_count"
 done
 
 if (( failures > 0 )); then

@@ -56,6 +56,8 @@ Current closeout status:
      item loadout continuity + full mechanic re-exec (refine/reform/enchant)
    - closeout full matrix now executes repeated-transition stress after
      aggregate/rich loops with strict drift enforcement
+   - repeated-transition stress now requires per-run interrupt-clear signals
+     (`npc/storage/trade`) and per-run interrupt audit evidence
 6. Scenario coverage for all remaining open fronts: in progress
 7. Trace/audit reason/result quality and debuggability: in progress
 

@@ -6122,6 +6122,51 @@ closeout matrix so front #4 is exercised as an explicit gate.
 - Advances closeout front #4 from scenario-catalog presence to executed matrix
   coverage in full closeout.
 
+## Slice 97: Enforce Repeated Interrupt Evidence In Combat Transition Stress
+
+### Summary
+
+Strengthened repeated combat-event continuity checks so each stress run must
+show both interrupt-clear signals in combat selftest output and interrupt audit
+evidence in the SQL delta window.
+
+### Files
+
+- `tools/ci/playerbot-combat-transition-stress.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Tightened combat-line checks per run:
+  - requires:
+    - `continuity_loop_ok=1`
+    - `continuity_loop_count=3`
+    - `npc_interrupt_clear_ok=1`
+    - `storage_interrupt_clear_ok=1`
+    - `trade_interrupt_clear_ok=1`
+    - `trace_ok=1`
+    - `audit_ok=1`
+    - `result=1`
+- Added per-run interrupt audit evidence checks using the post-run audit-id
+  delta window:
+  - requires at least one `interrupt` row each for:
+    - `scope='npc'`
+    - `scope='storage'`
+    - `scope='trade'`
+    - `scope='skillunit'`
+- Expanded per-run output to print interrupt evidence counts.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-combat-transition-stress.sh`
+- `bash tools/ci/playerbot-combat-transition-stress.sh --runs 2 --strict-drift`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+### Roadmap Impact
+
+- Advances closeout front #5 by enforcing repeated combat-event interrupt
+  continuity in the promoted stress gate, not only one-shot aggregate checks.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary
