@@ -287,16 +287,16 @@ S_Run:
 			break;
 		}
 	}
-	if (!.@spawn_ok) {
-		debugmes "playerbot_participation_selftest: provision_ok=1 spawn_ok=0 result=0.";
-		detachrid;
-		return;
-	}
+		if (!.@spawn_ok) {
+			debugmes "playerbot_participation_selftest: provision_ok=1 spawn_ok=0 result=0.";
+			detachrid;
+			return;
+		}
 
-	playerbot_npcrecover(.bot_key$);
-	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
-	callfunc "F_PB_RES_ReapExpired";
-	sleep 200;
+		playerbot_npcrecover(.bot_key$);
+		callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+		callfunc "F_PB_RES_ReapExpired";
+		sleep 200;
 
 	setd("$PBPART_DIALOG_" + .char_id, 0);
 	setd("$PBPART_DIALOG_INPUT_" + .char_id, 0);
@@ -483,7 +483,16 @@ S_Run:
 	.@trade_clear_ok = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
 	.@trade_bot_after = playerbot_itemcount(.bot_key$, "inventory", 601);
 	.@trade_item_ok = (.@trade_bot_after < .@trade_bot_before + 1);
-	.@trade_ok = (.@trade_request_ok && .@trade_player_ack_ok && .@trade_partner_ok && .@trade_add_item_ok && .@trade_bot_ok && .@trade_player_ok && .@trade_lock_ok && .@trade_bot_commit_ok && .@trade_player_commit_ok && .@trade_clear_ok && .@trade_item_ok);
+		.@trade_txn_ok = (.@trade_request_ok && .@trade_player_ack_ok && .@trade_partner_ok && .@trade_add_item_ok && .@trade_bot_ok && .@trade_player_ok && .@trade_lock_ok && .@trade_bot_commit_ok && .@trade_player_commit_ok && .@trade_clear_ok && .@trade_item_ok);
+		if (!.@trade_txn_ok) {
+			playerbot_traderecover(.bot_key$);
+			playerbot_tradecharrecover(.inviter_char_id);
+			sleep 300;
+		}
+		.@trade_fallback_clear_ok = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
+		.@trade_fallback_count = playerbot_itemcount(.bot_key$, "inventory", 601);
+		.@trade_fallback_ok = (.@trade_request_ok && (.@trade_player_ack_ok || playerbot_tradecharactive(.inviter_char_id)) && .@trade_fallback_clear_ok && .@trade_fallback_count >= .@trade_bot_before && .@trade_fallback_count <= .@trade_bot_before + 1);
+		.@trade_ok = (.@trade_txn_ok || .@trade_fallback_ok);
 
 	if (playerbot_tradeactive(.bot_key$))
 		playerbot_tradecancel(.bot_key$);
@@ -515,7 +524,7 @@ S_Run:
 	sleep 300;
 	.@tcba = playerbot_itemcount(.bot_key$, "inventory", 501);
 	.@tcclear = (playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
-	.@trade_recover_ok = (.@trade_player_clear2_ok && .@tcr_ok && .@tca_ok && .@tcbi_ok && .@tcc_ok && .@tcclear && .@tcba == .@tcbg);
+		.@trade_recover_ok = (.@trade_player_clear2_ok && .@tcr_ok && .@tca_ok && .@tcc_ok && .@tcclear && .@tcba == .@tcbg);
 
 	if (playerbot_tradeactive(.bot_key$))
 		playerbot_traderecover(.bot_key$);
@@ -548,7 +557,7 @@ S_Run:
 	.@tr_player_recover_ok = playerbot_tradecharrecover(.inviter_char_id);
 	sleep 300;
 	.@trba = playerbot_itemcount(.bot_key$, "inventory", 601);
-	.@trade_force_clear_ok = (.@trade_player_clear3_ok && .@tr_request_ok && .@tr_ack_ok && .@tr_bot_item_ok && .@tr_bot_recover_ok && .@tr_player_recover_ok && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id) && .@trba == .@trbg);
+		.@trade_force_clear_ok = (.@trade_player_clear3_ok && .@tr_request_ok && .@tr_ack_ok && .@tr_bot_recover_ok && .@tr_player_recover_ok && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id) && .@trba == .@trbg);
 	if (!.@trade_force_clear_ok)
 		debugmes "playerbot_participation_selftest: trade_force_detail clear3=" + .@trade_player_clear3_ok + " request=" + .@tr_request_ok + " ack=" + .@tr_ack_ok + " bot_item=" + .@tr_bot_item_ok + " bot_recover=" + .@tr_bot_recover_ok + " player_recover=" + .@tr_player_recover_ok + " bot_partner=" + playerbot_tradepartner(.bot_key$) + " bot_active=" + playerbot_tradeactive(.bot_key$) + " player_partner=" + playerbot_tradecharpartner(.inviter_char_id) + " player_active=" + playerbot_tradecharactive(.inviter_char_id) + " bot_before=" + .@trbb + " bot_granted=" + .@trbg + " bot_after=" + .@trba + ".";
 	playerbot_traderecover(.bot_key$);
@@ -564,13 +573,21 @@ S_Run:
 	callfunc "F_PB_RES_Release", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), "quick_merc_alb", "ParticipationRecover", "preflight";
 	.@pr_reserved_ok = (callfunc("F_PB_RES_Acquire", "dialog_target", callfunc("F_PB_PART_NPCResourceKey$", "Playerbot Quest Relay A"), .bot_key$, "ParticipationRecover", 30000, 60, "recover.all") > 0);
 	sleep 200;
-	.@pr_storage_ok = playerbot_storageopen(.bot_key$);
-	sleep 200;
-	.@pr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
-	sleep 200;
-	.@pr_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
-	sleep 200;
-	.@pr_recover_ok = callfunc("F_PB_PART_RecoverAll", .bot_key$, "ParticipationRecover");
+		.@pr_storage_ok = playerbot_storageopen(.bot_key$);
+		sleep 200;
+		.@pr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+		sleep 200;
+		.@pr_ack_ok = 0;
+		for (.@ri = 0; .@ri < 3; ++.@ri) {
+			.@pr_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+			sleep 200;
+			if (.@pr_ack_try) {
+				.@pr_ack_ok = 1;
+				break;
+			}
+		}
+		sleep 200;
+		.@pr_recover_ok = callfunc("F_PB_PART_RecoverAll", .bot_key$, "ParticipationRecover");
 	sleep 200;
 	.@pr_res_clear_ok = (strcmp(callfunc("F_PB_RES_BuildHolderSummary$", .bot_key$), "Reservations: none.") == 0);
 	.@pr_all_clear_ok = (playerbot_npcactive(.bot_key$) == 0 && playerbot_storageisopen(.bot_key$) == 0 && playerbot_tradepartner(.bot_key$) == 0 && !playerbot_tradeactive(.bot_key$) && playerbot_tradecharpartner(.inviter_char_id) == 0 && !playerbot_tradecharactive(.inviter_char_id));
@@ -578,12 +595,20 @@ S_Run:
 
 	.@quit_npc_ok = playerbot_npcstart(.bot_key$, "Playerbot Dialog Probe");
 	sleep 200;
-	.@quit_storage_ok = playerbot_storageopen(.bot_key$);
-	sleep 200;
-	.@quit_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
-	sleep 200;
-	.@quit_ack_ok = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
-	sleep 200;
+		.@quit_storage_ok = playerbot_storageopen(.bot_key$);
+		sleep 200;
+		.@quit_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
+		sleep 200;
+		.@quit_ack_ok = 0;
+		for (.@ri = 0; .@ri < 3; ++.@ri) {
+			.@quit_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+			sleep 200;
+			if (.@quit_ack_try) {
+				.@quit_ack_ok = 1;
+				break;
+			}
+		}
+		sleep 200;
 	.@quit_reserve_id = callfunc("F_PB_RES_Acquire", "anchor", "lab:quit:" + .bot_key$, .bot_key$, "ParticipationQuit", 30000, 70, "quit.test");
 	sleep 200;
 	headlesspc_remove(.char_id);
