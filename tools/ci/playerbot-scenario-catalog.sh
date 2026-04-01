@@ -24,6 +24,8 @@ playerbot_scenario_ids() {
 		'market-buyingstore-denial-continuity' \
 		'market-mail-delivery-integrity' \
 		'market-session-restart-continuity' \
+		'lifecycle-spawn-failure-cleanup' \
+		'lifecycle-despawn-grace-window' \
 		'foundation-rich-gate'
 }
 
@@ -51,6 +53,8 @@ playerbot_scenario_title() {
 		market-buyingstore-denial-continuity) printf '%s\n' 'Market Buyingstore Denial Continuity' ;;
 		market-mail-delivery-integrity) printf '%s\n' 'Market Mail Delivery Integrity' ;;
 		market-session-restart-continuity) printf '%s\n' 'Market Session Restart Continuity' ;;
+		lifecycle-spawn-failure-cleanup) printf '%s\n' 'Lifecycle Spawn-Failure Cleanup' ;;
+		lifecycle-despawn-grace-window) printf '%s\n' 'Lifecycle Despawn Grace Window' ;;
 		foundation-rich-gate) printf '%s\n' 'Foundation Rich Gate' ;;
 		*) return 1 ;;
 	esac
@@ -64,6 +68,7 @@ playerbot_scenario_phase() {
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup|mechanic-execution-rollback) printf '%s\n' 'participation' ;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity) printf '%s\n' 'market' ;;
+		lifecycle-spawn-failure-cleanup|lifecycle-despawn-grace-window) printf '%s\n' 'lifecycle' ;;
 		foundation-rich-gate) printf '%s\n' 'foundation' ;;
 		*) return 1 ;;
 	esac
@@ -183,6 +188,16 @@ EOF
 		market-session-restart-continuity)
 			cat <<'EOF'
 Validate market/session state remains consistent across restart/reconnect cycles without orphaned reservations, stale opens, or split ownership.
+EOF
+			;;
+		lifecycle-spawn-failure-cleanup)
+			cat <<'EOF'
+Document the current spawn-failure bring-up hole: if headless load reaches map-side visibility setup and fails before spawn-ready completion, cleanup is not yet promoted to a dedicated deterministic validation surface.
+EOF
+			;;
+		lifecycle-despawn-grace-window)
+			cat <<'EOF'
+Document the currently preferred but not-yet-implemented demand-drop behavior where controller-owned actors should linger for a short grace window instead of despawning immediately when a map empties.
 EOF
 			;;
 		foundation-rich-gate)
@@ -406,6 +421,30 @@ EOF
 - verify no orphaned reservation or stale open-session state remains after restart
 EOF
 			;;
+		lifecycle-spawn-failure-cleanup)
+			cat <<'EOF'
+- inspect the current headless bring-up failure contract in:
+  - `src/map/clif.cpp`
+  - `doc/project/headless-pc-edge-cases.md`
+  - `doc/project/playerbot-rathena-system-coverage.md`
+- confirm spawn-ready completion is the only accepted success boundary today
+- confirm the documented failure case remains partial/manual, not a passing automated smoke
+- capture the concrete failure example currently called out by the runtime:
+  - `map_addblock(sd)` failure before `chrif_headlesspc_mark_spawn_ready(...)`
+- treat this scenario as documentation/manual-audit only until a dedicated runtime helper lands
+EOF
+			;;
+		lifecycle-despawn-grace-window)
+			cat <<'EOF'
+- inspect the current lifecycle/grace-window contract in:
+  - `doc/project/headless-pc-edge-cases.md`
+  - `doc/project/playerbot-rathena-system-coverage.md`
+  - scheduler/playerbot closeout docs
+- confirm the preferred behavior is still a short grace window followed by clean release/park
+- confirm no automated smoke helper currently proves this behavior
+- treat this scenario as documentation/manual-audit only until scheduler/runtime semantics land
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 - run the canonical richer gate command:
@@ -545,6 +584,20 @@ EOF
 - market session open/close lifecycle remains deterministic post-restart
 EOF
 			;;
+		lifecycle-spawn-failure-cleanup)
+			cat <<'EOF'
+- the documented runtime hole points at a pre-spawn-ready failure path, not a completed green smoke proof
+- current evidence still relies on source/document audit rather than an automated launcher
+- the scenario remains open until explicit rollback/cleanup semantics and a dedicated validation helper land
+EOF
+			;;
+		lifecycle-despawn-grace-window)
+			cat <<'EOF'
+- the preferred grace-window behavior is documented, but no runtime helper or automated launcher currently proves it
+- current evidence still relies on source/document audit rather than a passing smoke
+- the scenario remains open until scheduler/runtime behavior makes grace expiry observable and testable
+EOF
+			;;
 		foundation-rich-gate)
 			cat <<'EOF'
 - `[playerbot-foundation-smoke] foundation pass ok.` is present
@@ -636,6 +689,15 @@ EOF
 			cat <<'EOF'
 These scenarios extend market/session continuity coverage through aggregate
 foundation and restart windows, where session drift is most likely.
+EOF
+			;;
+		lifecycle-spawn-failure-cleanup|lifecycle-despawn-grace-window)
+			cat <<'EOF'
+These lifecycle scenarios are intentionally documentation-only for now.
+
+They exist so closeout planning can name the remaining runtime fronts without
+pretending the current automated smoke stack already proves them. `run` will
+report them as skeleton/manual runbooks until dedicated lifecycle helpers land.
 EOF
 			;;
 		foundation-rich-gate)

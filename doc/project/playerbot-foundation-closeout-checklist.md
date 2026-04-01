@@ -121,6 +121,13 @@ Execute the remaining closeout fronts in this order:
 The companion system lane (pet/homunculus/mercenary/elemental) remains a
 separate future foundation extension after this closeout sequence is green.
 
+The remaining lifecycle-specific open fronts are tracked separately from the
+currently automated closeout executor:
+
+- spawn-failure cleanup still lacks a dedicated automated validation helper
+- despawn grace is still a documented preferred behavior, not a landed runtime
+  guarantee
+
 ## Scenario Coverage Set
 
 The closeout set includes:
@@ -148,6 +155,17 @@ The closeout set includes:
 - `market-mail-delivery-integrity`
 - `market-session-restart-continuity`
 - `foundation-rich-gate`
+
+## Additional Lifecycle Runbooks (Not Yet Automated Closeout Gates)
+
+The scenario runner also documents two remaining lifecycle fronts:
+
+- `lifecycle-spawn-failure-cleanup`
+- `lifecycle-despawn-grace-window`
+
+These are intentionally not part of the current automated closeout executor or
+its required scenario-definition check yet. They exist to keep the remaining
+runtime gaps visible without overstating current verification coverage.
 
 ## Behavior Readiness Rule
 

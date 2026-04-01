@@ -884,7 +884,7 @@ int32 clif_spawn(const block_list* bl, bool walking = false);	//area
 void clif_walkok( const map_session_data& sd );
 void clif_move( const unit_data& ud ); //area
 void clif_changemap( const map_session_data& sd, int16 m, uint16 x, uint16 y );
-void clif_headless_pc_load( map_session_data* sd );
+bool clif_headless_pc_load( map_session_data* sd );
 void clif_changemapserver( const map_session_data& sd, const char* map, uint16 x, uint16 y, uint32 ip, uint16 port );
 void clif_blown( const block_list* bl ); // area
 void clif_slide( const block_list& bl, int32 x, int32 y ); // area

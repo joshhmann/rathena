@@ -133,12 +133,19 @@ Examples:
 Current handling:
 
 - spawn-ready ack does not increment
-- actor may exist in a partial failed state and requires manual investigation
+- `map_addblock(sd)` failure now rolls back the partial load path by:
+  - reverting map user counters
+  - clearing the invincibility timer
+  - aborting pending runtime/pending-route state
+  - forcing the headless actor back through `map_quit(sd)`
+- spawn-time loadout reconcile is skipped when that pre-ready load step fails
 
-Required future work:
+Current limits:
 
-- explicit spawn-failure completion path
-- cleanup/reconciliation for partial bring-up
+- the explicit rollback is currently centered on the `map_addblock(sd)` failure
+  leg
+- other pre-ready world-load failures still need the same narrow completion
+  semantics if they become reachable in practice
 
 ### 8. Duplicate spawn requests
 

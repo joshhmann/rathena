@@ -62,6 +62,8 @@ The current catalog contains:
 - `market-buyingstore-denial-continuity`
 - `market-mail-delivery-integrity`
 - `market-session-restart-continuity`
+- `lifecycle-spawn-failure-cleanup`
+- `lifecycle-despawn-grace-window`
 - `foundation-rich-gate`
 
 Current phase labels used by the catalog:
@@ -72,6 +74,7 @@ Current phase labels used by the catalog:
 - `equipment`
 - `participation`
 - `market`
+- `lifecycle`
 
 These split into two groups:
 
@@ -100,6 +103,14 @@ These split into two groups:
   - `market-session-restart-continuity`
   - `foundation-rich-gate`
 
+- documented runbook-only lifecycle fronts with no repo-local launcher yet:
+  - `lifecycle-spawn-failure-cleanup`
+  - `lifecycle-despawn-grace-window`
+
+Those two lifecycle entries are intentionally documentation-only today. They
+track the remaining spawn-failure cleanup and despawn-grace gaps without
+claiming that the current smoke stack already proves them.
+
 The runbook-backed scenarios use:
 
 - `tools/ci/playerbot-combat-smoke.sh`
@@ -114,8 +125,10 @@ The runbook-backed scenarios use:
 
 Highest-value missing additions after this expansion:
 
-- closeout-focused stress coverage for repeated transition windows
-- richer scenario automation for remaining open market/item/mechanic fronts
+- repo-local lifecycle helpers that can promote spawn-failure cleanup and
+  despawn grace from documented runbooks into passing automated checks
+- richer scenario automation for remaining open market/item/mechanic/lifecycle
+  fronts
 
 ## CLI Contract
 
@@ -136,6 +149,8 @@ bash tools/ci/playerbot-scenario.sh run combat-skillunit-promotion-precheck
 bash tools/ci/playerbot-scenario.sh run market-mail-delivery-integrity
 bash tools/ci/playerbot-scenario.sh run loadout-overlap-continuity
 bash tools/ci/playerbot-scenario.sh run combat-repeated-transition-stress
+bash tools/ci/playerbot-scenario.sh show lifecycle-spawn-failure-cleanup
+bash tools/ci/playerbot-scenario.sh show lifecycle-despawn-grace-window
 bash tools/ci/playerbot-scenario.sh run foundation-rich-gate
 ```
 
@@ -147,6 +162,8 @@ Expected behavior:
 - `checklist` prints only the steps
 - `template` prints a copy/paste scenario skeleton
 - `run` prints the runbook and, when available, the repo-local launcher/check flow
+- lifecycle scenarios that do not yet have a launcher are expected to print the
+  skeleton/manual-runbook fallback text
 
 ## Definition Flow
 
@@ -186,3 +203,5 @@ the foundation closeout checklist:
 - market/session execution depth
 - equip/use/consume continuity depth
 - combat-event repeated-transition continuity
+- lifecycle fronts that are still documentation-only should be called out as
+  manual/not-yet-automated so the closeout docs do not overclaim runtime proof

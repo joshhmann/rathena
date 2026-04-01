@@ -1594,6 +1594,17 @@ void chrif_headlesspc_mark_spawn_ready(uint32 char_id) {
 		headlesspc_runtime_upsert(char_id, sd->m, headlesspc_current_x(sd), headlesspc_current_y(sd));
 }
 
+void chrif_headlesspc_abort_spawn(uint32 char_id) {
+	if (char_id == 0)
+		return;
+
+	headlesspc_clear_pending_spawn(char_id);
+	headlesspc_clear_pending_walk(char_id);
+	headlesspc_route_reset(char_id);
+	headlesspc_owner_reset(char_id);
+	headlesspc_runtime_delete(char_id);
+}
+
 /*==========================================
  * Request auth confirmation
  *------------------------------------------*/

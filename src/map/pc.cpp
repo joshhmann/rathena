@@ -15895,7 +15895,8 @@ void pc_scdata_received(map_session_data *sd) {
 	sd->state.pc_loaded = true;
 
 	if (sd->state.headless_bot) {
-		clif_headless_pc_load(sd);
+		if (!clif_headless_pc_load(sd))
+			return;
 		pc_playerbot_reconcile_loadout(sd, "spawn", nullptr, nullptr, nullptr);
 	} else if (sd->state.connect_new == 0 && sd->fd) { // Character already loaded map! Gotta trigger LoadEndAck manually.
 		sd->state.connect_new = 1;

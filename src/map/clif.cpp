@@ -11474,13 +11474,13 @@ void clif_parse_QuitGame(int32 fd, map_session_data *sd)
 	}
 }
 
-void clif_headless_pc_load(map_session_data *sd)
+bool clif_headless_pc_load(map_session_data *sd)
 {
 	if (sd == nullptr || sd->prev != nullptr)
-		return;
+		return false;
 
 	if (!sd->state.active || !sd->state.pc_loaded)
-		return;
+		return false;
 
 	sd->state.warping = 0;
 
@@ -11501,7 +11501,14 @@ void clif_headless_pc_load(map_session_data *sd)
 	if (map_addblock(sd)) {
 		ShowWarning("headless_pc: map_addblock failed for %s (%u:%u)\n",
 			sd->status.name, sd->status.account_id, sd->status.char_id);
-		return;
+		if (mapdata->users > 0 && --mapdata->users == 0 && battle_config.dynamic_mobs)
+			map_removemobs(sd->m);
+		if (!pc_isinvisible(sd) && mapdata->users_pvp > 0)
+			--mapdata->users_pvp;
+		pc_delinvincibletimer(sd);
+		chrif_headlesspc_abort_spawn(sd->status.char_id);
+		map_quit(sd);
+		return false;
 	}
 
 	clif_spawn(sd);
@@ -11515,6 +11522,8 @@ void clif_headless_pc_load(map_session_data *sd)
 
 	if (!sd->state.autotrade)
 		npc_script_event(*sd, NPCE_LOGIN);
+
+	return true;
 }
 
 

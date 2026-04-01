@@ -51,7 +51,7 @@ Layer labels:
 | Remove / save | ✓ | foundation | Sequence-tracked, ack-persisted |
 | Reconcile / stale-state recovery | ✓ | foundation | Targeted reconcile-and-retry lane |
 | Despawn grace window | ✗ | foundation | Map empties → instant despawn today; grace window is documented as preferred but not implemented |
-| Spawn-failure cleanup | ✗ | foundation | Partial bring-up has no explicit failure-completion path (edge case #7) |
+| Spawn-failure cleanup | ✓ | foundation | `map_addblock` failure now rolls back partial headless load state and stops pre-ready follow-on reconcile work |
 | Companion state at spawn | ✗ (blocked) | foundation | Pet / homunculus / mercenary / elemental presence rejects spawn — see Companions section |
 
 ---
@@ -276,16 +276,15 @@ behavior phase.
 These need to be addressed before the behavior phase is safe to build on them:
 
 1. Despawn grace window
-2. Spawn-failure explicit cleanup path
-3. PvP / WoE death semantics verification
-4. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
-5. Buying store partial fill, reopen, denial continuity
-6. Mail delivery integrity
-7. Loadout denial recovery, overlap continuity
-8. Refine / reform / enchantgrade execution semantics
-9. Card insertion execution semantics
-10. Guild storage hardening
-11. Skillunit promotion precheck and aggregate gate promotion
+2. PvP / WoE death semantics verification
+3. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
+4. Buying store partial fill, reopen, denial continuity
+5. Mail delivery integrity
+6. Loadout denial recovery, overlap continuity
+7. Refine / reform / enchantgrade execution semantics
+8. Card insertion execution semantics
+9. Guild storage hardening
+10. Skillunit promotion precheck and aggregate gate promotion
 
 ### Behavior-layer targets (after foundation closes)
 
