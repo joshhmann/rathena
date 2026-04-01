@@ -78,6 +78,7 @@ check_denied() {
 		loadout_conflict_cleared_ok=1 loadout_map_move_ok=1 \
 		loadout_map_cont_ok=1 loadout_map_return_ok=1 \
 		loadout_map_return_cont_ok=1 loadout_continuity_ok=1 \
+		loadout_cycle_count=3 \
 		loadout_audit_ok=1 || signal_failures=$?
 	failures=$((failures + signal_failures))
 	signal_failures=0

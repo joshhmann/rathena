@@ -543,7 +543,7 @@ S_Run:
 	.@loadout_map_return_cont_ok = (.@loadout_map_return_ok && callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1);
 	.@loadout_pot_inv_expected = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501);
 	.@loadout_pot_storage_expected = callfunc("F_PB_ITEM_Count", .bot_key$, "storage", 501);
-	.@loadout_cont_cycles = 2;
+	.@loadout_cont_cycles = 3;
 	.@loadout_continuity_ok = 1;
 	.@loadout_cycle_count = 0;
 	query_sql(
@@ -585,11 +585,16 @@ S_Run:
 		if (.@loop_map_return_ok)
 			sleep 700;
 		.@loop_map_return_cont_ok = (.@loop_map_return_ok && callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1);
+		.@loop_overlap_withdraw_ok = (.@loop_map_return_cont_ok && playerbot_storagewithdraw(.bot_key$, 501, 1));
+		.@loop_overlap_deposit_ok = (.@loop_overlap_withdraw_ok && playerbot_storagedeposit(.bot_key$, 501, 1));
+		.@loop_overlap_unequip_ok = (.@loop_overlap_deposit_ok && playerbot_itemunequip(.bot_key$, 1201));
+		.@loop_overlap_reequip_ok = (.@loop_overlap_unequip_ok && playerbot_itemequip(.bot_key$, 1201));
 		.@loop_pot_inv_ok = (callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501) == .@loadout_pot_inv_expected);
 		.@loop_pot_storage_ok = (callfunc("F_PB_ITEM_Count", .bot_key$, "storage", 501) == .@loadout_pot_storage_expected);
 		.@loop_ok = (.@loop_unequip_ok && .@loop_unequipped_ok && .@loop_kill_ok && .@loop_dead_ok
 			&& .@loop_respawn_req_ok && .@loop_respawn_ok && .@loop_respawn_loadout_ok
 			&& .@loop_map_move_ok && .@loop_map_cont_ok && .@loop_map_return_ok && .@loop_map_return_cont_ok
+			&& .@loop_overlap_withdraw_ok && .@loop_overlap_deposit_ok && .@loop_overlap_unequip_ok && .@loop_overlap_reequip_ok
 			&& .@loop_pot_inv_ok && .@loop_pot_storage_ok);
 		if (!.@loop_ok) {
 			.@loadout_continuity_ok = 0;
@@ -716,12 +721,14 @@ S_Run:
 		.@loadout_conflict_audits);
 	.@loadout_audit_ok = (.@loadout_audits >= 6 && .@loadout_mapchange_audits >= 1 && .@loadout_missing_audits >= 1 && .@loadout_denied_audits >= 1 && .@loadout_conflict_audits >= 1);
 
-	headlesspc_remove(.char_id);
-	for (.@i = 0; .@i < 10; ++.@i) {
-		sleep 300;
-		if (headlesspc_status(.char_id) == 0) {
-			.@park_ok = 1;
-			break;
+	for (.@park_try = 0; .@park_try < 3 && !.@park_ok; ++.@park_try) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 16; ++.@i) {
+			sleep 250;
+			if (headlesspc_status(.char_id) == 0) {
+				.@park_ok = 1;
+				break;
+			}
 		}
 	}
 

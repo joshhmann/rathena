@@ -6027,6 +6027,50 @@ into the full closeout matrix so it is executed as part of full-gate closeout.
 - Advances closeout front #5 (`broader combat-event continuity under repeated transitions`)
   from catalog-only to executed full-matrix validation.
 
+## Slice 95: Deepen Loadout Overlap Continuity And Harden Aggregate Stage Exits
+
+### Summary
+
+Expanded the item continuity overlap proof and hardened stage exit determinism
+to prevent downstream cascade failures in aggregate foundation runs.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_item_lab.txt`
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `tools/ci/playerbot-item-smoke.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Deepened item overlap continuity:
+  - increased loadout continuity loop from 2 to 3 cycles
+  - each cycle now includes overlap actions after return-map continuity:
+    - `storagewithdraw(501,1)` + `storagedeposit(501,1)`
+    - `itemunequip(1201)` + `itemequip(1201)`
+  - loop still requires no drift on expected inventory/storage potion counts
+  - item smoke now requires `loadout_cycle_count=3`
+- Hardened aggregate stage exit determinism:
+  - item selftest park step now retries remove/wait before final fail
+  - merchant selftest spawn step now waits for prior remove to settle and
+    retries spawn before failing
+
+### Validation
+
+- `bash tools/ci/playerbot-item-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- Observed:
+  - `playerbot_item_selftest ... loadout_continuity_ok=1 loadout_cycle_count=3 ... park_ok=1 result=1`
+  - aggregate quick gate returns:
+    - `[foundation-gate] quick: pass`
+
+### Roadmap Impact
+
+- Advances closeout front #4 (`deeper equip/use/consume continuity under overlapping transitions`)
+  with stronger in-cycle overlap proofs.
+- Improves closeout front #1 determinism by reducing cascade failures from
+  stage-exit timing races.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

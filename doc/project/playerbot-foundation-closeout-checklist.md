@@ -43,7 +43,12 @@ Current closeout status:
      (material or zeny delta), not trace-only acceptance
    - mech re-exec setup now resets live enchant item state before regrant
    - aggregate quick gate is green with `enchant_reexec_ok=1` and `enchant_reexec_clear_ok=1`
-4. Deeper equip/use/consume continuity under overlapping transitions: pending
+4. Deeper equip/use/consume continuity under overlapping transitions: in progress
+   - loadout overlap continuity loop increased to 3 cycles in aggregate item
+     selftest
+   - each cycle now proves overlap actions (storage withdraw/deposit and
+     equip re-toggle) while preserving loadout + consumable invariants
+   - item smoke now requires `loadout_cycle_count=3`
 5. Broader combat-event continuity under repeated transitions: in progress
    - repeated-transition stress now checks combat continuity + market commit +
      item loadout continuity + full mechanic re-exec (refine/reform/enchant)

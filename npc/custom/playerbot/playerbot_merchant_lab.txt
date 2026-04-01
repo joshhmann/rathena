@@ -190,14 +190,20 @@ function	script	F_PB_MerchantSelftest_Run	{
 		.@seller_market_y = $@pbbot_market_y;
 		if (headlesspc_status($@pbbot_char_id) == 2)
 			headlesspc_remove($@pbbot_char_id);
-		sleep 600;
-		debugmes "playerbot_merchant_selftest: step=spawn.";
-		headlesspc_spawn($@pbbot_char_id, $@pbbot_market_map$, $@pbbot_market_x, $@pbbot_market_y);
-		for (.@i = 0; .@i < 20; ++.@i) {
-			sleep 500;
-			if (headlesspc_status($@pbbot_char_id) == 2 && playerbot_pcloaded(.@bot_key$) > 0) {
-				.@spawn_ok = 1;
+		for (.@i = 0; .@i < 12; ++.@i) {
+			sleep 250;
+			if (headlesspc_status($@pbbot_char_id) != 2)
 				break;
+		}
+		debugmes "playerbot_merchant_selftest: step=spawn.";
+		for (.@spawn_try = 0; .@spawn_try < 3 && !.@spawn_ok; ++.@spawn_try) {
+			headlesspc_spawn($@pbbot_char_id, $@pbbot_market_map$, $@pbbot_market_x, $@pbbot_market_y);
+			for (.@i = 0; .@i < 20; ++.@i) {
+				sleep 500;
+				if (headlesspc_status($@pbbot_char_id) == 2 && playerbot_pcloaded(.@bot_key$) > 0) {
+					.@spawn_ok = 1;
+					break;
+				}
 			}
 		}
 		if (.@spawn_ok) {
