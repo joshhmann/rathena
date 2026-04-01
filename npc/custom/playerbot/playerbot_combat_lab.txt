@@ -1009,8 +1009,8 @@ S_Run:
 		+ "AND `target_type` = 'skill_pos' AND `target_id` = '" + .@quit_skill_id + "' "
 		+ "AND `action` = 'combat.completed' AND `result` = 'ok' "
 		+ "AND `id` > '" + .@sunit_int_trace_before + "'",
-		.@skillunit_interrupt_trace_ok_count);
-	.@skillunit_interrupt_active_ok = (.@skillunit_interrupt_req_ok && (.@skillunit_interrupt_unit_ok || .@skillunit_interrupt_trace_ok_count > 0));
+			.@sunit_int_trace_ok_cnt);
+	.@skillunit_interrupt_active_ok = (.@skillunit_interrupt_req_ok && (.@skillunit_interrupt_unit_ok || .@sunit_int_trace_ok_cnt > 0));
 	.@skillunit_interrupt_kill_ok = (.@skillunit_interrupt_active_ok && playerbot_kill(.bot_key$));
 	for (.@i = 0; .@i < 12; ++.@i) {
 		sleep 250;
