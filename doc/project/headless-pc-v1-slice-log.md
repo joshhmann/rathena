@@ -5905,6 +5905,43 @@ gate checkpoint failed at iteration `5/10` with:
 - Primary next feature closeout target remains:
   1. broader market/session execution semantics.
 
+## Slice 92: Merchant Mail-Path Observability During Active Sessions
+
+### Summary
+
+Extended merchant selftest market coverage with explicit mail-path telemetry
+during active vending, without tightening pass criteria on non-deterministic
+mail-denial outcomes.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+
+### What Changed
+
+- Added vend-phase mail observability fields:
+  - `mail_vend_denied_ok`
+  - `mail_vend_integrity_ok`
+- Added explicit DB before/after probes for `PB Market Vend Block` mail title.
+- Recorded whether vend-phase mail request was denied and whether mail-table
+  integrity remained stable while vending stayed active.
+- Kept aggregate merchant acceptance formula unchanged for these new fields
+  because vend-phase mail denial behavior is currently not deterministic.
+
+### Validation
+
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+- Result:
+  - merchant selftest remains `result=1`
+  - market smoke remains pass
+  - aggregate quick gate remains pass
+
+### Roadmap Impact
+
+- Continues closeout front #1 (`broader market/session execution semantics`)
+  by increasing evidence quality without introducing new gate flake risk.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

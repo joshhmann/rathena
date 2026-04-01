@@ -35,7 +35,9 @@ Current closeout status:
 1. Gate stability and determinism: in progress
    - full gate run reached `4/10` then failed at `5/10` on combat continuity loop flake
    - continuity loop retry hardening applied; quick gate is green again
-2. Market execution semantics beyond ownership continuity: next primary target
+2. Market execution semantics beyond ownership continuity: in progress
+   - merchant market selftest now emits vend-phase mail integrity telemetry
+   - pass criteria for new vend-mail signals intentionally deferred until denial semantics are deterministic
 3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: pending
 4. Deeper equip/use/consume continuity under overlapping transitions: pending
 5. Broader combat-event continuity under repeated transitions: pending
