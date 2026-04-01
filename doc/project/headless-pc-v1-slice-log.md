@@ -5894,6 +5894,54 @@ This slice does not change trade protocol semantics in C++ (`trade_tradeack`).
 It stabilizes script-side sequencing and gating in the participation selftest
 only.
 
+## Slice 70: Merchant/Participation Aggregate Flake Hardening
+
+### Summary
+
+Hardened aggregate foundation selftests against startup/readiness races observed
+in closeout loops (merchant spawn/bootstrap readiness and participation preflight
+trade/session cleanup).
+
+### Files
+
+- `npc/custom/playerbot/playerbot_merchant_lab.txt`
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Merchant selftest:
+  - strengthened spawn retries with explicit pre-remove + wait before each
+    retry.
+  - accepted spawn success on status + spawn-ack progression, even when
+    `playerbot_pcloaded` lags transiently.
+  - added `spawn_detail` debug output for failed spawn windows.
+  - added bounded bootstrap retry loop to tolerate immediate post-spawn
+    readiness lag (`seeded=0` transient).
+- Participation selftest:
+  - inserted explicit `F_PB_PART_RecoverAll(..., "PreflightRecover")` before
+    recover/quit subflows.
+  - increased force-clear trade retry window from 3 to 6 attempts.
+  - widened trade-live acceptance in force-clear retries to include either side
+    active/partnered before classifying as recoverable trade state.
+
+### Validation
+
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-participation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Observed:
+
+- market smoke passed with full merchant continuity signals.
+- participation smoke passed with `trade_force_clear_ok=1` and `result=1`.
+- quick foundation gate returned `quick: pass`.
+
+### Deferrals
+
+This slice does not alter core trade protocol semantics or closeout matrix
+thresholds. It targets script-side readiness/cleanup stability only.
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

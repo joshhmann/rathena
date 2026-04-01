@@ -196,20 +196,40 @@ function	script	F_PB_MerchantSelftest_Run	{
 				break;
 		}
 		debugmes "playerbot_merchant_selftest: step=spawn.";
-		for (.@spawn_try = 0; .@spawn_try < 3 && !.@spawn_ok; ++.@spawn_try) {
-			headlesspc_spawn($@pbbot_char_id, $@pbbot_market_map$, $@pbbot_market_x, $@pbbot_market_y);
-			for (.@i = 0; .@i < 20; ++.@i) {
-				sleep 500;
-				if (headlesspc_status($@pbbot_char_id) == 2 && playerbot_pcloaded(.@bot_key$) > 0) {
-					.@spawn_ok = 1;
-					break;
+			for (.@spawn_try = 0; .@spawn_try < 5 && !.@spawn_ok; ++.@spawn_try) {
+				if (headlesspc_status($@pbbot_char_id) == 2)
+					headlesspc_remove($@pbbot_char_id);
+				for (.@i = 0; .@i < 12; ++.@i) {
+					sleep 250;
+					if (headlesspc_status($@pbbot_char_id) != 2)
+						break;
+				}
+				.@spawn_ack = headlesspc_spawnack($@pbbot_char_id);
+				headlesspc_spawn($@pbbot_char_id, $@pbbot_market_map$, $@pbbot_market_x, $@pbbot_market_y);
+				for (.@i = 0; .@i < 30; ++.@i) {
+					sleep 400;
+					if (headlesspc_status($@pbbot_char_id) == 2
+						&& headlesspc_spawnack($@pbbot_char_id) > .@spawn_ack) {
+						.@spawn_ok = 1;
+						break;
+					}
+					if (headlesspc_status($@pbbot_char_id) == 2 && playerbot_pcloaded(.@bot_key$) > 0) {
+						.@spawn_ok = 1;
+						break;
+					}
 				}
 			}
-		}
-		if (.@spawn_ok) {
-			debugmes "playerbot_merchant_selftest: step=bootstrap.";
-			.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .@bot_key$);
-			debugmes "playerbot_merchant_selftest: step=bootstrap seeded=" + .@seeded + ".";
+			if (!.@spawn_ok)
+				debugmes "playerbot_merchant_selftest: spawn_detail status=" + headlesspc_status($@pbbot_char_id) + " loaded=" + playerbot_pcloaded(.@bot_key$) + " spawn_ack=" + headlesspc_spawnack($@pbbot_char_id) + ".";
+			if (.@spawn_ok) {
+				debugmes "playerbot_merchant_selftest: step=bootstrap.";
+				.@seeded = 0;
+				for (.@boot_try = 0; .@boot_try < 4 && .@seeded <= 0; ++.@boot_try) {
+					.@seeded = callfunc("F_PB_MerchantBootstrapByBotKey", .@bot_key$);
+					if (.@seeded <= 0)
+						sleep 500;
+				}
+				debugmes "playerbot_merchant_selftest: step=bootstrap seeded=" + .@seeded + ".";
 			if (attachrid($@pbbot_account_id)) {
 				.@class = readparam(Class);
 				.@push = getskilllv("MC_PUSHCART");

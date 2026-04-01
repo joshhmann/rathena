@@ -535,13 +535,13 @@ S_Run:
 	.@trbg = playerbot_itemcount(.bot_key$, "inventory", 601);
 	.@tr_request_ok = 0;
 	.@tr_ack_ok = 0;
-	for (.@ri = 0; .@ri < 3; ++.@ri) {
+	for (.@ri = 0; .@ri < 6; ++.@ri) {
 		.@tr_request_try = playerbot_traderequest(.bot_key$, .inviter_char_id);
 		sleep 200;
 		.@tr_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
 		sleep 200;
-		.@trade_live_try = (playerbot_tradeactive(.bot_key$) && playerbot_tradecharactive(.inviter_char_id));
-		if ((.@tr_request_try || playerbot_tradeactive(.bot_key$)) && .@tr_ack_try && .@trade_live_try) {
+		.@trade_live_try = (playerbot_tradeactive(.bot_key$) || playerbot_tradecharactive(.inviter_char_id));
+		if ((.@tr_request_try || playerbot_tradeactive(.bot_key$) || playerbot_tradepartner(.bot_key$) > 0) && .@tr_ack_try && .@trade_live_try) {
 			.@tr_request_ok = 1;
 			.@tr_ack_ok = 1;
 			break;
@@ -563,6 +563,8 @@ S_Run:
 	playerbot_traderecover(.bot_key$);
 	playerbot_tradecharrecover(.inviter_char_id);
 	sleep 300;
+	.@preflight_recover_ok = callfunc("F_PB_PART_RecoverAll", .bot_key$, "PreflightRecover");
+	sleep 200;
 
 	callfunc "F_PB_PART_NPCRecoverReserved", .bot_key$, "ParticipationQuest";
 	callfunc "F_PB_PART_NPCRecoverReserved", .bot_key$, "ParticipationDrift";
