@@ -6312,6 +6312,39 @@ with zero-cycle arguments.
 - Improves gate runner determinism and operator control during focused
   closeout probes.
 
+## Slice 102: Add Foundation Flake-Hunt Runner For Quick-Gate Repro
+
+### Summary
+
+Added a focused flake-hunt helper that repeatedly runs quick gate and
+automatically extracts high-signal diagnostics from failed logs.
+
+### Files
+
+- `tools/ci/playerbot-foundation-flake-hunt.sh` (new)
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Added `playerbot-foundation-flake-hunt.sh`:
+  - runs `playerbot-foundation-gate.sh quick` in a loop (`--runs N`)
+  - optional `--stop-on-fail`
+  - on failure, auto-extracts:
+    - selftest fail lines
+    - combat fail hints (`playerbot_combat_fail_hint*`)
+    - final stage/result lines for rapid triage
+  - exits non-zero when any run fails
+
+### Validation
+
+- `bash -n tools/ci/playerbot-foundation-flake-hunt.sh`
+- `bash tools/ci/playerbot-foundation-flake-hunt.sh --runs 2`
+
+### Roadmap Impact
+
+- Advances closeout front #1 (`gate stability and determinism`) by reducing
+  time-to-diagnosis for intermittent quick-gate failures.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

@@ -35,6 +35,8 @@ Current closeout status:
 1. Gate stability and determinism: in progress
    - full gate run reached `4/10` then failed at `5/10` on combat continuity loop flake
    - continuity loop retry hardening applied; quick gate is green again
+   - added repeated quick-gate flake-hunt helper with automatic fail-hint
+     extraction (`tools/ci/playerbot-foundation-flake-hunt.sh`)
 2. Market execution semantics beyond ownership continuity: in progress
    - merchant market selftest now emits vend-phase mail integrity telemetry
    - pass criteria for new vend-mail signals intentionally deferred until denial semantics are deterministic
