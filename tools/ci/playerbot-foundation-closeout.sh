@@ -8,6 +8,7 @@ LOG_FILE=""
 
 RUN_COUNT=10
 RICH_COUNT=5
+STRESS_RUNS=3
 STOP_ON_FAIL=1
 CHECK_SCENARIOS=1
 
@@ -18,7 +19,9 @@ Usage: bash tools/ci/playerbot-foundation-closeout.sh [options]
 Options:
   --run-count N         Number of aggregate foundation runs (default: 10)
   --rich-count N        Number of rich foundation runs (default: 5)
+  --stress-runs N       Number of repeated-transition stress runs (default: 3)
   --no-rich             Skip rich runs
+  --no-stress           Skip repeated-transition stress check
   --no-scenario-check   Skip scenario catalog presence checks
   --continue-on-fail    Continue after failures (default: stop on first failure)
   -h, --help            Show this help
@@ -42,6 +45,14 @@ while [[ $# -gt 0 ]]; do
 			;;
 		--no-rich)
 			RICH_COUNT=0
+			shift
+			;;
+		--stress-runs)
+			STRESS_RUNS="${2:?missing value for --stress-runs}"
+			shift 2
+			;;
+		--no-stress)
+			STRESS_RUNS=0
 			shift
 			;;
 		--no-scenario-check)
@@ -74,6 +85,11 @@ if ! [[ "$RICH_COUNT" =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
+if ! [[ "$STRESS_RUNS" =~ ^[0-9]+$ ]]; then
+	echo "--stress-runs must be a non-negative integer" >&2
+	exit 1
+fi
+
 cd "$REPO_ROOT"
 
 check_cmd() {
@@ -86,7 +102,7 @@ init_log() {
 	exec > >(tee -a "$LOG_FILE") 2>&1
 	echo "[foundation-closeout] log=${LOG_FILE}"
 	echo "[foundation-closeout] started=${RUN_TS}"
-	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
+	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
 }
 
 init_log
@@ -190,6 +206,12 @@ run_loop "foundation-run" "bash tools/ci/playerbot-foundation-smoke.sh run" "$RU
 echo "$RUN_LOOP_SUMMARY"
 
 run_loop "foundation-run-rich" "bash tools/ci/playerbot-foundation-smoke.sh run-rich" "$RICH_COUNT" || {
+	echo "$RUN_LOOP_SUMMARY"
+	exit 1
+}
+echo "$RUN_LOOP_SUMMARY"
+
+run_loop "combat-transition-stress" "bash tools/ci/playerbot-combat-transition-stress.sh --runs ${STRESS_RUNS} --strict-drift" 1 || {
 	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }

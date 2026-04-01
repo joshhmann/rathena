@@ -44,7 +44,11 @@ Current closeout status:
    - mech re-exec setup now resets live enchant item state before regrant
    - aggregate quick gate is green with `enchant_reexec_ok=1` and `enchant_reexec_clear_ok=1`
 4. Deeper equip/use/consume continuity under overlapping transitions: pending
-5. Broader combat-event continuity under repeated transitions: pending
+5. Broader combat-event continuity under repeated transitions: in progress
+   - repeated-transition stress now checks combat continuity + market commit +
+     item loadout continuity + full mechanic re-exec (refine/reform/enchant)
+   - closeout full matrix now executes repeated-transition stress after
+     aggregate/rich loops with strict drift enforcement
 6. Scenario coverage for all remaining open fronts: in progress
 7. Trace/audit reason/result quality and debuggability: in progress
 

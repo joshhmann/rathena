@@ -5986,6 +5986,47 @@ against a clean live item state.
 - Advances closeout front #2 (`mechanic execution semantics beyond session ownership`)
   by enforcing real execution semantics in the accepted aggregate gate.
 
+## Slice 94: Promote Repeated-Transition Stress Into Closeout Matrix
+
+### Summary
+
+Strengthened repeated-transition validation signals and promoted the stress run
+into the full closeout matrix so it is executed as part of full-gate closeout.
+
+### Files
+
+- `tools/ci/playerbot-combat-transition-stress.sh`
+- `tools/ci/playerbot-foundation-closeout.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+
+### What Changed
+
+- Expanded repeated-transition stress required signals:
+  - requires `playerbot_item_selftest ... loadout_continuity_ok=1 ... result=1`
+  - requires `playerbot_item_selftest_mech_reexec ...`
+    `refine_reexec_ok=1`, `reform_reexec_ok=1`, `enchant_reexec_ok=1`
+  - keeps combat continuity and market commit checks as hard requirements
+- Added repeated-transition stress execution to full closeout matrix:
+  - new `playerbot-foundation-closeout.sh` options:
+    - `--stress-runs N` (default `3`)
+    - `--no-stress`
+  - full closeout now runs:
+    1. aggregate loops
+    2. rich loops
+    3. repeated-transition stress checkpoint (`--strict-drift`)
+
+### Validation
+
+- `bash -n tools/ci/playerbot-combat-transition-stress.sh`
+- `bash -n tools/ci/playerbot-foundation-closeout.sh`
+- `bash tools/ci/playerbot-combat-transition-stress.sh --runs 2`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+### Roadmap Impact
+
+- Advances closeout front #5 (`broader combat-event continuity under repeated transitions`)
+  from catalog-only to executed full-matrix validation.
+
 ## Slice 69: Merchant Selftest Reentry Guard And Market Stress Stabilization
 
 ### Summary

@@ -61,18 +61,23 @@ failures=0
 
 check_output_signals() {
 	local output="$1"
-	local combat_line item_line market_line
+	local combat_line item_line mech_line market_line
 
 	combat_line="$(printf '%s\n' "$output" | grep 'playerbot_combat_selftest:' | tail -n 1 || true)"
 	item_line="$(printf '%s\n' "$output" | grep 'playerbot_item_selftest:' | tail -n 1 || true)"
+	mech_line="$(printf '%s\n' "$output" | grep 'playerbot_item_selftest_mech_reexec:' | tail -n 1 || true)"
 	market_line="$(printf '%s\n' "$output" | grep 'playerbot_merchant_selftest: bot_id=' | tail -n 1 || true)"
 
 	if [[ -z "$combat_line" || "$combat_line" != *"continuity_loop_ok=1"* || "$combat_line" != *"continuity_loop_count=3"* || "$combat_line" != *"result=1"* ]]; then
 		printf '[%s] missing/failed combat continuity signal.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi
-	if [[ -z "$item_line" || "$item_line" != *"mech_refine_reexec_ok=1"* || "$item_line" != *"result=1"* ]]; then
+	if [[ -z "$item_line" || "$item_line" != *"loadout_continuity_ok=1"* || "$item_line" != *"result=1"* ]]; then
 		printf '[%s] missing/failed item mechanic re-execution signal.\n' "$PB_SMOKE_LABEL" >&2
+		return 1
+	fi
+	if [[ -z "$mech_line" || "$mech_line" != *"refine_reexec_ok=1"* || "$mech_line" != *"reform_reexec_ok=1"* || "$mech_line" != *"enchant_reexec_ok=1"* ]]; then
+		printf '[%s] missing/failed item mech re-exec detail signal.\n' "$PB_SMOKE_LABEL" >&2
 		return 1
 	fi
 	if [[ -z "$market_line" || "$market_line" != *"buying_commit_total_ok=1"* || "$market_line" != *"result=1"* ]]; then
