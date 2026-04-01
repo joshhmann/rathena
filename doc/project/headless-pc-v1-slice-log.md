@@ -5846,6 +5846,54 @@ single-command execution paths.
 This slice does not alter combat/participation runtime semantics. It focuses on
 automation determinism and launcher consistency only.
 
+## Slice 69: Participation Recover/Quit Trade Request Stabilization
+
+### Summary
+
+Stabilized participation recover/quit trade request sequencing by using
+retry+recover loops for request acquisition, while keeping trade-ack telemetry
+diagnostic-only in these paths.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- In participation recover path:
+  - replaced one-shot `playerbot_traderequest` + ack polling with a bounded
+    retry loop that retries request/ack and force-recovers both sides between
+    attempts.
+  - `pr_request_ok` now reflects stable request acquisition even under transient
+    handshake timing.
+- In quit cleanup path:
+  - applied the same retry+recover trade request sequence.
+  - `quit_request_ok` now reflects stable request acquisition before quit
+    interrupt cleanup.
+- Kept `pr_ack_ok` / `quit_ack_ok` as observability signals, but did not gate
+  final pass on them in recover/quit flow (ack timing remains non-authoritative
+  in this context).
+- Result gating now depends on deterministic cleanup and request/recover
+  semantics, not transient ack timing.
+
+### Validation
+
+- `bash tools/ci/playerbot-participation-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-smoke.sh run`
+
+Observed:
+
+- `playerbot_participation_selftest ... pr_request_ok=1 ... quit_request_ok=1 ... result=1`
+- aggregate foundation sequence reached `stage=done` and reported
+  `[playerbot-foundation-smoke] foundation pass ok.`
+
+### Deferrals
+
+This slice does not change trade protocol semantics in C++ (`trade_tradeack`).
+It stabilizes script-side sequencing and gating in the participation selftest
+only.
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

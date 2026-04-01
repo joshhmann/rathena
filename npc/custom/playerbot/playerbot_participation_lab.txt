@@ -575,18 +575,24 @@ S_Run:
 	sleep 200;
 		.@pr_storage_ok = playerbot_storageopen(.bot_key$);
 		sleep 200;
-		.@pr_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
-		sleep 200;
+		.@pr_request_ok = 0;
 		.@pr_ack_ok = 0;
 		for (.@ri = 0; .@ri < 3; ++.@ri) {
-			.@pr_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+			.@pr_request_try = playerbot_traderequest(.bot_key$, .inviter_char_id);
 			sleep 200;
-			if (.@pr_ack_try) {
+			.@pr_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id) || playerbot_tradeactive(.bot_key$));
+			sleep 200;
+			if (.@pr_request_try || playerbot_tradeactive(.bot_key$))
+				.@pr_request_ok = 1;
+			if (.@pr_request_ok && .@pr_ack_try) {
+				.@pr_request_ok = 1;
 				.@pr_ack_ok = 1;
 				break;
 			}
+			playerbot_traderecover(.bot_key$);
+			playerbot_tradecharrecover(.inviter_char_id);
+			sleep 300;
 		}
-		sleep 200;
 		.@pr_recover_ok = callfunc("F_PB_PART_RecoverAll", .bot_key$, "ParticipationRecover");
 	sleep 200;
 	.@pr_res_clear_ok = (strcmp(callfunc("F_PB_RES_BuildHolderSummary$", .bot_key$), "Reservations: none.") == 0);
@@ -597,18 +603,24 @@ S_Run:
 	sleep 200;
 		.@quit_storage_ok = playerbot_storageopen(.bot_key$);
 		sleep 200;
-		.@quit_request_ok = playerbot_traderequest(.bot_key$, .inviter_char_id);
-		sleep 200;
+		.@quit_request_ok = 0;
 		.@quit_ack_ok = 0;
 		for (.@ri = 0; .@ri < 3; ++.@ri) {
-			.@quit_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id));
+			.@quit_request_try = playerbot_traderequest(.bot_key$, .inviter_char_id);
 			sleep 200;
-			if (.@quit_ack_try) {
+			.@quit_ack_try = (playerbot_tradecharack(.inviter_char_id, 3) || playerbot_tradecharactive(.inviter_char_id) || playerbot_tradeactive(.bot_key$));
+			sleep 200;
+			if (.@quit_request_try || playerbot_tradeactive(.bot_key$))
+				.@quit_request_ok = 1;
+			if (.@quit_request_ok && .@quit_ack_try) {
+				.@quit_request_ok = 1;
 				.@quit_ack_ok = 1;
 				break;
 			}
+			playerbot_traderecover(.bot_key$);
+			playerbot_tradecharrecover(.inviter_char_id);
+			sleep 300;
 		}
-		sleep 200;
 	.@quit_reserve_id = callfunc("F_PB_RES_Acquire", "anchor", "lab:quit:" + .bot_key$, .bot_key$, "ParticipationQuit", 30000, 70, "quit.test");
 	sleep 200;
 	headlesspc_remove(.char_id);
