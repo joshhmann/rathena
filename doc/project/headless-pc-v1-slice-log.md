@@ -5792,6 +5792,60 @@ This slice does not add:
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
 
+## Slice 68: Scenario Launcher Automation Consistency
+
+### Summary
+
+Removed remaining manual login launcher drift for core scenario entries by
+adding missing `run` support to smoke helpers and wiring scenario launchers to
+single-command execution paths.
+
+### Files
+
+- `tools/ci/playerbot-participation-smoke.sh`
+- `tools/ci/playerbot-combat-skillunit-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `run` command support to `playerbot-participation-smoke.sh`:
+  - arms + restarts stack
+  - launches OpenKore in tmux
+  - waits for participation result line
+  - runs `check`
+- Tightened participation `check` to require a real selftest line and
+  `result=1` instead of best-effort grep output.
+- Added `run` command support to `playerbot-combat-skillunit-smoke.sh`:
+  - arms + restarts stack
+  - launches OpenKore in tmux
+  - waits for probe result line
+  - runs `check`
+- Tightened skillunit `check` to require a probe line and `result=1`.
+- Updated scenario launcher catalog so core scenarios now emit deterministic
+  one-command launchers:
+  - `playerbot-combat-smoke.sh run`
+  - `playerbot-combat-skillunit-smoke.sh run`
+  - `playerbot-combat-skillunit-precheck-smoke.sh run`
+  - `playerbot-item-smoke.sh run`
+  - `playerbot-participation-smoke.sh run`
+  - `playerbot-market-smoke.sh run`
+
+### Validation
+
+- `bash -n tools/ci/playerbot-participation-smoke.sh`
+- `bash -n tools/ci/playerbot-combat-skillunit-smoke.sh`
+- `bash -n tools/ci/playerbot-scenario-catalog.sh`
+- `bash tools/ci/playerbot-participation-smoke.sh --help`
+- `bash tools/ci/playerbot-combat-skillunit-smoke.sh --help`
+- `bash tools/ci/playerbot-scenario.sh --no-color run mechanic-cleanup`
+- `bash tools/ci/playerbot-scenario.sh --no-color run combat-skillunit-mapchange-cleanup`
+
+### Deferrals
+
+This slice does not alter combat/participation runtime semantics. It focuses on
+automation determinism and launcher consistency only.
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

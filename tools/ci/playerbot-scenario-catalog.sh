@@ -661,37 +661,37 @@ EOF
 playerbot_scenario_launcher() {
 	case "${1:-}" in
 		combat-baseline|status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|death-respawn)
-			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'
 			;;
 		combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup)
-			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-smoke.sh run'
 			;;
 		combat-skillunit-promotion-precheck)
-			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh run'
 			;;
 		combat-repeated-transition-stress)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-transition-stress.sh --runs 10'
 			;;
 		status-recovery-integrity)
-			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-combat-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'
 			;;
 		item-loadout-continuity)
-			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh run'
 			;;
 		loadout-denied-recover)
-			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied'
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh run'
 			;;
 		loadout-overlap-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-item-overlap-stress.sh --cycles 1'
 			;;
 		mechanic-cleanup)
-			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-participation-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-participation-smoke.sh run'
 			;;
 		mechanic-execution-rollback)
-			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-item-smoke.sh check-denied'
+			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh run'
 			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
-			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh arm && <log in with codex> && bash tools/ci/playerbot-market-smoke.sh check'
+			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh run'
 			;;
 		market-mail-delivery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-session-stress.sh --cycles 1'
