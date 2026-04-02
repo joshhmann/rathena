@@ -37,11 +37,13 @@ Current closeout status:
    - continuity loop retry hardening applied; quick gate is green again
    - added repeated quick-gate flake-hunt helper with automatic fail-hint
      extraction (`tools/ci/playerbot-foundation-flake-hunt.sh`)
-2. Market execution semantics beyond ownership continuity: in progress
+2. Market execution semantics beyond ownership continuity: complete
    - market smoke and market-session stress now prove buyingstore partial fill,
      reopen, denial continuity, and post-close mail delivery
-   - the remaining market gap is narrower: fuller Rodex receive/attachment
-     semantics and any dedicated NPC-shop proof we decide to require
+   - Rodex receive / attachment retrieval is now helper-backed through the
+     dedicated Rodex selftest lane
+   - any dedicated NPC-shop proof is now optional naming, not a required
+     foundation blocker
    - full closeout matrix now executes market-session stress as a dedicated
      checkpoint after overlap/combat stress
 3. Guild storage signal hardening: complete

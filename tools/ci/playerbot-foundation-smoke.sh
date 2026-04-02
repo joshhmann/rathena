@@ -88,6 +88,7 @@ arm() {
 ('\$PBFNST_ACTIVE', 0, '0'),
 ('\$PBCST_AUTORUN_AID', 0, '0'),
 ('\$PBCEDGE_AUTORUN_AID', 0, '0'),
+('\$PBMAIL_AUTORUN_AID', 0, '0'),
 ('\$PBGST_AUTORUN_AID', 0, '0'),
 ('\$PBITST_AUTORUN_AID', 0, '0'),
 ('\$PBMST_AUTORUN_AID', 0, '0'),

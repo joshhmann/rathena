@@ -1,0 +1,174 @@
+alberta,172,138,4	script	Playerbot Mail Lab	4_M_02,{
+	mes "[Playerbot Mail Lab]";
+	mes "Drive Rodex receive / attachment proof.";
+	next;
+
+	switch(select("Run Rodex attachment selftest:Close")) {
+	case 1:
+		setd("$PBMAIL_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotMailSelftest::OnManualStart";
+		mes "[Playerbot Mail Lab]";
+		mes "Rodex attachment selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	}
+	close;
+}
+
+-	script	PlayerbotMailSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBMAIL_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBMAIL_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBMAIL_MANUAL_AID;
+	setd("$PBMAIL_MANUAL_AID", 0);
+	if (.aid == 0)
+		.aid = getcharid(3);
+	callsub S_Run;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_mail_open";
+	.name$ = "QuickMailOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_mail_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.acc_id = $@pbbot_account_id;
+	.@sum_ok = ($@pbbot_found && .char_id > 0 && .acc_id > 0);
+	if (!.@sum_ok) {
+		debugmes "playerbot_mail_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+	.@ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 163, 144);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@ack && headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+	}
+	if (!.@spawn_ok) {
+		debugmes "playerbot_mail_selftest: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	.title$ = "PB Rodex Attach " + gettimetick(2);
+	query_sql("SELECT COALESCE(MAX(`id`),0) FROM `mail` WHERE `dest_id` = '" + .char_id + "' AND `title` = '" + .title$ + "'", .@old_id);
+	if (.@old_id > 0)
+		query_sql("DELETE FROM `mail_attachments` WHERE `id` = '" + .@old_id + "'");
+	query_sql("DELETE FROM `mail` WHERE `dest_id` = '" + .char_id + "' AND `title` = '" + .title$ + "'");
+
+	.@iv0 = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501);
+	if (attachrid(.acc_id)) {
+		.@zen0 = Zeny;
+		detachrid;
+	}
+
+	query_sql(
+		"INSERT INTO `mail` (`send_name`,`send_id`,`dest_name`,`dest_id`,`title`,`message`,`time`,`status`,`zeny`,`type`) VALUES ("
+		+ "'PB Rodex', '0', '" + .name$ + "', '" + .char_id + "', '" + .title$ + "', 'attachment test', UNIX_TIMESTAMP(), '0', '125', '0')");
+	query_sql("SELECT COALESCE(MAX(`id`),0) FROM `mail` WHERE `dest_id` = '" + .char_id + "' AND `title` = '" + .title$ + "'", .@m_id);
+	.@ins_ok = (.@m_id > 0);
+	if (.@ins_ok) {
+		query_sql(
+			"INSERT INTO `mail_attachments` (`id`,`index`,`nameid`,`amount`,`refine`,`attribute`,`identify`,`card0`,`card1`,`card2`,`card3`,`option_id0`,`option_val0`,`option_parm0`,`option_id1`,`option_val1`,`option_parm1`,`option_id2`,`option_val2`,`option_parm2`,`option_id3`,`option_val3`,`option_parm3`,`option_id4`,`option_val4`,`option_parm4`,`unique_id`,`bound`,`enchantgrade`) VALUES ("
+			+ "'" + .@m_id + "','0','501','1','0','0','1','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0','0')");
+		.@att_seed_ok = 1;
+	}
+
+	.@ref_ok = (.@att_seed_ok && playerbot_mailrefresh(.bot_key$, 0));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		.@find_id = playerbot_mailfind(.bot_key$, .title$);
+		if (.@find_id > 0) {
+			.@find_ok = 1;
+			break;
+		}
+	}
+	.@item_seed_ok = (.@find_ok && playerbot_mailitemtotal(.bot_key$, .@find_id) == 1);
+	.@zen_seed_ok = (.@find_ok && playerbot_mailzeny(.bot_key$, .@find_id) == 125);
+	.@get_ok = (.@item_seed_ok && .@zen_seed_ok && playerbot_mailgetattach(.bot_key$, .@find_id, 3));
+	for (.@i = 0; .@i < 16; ++.@i) {
+		sleep 250;
+		.@iv1 = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 501);
+		if (attachrid(.acc_id)) {
+			.@zen1 = Zeny;
+			detachrid;
+		}
+		if (.@iv1 >= .@iv0 + 1 && .@zen1 >= .@zen0 + 125) {
+			.@recv_ok = 1;
+			break;
+		}
+	}
+	.@ref2_ok = (.@recv_ok && playerbot_mailrefresh(.bot_key$, 0));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_mailitemtotal(.bot_key$, .@find_id) == 0 && playerbot_mailzeny(.bot_key$, .@find_id) == 0) {
+			.@clear_ok = 1;
+			break;
+		}
+	}
+	query_sql("SELECT COUNT(*) FROM `mail_attachments` WHERE `id` = '" + .@find_id + "'", .@db_att);
+	query_sql("SELECT COALESCE(MAX(`zeny`),0) FROM `mail` WHERE `id` = '" + .@find_id + "'", .@db_z);
+	.@db_ok = (.@db_att == 0 && .@db_z == 0);
+	query_sql("DELETE FROM `mail_attachments` WHERE `id` = '" + .@find_id + "'");
+	query_sql("DELETE FROM `mail` WHERE `id` = '" + .@find_id + "'");
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+
+	.@result = (.@sum_ok && .@spawn_ok && .@ins_ok && .@att_seed_ok && .@ref_ok && .@find_ok && .@item_seed_ok && .@zen_seed_ok && .@get_ok && .@recv_ok && .@ref2_ok && .@clear_ok && .@db_ok && .@park_ok);
+	debugmes "playerbot_mail_selftest: summary_ok=" + .@sum_ok + " spawn_ok=" + .@spawn_ok + " insert_ok=" + .@ins_ok + " attach_seed_ok=" + .@att_seed_ok + " refresh_ok=" + .@ref_ok + " find_ok=" + .@find_ok + " item_seed_ok=" + .@item_seed_ok + " zen_seed_ok=" + .@zen_seed_ok + " get_ok=" + .@get_ok + " recv_ok=" + .@recv_ok + " refresh2_ok=" + .@ref2_ok + " clear_ok=" + .@clear_ok + " db_ok=" + .@db_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

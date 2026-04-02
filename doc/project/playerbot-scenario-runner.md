@@ -63,6 +63,7 @@ The current catalog contains:
 - `market-buyingstore-reopen`
 - `market-buyingstore-denial-continuity`
 - `market-mail-delivery-integrity`
+- `market-rodex-receive-attachments`
 - `market-session-restart-continuity`
 - `lifecycle-spawn-failure-cleanup`
 - `lifecycle-despawn-grace-window`
@@ -102,6 +103,7 @@ These split into two groups:
   - `guild-storage-signal-integrity`
   - `market-buyingstore-partial-fill`
   - `market-buyingstore-reopen`
+  - `market-rodex-receive-attachments`
   - `market-buyingstore-denial-continuity`
   - `market-mail-delivery-integrity`
   - `market-session-restart-continuity`
@@ -135,6 +137,7 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-market-smoke.sh`
 - `tools/ci/playerbot-market-session-stress.sh`
 - `tools/ci/playerbot-guild-storage-smoke.sh`
+- `tools/ci/playerbot-rodex-attachment-smoke.sh`
 - `tools/ci/playerbot-combat-transition-stress.sh`
 - `tools/ci/playerbot-lifecycle-grace-smoke.sh`
 
@@ -162,6 +165,7 @@ bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
 bash tools/ci/playerbot-scenario.sh run combat-skillunit-promotion-precheck
 bash tools/ci/playerbot-scenario.sh run combat-pvp-woe-death-semantics
 bash tools/ci/playerbot-scenario.sh run market-mail-delivery-integrity
+bash tools/ci/playerbot-scenario.sh run market-rodex-receive-attachments
 bash tools/ci/playerbot-scenario.sh run loadout-overlap-continuity
 bash tools/ci/playerbot-scenario.sh run combat-repeated-transition-stress
 bash tools/ci/playerbot-scenario.sh show lifecycle-spawn-failure-cleanup

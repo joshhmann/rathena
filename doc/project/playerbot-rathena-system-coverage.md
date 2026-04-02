@@ -161,8 +161,8 @@ forgotten.
 | Buying store denial continuity | ✓ | foundation | Browse-inactive, wrong-item, overfill, and zeny-limit denial continuity is covered |
 | NPC shop buy / sell | ~ | foundation | NPC interaction layer covers this path; no dedicated bot-NPC-shop smoke |
 | Trade with players | ✓ | foundation | Trade session participation covered |
-| Mail send / receive (Rodex) | ~ | foundation | Active-session denial + post-close successful send/delivery are covered; receive/attachment semantics are still not proven |
-| Mail delivery integrity | ~ | foundation | Post-close mail delivery integrity is covered; full receive/attachment semantics remain open |
+| Mail send / receive (Rodex) | ✓ | foundation | Active-session denial, post-close send/delivery, inbox refresh, and receive/attachment retrieval are helper-backed |
+| Mail delivery integrity | ✓ | foundation | Post-close delivery plus receive/attachment cleanup are helper-backed |
 | Auction house | ✗ | behavior | Not addressed; depends on item and economy foundation |
 | Zeny routing / transfer | ~ | foundation | Covered implicitly through trade and market; no dedicated bot-zeny-routing surface |
 | Economy participation (market response) | ✗ | behavior | Bot deciding prices, restocking, responding to supply/demand is behavior |
@@ -175,7 +175,7 @@ forgotten.
 |--------|--------|-------|-------|
 | Kafra storage | ✓ | foundation | Deposit, withdraw, interrupted-session cleanup covered |
 | Guild storage | ~ | foundation | Helper-backed SQL demand/activity proof now exists; no full bot-driven guild-storage UI/runtime loop |
-| Extended storage (Rodex attachments) | ~ | foundation | Partial; mail attachment semantics not fully proven |
+| Extended storage (Rodex attachments) | ✓ | foundation | Helper-backed retrieval proof covers item + zeny attachment receive semantics |
 | Bank | ✓ | foundation | Bank session participation covered |
 
 ---
@@ -277,7 +277,6 @@ These remain outside the accepted core baseline even though the current
 foundation is now safe to build behavior work on:
 
 1. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
-2. Fuller Rodex receive / attachment semantics — future foundation extension
 
 ### Behavior-layer targets (after foundation closes)
 
@@ -306,8 +305,8 @@ Good first-wave behavior targets once the foundation is closed:
 
 ## Recommended Next Actions
 
-1. Treat fuller Rodex receive / attachment semantics as a future-foundation
-   extension unless a dedicated helper-backed proof lane is explicitly needed.
+1. Treat the companion lane (pet / homunculus / mercenary / elemental) as the
+   next optional foundation-extension sprint if extension work continues.
 
 2. Keep richer skillunit proof split/helper-backed until repeated aggregate
    evidence justifies promotion.

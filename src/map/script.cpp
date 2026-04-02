@@ -15293,6 +15293,39 @@ BUILDIN_FUNC(playerbot_sessionactive)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+static int32 playerbot_mail_find_index(const map_session_data* sd, const char* title)
+{
+	if (sd == nullptr || title == nullptr || *title == '\0')
+		return -1;
+
+	int32 match = -1;
+	int32 best_id = 0;
+	for (int32 i = 0; i < MAIL_MAX_INBOX; ++i) {
+		const mail_message& msg = sd->mail.inbox.msg[i];
+		if (msg.id <= 0)
+			continue;
+		if (strcmp(msg.title, title) != 0)
+			continue;
+		if (match < 0 || msg.id > best_id) {
+			match = i;
+			best_id = msg.id;
+		}
+	}
+
+	return match;
+}
+
+static int32 playerbot_mail_item_total(const mail_message& msg)
+{
+	int32 total = 0;
+	for (int32 i = 0; i < MAIL_MAX_ITEM; ++i) {
+		if (msg.item[i].nameid == 0 || msg.item[i].amount <= 0)
+			continue;
+		total += msg.item[i].amount;
+	}
+	return total;
+}
+
 BUILDIN_FUNC(playerbot_mailsend)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -15326,6 +15359,141 @@ BUILDIN_FUNC(playerbot_mailsend)
 	mail_send(sd, dest_name, title, body != nullptr ? body : "", body != nullptr ? static_cast<int32>(std::strlen(body)) : 0);
 	bool ok = (sd->cansendmail_tick != before_tick && DIFF_TICK(sd->cansendmail_tick, gettick()) > 0);
 	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "mail", dest_name, ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "mail.send", ok ? "mail.sent" : "mail.not_sent");
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_mailrefresh)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 type = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "mail_inbox", "refresh", "operator.start", "ok", "", "");
+
+	if (sd == nullptr || type < MAIL_INBOX_NORMAL || type > MAIL_INBOX_RETURNED) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail_inbox", "refresh", "target.invalid", "denied", "mail.refresh", sd == nullptr ? "bot.offline" : "mail.type.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (mail_invalid_operation(sd)) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail_inbox", "refresh", "target.invalid", "denied", "mail.refresh", "mail.invalid_operation");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool ok = (intif_Mail_requestinbox(sd->status.char_id, 1, static_cast<mail_inbox_type>(type)) != 0);
+	std::string detail = "amount=" + std::to_string(sd->mail.inbox.amount)
+		+ ",unread=" + std::to_string(sd->mail.inbox.unread)
+		+ ",unchecked=" + std::to_string(sd->mail.inbox.unchecked);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "mail_inbox", "refresh", ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "mail.refresh", detail.c_str());
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_mailcount)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	script_pushint(st, sd != nullptr ? sd->mail.inbox.amount : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_mailfind)
+{
+	const char* bot_key = script_getstr(st, 2);
+	const char* title = script_getstr(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	int32 idx = playerbot_mail_find_index(sd, title);
+	script_pushint(st, (sd != nullptr && idx >= 0) ? sd->mail.inbox.msg[idx].id : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_mailitemtotal)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 mail_id = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || mail_id <= 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 total = 0;
+	for (int32 i = 0; i < MAIL_MAX_INBOX; ++i) {
+		if (sd->mail.inbox.msg[i].id != mail_id)
+			continue;
+		total = playerbot_mail_item_total(sd->mail.inbox.msg[i]);
+		break;
+	}
+	script_pushint(st, total);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_mailzeny)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 mail_id = script_getnum(st, 3);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || mail_id <= 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 zeny = 0;
+	for (int32 i = 0; i < MAIL_MAX_INBOX; ++i) {
+		if (sd->mail.inbox.msg[i].id != mail_id)
+			continue;
+		zeny = sd->mail.inbox.msg[i].zeny;
+		break;
+	}
+	script_pushint(st, zeny);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_mailgetattach)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 mail_id = script_getnum(st, 3);
+	int32 type = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "mail_attach", std::to_string(mail_id).c_str(), "operator.start", "ok", "", "");
+
+	if (sd == nullptr || mail_id <= 0 || type <= MAIL_ATT_NONE || type > MAIL_ATT_ALL) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail_attach", std::to_string(mail_id).c_str(), "target.invalid", "denied", "mail.attach", sd == nullptr ? "bot.offline" : "mail.invalid");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (mail_invalid_operation(sd)) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail_attach", std::to_string(mail_id).c_str(), "target.invalid", "denied", "mail.attach", "mail.invalid_operation");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 idx = -1;
+	for (int32 i = 0; i < MAIL_MAX_INBOX; ++i) {
+		if (sd->mail.inbox.msg[i].id != mail_id)
+			continue;
+		idx = i;
+		break;
+	}
+	if (idx < 0) {
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "mail_attach", std::to_string(mail_id).c_str(), "target.invalid", "denied", "mail.attach", "mail.not_found");
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	bool ok = intif_mail_getattach(sd, &sd->mail.inbox.msg[idx], static_cast<mail_attachment_type>(type));
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, ok ? "interaction.completed" : "interaction.failed", "mail_attach", std::to_string(mail_id).c_str(), ok ? "operator.start" : "script.busy", ok ? "ok" : "aborted", ok ? "" : "mail.attach", ok ? "attachment.requested" : "attachment.not_requested");
 	script_pushint(st, ok ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
@@ -33548,6 +33716,12 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_sessionclose,"ss"),
 	BUILDIN_DEF(playerbot_sessionactive,"ss"),
 	BUILDIN_DEF(playerbot_mailsend,"ssss"),
+	BUILDIN_DEF(playerbot_mailrefresh,"si"),
+	BUILDIN_DEF(playerbot_mailcount,"s"),
+	BUILDIN_DEF(playerbot_mailfind,"ss"),
+	BUILDIN_DEF(playerbot_mailitemtotal,"si"),
+	BUILDIN_DEF(playerbot_mailzeny,"si"),
+	BUILDIN_DEF(playerbot_mailgetattach,"sii"),
 	BUILDIN_DEF(playerbot_vendingopen,"ssiii"),
 	BUILDIN_DEF(playerbot_vendingclose,"s"),
 	BUILDIN_DEF(playerbot_vendingactive,"s"),

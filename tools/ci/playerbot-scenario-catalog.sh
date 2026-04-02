@@ -25,6 +25,7 @@ playerbot_scenario_ids() {
 		'market-buyingstore-reopen' \
 		'market-buyingstore-denial-continuity' \
 		'market-mail-delivery-integrity' \
+		'market-rodex-receive-attachments' \
 		'market-session-restart-continuity' \
 		'lifecycle-spawn-failure-cleanup' \
 		'lifecycle-despawn-grace-window' \
@@ -56,6 +57,7 @@ playerbot_scenario_title() {
 		market-buyingstore-reopen) printf '%s\n' 'Market Buyingstore Reopen' ;;
 		market-buyingstore-denial-continuity) printf '%s\n' 'Market Buyingstore Denial Continuity' ;;
 		market-mail-delivery-integrity) printf '%s\n' 'Market Mail Delivery Integrity' ;;
+		market-rodex-receive-attachments) printf '%s\n' 'Market Rodex Receive / Attachments' ;;
 		market-session-restart-continuity) printf '%s\n' 'Market Session Restart Continuity' ;;
 		lifecycle-spawn-failure-cleanup) printf '%s\n' 'Lifecycle Spawn-Failure Cleanup' ;;
 		lifecycle-despawn-grace-window) printf '%s\n' 'Lifecycle Despawn Grace Window' ;;
@@ -72,7 +74,7 @@ playerbot_scenario_phase() {
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup|mechanic-execution-rollback) printf '%s\n' 'participation' ;;
 		guild-storage-signal-integrity) printf '%s\n' 'guild' ;;
-		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity) printf '%s\n' 'market' ;;
+		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-rodex-receive-attachments|market-session-restart-continuity) printf '%s\n' 'market' ;;
 		lifecycle-spawn-failure-cleanup|lifecycle-despawn-grace-window) printf '%s\n' 'lifecycle' ;;
 		foundation-rich-gate) printf '%s\n' 'foundation' ;;
 		*) return 1 ;;
@@ -198,6 +200,11 @@ EOF
 		market-mail-delivery-integrity)
 			cat <<'EOF'
 Validate market-adjacent mail/session continuity so send/delivery checks remain deterministic and do not block legal session close/recover paths.
+EOF
+			;;
+		market-rodex-receive-attachments)
+			cat <<'EOF'
+Validate that Rodex inbox refresh, receive, and attachment retrieval work for a live playerbot without duplicating inventory or leaving attachment residue in the mail tables.
 EOF
 			;;
 		market-session-restart-continuity)
@@ -449,6 +456,16 @@ EOF
 - verify market session close/recover paths still pass after mail activity
 EOF
 			;;
+		market-rodex-receive-attachments)
+			cat <<'EOF'
+- arm the dedicated Rodex attachment selftest helper
+- log in once with the `codex` OpenKore profile
+- verify the helper seeds one Rodex mail with one item attachment and zeny
+- verify inbox refresh finds the seeded mail
+- verify attachment retrieval increases the bot inventory and zeny exactly once
+- verify the mail row is cleared of attachment/zeny residue and the helper ends with `result=1`
+EOF
+			;;
 		market-session-restart-continuity)
 			cat <<'EOF'
 - run the market smoke restart-oriented cycle
@@ -631,6 +648,14 @@ EOF
 - no stale market session ownership remains in trace/audit outputs
 EOF
 			;;
+		market-rodex-receive-attachments)
+			cat <<'EOF'
+- `playerbot_mail_selftest ... result=1` is present
+- the selftest reports successful inbox refresh, mail lookup, attachment retrieval, and cleanup
+- recent traces show `mail_inbox` refresh and `mail_attach` request rows
+- mail table residue is cleared after retrieval
+EOF
+			;;
 		market-session-restart-continuity)
 			cat <<'EOF'
 - restart/reconnect preserves consistent market session ownership
@@ -758,6 +783,15 @@ The accepted proof uses the merchant selftest result line plus interaction trace
 summary to prove partial-fill and reopen continuity in one deterministic path.
 EOF
 			;;
+		market-rodex-receive-attachments)
+			cat <<'EOF'
+This scenario is backed by the dedicated Rodex helper:
+`tools/ci/playerbot-rodex-attachment-smoke.sh`.
+
+It proves inbox refresh plus attachment retrieval as a helper-backed mail
+surface without claiming full Rodex return/delete workflow coverage.
+EOF
+			;;
 		market-mail-delivery-integrity|market-session-restart-continuity)
 			cat <<'EOF'
 These scenarios extend market/session continuity coverage through aggregate
@@ -845,6 +879,9 @@ playerbot_scenario_launcher() {
 			;;
 		market-mail-delivery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-session-stress.sh --cycles 1'
+			;;
+		market-rodex-receive-attachments)
+			printf '%s\n' 'bash tools/ci/playerbot-rodex-attachment-smoke.sh run'
 			;;
 		market-session-restart-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-session-stress.sh --cycles 2'
