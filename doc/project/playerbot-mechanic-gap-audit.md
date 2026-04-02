@@ -63,9 +63,9 @@ The next unresolved mechanic-participation gaps are:
    - repeated combat/status/session transition stress is also green
    - helper-backed PvP nightmare-drop retention and WoE-style respawn routing
      are now verified
-   - the remaining combat question is policy rather than missing runtime proof:
-     - whether richer skill-unit proof should ever be merged into the aggregate
-       accepted frontier instead of staying split/helper-backed
+   - accepted boundary: keep richer skill-unit proof split/helper-backed rather
+     than forcing it into the aggregate frontier until a future sprint
+     intentionally revisits that tradeoff
 
 5. **Scenario coverage beyond the current accepted gates**
    - `mechanic-cleanup` is now runbook-backed

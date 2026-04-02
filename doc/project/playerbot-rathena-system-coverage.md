@@ -271,13 +271,13 @@ behavior phase.
 
 ## Summary by Layer
 
-### Foundation gaps still open
+### Foundation extensions / deferred edges
 
-These need to be addressed before the behavior phase is safe to build on them:
+These remain outside the accepted core baseline even though the current
+foundation is now safe to build behavior work on:
 
 1. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
-2. Fuller Rodex receive / attachment semantics
-3. Skillunit promotion precheck and aggregate-gate decision
+2. Fuller Rodex receive / attachment semantics — future foundation extension
 
 ### Behavior-layer targets (after foundation closes)
 
@@ -306,16 +306,14 @@ Good first-wave behavior targets once the foundation is closed:
 
 ## Recommended Next Actions
 
-1. Promote the companion block from implicit to explicit in
-   `headless-pc-edge-cases.md` — label each one as "future foundation
-   extension" with a note on what the extension would require.
+1. Treat fuller Rodex receive / attachment semantics as a future-foundation
+   extension unless a dedicated helper-backed proof lane is explicitly needed.
 
-2. Decide whether fuller Rodex receive / attachment semantics should become:
-   - a helper-backed proof lane in this foundation sprint, or
-   - an explicit future-foundation extension boundary.
-
-3. Keep richer skillunit proof split/helper-backed until repeated aggregate
+2. Keep richer skillunit proof split/helper-backed until repeated aggregate
    evidence justifies promotion.
+
+3. Begin behavior planning on top of the accepted foundation baseline once the
+   team is ready to leave extension-only work for a later sprint.
 
 4. Add the behavior-layer targets to `playerbot-future-design-notes.md` as
    named future commitments when they are ready to be scheduled.
