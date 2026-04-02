@@ -276,9 +276,8 @@ behavior phase.
 These need to be addressed before the behavior phase is safe to build on them:
 
 1. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
-2. Buying store partial fill, reopen, denial continuity
-3. Mail delivery integrity
-4. Skillunit promotion precheck and aggregate-gate decision
+2. Fuller Rodex receive / attachment semantics
+3. Skillunit promotion precheck and aggregate-gate decision
 
 ### Behavior-layer targets (after foundation closes)
 
@@ -307,16 +306,16 @@ Good first-wave behavior targets once the foundation is closed:
 
 ## Recommended Next Actions
 
-1. Add PvP and WoE death/respawn semantics as named edge cases in
-   `headless-pc-edge-cases.md`.
-
-2. Promote the companion block from implicit to explicit in
+1. Promote the companion block from implicit to explicit in
    `headless-pc-edge-cases.md` — label each one as "future foundation
    extension" with a note on what the extension would require.
 
-3. Add the remaining foundation gaps from the summary above to the closeout
-   checklist as the next wave of required checks after the current open fronts
-   close.
+2. Decide whether fuller Rodex receive / attachment semantics should become:
+   - a helper-backed proof lane in this foundation sprint, or
+   - an explicit future-foundation extension boundary.
+
+3. Keep richer skillunit proof split/helper-backed until repeated aggregate
+   evidence justifies promotion.
 
 4. Add the behavior-layer targets to `playerbot-future-design-notes.md` as
    named future commitments when they are ready to be scheduled.
