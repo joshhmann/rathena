@@ -1,0 +1,147 @@
+prontera,146,177,4	script	Playerbot Party Behavior Lab	4_F_KAFRA1,{
+	mes "[Playerbot Party Behavior Lab]";
+	mes "Run the first kernel-backed party/support behavior slice.";
+	next;
+
+	switch(select("Run party behavior selftest:Close")) {
+	case 1:
+		setd("$PBPARTYBHV_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotPartyBehaviorSelftest::OnManualStart";
+		mes "[Playerbot Party Behavior Lab]";
+		mes "Party behavior selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	}
+	close;
+}
+
+-	script	PlayerbotPartyBehaviorSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	.bot_key$ = "quick_party_open";
+	.display_name$ = "PBQParty01";
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBPARTYBHV_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBPARTYBHV_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBPARTYBHV_MANUAL_AID;
+	setd("$PBPARTYBHV_MANUAL_AID", 0);
+	if (.aid == 0)
+		.aid = getcharid(3);
+	callsub S_Run;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.@leader_char_id = getcharid(0);
+	warp "prontera", 139, 185;
+	if (!attachrid(.aid))
+		return;
+	.@leader_party_id = getcharid(1);
+	if (.@leader_party_id == 0)
+		.@party_created = party_create("PBBHV" + .@leader_char_id);
+	.@leader_party_id = getcharid(1);
+	.@bot_id = playerbot_profile(.bot_key$);
+	if (!.@bot_id)
+		.@bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.@bot_id) {
+		debugmes "playerbot_party_behavior_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	.@sum_ok = callfunc("F_PB_DB_LoadBotSummary", .bot_key$);
+	if (!.@sum_ok) {
+		debugmes "playerbot_party_behavior_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	query_sql(
+		"REPLACE INTO `bot_behavior_config` (`bot_id`, `profile_key`, `pool_key`, `controller_tag`, `interaction_policy`, `party_policy`, `presence_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`, `pulse_profile`) "
+		+ "VALUES ('" + $@pbbot_bot_id + "', 'behavior.party.test', 'pool.party.test', 'behavior.party', 'party_candidate', 'open', 'hybrid', 'party.day', 8, 22, 'assist.anchor')"
+	);
+	.@cfg_reload_ok = callfunc("F_PB_DB_LoadBotSummary", .bot_key$);
+	query_sql("DELETE FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` LIKE 'behavior." + $@pbbot_bot_id + ".%' ");
+	debugmes "playerbot_party_behavior_selftest_stage: phase=spawn bot_id=" + $@pbbot_bot_id + ".";
+	if (headlesspc_status($@pbbot_char_id) != 2) {
+		.@ack = headlesspc_spawnack($@pbbot_char_id);
+		headlesspc_spawn($@pbbot_char_id, "prontera", 160, 186);
+		for (.@i = 0; .@i < 12; ++.@i) {
+			sleep 250;
+			if (headlesspc_spawnack($@pbbot_char_id) > .@ack && headlesspc_status($@pbbot_char_id) == 2)
+				break;
+			if (headlesspc_status($@pbbot_char_id) == 2)
+				break;
+		}
+	}
+	.@spawn_ok = (headlesspc_status($@pbbot_char_id) == 2);
+	if (!attachrid(.aid)) {
+		debugmes "playerbot_party_behavior_selftest: attach_ok=0 result=0.";
+		return;
+	}
+	.@invite_ok = (.@spawn_ok && playerbot_partyinvite($@pbbot_char_id));
+	debugmes "playerbot_party_behavior_selftest_stage: phase=invite spawn_ok=" + .@spawn_ok + " invite_ok=" + .@invite_ok + " leader_party=" + .@leader_party_id + ".";
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_partyid($@pbbot_char_id) > 0 && playerbot_partyid($@pbbot_char_id) == .@leader_party_id) {
+			.@party_ok = 1;
+			break;
+		}
+	}
+	if (.@party_ok)
+		.@invite_ok = 1;
+	.@policy_bonus_assist = callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "assist");
+	.@policy_bonus_emote = callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "emote");
+	.@policy_bonus_idle = callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "idle");
+	.@policy_pick$ = callfunc("F_PB_BEHAVIOR_PickPolicy$", .bot_key$, 0,
+		"idle", 10, 0,
+		"emote", 10, 0,
+		"assist", 10, 0);
+	.@policy_ok = (.@cfg_reload_ok && .@policy_bonus_assist > .@policy_bonus_emote && .@policy_bonus_assist > .@policy_bonus_idle && .@policy_pick$ == "assist");
+	.@mark_ok = (.@policy_ok && callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, "assist", 10 + .@policy_bonus_assist, "party.assist.policy", 1000));
+	debugmes "playerbot_party_behavior_selftest_stage: phase=policy party_ok=" + .@party_ok + " pick=" + .@policy_pick$ + " mark_ok=" + .@mark_ok + ".";
+	set getvariableofnpc(.inviter_aid, "PlayerbotSelftest"), .aid;
+	donpcevent "PlayerbotSelftest::OnAssistStart";
+	debugmes "playerbot_party_behavior_selftest_stage: phase=assist-start.";
+	sleep 7500;
+	.@assist_ok = getvariableofnpc(.assist_result, "PlayerbotSelftest");
+	.@assist_log$ = getvariableofnpc(.assist_log$, "PlayerbotSelftest");
+	donpcevent "PlayerbotSelftest::OnAssistControllerStop";
+	debugmes "playerbot_party_behavior_selftest_stage: phase=assist-verify assist_ok=" + .@assist_ok + " log=" + .@assist_log$ + ".";
+	.@spawn_ok = (headlesspc_status($@pbbot_char_id) == 2);
+	.@party_ok = (playerbot_partyid($@pbbot_char_id) > 0 && playerbot_partyid($@pbbot_char_id) == .@leader_party_id);
+	if (.@party_ok)
+		.@invite_ok = 1;
+	.@summary$ = callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
+	.@summary_ok = (countstr(.@summary$, "presence=hybrid") > 0 && countstr(.@summary$, "controller=behavior.party") > 0 && countstr(.@summary$, "pulse=assist.anchor") > 0 && countstr(.@summary$, "last_action=assist") > 0);
+	headlesspc_remove($@pbbot_char_id);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (headlesspc_status($@pbbot_char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+	.@result = (.@sum_ok && .@cfg_reload_ok && .@spawn_ok && (.@invite_ok || .@party_ok) && .@party_ok && .@policy_ok && .@mark_ok && .@assist_ok && .@summary_ok && .@park_ok);
+	debugmes "playerbot_party_behavior_selftest: summary_ok=" + .@sum_ok + " cfg_ok=" + .@cfg_reload_ok + " spawn_ok=" + .@spawn_ok + " invite_ok=" + .@invite_ok + " party_ok=" + .@party_ok + " policy_pick$=" + .@policy_pick$ + " policy_ok=" + .@policy_ok + " mark_ok=" + .@mark_ok + " assist_ok=" + .@assist_ok + " summary_build_ok=" + .@summary_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

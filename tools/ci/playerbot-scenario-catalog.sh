@@ -11,6 +11,7 @@ playerbot_scenario_ids() {
 		'combat-repeated-transition-stress' \
 		'companion-spawn-continuity' \
 		'behavior-social-presence' \
+		'behavior-party-support' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -45,6 +46,7 @@ playerbot_scenario_title() {
 		combat-repeated-transition-stress) printf '%s\n' 'Combat Repeated Transition Stress' ;;
 		companion-spawn-continuity) printf '%s\n' 'Companion Spawn Continuity' ;;
 		behavior-social-presence) printf '%s\n' 'Behavior Social Presence' ;;
+		behavior-party-support) printf '%s\n' 'Behavior Party Support' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -75,6 +77,7 @@ playerbot_scenario_phase() {
 		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-pvp-woe-death-semantics|combat-repeated-transition-stress) printf '%s\n' 'combat' ;;
 		companion-spawn-continuity) printf '%s\n' 'lifecycle' ;;
 		behavior-social-presence) printf '%s\n' 'behavior' ;;
+		behavior-party-support) printf '%s\n' 'behavior' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
@@ -136,6 +139,11 @@ EOF
 		behavior-social-presence)
 			cat <<'EOF'
 Validate the first town/social behavior family on top of the shared behavior kernel: a recurring bot should choose among idle, emote, and hotspot reposition actions and leave inspectable decision memory.
+EOF
+			;;
+		behavior-party-support)
+			cat <<'EOF'
+Validate the first party/support behavior family on top of the shared behavior kernel: a party-capable bot should choose assist as the winning action under party-friendly policy and then complete the existing assist-anchor runtime.
 EOF
 			;;
 		status-continuity)
@@ -444,6 +452,15 @@ EOF
 - confirm the printed behavior memory rows include `last_action`, `last_reason`, and the social hotspot memory row
 EOF
 			;;
+		behavior-party-support)
+			cat <<'EOF'
+- arm the dedicated party-behavior helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-party-behavior-smoke.sh check`
+- confirm the selftest line contains `policy_pick$=assist`, `assist_ok=1`, and `result=1`
+- confirm the printed behavior memory rows include `last_action=assist` and `last_reason=party.assist.policy`
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 - clear any previous sentinel guild-storage probe rows
@@ -666,6 +683,13 @@ EOF
 - current behavior memory rows include `last_action`, `last_reason`, and `social.hotspot`
 EOF
 			;;
+		behavior-party-support)
+			cat <<'EOF'
+- `playerbot_party_behavior_selftest ... result=1` is present
+- the selftest reports `policy_pick$=assist`, `policy_ok=1`, and `assist_ok=1`
+- current behavior memory rows include `last_action=assist` and `last_reason=party.assist.policy`
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
@@ -806,6 +830,15 @@ It is the first real behavior-family proof on top of the kernel scaffold and is
 currently limited to deterministic town/social presence choices.
 EOF
 			;;
+		behavior-party-support)
+			cat <<'EOF'
+This scenario is backed by the dedicated party behavior helper:
+`tools/ci/playerbot-party-behavior-smoke.sh`.
+
+It proves the first kernel-backed party/support behavior slice by combining
+config-driven assist choice with the existing hidden party assist runtime.
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 This scenario is backed by the SQL-safe guild storage helper:
@@ -925,6 +958,9 @@ playerbot_scenario_launcher() {
 			;;
 		behavior-social-presence)
 			printf '%s\n' 'bash tools/ci/playerbot-social-behavior-smoke.sh run'
+			;;
+		behavior-party-support)
+			printf '%s\n' 'bash tools/ci/playerbot-party-behavior-smoke.sh run'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'

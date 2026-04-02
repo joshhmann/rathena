@@ -45,12 +45,20 @@ The first real family now also exists in focused proof form through:
 
 - `npc/custom/playerbot/playerbot_social_behavior_lab.txt`
 - `tools/ci/playerbot-social-behavior-smoke.sh`
+- `npc/custom/playerbot/playerbot_party_behavior_lab.txt`
+- `tools/ci/playerbot-party-behavior-smoke.sh`
 
 Current social-family proof:
 
 - a town/social bot chooses among idle, emote, and hotspot actions
 - decision memory remains inspectable through shared memory
 - hotspot movement is proven at least once in the deterministic selftest path
+
+Current party/support-family proof:
+
+- a party-capable bot chooses `assist` as the winning action under party-friendly policy
+- the chosen action is persisted through the shared behavior memory surface
+- the existing assist-anchor runtime completes against the moved leader target
 
 ---
 

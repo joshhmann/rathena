@@ -10633,3 +10633,49 @@ This slice intentionally does not add:
 - party/support behavior
 - merchant/economy behavior
 - combat behavior
+
+## Slice 63: First Party / Support Behavior Family Proof
+
+### Summary
+
+Added the first kernel-backed party/support behavior proof by combining
+config-driven `assist` selection with the existing hidden party assist runtime.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `npc/custom/playerbot/playerbot_party_behavior_lab.txt`
+- `tools/ci/playerbot-party-behavior-smoke.sh`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-scenario.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended the config-backed kernel bonus surface to understand party-oriented
+  actions like `assist`.
+- Added a dedicated party behavior lab and hidden selftest that:
+  - seeds a party-friendly `bot_behavior_config` row
+  - proves the kernel picks `assist`
+  - reuses the existing hidden assist-anchor runtime for movement proof
+- Added a dedicated party behavior smoke helper and scenario entry.
+
+### Validation
+
+- `bash tools/ci/playerbot-party-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-party-support`
+- `bash -n tools/ci/playerbot-party-behavior-smoke.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- richer support role differentiation
+- combat-aware support/heal logic
+- merchant/economy behavior
+- broader ambient/controller social promotion

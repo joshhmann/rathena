@@ -50,6 +50,7 @@ The current catalog contains:
 - `combat-repeated-transition-stress`
 - `companion-spawn-continuity`
 - `behavior-social-presence`
+- `behavior-party-support`
 - `market-rodex-receive-attachments`
 - `status-continuity`
 - `status-death-cleanup`
@@ -96,6 +97,7 @@ These split into two groups:
   - `combat-repeated-transition-stress`
   - `companion-spawn-continuity`
   - `behavior-social-presence`
+  - `behavior-party-support`
   - `market-rodex-receive-attachments`
   - `status-continuity`
   - `status-death-cleanup`

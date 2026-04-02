@@ -83,6 +83,22 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 3;
 		if (countstr(.@pulse_profile$[0], "square") > 0)
 			.@bonus += 1;
+	} else if (.@action$ == "assist") {
+		if (.@interaction_policy$[0] == "party_candidate")
+			.@bonus += 4;
+		if (.@party_policy$[0] == "open")
+			.@bonus += 6;
+		else if (.@party_policy$[0] == "selective")
+			.@bonus += 3;
+		if (countstr(.@pulse_profile$[0], "assist") > 0)
+			.@bonus += 2;
+	} else if (.@action$ == "follow") {
+		if (.@interaction_policy$[0] == "party_candidate")
+			.@bonus += 3;
+		if (.@party_policy$[0] == "open")
+			.@bonus += 4;
+		else if (.@party_policy$[0] == "selective")
+			.@bonus += 2;
 	} else if (.@action$ == "idle") {
 		if (.@presence_policy$[0] == "schedule_gated")
 			.@bonus += 2;
