@@ -5,35 +5,49 @@
 Turn the current `headless_pc` and playerbot demos into a decision-complete
 execution plan that can be worked in parallel without constant merge conflicts.
 
-This plan starts from the current repo state after:
+This plan now starts from the current repo state after the accepted
+playerbot foundation closeout and the requested follow-on extensions.
 
-- `headless_pc` lifecycle/durability work
-- scheduler/controller demos
-- config-backed social controllers
-- script-only parked pool assignment
+Current planning split:
+
+- `doc/project/playerbot-rathena-system-coverage.md` — authoritative system map
+- `doc/project/playerbot-foundation-program.md` — historical foundation program
+- `doc/project/playerbot-behavior-phase-plan.md` — next-phase behavior plan
 
 ## Current Baseline
 
-Already proven:
+Accepted foundation/base complete:
 
 - socketless `BL_PC` bring-up
 - spawn/remove/reconcile/restore lifecycle
 - owner-aware control and routing
-- controller demos for patrol, escort, follow, and formation
 - scheduler, grace windows, and parked/offline lifecycle
-- config-backed social controllers
-- script-only parked pool assignment
-- OpenKore CLI smoke testing
+- provisioning + persistent identity linkage
+- reservation / trace / recovery audit surfaces
+- party/guild/merchant/player-system participation foundations
+- item/loadout/mechanic execution semantics
+- combat/death/respawn/status continuity
+- helper-backed PvP / WoE death semantics
+- helper-backed Rodex receive / attachment retrieval
+- helper-backed pet / mercenary / elemental continuity
+- OpenKore CLI smoke testing and scenario-runner coverage
 
-Still missing:
+Intentionally excluded from the accepted baseline:
 
-- scheduler budgeting from real pool supply
-- provisioning workflow
-- routine/timezone scheduling
-- party/combat/merchant semantics
-- progression state
+- homunculus
 
-## Phase Order
+Behavior is now the primary frontier.
+
+The detailed phase order for that frontier lives in:
+
+- `doc/project/playerbot-behavior-phase-plan.md`
+
+## Historical Phase Order
+
+The sections below capture the execution order that got the project from
+headless-PC bring-up to the closed foundation baseline. They remain useful for
+understanding why the current behavior plan is ordered the way it is, but they
+are no longer the active implementation frontier.
 
 ### Phase 1: Scheduler And Pool Hardening
 

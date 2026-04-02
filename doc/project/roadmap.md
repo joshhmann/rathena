@@ -21,6 +21,7 @@ Future-phase playerbot behavior notes now live in:
 - `doc/project/playerbot-future-design-notes.md`
 - `doc/project/playerbot-foundation-priorities.md`
 - `doc/project/playerbot-foundation-program.md`
+- `doc/project/playerbot-behavior-phase-plan.md`
 
 That file is for aligned long-term design ideas, not for claiming current
 implementation status.
@@ -32,6 +33,17 @@ Current foundation priorities for the playerbot lane live in:
 
 That file is the working source of truth for what should be finished before the
 project leans harder into richer behavior scripting.
+
+Current status:
+
+- the accepted playerbot foundation baseline is now complete
+- requested follow-on extension lanes are also complete for:
+  - PvP / WoE death semantics
+  - Rodex receive / attachment retrieval
+  - pet / mercenary / elemental continuity
+- homunculus remains intentionally excluded for now
+
+Behavior work is now the primary frontier.
 
 ## External Test Harness
 
