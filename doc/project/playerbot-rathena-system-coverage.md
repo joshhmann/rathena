@@ -139,7 +139,7 @@ forgotten.
 |--------|--------|-------|-------|
 | Guild invite / join | ✓ | foundation | Guild invite and join foundations implemented |
 | Guild state and demand signaling | ✓ | foundation | Guild-aware demand drives controller visibility |
-| Guild storage | ~ | foundation | Inherits from storage baseline; not specifically hardened for bots |
+| Guild storage | ~ | foundation | Helper-backed SQL demand/activity proof now exists; no full bot-driven guild-storage UI/runtime loop |
 | Guild chat | ✗ | behavior | Chat layer not built |
 | Guild notice / roster | ✗ | behavior | Read/respond to guild notices is behavior |
 | Guild skills / buffs | ✗ | behavior | Guild-level buff application is behavior |
@@ -174,7 +174,7 @@ forgotten.
 | System | Status | Layer | Notes |
 |--------|--------|-------|-------|
 | Kafra storage | ✓ | foundation | Deposit, withdraw, interrupted-session cleanup covered |
-| Guild storage | ~ | foundation | Inherits from storage baseline; not specifically hardened |
+| Guild storage | ~ | foundation | Helper-backed SQL demand/activity proof now exists; no full bot-driven guild-storage UI/runtime loop |
 | Extended storage (Rodex attachments) | ~ | foundation | Partial; mail attachment semantics not fully proven |
 | Bank | ✓ | foundation | Bank session participation covered |
 
@@ -278,8 +278,7 @@ These need to be addressed before the behavior phase is safe to build on them:
 1. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
 2. Buying store partial fill, reopen, denial continuity
 3. Mail delivery integrity
-4. Guild storage hardening
-5. Skillunit promotion precheck and aggregate-gate decision
+4. Skillunit promotion precheck and aggregate-gate decision
 
 ### Behavior-layer targets (after foundation closes)
 

@@ -44,6 +44,12 @@ Current closeout status:
      semantics and any dedicated NPC-shop proof we decide to require
    - full closeout matrix now executes market-session stress as a dedicated
      checkpoint after overlap/combat stress
+3. Guild storage signal hardening: complete
+   - SQL-safe guild storage helper proves real `guild_storage` and
+     `guild_storage_log` activity can be seeded, observed, and cleaned up
+     without residue
+   - scenario governance now treats guild storage demand/activity as a
+     helper-backed proof surface rather than an undocumented side helper
 3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: in progress
    - item selftest now proves real refine/reform/enchantgrade execution and
      re-exec semantics

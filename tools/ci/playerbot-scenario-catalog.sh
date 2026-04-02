@@ -20,6 +20,7 @@ playerbot_scenario_ids() {
 		'loadout-overlap-continuity' \
 		'mechanic-cleanup' \
 		'mechanic-execution-rollback' \
+		'guild-storage-signal-integrity' \
 		'market-buyingstore-partial-fill' \
 		'market-buyingstore-reopen' \
 		'market-buyingstore-denial-continuity' \
@@ -50,6 +51,7 @@ playerbot_scenario_title() {
 		loadout-overlap-continuity) printf '%s\n' 'Loadout Overlap Continuity' ;;
 		mechanic-cleanup) printf '%s\n' 'Mechanic Cleanup' ;;
 		mechanic-execution-rollback) printf '%s\n' 'Mechanic Execution Rollback' ;;
+		guild-storage-signal-integrity) printf '%s\n' 'Guild Storage Signal Integrity' ;;
 		market-buyingstore-partial-fill) printf '%s\n' 'Market Buyingstore Partial Fill' ;;
 		market-buyingstore-reopen) printf '%s\n' 'Market Buyingstore Reopen' ;;
 		market-buyingstore-denial-continuity) printf '%s\n' 'Market Buyingstore Denial Continuity' ;;
@@ -69,6 +71,7 @@ playerbot_scenario_phase() {
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
 		mechanic-cleanup|mechanic-execution-rollback) printf '%s\n' 'participation' ;;
+		guild-storage-signal-integrity) printf '%s\n' 'guild' ;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity|market-mail-delivery-integrity|market-session-restart-continuity) printf '%s\n' 'market' ;;
 		lifecycle-spawn-failure-cleanup|lifecycle-despawn-grace-window) printf '%s\n' 'lifecycle' ;;
 		foundation-rich-gate) printf '%s\n' 'foundation' ;;
@@ -170,6 +173,11 @@ EOF
 		mechanic-execution-rollback)
 			cat <<'EOF'
 Validate that denied or interrupted refine/reform/enchantgrade execution rolls back safely and leaves clean session ownership for the next legal attempt.
+EOF
+			;;
+		guild-storage-signal-integrity)
+			cat <<'EOF'
+Validate that guild storage demand/activity signals can be seeded, observed, and cleaned up safely through the real guild storage tables.
 EOF
 			;;
 		market-buyingstore-partial-fill)
@@ -394,6 +402,16 @@ EOF
 - verify rollback leaves no stuck participation/session state
 EOF
 			;;
+		guild-storage-signal-integrity)
+			cat <<'EOF'
+- clear any previous sentinel guild-storage probe rows
+- run `bash tools/ci/playerbot-guild-storage-smoke.sh seed`
+- run `bash tools/ci/playerbot-guild-storage-smoke.sh check`
+- verify the configured guild reports one storage row and one recent log row
+- run `bash tools/ci/playerbot-guild-storage-smoke.sh clear`
+- confirm the helper leaves no sentinel residue behind
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - arm the market smoke helper
@@ -575,6 +593,13 @@ EOF
 - no stuck execution/session state remains after denial/retry sequence
 EOF
 			;;
+		guild-storage-signal-integrity)
+			cat <<'EOF'
+- the helper reports one guild storage row for the configured guild after seeding
+- the helper reports one recent guild storage log row for the configured guild after seeding
+- clearing the helper removes the sentinel rows cleanly
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
@@ -687,6 +712,15 @@ This scenario is backed by the dedicated combat edge helper:
 It keeps PvP nightmare-drop retention and WoE-style respawn routing in a
 separate proof lane so aggregate combat acceptance stays focused on the stable
 baseline combat lifecycle.
+EOF
+			;;
+		guild-storage-signal-integrity)
+			cat <<'EOF'
+This scenario is backed by the SQL-safe guild storage helper:
+`tools/ci/playerbot-guild-storage-smoke.sh`.
+
+It proves the current foundation surface for guild storage demand/activity
+signals, not a full bot-driven guild-storage UI/runtime loop.
 EOF
 			;;
 		item-loadout-continuity)
@@ -802,6 +836,9 @@ playerbot_scenario_launcher() {
 			;;
 		mechanic-execution-rollback)
 			printf '%s\n' 'bash tools/ci/playerbot-item-smoke.sh run'
+			;;
+		guild-storage-signal-integrity)
+			printf '%s\n' 'bash tools/ci/playerbot-guild-storage-smoke.sh seed && bash tools/ci/playerbot-guild-storage-smoke.sh check && bash tools/ci/playerbot-guild-storage-smoke.sh clear'
 			;;
 		market-buyingstore-partial-fill|market-buyingstore-reopen|market-buyingstore-denial-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-smoke.sh run'

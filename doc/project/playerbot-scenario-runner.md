@@ -58,6 +58,7 @@ The current catalog contains:
 - `loadout-overlap-continuity`
 - `mechanic-cleanup`
 - `mechanic-execution-rollback`
+- `guild-storage-signal-integrity`
 - `market-buyingstore-partial-fill`
 - `market-buyingstore-reopen`
 - `market-buyingstore-denial-continuity`
@@ -98,6 +99,7 @@ These split into two groups:
   - `loadout-overlap-continuity`
   - `mechanic-cleanup`
   - `mechanic-execution-rollback`
+  - `guild-storage-signal-integrity`
   - `market-buyingstore-partial-fill`
   - `market-buyingstore-reopen`
   - `market-buyingstore-denial-continuity`
@@ -132,6 +134,7 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-participation-smoke.sh`
 - `tools/ci/playerbot-market-smoke.sh`
 - `tools/ci/playerbot-market-session-stress.sh`
+- `tools/ci/playerbot-guild-storage-smoke.sh`
 - `tools/ci/playerbot-combat-transition-stress.sh`
 - `tools/ci/playerbot-lifecycle-grace-smoke.sh`
 
@@ -152,6 +155,7 @@ bash tools/ci/playerbot-scenario.sh checklist death-respawn
 bash tools/ci/playerbot-scenario.sh describe item-loadout-continuity
 bash tools/ci/playerbot-scenario.sh template combat-baseline
 bash tools/ci/playerbot-scenario.sh run mechanic-cleanup
+bash tools/ci/playerbot-scenario.sh run guild-storage-signal-integrity
 bash tools/ci/playerbot-scenario.sh run combat-baseline
 bash tools/ci/playerbot-scenario.sh run market-buyingstore-partial-fill
 bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
