@@ -45,10 +45,10 @@ Current closeout status:
    - full closeout matrix now executes market-session stress as a dedicated
      checkpoint after overlap/combat stress
 3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: in progress
-   - item selftest mech re-exec now requires concrete enchant execution effect
-     (material or zeny delta), not trace-only acceptance
-   - mech re-exec setup now resets live enchant item state before regrant
-   - aggregate quick gate is green with `enchant_reexec_ok=1` and `enchant_reexec_clear_ok=1`
+   - item selftest now proves real refine/reform/enchantgrade execution and
+     re-exec semantics
+   - card insertion denied + success proof is now covered in the item lane
+   - aggregate quick gate is green with the expanded mechanic execution proof
 4. Deeper equip/use/consume continuity under overlapping transitions: in progress
    - loadout overlap continuity loop increased to 3 cycles in aggregate item
      selftest

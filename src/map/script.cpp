@@ -13996,6 +13996,84 @@ BUILDIN_FUNC(playerbot_enchantgrade)
 }
 
 /*==========================================
+ * Execute one real card insertion attempt for a live playerbot item.
+ * Returns 1 on successful insertion, or 0 when denied by preconditions.
+ *------------------------------------------*/
+BUILDIN_FUNC(playerbot_insertcard)
+{
+	const char* bot_key = script_getstr(st, 2);
+	t_itemid card_nameid = script_getnum(st, 3);
+	t_itemid equip_nameid = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.requested", "cardinsert", std::to_string(equip_nameid).c_str(), "operator.start", "ok", "", "");
+
+	if (sd == nullptr || card_nameid == 0 || equip_nameid == 0) {
+		const char* detail = sd == nullptr ? "bot.offline" : "card_or_item.invalid";
+		playerbot_item_audit(bot_id, char_id, account_id, "cardinsert", equip_nameid, 0, "inventory", "invalid", detail);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "cardinsert", std::to_string(equip_nameid).c_str(), "target.invalid", "denied", "cardinsert.execute", detail);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int16 idx_card = playerbot_find_inventory_index(sd, card_nameid, false);
+	int16 idx_equip = playerbot_find_inventory_index(sd, equip_nameid, false);
+	if (idx_card < 0 || idx_equip < 0 || sd->inventory_data[idx_equip] == nullptr) {
+		const char* detail = (idx_card < 0) ? "card.missing" : "equip.missing";
+		playerbot_item_audit(bot_id, char_id, account_id, "cardinsert", equip_nameid, 0, "inventory", "missing", detail);
+		playerbot_trace_interaction(bot_id, char_id, account_id, sd, "interaction.failed", "cardinsert", std::to_string(equip_nameid).c_str(), "target.invalid", "denied", "cardinsert.execute", detail);
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	int32 before_card_count = playerbot_inventory_amount(sd, card_nameid, false);
+	int32 before_slots = 0;
+	for (int32 i = 0; i < MAX_SLOTS; ++i) {
+		if (sd->inventory.u.items_inventory[idx_equip].card[i] != 0)
+			before_slots++;
+	}
+
+	pc_insert_card(sd, idx_card, idx_equip);
+
+	int32 after_card_count = playerbot_inventory_amount(sd, card_nameid, false);
+	int32 after_slots = 0;
+	bool inserted = false;
+	for (int32 i = 0; i < MAX_SLOTS; ++i) {
+		if (sd->inventory.u.items_inventory[idx_equip].card[i] != 0) {
+			after_slots++;
+			if (sd->inventory.u.items_inventory[idx_equip].card[i] == card_nameid)
+				inserted = true;
+		}
+	}
+
+	bool ok = inserted && after_card_count + 1 == before_card_count && after_slots == before_slots + 1;
+	std::string detail = std::string(ok ? "cardinsert.success" : "cardinsert.denied")
+		+ " card=" + std::to_string(card_nameid)
+		+ " equip=" + std::to_string(equip_nameid)
+		+ " card_count=" + std::to_string(before_card_count) + "->" + std::to_string(after_card_count)
+		+ " slots=" + std::to_string(before_slots) + "->" + std::to_string(after_slots)
+		+ " inserted=" + std::to_string(inserted ? 1 : 0);
+
+	playerbot_item_audit(bot_id, char_id, account_id, "cardinsert", equip_nameid, ok ? 1 : 0, "inventory", ok ? "ok" : "denied", detail.c_str());
+	playerbot_trace_interaction(
+		bot_id,
+		char_id,
+		account_id,
+		sd,
+		ok ? "interaction.completed" : "interaction.failed",
+		"cardinsert",
+		std::to_string(equip_nameid).c_str(),
+		ok ? "operator.start" : "target.invalid",
+		ok ? "ok" : "denied",
+		ok ? "cardinsert.outcome" : "cardinsert.execute",
+		detail.c_str());
+
+	script_pushint(st, ok ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Count one item amount for a playerbot by location.
  *------------------------------------------*/
 BUILDIN_FUNC(playerbot_itemcount)
@@ -33413,6 +33491,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_refine,"sii?"),
 	BUILDIN_DEF(playerbot_reform,"sii"),
 	BUILDIN_DEF(playerbot_enchantgrade,"sii?"),
+	BUILDIN_DEF(playerbot_insertcard,"sii"),
 	BUILDIN_DEF(playerbot_itemcount,"ssi"),
 	BUILDIN_DEF(playerbot_itemequip,"si"),
 	BUILDIN_DEF(playerbot_itemunequip,"si"),

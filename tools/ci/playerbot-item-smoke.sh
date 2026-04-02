@@ -64,6 +64,8 @@ check_denied() {
 	fi
 	local signal_failures=0
 	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" \
+		card_sword_grant_ok=1 card_deny_grant_ok=1 card_exec_grant_ok=1 \
+		card_deny_ok=1 card_exec_ok=1 card_result_ok=1 \
 		result=1 refine_deny_ok=1 refine_deny_clear_ok=1 phracon_grant_ok=1 \
 		refine_exec_ok=1 refine_material_ok=1 refine_level_ok=1 \
 		refine_session_clear_ok=1 reform_deny_ok=1 reform_deny_clear_ok=1 \
@@ -107,14 +109,17 @@ WHERE UNIX_TIMESTAMP() - `ts` <= 1800;
 EOF
 	)
 
+	local card_exec_trace_rows=0 card_denied_trace_rows=0
 	local refine_exec_trace_rows=0 refine_denied_trace_rows=0
 	local reform_success_trace_rows=0 reform_denied_trace_rows=0
 	local enchant_exec_trace_rows=0 enchant_denied_trace_rows=0
-	read -r refine_exec_trace_rows refine_denied_trace_rows \
+	read -r card_exec_trace_rows card_denied_trace_rows refine_exec_trace_rows refine_denied_trace_rows \
 		reform_success_trace_rows reform_denied_trace_rows \
 		enchant_exec_trace_rows enchant_denied_trace_rows < <(
 		pb_smoke_sql_heredoc <<'EOF'
 SELECT
+  COALESCE(SUM(CASE WHEN `target_type` = 'cardinsert' AND `error_code` = 'cardinsert.outcome' THEN 1 ELSE 0 END), 0),
+  COALESCE(SUM(CASE WHEN `target_type` = 'cardinsert' AND `error_code` = 'cardinsert.execute' AND `result` = 'denied' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN `target_type` = 'refine' AND `error_code` = 'refine.outcome' AND `error_detail` LIKE 'refine.%' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN `target_type` = 'refine' AND `error_code` = 'refine.execute' AND `result` = 'denied' THEN 1 ELSE 0 END), 0),
   COALESCE(SUM(CASE WHEN `target_type` = 'reform' AND `error_code` = 'reform.outcome' AND `result` = 'ok' AND `error_detail` LIKE 'reform.success%' THEN 1 ELSE 0 END), 0),
@@ -135,6 +140,8 @@ EOF
 	pb_smoke_require_rows "$PB_SMOKE_LABEL" "denied refine item-audit row" "$refine_denied_rows" || failures=$((failures + 1))
 	pb_smoke_require_rows "$PB_SMOKE_LABEL" "denied reform item-audit row" "$reform_denied_rows" || failures=$((failures + 1))
 	pb_smoke_require_rows "$PB_SMOKE_LABEL" "denied enchantgrade item-audit row" "$enchant_denied_rows" || failures=$((failures + 1))
+	pb_smoke_require_rows "$PB_SMOKE_LABEL" "cardinsert execution outcome trace row" "$card_exec_trace_rows" || failures=$((failures + 1))
+	pb_smoke_require_rows "$PB_SMOKE_LABEL" "denied cardinsert trace row" "$card_denied_trace_rows" || failures=$((failures + 1))
 	pb_smoke_require_rows "$PB_SMOKE_LABEL" "refine execution outcome trace row" "$refine_exec_trace_rows" || failures=$((failures + 1))
 	pb_smoke_require_rows "$PB_SMOKE_LABEL" "denied refine trace row" "$refine_denied_trace_rows" || failures=$((failures + 1))
 	pb_smoke_require_rows "$PB_SMOKE_LABEL" "reform success trace row" "$reform_success_trace_rows" || failures=$((failures + 1))
@@ -174,6 +181,8 @@ EOF
 	printf '[%s] denied refine item-audit rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$refine_denied_rows"
 	printf '[%s] denied reform item-audit rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$reform_denied_rows"
 	printf '[%s] denied enchantgrade item-audit rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$enchant_denied_rows"
+	printf '[%s] cardinsert execution outcome trace rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$card_exec_trace_rows"
+	printf '[%s] denied cardinsert trace rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$card_denied_trace_rows"
 	printf '[%s] refine execution outcome trace rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$refine_exec_trace_rows"
 	printf '[%s] denied refine trace rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$refine_denied_trace_rows"
 	printf '[%s] reform success trace rows (last 30m): %s\n' "$PB_SMOKE_LABEL" "$reform_success_trace_rows"

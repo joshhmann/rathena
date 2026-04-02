@@ -42,15 +42,11 @@ The next unresolved mechanic-participation gaps are:
 
 2. **Mechanic execution semantics beyond session ownership**
    - transient mechanic/session ownership is now broadly tracked and cleaned up
-   - the remaining gap is the actual business/action layer for mechanics that
-     still only have open/close continuity:
-     - refine
-     - reform
-     - enchantgrade
-     - related execution/result semantics
-   - the unresolved question is no longer whether those states clear cleanly; it
-     is whether bots can participate through the real engine flow without ad hoc
-     shims
+   - refine / reform / enchantgrade now have explicit execution/result proof
+   - card insertion now has denied + success proof
+   - the remaining adjacent risk is no longer the generic mechanic business
+     layer; it has shifted into the broader equip/use/consume continuity front
+     where overlapping transitions still matter
 
 3. **Equip / use / consume continuity beyond the current loadout baseline**
    - intended loadout reconcile and first consume/use hooks are in place

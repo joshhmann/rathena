@@ -189,10 +189,10 @@ forgotten.
 | Loadout overlap continuity | ✗ | foundation | Closeout gap — overlapping transitions during equip |
 | Item use / consume | ~ | foundation | First hooks exist; interrupted use side effects are a mechanic gap |
 | Item consume continuity | ✗ | foundation | Edge cases around interrupted or failed consumption not proven |
-| Refine / upgrade (+N) | ~ | foundation | Session ownership tracked and cleaned; execution semantics are a mechanic gap |
-| Reform / modification | ~ | foundation | Session ownership tracked; execution semantics not proven |
-| Enchantgrade | ~ | foundation | Session ownership tracked; execution semantics not proven |
-| Card insertion | ✗ | foundation | Not addressed; NPC interaction layer would cover the session; execution result handling not proven |
+| Refine / upgrade (+N) | ✓ | foundation | Execution/result semantics are covered |
+| Reform / modification | ✓ | foundation | Execution/result semantics are covered |
+| Enchantgrade | ✓ | foundation | Execution/result semantics are covered |
+| Card insertion | ✓ | foundation | Denied + successful insertion path is now covered |
 | Identify / appraise | ✗ | behavior | Item identification is a minor NPC interaction; low priority |
 | Item drop | ✗ | behavior | Bots dropping items deliberately is behavior; death-drop rules should be verified (see PvP note) |
 | Item pickup / loot | ✗ | behavior | No loot routing behavior |
