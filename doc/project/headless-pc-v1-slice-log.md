@@ -10760,6 +10760,8 @@ config-driven `attack_target` selection with the existing attack-intent runtime.
     - tank -> `hold_position`
     - dps -> `attack_target`
     - support -> `disengage`
+  - proves a first caster skill-selection branch:
+    - caster -> `cast_skill`
   - reuses the existing combat/attack-intent runtime to engage and then clear a
     live target
 - Added a dedicated combat behavior smoke helper and scenario/runbook entry.

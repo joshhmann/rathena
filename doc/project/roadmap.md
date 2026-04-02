@@ -68,10 +68,12 @@ Current behavior-phase status:
   - tank -> `hold_position`
   - dps -> `attack_target`
   - support -> `disengage`
+- combat now also has a first skill-selection proof:
+  - caster -> `cast_skill`
 - first real quest/progression proof is now landed
   - `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
   - `tools/ci/playerbot-progression-behavior-smoke.sh`
-- next recommended behavior expansion: class-aware combat policy / skill selection, or progression-state persistence
+- next recommended behavior expansion: richer support/heal behavior, broader class-aware combat policy, or progression-state persistence
 
 ## External Test Harness
 

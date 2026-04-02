@@ -83,6 +83,8 @@ Current combat-family proof:
   - tank -> `hold_position`
   - dps -> `attack_target`
   - support -> `disengage`
+- the same family now also proves a first skill-selection branch:
+  - caster -> `cast_skill`
 
 Current progression/quest-family proof:
 

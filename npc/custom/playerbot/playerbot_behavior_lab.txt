@@ -129,6 +129,15 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 1;
 		if (countstr(.@controller_tag$[0], "dps") > 0 || countstr(.@profile_key$[0], "dps") > 0)
 			.@bonus += 4;
+	} else if (.@action$ == "cast_skill") {
+		if (countstr(.@pulse_profile$[0], "combat") > 0)
+			.@bonus += 2;
+		if (countstr(.@pulse_profile$[0], "skill") > 0)
+			.@bonus += 5;
+		if (countstr(.@controller_tag$[0], "caster") > 0 || countstr(.@profile_key$[0], "caster") > 0)
+			.@bonus += 5;
+		if (countstr(.@controller_tag$[0], "support") > 0 || countstr(.@profile_key$[0], "support") > 0)
+			.@bonus += 2;
 	} else if (.@action$ == "quest_handoff" || .@action$ == "advance_relay") {
 		if (.@interaction_policy$[0] == "clickable")
 			.@bonus += 3;
