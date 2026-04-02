@@ -3167,7 +3167,12 @@ function	script	F_PB_DB_SetRuntimeStateByChar	{
 	.@park$ = escape_sql(getarg(2, "active"));
 	.@route$ = escape_sql(getarg(3, ""));
 	.@grace_until = getarg(4, 0);
-	.@grace_sql$ = (.@grace_until > 0 ? "'" + .@grace_until + "'" : "NULL");
+	.@grace_sql$ = "NULL";
+	if (.@grace_until > 0) {
+		.@grace_ms = .@grace_until - gettimetick(2);
+		if (.@grace_ms > 0)
+			.@grace_sql$ = "DATE_ADD(NOW(), INTERVAL " + (.@grace_ms * 1000) + " MICROSECOND)";
+	}
 	.@map$ = headlesspc_map(.@char_id);
 	.@x = headlesspc_x(.@char_id);
 	.@y = headlesspc_y(.@char_id);
@@ -3192,7 +3197,12 @@ function	script	F_PB_DB_SetRuntimeParkStateByChar	{
 	.@char_id = getarg(0);
 	.@park$ = escape_sql(getarg(1, "active"));
 	.@grace_until = getarg(2, 0);
-	.@grace_sql$ = (.@grace_until > 0 ? "'" + .@grace_until + "'" : "NULL");
+	.@grace_sql$ = "NULL";
+	if (.@grace_until > 0) {
+		.@grace_ms = .@grace_until - gettimetick(2);
+		if (.@grace_ms > 0)
+			.@grace_sql$ = "DATE_ADD(NOW(), INTERVAL " + (.@grace_ms * 1000) + " MICROSECOND)";
+	}
 	.@map$ = headlesspc_map(.@char_id);
 	.@x = headlesspc_x(.@char_id);
 	.@y = headlesspc_y(.@char_id);
@@ -4508,7 +4518,7 @@ function	script	F_LW_HPC_DefCountGrace	{
 			+ "JOIN `bot_identity_link` l ON l.`bot_id` = r.`bot_id` "
 			+ "WHERE l.`char_id` = '" + .@char_id + "' "
 			+ "AND r.`park_state` = 'grace' "
-			+ "AND IFNULL(r.`despawn_grace_until`, 0) > UNIX_TIMESTAMP()",
+			+ "AND UNIX_TIMESTAMP(r.`despawn_grace_until`) > UNIX_TIMESTAMP()",
 			.@grace_rows);
 		if (.@rows > 0 && .@grace_rows[0] > 0)
 			.@grace++;
@@ -4624,7 +4634,6 @@ function	script	F_LW_HPC_ControllerShouldRun	{
 				if (.@char_id < 1 || headlesspc_status(.@char_id) != 2)
 					continue;
 				callfunc "F_PB_DB_SetRuntimeParkStateByChar", .@char_id, "active", 0;
-				callfunc "F_PB_DB_TraceEmitByChar", "scheduler.resumed", "scheduler", .@char_id, "", 0, 0, .@controller$, "controller", .@controller$, "slot", .@i, "demand.recovered", "grace.cleared", "", "", "ok", 0, "", "", "";
 			}
 		}
 		return 1;
@@ -4640,7 +4649,6 @@ function	script	F_LW_HPC_ControllerShouldRun	{
 			if (.@char_id < 1 || headlesspc_status(.@char_id) != 2)
 				continue;
 			callfunc "F_PB_DB_SetRuntimeParkStateByChar", .@char_id, "grace", .@deadline;
-			callfunc "F_PB_DB_TraceEmitByChar", "scheduler.grace", "scheduler", .@char_id, "", 0, 0, .@controller$, "controller", .@controller$, "slot", .@i, "demand.cooldown", "grace_until=" + .@deadline, "", "", "ok", 0, "", "", "";
 		}
 		return 1;
 	}

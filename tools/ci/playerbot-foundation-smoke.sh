@@ -91,6 +91,7 @@ arm() {
 ('\$PBITST_AUTORUN_AID', 0, '0'),
 ('\$PBMST_AUTORUN_AID', 0, '0'),
 ('\$PBPST_AUTORUN_AID', 0, '0'),
+('\$PBLGST_AUTORUN_AID', 0, '0'),
 ('\$PBSTAT_AUTORUN_AID', 0, '0'),
 ('\$PBCST_MANUAL_AID', 0, '0'),
 ('\$PBFNST_MANUAL_AID', 0, '0'),

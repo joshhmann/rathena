@@ -197,7 +197,7 @@ EOF
 			;;
 		lifecycle-despawn-grace-window)
 			cat <<'EOF'
-Validate the runtime-visible grace-window behavior for controller-owned actors: demand drop should mark live actors as `park_state='grace'` with a `despawn_grace_until` deadline before final park/remove, even though no dedicated automated helper proves expiry yet.
+Validate the runtime-visible grace-window behavior for controller-owned actors: demand drop should mark live actors as `park_state='grace'` with a `despawn_grace_until` deadline before final park/remove.
 EOF
 			;;
 		foundation-rich-gate)
@@ -441,12 +441,11 @@ EOF
   - `doc/project/headless-pc-edge-cases.md`
   - `doc/project/playerbot-rathena-system-coverage.md`
   - scheduler/playerbot closeout docs
+- run `bash tools/ci/playerbot-lifecycle-grace-smoke.sh run`
 - confirm demand-drop now writes runtime grace state:
   - `park_state='grace'`
   - `despawn_grace_until > now`
 - confirm final park/remove still clears runtime state back to parked/offline
-- confirm no automated smoke helper currently proves grace expiry end-to-end
-- treat this scenario as manual/runbook verification until grace expiry is observable through a dedicated helper
 EOF
 			;;
 		foundation-rich-gate)
@@ -598,8 +597,8 @@ EOF
 		lifecycle-despawn-grace-window)
 			cat <<'EOF'
 - controller grace is now runtime-visible through `park_state='grace'` and `despawn_grace_until`
-- current evidence still relies on source/manual audit rather than a passing smoke/helper that proves grace expiry
-- the scenario remains open until scheduler/runtime behavior makes grace expiry observable and testable end-to-end
+- `playerbot_lifecycle_grace_selftest ... result=1` is present
+- final park/remove clears runtime state back to `offline/parked`
 EOF
 			;;
 		foundation-rich-gate)
@@ -695,13 +694,21 @@ These scenarios extend market/session continuity coverage through aggregate
 foundation and restart windows, where session drift is most likely.
 EOF
 			;;
-		lifecycle-spawn-failure-cleanup|lifecycle-despawn-grace-window)
+		lifecycle-spawn-failure-cleanup)
 			cat <<'EOF'
-These lifecycle scenarios are intentionally documentation-only for now.
+This lifecycle scenario is intentionally documentation-only for now.
 
-They exist so closeout planning can name the remaining runtime fronts without
-pretending the current automated smoke stack already proves them. `run` will
-report them as skeleton/manual runbooks until dedicated lifecycle helpers land.
+It exists so closeout planning can name the remaining runtime front without
+pretending the current automated smoke stack already proves it.
+EOF
+			;;
+		lifecycle-despawn-grace-window)
+			cat <<'EOF'
+This lifecycle scenario is now backed by the dedicated helper:
+`tools/ci/playerbot-lifecycle-grace-smoke.sh`.
+
+It proves runtime-visible grace entry and final parked/offline cleanup, but it
+is not yet promoted into the automated closeout set.
 EOF
 			;;
 		foundation-rich-gate)
@@ -764,6 +771,12 @@ playerbot_scenario_launcher() {
 			;;
 		market-session-restart-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-market-session-stress.sh --cycles 2'
+			;;
+		lifecycle-despawn-grace-window)
+			printf '%s\n' 'bash tools/ci/playerbot-lifecycle-grace-smoke.sh run'
+			;;
+		lifecycle-spawn-failure-cleanup)
+			printf '%s\n' 'none'
 			;;
 		foundation-rich-gate)
 			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run-rich'

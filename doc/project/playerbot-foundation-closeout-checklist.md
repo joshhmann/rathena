@@ -125,7 +125,7 @@ The remaining lifecycle-specific open fronts are tracked separately from the
 currently automated closeout executor:
 
 - spawn-failure cleanup is now covered in runtime, but still lacks a dedicated automated validation helper
-- despawn grace is now runtime-visible through `park_state='grace'` / `despawn_grace_until`, but still lacks an automated expiry/park closeout helper
+- despawn grace is now runtime-visible and helper-backed through `tools/ci/playerbot-lifecycle-grace-smoke.sh`, but is not yet promoted into the automated closeout set
   guarantee
 
 ## Scenario Coverage Set

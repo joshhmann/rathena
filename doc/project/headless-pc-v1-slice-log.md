@@ -6034,6 +6034,60 @@ Observed:
 This slice does not add a dedicated automated grace-expiry smoke/helper and does
 not change the underlying controller grace timer length/policy semantics.
 
+## Slice 73: Lifecycle Grace Smoke Helper
+
+### Summary
+
+Added a dedicated repo-local smoke/helper for the despawn grace lifecycle front
+so grace entry and final parked/offline cleanup are no longer manual-only.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_lifecycle_lab.txt`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-lifecycle-grace-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added hidden `PlayerbotLifecycleGraceSelftest` and a dedicated fixed-actor
+  `HeadlessLifecycleGraceController`.
+- The selftest now proves:
+  - controller-owned actor becomes active
+  - demand drop enters runtime-visible grace
+  - `despawn_grace_until` is populated
+  - final stop returns runtime state to `offline/parked`
+- Added `tools/ci/playerbot-lifecycle-grace-smoke.sh` with `arm|run|check`.
+- Wired `lifecycle-despawn-grace-window` scenario launcher to the new helper.
+- Updated runner/closeout docs so:
+  - spawn-failure cleanup remains runbook/manual
+  - despawn grace is helper-backed but still not promoted into the aggregate
+    closeout set
+- Foundation smoke arm now explicitly clears the lifecycle-grace autorun flag so
+  helper runs do not bleed into aggregate foundation gates.
+
+### Validation
+
+- `bash -n tools/ci/playerbot-lifecycle-grace-smoke.sh`
+- `bash tools/ci/playerbot-lifecycle-grace-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run lifecycle-despawn-grace-window`
+
+Observed:
+
+- `playerbot_lifecycle_grace_selftest ... result=1`
+- runtime grace entry and final parked/offline cleanup are observable through
+  the helper
+
+### Deferrals
+
+- helper does not currently require scheduler grace trace rows to pass
+- lifecycle grace helper is not yet promoted into the aggregate automated
+  closeout matrix
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary
