@@ -187,8 +187,8 @@ forgotten.
 | Equip / unequip | ✓ | foundation | Happy-path and denial/recovery paths are covered |
 | Loadout denial and recovery | ✓ | foundation | Engine-rejected equip handling and recovery are covered |
 | Loadout overlap continuity | ✓ | foundation | Overlapping transition continuity is covered |
-| Item use / consume | ~ | foundation | First hooks exist; interrupted use side effects remain the main open consume gap |
-| Item consume continuity | ~ | foundation | Basic consume path is covered; interrupted/failed consumption semantics remain open |
+| Item use / consume | ✓ | foundation | Instant consume, missing-item denial, and delayed item-use interruption proof are covered |
+| Item consume continuity | ✓ | foundation | Delayed item-use keeps inventory stable across death/mapchange interruption and failed consumption semantics are covered |
 | Refine / upgrade (+N) | ✓ | foundation | Execution/result semantics are covered |
 | Reform / modification | ✓ | foundation | Execution/result semantics are covered |
 | Enchantgrade | ✓ | foundation | Execution/result semantics are covered |
@@ -275,16 +275,12 @@ behavior phase.
 
 These need to be addressed before the behavior phase is safe to build on them:
 
-1. Despawn grace window
-2. PvP / WoE death semantics verification
-3. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
-4. Buying store partial fill, reopen, denial continuity
-5. Mail delivery integrity
-6. Loadout denial recovery, overlap continuity
-7. Refine / reform / enchantgrade execution semantics
-8. Card insertion execution semantics
-9. Guild storage hardening
-10. Skillunit promotion precheck and aggregate gate promotion
+1. PvP / WoE death semantics verification
+2. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
+3. Buying store partial fill, reopen, denial continuity
+4. Mail delivery integrity
+5. Guild storage hardening
+6. Skillunit promotion precheck and aggregate-gate decision
 
 ### Behavior-layer targets (after foundation closes)
 

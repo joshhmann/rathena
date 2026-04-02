@@ -13612,19 +13612,43 @@ BUILDIN_FUNC(playerbot_itemuse)
 
 	int32 before_inv = playerbot_inventory_amount(sd, nameid, false);
 	int32 before_status = playerbot_status_count(sd);
+	int32 before_sessions = playerbot_session_count(sd);
+	bool before_menuskill = playerbot_session_mode_active(sd, "menuskill");
+	bool before_skillitem = playerbot_session_mode_active(sd, "skillitem");
+	bool before_itemctx = playerbot_item_context_active(sd);
 	bool ok = (pc_useitem(sd, idx) != 0);
 	int32 after_inv = playerbot_inventory_amount(sd, nameid, false);
 	int32 after_status = playerbot_status_count(sd);
+	int32 after_sessions = playerbot_session_count(sd);
+	bool after_menuskill = playerbot_session_mode_active(sd, "menuskill");
+	bool after_skillitem = playerbot_session_mode_active(sd, "skillitem");
+	bool after_itemctx = playerbot_item_context_active(sd);
 	bool consumed = (after_inv < before_inv);
+	bool session_opened = (after_sessions > before_sessions)
+		|| (!before_menuskill && after_menuskill)
+		|| (!before_skillitem && after_skillitem)
+		|| (!before_itemctx && after_itemctx);
+	bool success = (ok && (consumed || after_status != before_status || session_opened));
 	std::string detail;
 	if (consumed)
 		detail = (after_status != before_status) ? "consumed.status" : "consumed";
+	else if (after_status != before_status)
+		detail = "status.changed";
+	else if (session_opened) {
+		detail = "session.opened";
+		if (!before_menuskill && after_menuskill)
+			detail += ".menuskill";
+		if (!before_skillitem && after_skillitem)
+			detail += ".skillitem";
+		if (!before_itemctx && after_itemctx)
+			detail += ".itemctx";
+	}
 	else
-		detail = (after_status != before_status) ? "status.changed" : "pc_useitem.denied";
+		detail = "pc_useitem.denied";
 
-	playerbot_item_audit(bot_id, char_id, account_id, "consume", nameid, consumed ? static_cast<uint16>(before_inv - after_inv) : 0, "inventory", (ok && (consumed || after_status != before_status)) ? "ok" : "denied", detail.c_str());
-	playerbot_trace_interaction(bot_id, char_id, account_id, sd, (ok && (consumed || after_status != before_status)) ? "interaction.completed" : "interaction.failed", "item_use", std::to_string(nameid).c_str(), (ok && (consumed || after_status != before_status)) ? "none" : "target.invalid", (ok && (consumed || after_status != before_status)) ? "ok" : "denied", ok ? "" : "item.use", detail.c_str());
-	script_pushint(st, (ok && (consumed || after_status != before_status)) ? 1 : 0);
+	playerbot_item_audit(bot_id, char_id, account_id, "consume", nameid, consumed ? static_cast<uint16>(before_inv - after_inv) : 0, "inventory", success ? "ok" : "denied", detail.c_str());
+	playerbot_trace_interaction(bot_id, char_id, account_id, sd, success ? "interaction.completed" : "interaction.failed", "item_use", std::to_string(nameid).c_str(), success ? "none" : "target.invalid", success ? "ok" : "denied", ok ? "" : "item.use", detail.c_str());
+	script_pushint(st, success ? 1 : 0);
 	return SCRIPT_CMD_SUCCESS;
 }
 

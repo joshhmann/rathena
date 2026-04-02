@@ -49,13 +49,13 @@ Current closeout status:
      re-exec semantics
    - card insertion denied + success proof is now covered in the item lane
    - aggregate quick gate is green with the expanded mechanic execution proof
-4. Deeper equip/use/consume continuity under overlapping transitions: in progress
+4. Deeper equip/use/consume continuity under overlapping transitions: complete
    - loadout overlap continuity loop increased to 3 cycles in aggregate item
      selftest and remains green
    - overlap actions (storage withdraw/deposit and equip re-toggle) are now
      covered in the accepted item lane
-   - the remaining item/use gap is narrower: interrupted item-use side effects
-     and richer consume continuity beyond the current instant-use baseline
+   - real delayed item use now proves session-open success, death/mapchange
+     interruption cleanup, inventory continuity, and missing-item denial
 5. Broader combat-event continuity under repeated transitions: in progress
    - repeated-transition stress now checks combat continuity + market commit +
      item loadout continuity + full mechanic re-exec and is green

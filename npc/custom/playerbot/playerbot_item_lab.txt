@@ -453,12 +453,141 @@ S_Run:
 		+ "AND `phase` = 'interaction' AND `target_type` = 'enchantgrade' "
 		+ "AND (`error_code` = 'enchantgrade.outcome' OR `error_code` = 'enchantgrade.execute')",
 		.@mech_enchant_trace_count);
-	.@mech_enchant_reexec_material_ok = (.@mech_enchant_mat_after < .@mech_enchant_mat_before);
+	.@mech_enchant_reexec_mat_ok = (.@mech_enchant_mat_after < .@mech_enchant_mat_before);
 	.@mech_enchant_reexec_zeny_ok = (.@mech_enchant_zeny_after < .@mech_enchant_zeny_before);
-	.@mech_enchant_reexec_effect_ok = (.@mech_enchant_reexec_material_ok || .@mech_enchant_reexec_zeny_ok);
+	.@mech_enchant_reexec_effect_ok = (.@mech_enchant_reexec_mat_ok || .@mech_enchant_reexec_zeny_ok);
 	.@mech_enchant_reexec_ok = (.@mechanic_rollback_ok && .@mech_enchant_regrant_ok && .@mech_enchant_reexec_call_ok
 		&& .@mech_enchant_reexec_effect_ok && .@mech_enchant_trace_count >= 1);
 	.@mech_enchant_reexec_clear_ok = (.@mech_enchant_reexec_ok && .@mech_enchant_trace_count >= 1 && countstr(playerbot_sessionsummary(.bot_key$), "enchantgrade=0") > 0);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` WHERE `char_id` = '" + .char_id + "'",
+		.@consume_interrupt_trace_before);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_recovery_audit` WHERE `bot_id` = '" + .bot_id + "'",
+		.@consume_interrupt_audit_before);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_item_audit` WHERE `bot_id` = '" + .bot_id + "'",
+		.@ci_item_aud_before);
+	if (attachrid(.account_id)) {
+		getitem 611, 1;
+		getitem2 1203,1,0,0,0,0,0,0,0;
+		.@consume_interrupt_grant_ok = 1;
+		detachrid;
+	}
+	.@ci_mag_before = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 611);
+	.@ci_ident_before = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1203);
+	.@consume_interrupt_seed_call_ok = (.@consume_interrupt_grant_ok && playerbot_itemuse(.bot_key$, 611));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 150;
+		.@ci_seed_sum$ = playerbot_sessionsummary(.bot_key$);
+		if (playerbot_sessionactive(.bot_key$, "skillitem")
+			&& countstr(.@ci_seed_sum$, "itemctx=1") > 0) {
+			.@consume_interrupt_seed_ok = 1;
+			break;
+		}
+	}
+	.@consume_interrupt_pending_ok = (.@consume_interrupt_seed_ok
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 611) == .@ci_mag_before
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1203) == .@ci_ident_before);
+	.@consume_interrupt_kill_ok = (.@consume_interrupt_pending_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@consume_interrupt_dead_ok = 1;
+			break;
+		}
+	}
+	.@ci_death_clear_ok = (.@consume_interrupt_dead_ok
+		&& !playerbot_sessionactive(.bot_key$, "skillitem")
+		&& countstr(playerbot_sessionsummary(.bot_key$), "itemctx=0") > 0);
+	.@ci_death_keep_ok = (.@ci_death_clear_ok
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 611) == .@ci_mag_before
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1203) == .@ci_ident_before);
+	.@ci_respawn_req_ok = (.@consume_interrupt_dead_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && headlesspc_status(.char_id) == 2) {
+			.@consume_interrupt_respawn_ok = 1;
+			break;
+		}
+	}
+	if (.@consume_interrupt_respawn_ok)
+		sleep 900;
+	.@consume_interrupt_map_call_ok = (.@consume_interrupt_respawn_ok && playerbot_itemuse(.bot_key$, 611));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 150;
+		.@ci_map_sum$ = playerbot_sessionsummary(.bot_key$);
+		if (playerbot_sessionactive(.bot_key$, "skillitem")
+			&& countstr(.@ci_map_sum$, "itemctx=1") > 0) {
+			.@consume_interrupt_map_seed_ok = 1;
+			break;
+		}
+	}
+	.@ci_map_pending_ok = (.@consume_interrupt_map_seed_ok
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 611) == .@ci_mag_before
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1203) == .@ci_ident_before);
+	.@consume_interrupt_map_move_ok = (.@ci_map_pending_ok && headlesspc_setpos(.char_id, "prontera", 156, 191));
+	if (.@consume_interrupt_map_move_ok)
+		sleep 900;
+	.@ci_map_return_ok = (.@consume_interrupt_map_move_ok && headlesspc_setpos(.char_id, "alberta", 163, 144));
+	if (.@ci_map_return_ok)
+		sleep 900;
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `id` > '" + .@consume_interrupt_trace_before + "' "
+		+ "AND `phase` = 'interaction' AND `target_type` = 'item_use' "
+		+ "AND `result` = 'ok' AND `error_detail` LIKE 'session.opened%'",
+		.@ci_open_trace_ct);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `id` > '" + .@consume_interrupt_trace_before + "' "
+		+ "AND `phase` IN ('combat','reconcile') AND `target_type` IN ('skillitem','itemctx') "
+		+ "AND `action` IN ('combat.completed','reconcile.fixed') "
+		+ "AND (`error_detail` LIKE '%session.scope=skillitem%' OR `error_detail` LIKE '%session.scope=itemctx%')",
+		.@consume_interrupt_trace_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `id` > '" + .@ci_item_aud_before + "' "
+		+ "AND `action` = 'consume' AND `item_id` = '611' AND `result` = 'ok' AND `detail` LIKE 'session.opened%'",
+		.@ci_open_audit_ct);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `id` > '" + .@consume_interrupt_audit_before + "' "
+		+ "AND `scope` IN ('session.skillitem','session.itemctx') "
+		+ "AND `action` = 'interrupt' AND `result` = 'ok' "
+		+ "AND (`detail` LIKE 'combat.death.interrupt%' OR `detail` LIKE 'mapchange.session%')",
+		.@consume_interrupt_audit_count);
+	.@consume_interrupt_map_clear_ok = (.@consume_interrupt_trace_count >= 4 && .@consume_interrupt_audit_count >= 4);
+	.@consume_interrupt_map_keep_ok = (.@ci_map_return_ok
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 611) == .@ci_mag_before
+		&& callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1203) == .@ci_ident_before);
+	.@consume_interrupt_trace_ok = (.@ci_open_trace_ct >= 2 && .@consume_interrupt_trace_count >= 4);
+	.@consume_interrupt_audit_ok = (.@ci_open_audit_ct >= 2 && .@consume_interrupt_audit_count >= 4);
+	.@consume_interrupt_ok = (.@consume_interrupt_grant_ok && .@consume_interrupt_seed_call_ok && .@consume_interrupt_seed_ok
+		&& .@consume_interrupt_pending_ok && .@consume_interrupt_kill_ok && .@consume_interrupt_dead_ok
+		&& .@ci_death_clear_ok && .@ci_death_keep_ok
+		&& .@ci_respawn_req_ok && .@consume_interrupt_respawn_ok
+		&& .@consume_interrupt_map_call_ok && .@consume_interrupt_map_seed_ok && .@ci_map_pending_ok
+		&& .@consume_interrupt_map_move_ok && .@consume_interrupt_map_clear_ok && .@consume_interrupt_map_keep_ok
+		&& .@ci_map_return_ok && .@consume_interrupt_trace_ok && .@consume_interrupt_audit_ok);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_item_audit` WHERE `bot_id` = '" + .bot_id + "'",
+		.@consume_missing_audit_before);
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) FROM `bot_trace_event` WHERE `char_id` = '" + .char_id + "'",
+		.@consume_missing_trace_before);
+	.@consume_missing_ok = (!playerbot_itemuse(.bot_key$, 601));
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_item_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' AND `id` > '" + .@consume_missing_audit_before + "' "
+		+ "AND `action` = 'consume' AND `result` = 'missing' AND `detail` = 'inventory.missing'",
+		.@consume_missing_audit_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' AND `id` > '" + .@consume_missing_trace_before + "' "
+		+ "AND `target_type` = 'item_use' AND `result` = 'denied' AND `error_detail` = 'inventory.missing'",
+		.@consume_missing_trace_count);
+	.@consume_missing_audit_ok = (.@consume_missing_audit_count >= 1 && .@consume_missing_trace_count >= 1);
 	.@consume_ok = playerbot_itemuse(.bot_key$, 501);
 	.@deposit_ok = playerbot_storagedeposit(.bot_key$, 501, 2);
 	.@withdraw_ok = playerbot_storagewithdraw(.bot_key$, 501, 1);
@@ -590,17 +719,35 @@ S_Run:
 				break;
 			}
 		}
-		if (.@loop_respawn_ok)
-			sleep 900;
-		.@loop_respawn_loadout_ok = (.@loop_respawn_ok && callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1);
+		if (.@loop_respawn_ok) {
+			for (.@i = 0; .@i < 8; ++.@i) {
+				sleep 150;
+				if (callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1) {
+					.@loop_respawn_loadout_ok = 1;
+					break;
+				}
+			}
+		}
 		.@loop_map_move_ok = (.@loop_respawn_loadout_ok && headlesspc_setpos(.char_id, "prontera", 156, 191));
-		if (.@loop_map_move_ok)
-			sleep 700;
-		.@loop_map_cont_ok = (.@loop_map_move_ok && callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1);
+		if (.@loop_map_move_ok) {
+			for (.@i = 0; .@i < 8; ++.@i) {
+				sleep 150;
+				if (callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1) {
+					.@loop_map_cont_ok = 1;
+					break;
+				}
+			}
+		}
 		.@loop_map_return_ok = (.@loop_map_cont_ok && headlesspc_setpos(.char_id, "alberta", 163, 144));
-		if (.@loop_map_return_ok)
-			sleep 700;
-		.@loop_map_return_cont_ok = (.@loop_map_return_ok && callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1);
+		if (.@loop_map_return_ok) {
+			for (.@i = 0; .@i < 8; ++.@i) {
+				sleep 150;
+				if (callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) >= 1) {
+					.@loop_map_return_cont_ok = 1;
+					break;
+				}
+			}
+		}
 		.@loop_overlap_withdraw_ok = (.@loop_map_return_cont_ok && playerbot_storagewithdraw(.bot_key$, 501, 1));
 		.@loop_overlap_deposit_ok = (.@loop_overlap_withdraw_ok && playerbot_storagedeposit(.bot_key$, 501, 1));
 		.@loop_overlap_unequip_ok = (.@loop_overlap_deposit_ok && playerbot_itemunequip(.bot_key$, 1201));
@@ -756,7 +903,7 @@ S_Run:
 		&& .@mechanic_rollback_ok && .@mech_refine_regrant_ok && .@mech_refine_reexec_ok && .@mech_refine_reexec_clear_ok
 		&& .@mech_reform_regrant_ok && .@mech_reform_reexec_ok && .@mech_reform_reexec_clear_ok
 		&& .@mech_enchant_regrant_ok && .@mech_enchant_reexec_ok && .@mech_enchant_reexec_clear_ok
-		&& .@consume_ok
+		&& .@consume_missing_ok && .@consume_missing_audit_ok && .@consume_ok
 		&& .@deposit_ok && .@withdraw_ok && .@remove_ok && .@regrant_ok
 		&& .@loadout_set_ok && .@loadout_rows_ok && .@knife_removed_ok && .@loadout_missing_ok
 		&& .@knife_regrant_ok && .@denied_grant_ok && .@loadout_denied_set_ok && .@loadout_denied_ok
@@ -768,6 +915,7 @@ S_Run:
 		&& .@knife_eq >= 1 && .@pot_inv == 1 && .@pot_storage == 1 && .@audit_ok && .@loadout_audit_ok && .@park_ok);
 	debugmes "playerbot_item_selftest: provision_ok=" + .@provision_ok + " spawn_ok=" + .@spawn_ok + " grant_ok=" + .@grant_ok + " equip_ok=" + .@equip_ok + " unequip_ok=" + .@unequip_ok + " reequip_ok=" + .@reequip_ok + " card_sword_grant_ok=" + .@card_sword_grant_ok + " card_deny_grant_ok=" + .@card_deny_grant_ok + " card_exec_grant_ok=" + .@card_exec_grant_ok + " card_deny_ok=" + .@card_deny_ok + " card_exec_ok=" + .@card_exec_ok + " card_result_ok=" + .@card_result_ok + " refine_deny_ok=" + .@refine_deny_ok + " refine_deny_clear_ok=" + .@refine_deny_clear_ok + " phracon_grant_ok=" + .@phracon_grant_ok + " refine_exec_ok=" + .@refine_exec_ok + " refine_material_ok=" + .@refine_material_ok + " refine_level=" + .@refine_level + " refine_level_ok=" + .@refine_level_ok + " refine_session_clear_ok=" + .@refine_session_clear_ok + " reform_trigger_ok=" + .@reform_trigger_ok + " reform_ring_ok=" + .@reform_ring_ok + " reform_jellopy_ok=" + .@reform_jellopy_ok + " reform_fluff_ok=" + .@reform_fluff_ok + " reform_deny_ok=" + .@reform_deny_ok + " reform_deny_clear_ok=" + .@reform_deny_clear_ok + " reform_exec_ok=" + .@reform_exec_ok + " reform_result_ok=" + .@reform_result_ok + " reform_session_clear_ok=" + .@reform_session_clear_ok + " enchant_grant_ok=" + .@enchant_grant_ok + " enchant_deny_ok=" + .@enchant_deny_ok + " enchant_deny_clear_ok=" + .@enchant_deny_clear_ok + " enchant_material_grant_ok=" + .@enchant_material_grant_ok + " enchant_exec_ok=" + .@enchant_exec_ok + " enchant_material_ok=" + .@enchant_material_ok + " enchant_zeny_ok=" + .@enchant_zeny_ok + " enchant_session_clear_ok=" + .@enchant_session_clear_ok + " mechanic_rollback_ok=" + .@mechanic_rollback_ok + " mech_refine_regrant_ok=" + .@mech_refine_regrant_ok + " mech_refine_reexec_ok=" + .@mech_refine_reexec_ok + " mech_refine_reexec_clear_ok=" + .@mech_refine_reexec_clear_ok + " mech_seed_ok=" + .@mech_seed_ok + " mech_death_clear_ok=" + .@mech_death_clear_ok + " mech_map_clear_ok=" + .@mech_map_clear_ok + " mech_trace_count=" + .@mech_trace_count + " mech_audit_count=" + .@mech_audit_count + " consume_ok=" + .@consume_ok + " deposit_ok=" + .@deposit_ok + " withdraw_ok=" + .@withdraw_ok + " remove_ok=" + .@remove_ok + " regrant_ok=" + .@regrant_ok + " loadout_set_ok=" + .@loadout_set_ok + " loadout_rows_ok=" + .@loadout_rows_ok + " knife_removed_ok=" + .@knife_removed_ok + " loadout_missing_ok=" + .@loadout_missing_ok + " knife_regrant_ok=" + .@knife_regrant_ok + " denied_item_id=" + .@denied_item_id + " denied_grant_ok=" + .@denied_grant_ok + " loadout_denied_set_ok=" + .@loadout_denied_set_ok + " loadout_denied_ok=" + .@loadout_denied_ok + " loadout_recover_clear_ok=" + .@loadout_recover_clear_ok + " loadout_recover_ok=" + .@loadout_recover_ok + " conflict_preclear_ok=" + .@conflict_preclear_ok + " conflict_item_id=" + .@conflict_item_id + " conflict_grant_ok=" + .@conflict_grant_ok + " conflict_equip_ok=" + .@conflict_equip_ok + " loadout_conflict_ok=" + .@loadout_conflict_ok + " loadout_conflict_cleared_ok=" + .@loadout_conflict_cleared_ok + " despawn_ok=" + .@despawn_ok + " respawn_spawn_ok=" + .@respawn_spawn_ok + " loadout_spawn_ok=" + .@loadout_spawn_ok + " kill_ok=" + .@kill_ok + " dead_ok=" + .@dead_ok + " respawn_req_ok=" + .@respawn_req_ok + " respawn_ok=" + .@respawn_ok + " loadout_respawn_ok=" + .@loadout_respawn_ok + " loadout_map_move_ok=" + .@loadout_map_move_ok + " loadout_map_cont_ok=" + .@loadout_map_cont_ok + " loadout_map_return_ok=" + .@loadout_map_return_ok + " loadout_map_return_cont_ok=" + .@loadout_map_return_cont_ok + " loadout_pot_inv_expected=" + .@loadout_pot_inv_expected + " loadout_pot_storage_expected=" + .@loadout_pot_storage_expected + " loadout_continuity_ok=" + .@loadout_continuity_ok + " loadout_cycle_count=" + .@loadout_cycle_count + " knife_eq=" + .@knife_eq + " pot_inv=" + .@pot_inv + " pot_storage=" + .@pot_storage + " audit_ok=" + .@audit_ok + " refine_audit_ok=" + .@refine_audit_ok + " refine_denied_audit_ok=" + .@refine_denied_aud_ok + " reform_audit_ok=" + .@reform_audit_ok + " reform_denied_audit_ok=" + .@reform_denied_aud_ok + " enchant_audit_ok=" + .@enchant_audit_ok + " enchant_denied_audit_ok=" + .@enchant_denied_aud_ok + " loadout_mapchange_audits=" + .@loadout_mapchange_audits + " loadout_audit_ok=" + .@loadout_audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	debugmes "playerbot_item_selftest_mech_reexec: refine_regrant_ok=" + .@mech_refine_regrant_ok + " refine_reexec_ok=" + .@mech_refine_reexec_ok + " refine_reexec_clear_ok=" + .@mech_refine_reexec_clear_ok + " reform_regrant_ok=" + .@mech_reform_regrant_ok + " reform_reexec_ok=" + .@mech_reform_reexec_ok + " reform_reexec_clear_ok=" + .@mech_reform_reexec_clear_ok + " enchant_regrant_ok=" + .@mech_enchant_regrant_ok + " enchant_reexec_call_ok=" + .@mech_enchant_reexec_call_ok + " enchant_trace_count=" + .@mech_enchant_trace_count + " enchant_mat_before=" + .@mech_enchant_mat_before + " enchant_mat_after=" + .@mech_enchant_mat_after + " enchant_zeny_before=" + .@mech_enchant_zeny_before + " enchant_zeny_after=" + .@mech_enchant_zeny_after + " enchant_reexec_effect_ok=" + .@mech_enchant_reexec_effect_ok + " enchant_reexec_ok=" + .@mech_enchant_reexec_ok + " enchant_reexec_clear_ok=" + .@mech_enchant_reexec_clear_ok + ".";
+	debugmes "playerbot_item_selftest_consume: interrupt_grant_ok=" + .@consume_interrupt_grant_ok + " interrupt_seed_call_ok=" + .@consume_interrupt_seed_call_ok + " interrupt_seed_ok=" + .@consume_interrupt_seed_ok + " interrupt_pending_ok=" + .@consume_interrupt_pending_ok + " interrupt_dead_ok=" + .@consume_interrupt_dead_ok + " interrupt_death_clear_ok=" + .@ci_death_clear_ok + " interrupt_death_keep_ok=" + .@ci_death_keep_ok + " interrupt_respawn_ok=" + .@consume_interrupt_respawn_ok + " interrupt_map_call_ok=" + .@consume_interrupt_map_call_ok + " interrupt_map_seed_ok=" + .@consume_interrupt_map_seed_ok + " interrupt_map_pending_ok=" + .@ci_map_pending_ok + " interrupt_map_clear_ok=" + .@consume_interrupt_map_clear_ok + " interrupt_map_keep_ok=" + .@consume_interrupt_map_keep_ok + " interrupt_open_trace_count=" + .@ci_open_trace_ct + " interrupt_trace_count=" + .@consume_interrupt_trace_count + " interrupt_open_audit_count=" + .@ci_open_audit_ct + " interrupt_audit_count=" + .@consume_interrupt_audit_count + " interrupt_ok=" + .@consume_interrupt_ok + " missing_ok=" + .@consume_missing_ok + " missing_audit_count=" + .@consume_missing_audit_count + " missing_trace_count=" + .@consume_missing_trace_count + " missing_audit_ok=" + .@consume_missing_audit_ok + ".";
 	playerbot_loadoutclear(.bot_key$);
 	detachrid;
 	return;
