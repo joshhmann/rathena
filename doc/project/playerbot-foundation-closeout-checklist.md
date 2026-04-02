@@ -121,11 +121,10 @@ Execute the remaining closeout fronts in this order:
 The companion system lane (pet/homunculus/mercenary/elemental) remains a
 separate future foundation extension after this closeout sequence is green.
 
-The remaining lifecycle-specific open fronts are tracked separately from the
-currently automated closeout executor:
+The remaining lifecycle-specific open fronts are now split:
 
 - spawn-failure cleanup is now covered in runtime, but still lacks a dedicated automated validation helper
-- despawn grace is now runtime-visible and helper-backed through `tools/ci/playerbot-lifecycle-grace-smoke.sh`, but is not yet promoted into the automated closeout set
+- despawn grace is runtime-visible and helper-backed through `tools/ci/playerbot-lifecycle-grace-smoke.sh`
   guarantee
 
 ## Scenario Coverage Set
@@ -154,6 +153,7 @@ The closeout set includes:
 - `market-buyingstore-denial-continuity`
 - `market-mail-delivery-integrity`
 - `market-session-restart-continuity`
+- `lifecycle-despawn-grace-window`
 - `foundation-rich-gate`
 
 ## Additional Lifecycle Runbooks (Not Yet Automated Closeout Gates)
@@ -161,11 +161,10 @@ The closeout set includes:
 The scenario runner also documents two remaining lifecycle fronts:
 
 - `lifecycle-spawn-failure-cleanup`
-- `lifecycle-despawn-grace-window`
 
-These are intentionally not part of the current automated closeout executor or
-its required scenario-definition check yet. They exist to keep the remaining
-runtime gaps visible without overstating current verification coverage.
+`lifecycle-spawn-failure-cleanup` remains outside the automated closeout
+executor. `lifecycle-despawn-grace-window` is now part of the automated
+scenario-definition set and has a dedicated lifecycle grace checkpoint.
 
 ## Behavior Readiness Rule
 

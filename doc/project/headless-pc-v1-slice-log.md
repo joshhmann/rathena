@@ -6136,6 +6136,50 @@ This slice does not change underlying trade protocol semantics; it fixes the
 aggregate selftest setup so inviter-dependent flows are actually exercised from
 a valid local position.
 
+## Slice 75: Promote Lifecycle Grace Into Closeout
+
+### Summary
+
+Promoted the despawn grace helper from a sidecar lifecycle lane into the real
+closeout scenario-definition set and added a dedicated closeout checkpoint for
+it.
+
+### Files
+
+- `tools/ci/playerbot-foundation-closeout.sh`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added `lifecycle-despawn-grace-window` to the automated closeout
+  scenario-definition set.
+- Added a dedicated `lifecycle-grace` checkpoint to the closeout executor:
+  - `bash tools/ci/playerbot-lifecycle-grace-smoke.sh run`
+- Added closeout flags:
+  - `--lifecycle-grace-runs N`
+  - `--no-lifecycle-grace`
+- Updated checklist wording so:
+  - spawn-failure cleanup remains outside automated closeout
+  - despawn grace is now an automated closeout checkpoint
+
+### Validation
+
+- `bash tools/ci/playerbot-foundation-closeout.sh --run-count 0 --rich-count 0 --no-stress --no-overlap --no-market --no-trace-quality --lifecycle-grace-runs 1`
+
+Observed:
+
+- scenario-definition check passed with `lifecycle-despawn-grace-window`
+  included
+- dedicated `lifecycle-grace` checkpoint passed (`lifecycle-grace:1:0`)
+
+### Deferrals
+
+- spawn-failure cleanup still lacks a dedicated automated failure-injection
+  helper
+- the larger full closeout matrix still depends on separate aggregate/stress
+  lanes remaining green
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary
