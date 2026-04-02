@@ -7,6 +7,7 @@ playerbot_scenario_ids() {
 		'combat-skillunit-death-cleanup' \
 		'combat-skillunit-quit-cleanup' \
 		'combat-skillunit-promotion-precheck' \
+		'combat-pvp-woe-death-semantics' \
 		'combat-repeated-transition-stress' \
 		'status-continuity' \
 		'status-death-cleanup' \
@@ -36,6 +37,7 @@ playerbot_scenario_title() {
 		combat-skillunit-death-cleanup) printf '%s\n' 'Combat Skillunit Death Cleanup' ;;
 		combat-skillunit-quit-cleanup) printf '%s\n' 'Combat Skillunit Quit Cleanup' ;;
 		combat-skillunit-promotion-precheck) printf '%s\n' 'Combat Skillunit Promotion Precheck' ;;
+		combat-pvp-woe-death-semantics) printf '%s\n' 'Combat PvP / WoE Death Semantics' ;;
 		combat-repeated-transition-stress) printf '%s\n' 'Combat Repeated Transition Stress' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
@@ -62,7 +64,7 @@ playerbot_scenario_title() {
 
 playerbot_scenario_phase() {
 	case "${1:-}" in
-		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-repeated-transition-stress) printf '%s\n' 'combat' ;;
+		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-pvp-woe-death-semantics|combat-repeated-transition-stress) printf '%s\n' 'combat' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
@@ -103,6 +105,11 @@ EOF
 		combat-skillunit-promotion-precheck)
 			cat <<'EOF'
 Validate that the bot correctly evaluates blocked cast pre-conditions before placing a ground skill unit — confirming that cast-condition denials, invalid targets, and near-NPC/cell contexts all block placement and leave no orphaned skillunit state.
+EOF
+			;;
+		combat-pvp-woe-death-semantics)
+			cat <<'EOF'
+Validate that PvP nightmare-drop handling does not strip headless bot gear/items and that PvP/GvG-style death respawn routing returns the bot to its configured savepoint cleanly.
 EOF
 			;;
 		combat-repeated-transition-stress)
@@ -271,6 +278,16 @@ EOF
 - confirm the probe line ends with `result=1`
 - note: successful control placement remains covered by the dedicated
   `playerbot-combat-skillunit-smoke.sh` probe lane
+EOF
+			;;
+		combat-pvp-woe-death-semantics)
+			cat <<'EOF'
+- arm the dedicated combat edge probe helper
+- log in once with the `codex` OpenKore profile
+- verify a PvP nightmare-drop death keeps the bot's equipped knife intact
+- verify a later PvP death enters respawning state and returns the bot to its savepoint
+- verify a GvG/WoE-style death also enters respawning state and returns the bot to its savepoint
+- confirm the probe line ends with `result=1`
 EOF
 			;;
 		combat-repeated-transition-stress)
@@ -498,6 +515,15 @@ EOF
   `playerbot_combat_skillunit_probe`
 EOF
 			;;
+		combat-pvp-woe-death-semantics)
+			cat <<'EOF'
+- `playerbot_combat_edge_probe ... result=1` is present
+- the probe reports `pvp_keep1_ok=1`, `pvp_auto_ok=1`, and `pvp_keep2_ok=1`
+- the probe reports `gvg_auto_ok=1` and `gvg_keep_ok=1`
+- recent combat traces show both death and respawn rows
+- recent combat recovery audits show death/respawn rows through the normal recovery path
+EOF
+			;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity)
 			cat <<'EOF'
 - status summary reflects the live effect
@@ -653,6 +679,16 @@ It is the accepted gate for blocked skillunit placement preconditions
 successful control placement.
 EOF
 			;;
+		combat-pvp-woe-death-semantics)
+			cat <<'EOF'
+This scenario is backed by the dedicated combat edge helper:
+`tools/ci/playerbot-combat-edge-smoke.sh`.
+
+It keeps PvP nightmare-drop retention and WoE-style respawn routing in a
+separate proof lane so aggregate combat acceptance stays focused on the stable
+baseline combat lifecycle.
+EOF
+			;;
 		item-loadout-continuity)
 			cat <<'EOF'
 This scenario now has a repo-local smoke helper through
@@ -742,6 +778,9 @@ playerbot_scenario_launcher() {
 			;;
 		combat-skillunit-promotion-precheck)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-skillunit-precheck-smoke.sh run'
+			;;
+		combat-pvp-woe-death-semantics)
+			printf '%s\n' 'bash tools/ci/playerbot-combat-edge-smoke.sh run'
 			;;
 		combat-repeated-transition-stress)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-transition-stress.sh --runs 10'

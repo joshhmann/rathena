@@ -84,15 +84,15 @@ Layer labels:
 | Target selection / priority | ✗ | behavior | No combat AI decision layer; `playerbot_target` is operator-driven today |
 | Loot routing | ✗ | behavior | No item pickup or loot behavior |
 | MVP / boss mechanics | ✗ | behavior | Special boss aggro, tombstone, and loot rules not addressed |
-| PvP (player-vs-player maps) | ✗ | foundation edge case | PvP death has different drop rules and respawn semantics; foundation should handle these without breaking — see note below |
+| PvP (player-vs-player maps) | ~ | foundation edge case | PvP nightmare-drop retention and respawn semantics are helper-backed; no PvP behavior layer exists |
 | War of Emperium | ✗ | behavior | Requires combat, guild, movement foundation; siege AI is behavior-layer |
 | Battlegrounds | ✗ (deferred) | behavior | Explicitly deferred in backlog |
 | Elemental properties / resist | ✗ | behavior | Engine handles damage calc; bot targeting by element is behavior |
 
-**PvP note**: bots can currently be placed on PvP/PK maps. PvP death does not
-drop items for headless actors by default if `headless_bot` flag is respected
-by the drop path — this should be verified and added to the edge cases doc.
-WoE death respawn point routing is similarly unverified.
+**PvP / WoE note**: helper-backed combat edge proof now verifies that headless
+bots retain gear through PvP nightmare-drop deaths and that both PvP and
+WoE-style (`MF_GVG_CASTLE`) deaths route respawn back to the configured
+savepoint. Full PvP/WoE combat behavior remains out of scope.
 
 ---
 
@@ -275,12 +275,11 @@ behavior phase.
 
 These need to be addressed before the behavior phase is safe to build on them:
 
-1. PvP / WoE death semantics verification
-2. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
-3. Buying store partial fill, reopen, denial continuity
-4. Mail delivery integrity
-5. Guild storage hardening
-6. Skillunit promotion precheck and aggregate-gate decision
+1. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
+2. Buying store partial fill, reopen, denial continuity
+3. Mail delivery integrity
+4. Guild storage hardening
+5. Skillunit promotion precheck and aggregate-gate decision
 
 ### Behavior-layer targets (after foundation closes)
 

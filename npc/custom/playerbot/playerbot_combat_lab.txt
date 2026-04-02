@@ -3,7 +3,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 	mes "Drive the combat/status/death/respawn foundation hooks.";
 	next;
 
-	switch(select("Run combat selftest:Run skillunit probe:Run skillunit precheck:Inspect quick combat bot:Inspect combat trace summary:Inspect combat audit summary:Close")) {
+	switch(select("Run combat selftest:Run skillunit probe:Run skillunit precheck:Run PvP/WoE edge probe:Inspect quick combat bot:Inspect combat trace summary:Inspect combat audit summary:Close")) {
 	case 1:
 		setd("$PBCST_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotCombatSelftest::OnManualStart";
@@ -26,6 +26,13 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		mes "Check the map-server log for the final result line.";
 		close;
 	case 4:
+		setd("$PBCEDGE_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotCombatEdgeProbe::OnManualStart";
+		mes "[Playerbot Combat Lab]";
+		mes "PvP / WoE edge probe started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	case 5:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
 			mes "[Playerbot Combat Lab]";
 			mes "Quick combat bot not provisioned yet.";
@@ -41,7 +48,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		mes "Casting active: " + playerbot_skillcastactive(.bot_key$);
 		mes "Blessing active: " + playerbot_statusactive(.bot_key$, SC_BLESSING);
 		close;
-	case 5:
+	case 6:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
 			mes "[Playerbot Combat Lab]";
 			mes "Quick combat bot not provisioned yet.";
@@ -61,7 +68,7 @@ alberta,178,135,4	script	Playerbot Combat Lab	4_M_02,{
 		for (.@i = 0; .@i < getarraysize(.@action$); ++.@i)
 			mes .@action$[.@i] + " / " + .@target_type$[.@i] + " / " + .@reason$[.@i] + " / " + .@result$[.@i] + " / " + .@detail$[.@i];
 		close;
-	case 6:
+	case 7:
 		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$)) {
 			mes "[Playerbot Combat Lab]";
 			mes "Quick combat bot not provisioned yet.";
@@ -1613,7 +1620,247 @@ S_Run:
 		&& .@range_apply_ok && .@range_unit_ok && .@range_trace_ok
 		&& .@cell_move_ok && .@cell_apply_ok && .@cell_unit_ok && .@cell_trace_ok
 		&& .@park_ok && .@trace_ok);
-	debugmes "playerbot_combat_skillunit_precheck: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " claim_ok=" + .@claim_ok + " skill_id=" + .@skill_id + " grant_ok=" + .@grant_ok + " low_sp_seed_ok=" + .@low_sp_seed_ok + " low_sp_apply_ok=" + .@low_sp_apply_ok + " low_sp_unit_ok=" + .@low_sp_unit_ok + " low_sp_trace_ok=" + .@low_sp_trace_ok + " range_apply_ok=" + .@range_apply_ok + " range_unit_ok=" + .@range_unit_ok + " range_trace_ok=" + .@range_trace_ok + " cell_move_ok=" + .@cell_move_ok + " cell_apply_ok=" + .@cell_apply_ok + " cell_unit_ok=" + .@cell_unit_ok + " cell_trace_ok=" + .@cell_trace_ok + " success_move_ok=" + .@success_move_ok + " success_apply_ok=" + .@success_apply_ok + " success_unit_ok=" + .@success_unit_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
+debugmes "playerbot_combat_skillunit_precheck: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " claim_ok=" + .@claim_ok + " skill_id=" + .@skill_id + " grant_ok=" + .@grant_ok + " low_sp_seed_ok=" + .@low_sp_seed_ok + " low_sp_apply_ok=" + .@low_sp_apply_ok + " low_sp_unit_ok=" + .@low_sp_unit_ok + " low_sp_trace_ok=" + .@low_sp_trace_ok + " range_apply_ok=" + .@range_apply_ok + " range_unit_ok=" + .@range_unit_ok + " range_trace_ok=" + .@range_trace_ok + " cell_move_ok=" + .@cell_move_ok + " cell_apply_ok=" + .@cell_apply_ok + " cell_unit_ok=" + .@cell_unit_ok + " cell_trace_ok=" + .@cell_trace_ok + " success_move_ok=" + .@success_move_ok + " success_apply_ok=" + .@success_apply_ok + " success_unit_ok=" + .@success_unit_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}
+
+-	script	PlayerbotCombatEdgeProbe	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBCEDGE_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBCEDGE_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBCEDGE_MANUAL_AID;
+	callsub S_Run;
+	end;
+
+S_Heal:
+	if (!attachrid(.account_id))
+		return 0;
+	percentheal 100, 100;
+	detachrid;
+	return 1;
+
+S_CleanupFlags:
+	removemapflag .test_map$, MF_PVP_NIGHTMAREDROP;
+	removemapflag .test_map$, MF_PVP;
+	removemapflag .test_map$, MF_GVG_CASTLE;
+	return;
+
+S_PrepareBot:
+	if (headlesspc_status(.char_id) == 2)
+		headlesspc_claim(.char_id, .owner$);
+	callfunc "F_PB_RES_ReleaseByHolder", .bot_key$, "";
+	playerbot_attackstop(.bot_key$);
+	playerbot_participationrecover(.bot_key$);
+	if (callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201) > 0)
+		playerbot_itemunequip(.bot_key$, 1201);
+	.@knife_inv = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201);
+	if (.@knife_inv > 0)
+		playerbot_itemremove(.bot_key$, 1201, .@knife_inv);
+	callsub S_Heal;
+	sleep 300;
+	return 1;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_combat_open";
+	.display_name$ = "QuickCombatOpen";
+	.owner$ = "PlayerbotCombatEdgeProbe";
+	.test_map$ = "izlude";
+	.save_map$ = "prontera";
+	.save_x = 149;
+	.save_y = 186;
+	.test_x = 128;
+	.test_y = 146;
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .display_name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_combat_edge_probe: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.account_id = $@pbbot_account_id;
+	.@summary_ok = ($@pbbot_found && .char_id > 0 && .account_id > 0);
+	if (!.@summary_ok) {
+		debugmes "playerbot_combat_edge_probe: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callsub S_CleanupFlags;
+	if (headlesspc_status(.char_id) == 2) {
+		headlesspc_remove(.char_id);
+		for (.@i = 0; .@i < 10; ++.@i) {
+			sleep 300;
+			if (headlesspc_status(.char_id) == 0)
+				break;
+		}
+	}
+
+	.@spawn_ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, .save_map$, .save_x, .save_y);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@spawn_ack && headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+		if (headlesspc_status(.char_id) == 2) {
+			.@spawn_ok = 1;
+			break;
+		}
+	}
+	if (!.@spawn_ok) {
+		debugmes "playerbot_combat_edge_probe: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	sleep 1200;
+	.@claim_ok = headlesspc_claim(.char_id, .owner$);
+	sleep 300;
+
+	if (attachrid(.account_id)) {
+		jobchange Job_Swordman;
+		percentheal 100, 100;
+		savepoint .save_map$, .save_x, .save_y;
+		detachrid;
+		.@save_ok = 1;
+	}
+	callsub S_PrepareBot;
+	.@knife_grant_ok = playerbot_itemgrant(.bot_key$, 1201, 1);
+	.@knife_eq_ok = (.@knife_grant_ok && playerbot_itemequip(.bot_key$, 1201));
+	.@knife_total0 = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201) + callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201);
+
+	setmapflag .test_map$, MF_PVP;
+	setmapflag .test_map$, MF_PVP_NIGHTMAREDROP;
+	.@pvp_move1_ok = (.@knife_eq_ok && headlesspc_setpos(.char_id, .test_map$, .test_x, .test_y));
+	if (.@pvp_move1_ok)
+		sleep 900;
+	.@pvp_kill1_ok = (.@pvp_move1_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@pvp_dead1_ok = 1;
+			break;
+		}
+	}
+	.@knife_total1 = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201) + callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201);
+	.@pvp_keep1_ok = (.@pvp_dead1_ok && .@knife_total1 == .@knife_total0);
+	.@pvp_rsp1_req_ok = (.@pvp_dead1_ok && playerbot_respawn(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && strcmp(headlesspc_map(.char_id), .save_map$) == 0) {
+			.@pvp_rsp1_ok = 1;
+			break;
+		}
+	}
+
+	.@pvp_move2_ok = (.@pvp_rsp1_ok && headlesspc_setpos(.char_id, .test_map$, .test_x, .test_y));
+	if (.@pvp_move2_ok)
+		sleep 900;
+	.@pvp_kill2_ok = (.@pvp_move2_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@pvp_dead2_ok = 1;
+			break;
+		}
+	}
+	.@pvp_auto_ok = (.@pvp_dead2_ok && playerbot_isrespawning(.bot_key$));
+	for (.@i = 0; .@i < 16; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && !playerbot_isrespawning(.bot_key$) && strcmp(headlesspc_map(.char_id), .save_map$) == 0) {
+			.@pvp_rsp2_ok = 1;
+			break;
+		}
+	}
+	.@knife_total2 = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201) + callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201);
+	.@pvp_keep2_ok = (.@pvp_rsp2_ok && .@knife_total2 == .@knife_total0);
+	removemapflag .test_map$, MF_PVP_NIGHTMAREDROP;
+	removemapflag .test_map$, MF_PVP;
+
+	setmapflag .test_map$, MF_GVG_CASTLE;
+	.@gvg_move_ok = (.@pvp_rsp2_ok && headlesspc_setpos(.char_id, .test_map$, .test_x, .test_y));
+	if (.@gvg_move_ok)
+		sleep 900;
+	.@gvg_kill_ok = (.@gvg_move_ok && playerbot_kill(.bot_key$));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (playerbot_isdead(.bot_key$)) {
+			.@gvg_dead_ok = 1;
+			break;
+		}
+	}
+	.@gvg_auto_ok = (.@gvg_dead_ok && playerbot_isrespawning(.bot_key$));
+	for (.@i = 0; .@i < 16; ++.@i) {
+		sleep 250;
+		if (!playerbot_isdead(.bot_key$) && !playerbot_isrespawning(.bot_key$) && strcmp(headlesspc_map(.char_id), .save_map$) == 0) {
+			.@gvg_rsp_ok = 1;
+			break;
+		}
+	}
+	.@knife_total3 = callfunc("F_PB_ITEM_Count", .bot_key$, "inventory", 1201) + callfunc("F_PB_ITEM_Count", .bot_key$, "equipped", 1201);
+	.@gvg_keep_ok = (.@gvg_rsp_ok && .@knife_total3 == .@knife_total0);
+	removemapflag .test_map$, MF_GVG_CASTLE;
+
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .char_id + "' "
+		+ "AND `phase` = 'combat' AND `target_type` IN ('death','respawn') "
+		+ "AND UNIX_TIMESTAMP() - `ts` <= 300",
+		.@tr_count);
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_recovery_audit` "
+		+ "WHERE `bot_id` = '" + .bot_id + "' "
+		+ "AND `scope` = 'combat' AND `action` IN ('death','respawn') "
+		+ "AND UNIX_TIMESTAMP() - `ts` <= 300",
+		.@au_count);
+	.@trace_ok = (.@tr_count >= 6);
+	.@audit_ok = (.@au_count >= 3);
+
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 10; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+
+	.@result = (.@summary_ok && .@spawn_ok && .@claim_ok && .@save_ok
+		&& .@knife_grant_ok && .@knife_eq_ok
+		&& .@pvp_move1_ok && .@pvp_kill1_ok && .@pvp_dead1_ok && .@pvp_keep1_ok
+		&& .@pvp_rsp1_req_ok && .@pvp_rsp1_ok
+		&& .@pvp_move2_ok && .@pvp_kill2_ok && .@pvp_dead2_ok && .@pvp_auto_ok && .@pvp_rsp2_ok && .@pvp_keep2_ok
+		&& .@gvg_move_ok && .@gvg_kill_ok && .@gvg_dead_ok && .@gvg_auto_ok && .@gvg_rsp_ok && .@gvg_keep_ok
+		&& .@trace_ok && .@audit_ok && .@park_ok);
+	debugmes "playerbot_combat_edge_probe: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " claim_ok=" + .@claim_ok + " save_ok=" + .@save_ok + " knife_grant_ok=" + .@knife_grant_ok + " knife_eq_ok=" + .@knife_eq_ok + " pvp_move1_ok=" + .@pvp_move1_ok + " pvp_dead1_ok=" + .@pvp_dead1_ok + " pvp_keep1_ok=" + .@pvp_keep1_ok + " pvp_rsp1_ok=" + .@pvp_rsp1_ok + " pvp_move2_ok=" + .@pvp_move2_ok + " pvp_dead2_ok=" + .@pvp_dead2_ok + " pvp_auto_ok=" + .@pvp_auto_ok + " pvp_rsp2_ok=" + .@pvp_rsp2_ok + " pvp_keep2_ok=" + .@pvp_keep2_ok + " gvg_move_ok=" + .@gvg_move_ok + " gvg_dead_ok=" + .@gvg_dead_ok + " gvg_auto_ok=" + .@gvg_auto_ok + " gvg_rsp_ok=" + .@gvg_rsp_ok + " gvg_keep_ok=" + .@gvg_keep_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

@@ -61,8 +61,10 @@ Current closeout status:
      item loadout continuity + full mechanic re-exec and is green
    - richer skillunit creation/cleanup and precheck proof are helper-backed in
      the dedicated combat lanes
-   - the remaining combat-edge work is narrower: PvP / WoE death semantics
-     verification and any future decision to aggregate the split skillunit proof
+   - helper-backed PvP nightmare-drop retention and WoE-style respawn routing
+     are now proven in the combat edge lane
+   - the remaining combat-edge decision is whether the split skillunit proof
+     should ever be merged into aggregate acceptance
 6. Scenario coverage for all remaining open fronts: in progress
 7. Trace/audit reason/result quality and debuggability: in progress
    - closeout matrix now executes a trace-quality checkpoint that fails on

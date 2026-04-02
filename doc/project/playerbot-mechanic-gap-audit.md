@@ -61,8 +61,9 @@ The next unresolved mechanic-participation gaps are:
    - richer positional-skill / persistent-skillunit participation is proven
      through the separate probe and scenario layer
    - repeated combat/status/session transition stress is also green
-   - the remaining combat gap is now narrower:
-     - PvP / WoE death semantics verification
+   - helper-backed PvP nightmare-drop retention and WoE-style respawn routing
+     are now verified
+   - the remaining combat question is policy rather than missing runtime proof:
      - whether richer skill-unit proof should ever be merged into the aggregate
        accepted frontier instead of staying split/helper-backed
 

@@ -2931,3 +2931,29 @@ Loadout denied/recover scenario governance is now explicit:
   slot-conflict-clear details
 - this closes another former launcher gap in the scenario catalog while keeping
   runtime item semantics unchanged
+
+### 37. PvP / WoE death semantics
+
+Current support:
+
+- helper-backed edge proof now exists at:
+  - `bash tools/ci/playerbot-combat-edge-smoke.sh arm`
+  - `bash tools/ci/playerbot-combat-edge-smoke.sh check`
+- accepted probe line:
+  - `playerbot_combat_edge_probe: ... result=1`
+- the probe currently proves:
+  - PvP nightmare-drop deaths do not strip the headless bot's equipped knife
+  - a later PvP death enters respawning state and returns the bot to its
+    configured savepoint
+  - a WoE-style (`MF_GVG_CASTLE`) death also enters respawning state and
+    returns the bot to its configured savepoint
+  - combat death/respawn trace + audit rows are emitted through the normal
+    combat recovery path
+
+Current limits:
+
+- this is legal-participation / recovery proof only, not PvP or WoE behavior
+- siege targeting, castle defense, ranking, and rivalry logic remain behavior
+  concerns
+- richer combat acceptance still keeps the skillunit proof split/helper-backed
+  rather than promoting it into the aggregate baseline gate
