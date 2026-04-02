@@ -141,6 +141,8 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 2;
 		else if (.@presence_policy$[0] == "hybrid")
 			.@bonus += 1;
+		if (countstr(.@pulse_profile$[0], "safe") > 0)
+			.@bonus += 4;
 	} else if (.@action$ == "hold_position") {
 		if (countstr(.@pulse_profile$[0], "guard") > 0)
 			.@bonus += 3;

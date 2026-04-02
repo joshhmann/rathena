@@ -34,7 +34,9 @@ check() {
 	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" \
 		summary_ok=1 cfg_ok=1 spawn_ok=1 equip_ok=1 target_ok=1 \
 		policy_pick$=attack_target policy_ok=1 mark_ok=1 attack_ok=1 \
-		engaged_ok=1 state_ok=1 stop_ok=1 target_clear_ok=1 summary_build_ok=1 park_ok=1 result=1
+		engaged_ok=1 state_ok=1 stop_ok=1 target_clear_ok=1 \
+		retreat_cfg_ok=1 retreat_pick$=disengage retreat_ok=1 \
+		summary_build_ok=1 park_ok=1 result=1
 	printf '\n[%s] Current combat behavior memory rows\n' "$PB_SMOKE_LABEL"
 	pb_smoke_sql_heredoc <<'SQL'
 SELECT `memory_key`, `int_value`, `text_value`, `source_tag`

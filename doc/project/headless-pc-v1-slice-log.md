@@ -10751,10 +10751,11 @@ config-driven `attack_target` selection with the existing attack-intent runtime.
 ### What Changed
 
 - Reused the existing config-backed kernel surface to support `attack_target`
-  combat choice.
+  and `disengage` combat choice.
 - Added a dedicated combat behavior lab and hidden selftest that:
   - seeds a combat-friendly `bot_behavior_config` row
-  - proves the kernel picks `attack_target`
+  - proves the kernel picks `attack_target` in the engage profile
+  - proves the kernel picks `disengage` in the safe profile
   - reuses the existing combat/attack-intent runtime to engage and then clear a
     live target
 - Added a dedicated combat behavior smoke helper and scenario/runbook entry.
