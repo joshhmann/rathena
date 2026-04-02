@@ -51,12 +51,11 @@ Current closeout status:
    - aggregate quick gate is green with the expanded mechanic execution proof
 4. Deeper equip/use/consume continuity under overlapping transitions: in progress
    - loadout overlap continuity loop increased to 3 cycles in aggregate item
-     selftest
-   - each cycle now proves overlap actions (storage withdraw/deposit and
-     equip re-toggle) while preserving loadout + consumable invariants
-   - item smoke now requires `loadout_cycle_count=3`
-   - full closeout matrix now executes `playerbot-item-overlap-stress`
-     (`pre item` -> `aggregate` -> `post item`) as a dedicated overlap check
+     selftest and remains green
+   - overlap actions (storage withdraw/deposit and equip re-toggle) are now
+     covered in the accepted item lane
+   - the remaining item/use gap is narrower: interrupted item-use side effects
+     and richer consume continuity beyond the current instant-use baseline
 5. Broader combat-event continuity under repeated transitions: in progress
    - repeated-transition stress now checks combat continuity + market commit +
      item loadout continuity + full mechanic re-exec (refine/reform/enchant)

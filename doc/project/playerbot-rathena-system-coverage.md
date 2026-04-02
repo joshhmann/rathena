@@ -184,11 +184,11 @@ forgotten.
 
 | System | Status | Layer | Notes |
 |--------|--------|-------|-------|
-| Equip / unequip | ~ | foundation | Happy-path loadout reconciliation covered; denial recovery is a closeout gap |
-| Loadout denial and recovery | ✗ | foundation | Closeout gap — engine-rejected equip handling |
-| Loadout overlap continuity | ✗ | foundation | Closeout gap — overlapping transitions during equip |
-| Item use / consume | ~ | foundation | First hooks exist; interrupted use side effects are a mechanic gap |
-| Item consume continuity | ✗ | foundation | Edge cases around interrupted or failed consumption not proven |
+| Equip / unequip | ✓ | foundation | Happy-path and denial/recovery paths are covered |
+| Loadout denial and recovery | ✓ | foundation | Engine-rejected equip handling and recovery are covered |
+| Loadout overlap continuity | ✓ | foundation | Overlapping transition continuity is covered |
+| Item use / consume | ~ | foundation | First hooks exist; interrupted use side effects remain the main open consume gap |
+| Item consume continuity | ~ | foundation | Basic consume path is covered; interrupted/failed consumption semantics remain open |
 | Refine / upgrade (+N) | ✓ | foundation | Execution/result semantics are covered |
 | Reform / modification | ✓ | foundation | Execution/result semantics are covered |
 | Enchantgrade | ✓ | foundation | Execution/result semantics are covered |

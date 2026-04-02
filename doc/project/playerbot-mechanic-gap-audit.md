@@ -49,12 +49,13 @@ The next unresolved mechanic-participation gaps are:
      where overlapping transitions still matter
 
 3. **Equip / use / consume continuity beyond the current loadout baseline**
-   - intended loadout reconcile and first consume/use hooks are in place
+   - intended loadout reconcile, denial recovery, and overlap continuity are in
+     place
    - the remaining gap is deeper legality and continuity under more complex
      transitions:
      - interrupted item use side effects
-     - stronger ownership guarantees under overlapping mechanic transitions
-     - richer equipment continuity outside the current spawn/death/respawn path
+     - richer consume continuity outside the current instant-use baseline
+     - any still-missing ownership edge outside the now-green overlap path
 
 4. **Broader combat-event participation**
    - the stable aggregate combat gate is green
