@@ -139,6 +139,91 @@ function	script	F_PB_LifecycleGraceSelftest_Run	{
 	return;
 }
 
+function	script	F_PB_LifecycleSpawnFailureSelftest_Run	{
+	.@bot_key$ = "botpc06";
+	.@char_id = 150015;
+	.@spawn_ok = 0;
+	.@spawn_ack_before = headlesspc_spawnack(.@char_id);
+	.@status_absent_ok = 0;
+	.@spawn_ack_stable_ok = 0;
+	.@runtime_clear_ok = 0;
+	.@loadout_trace_ok = 0;
+	.@recovery_spawn_ok = 0;
+	.@recovery_remove_ok = 0;
+
+	if (headlesspc_status(.@char_id) == 2) {
+		headlesspc_remove(.@char_id);
+		for (.@i = 0; .@i < 12; ++.@i) {
+			sleep 250;
+			if (headlesspc_status(.@char_id) == 0)
+				break;
+		}
+	}
+
+	query_sql(
+		"SELECT COALESCE(MAX(`id`), 0) "
+		+ "FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .@char_id + "'",
+		.@trace_before);
+
+	headlesspc_testfailspawn(.@char_id, 1);
+	.@spawn_req_ok = headlesspc_spawn(.@char_id, "prontera", 160, 186);
+	for (.@i = 0; .@i < 16; ++.@i) {
+		sleep 250;
+		if (headlesspc_status(.@char_id) == 0) {
+			.@status_absent_ok = 1;
+			break;
+		}
+	}
+	.@spawn_ack_after = headlesspc_spawnack(.@char_id);
+	.@spawn_ack_stable_ok = (.@spawn_ack_after == .@spawn_ack_before);
+	query_sql(
+		"SELECT COUNT(*) FROM `headless_pc_runtime` WHERE `char_id` = '" + .@char_id + "'",
+		.@runtime_rows);
+	.@runtime_clear_ok = (.@runtime_rows[0] == 0);
+	query_sql(
+		"SELECT COUNT(*) "
+		+ "FROM `bot_trace_event` "
+		+ "WHERE `char_id` = '" + .@char_id + "' "
+		+ "AND `phase` = 'reconcile' "
+		+ "AND `target_type` = 'loadout' "
+		+ "AND `reason_code` = 'restart.recovery' "
+		+ "AND `id` > '" + .@trace_before[0] + "'",
+		.@loadout_trace_count);
+	.@loadout_trace_ok = (.@loadout_trace_count[0] == 0);
+
+	.@recovery_spawn_req_ok = headlesspc_spawn(.@char_id, "prontera", 160, 186);
+	for (.@i = 0; .@i < 16; ++.@i) {
+		sleep 250;
+		if (headlesspc_status(.@char_id) == 2) {
+			.@recovery_spawn_ok = 1;
+			break;
+		}
+	}
+	if (.@recovery_spawn_ok)
+		.@recovery_remove_req_ok = headlesspc_remove(.@char_id);
+	for (.@i = 0; .@i < 16; ++.@i) {
+		sleep 250;
+		if (headlesspc_status(.@char_id) == 0) {
+			.@recovery_remove_ok = 1;
+			break;
+		}
+	}
+
+	.@result = (.@spawn_req_ok && .@status_absent_ok && .@spawn_ack_stable_ok && .@runtime_clear_ok && .@loadout_trace_ok && .@recovery_spawn_ok && .@recovery_remove_ok);
+	debugmes "playerbot_lifecycle_spawnfail_selftest: spawn_req_ok=" + .@spawn_req_ok
+		+ " status_absent_ok=" + .@status_absent_ok
+		+ " spawn_ack_stable_ok=" + .@spawn_ack_stable_ok
+		+ " runtime_clear_ok=" + .@runtime_clear_ok
+		+ " loadout_trace_ok=" + .@loadout_trace_ok
+		+ " recovery_spawn_ok=" + .@recovery_spawn_ok
+		+ " recovery_remove_ok=" + .@recovery_remove_ok
+		+ " spawn_ack_before=" + .@spawn_ack_before
+		+ " spawn_ack_after=" + .@spawn_ack_after
+		+ " result=" + .@result + ".";
+	return;
+}
+
 -	script	PlayerbotLifecycleGraceSelftest	FAKE_NPC,{
 OnInit:
 	.enabled = 1;
@@ -178,6 +263,50 @@ OnInterIfInitOnce:
 		setd("$PBLGST_AUTORUN_AID", 0);
 	attachrid(.test_aid);
 	callfunc "F_PB_LifecycleGraceSelftest_Run";
+	detachrid;
+	.running = 0;
+	end;
+}
+
+-	script	PlayerbotLifecycleSpawnFailureSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.autorun = 0;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	.running = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled)
+		end;
+	if (.ran || .running)
+		end;
+	if (!.autorun && $PBLSF_AUTORUN_AID != getcharid(3))
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	.ran = 1;
+	.running = 1;
+	if ($PBLSF_AUTORUN_AID == getcharid(3))
+		setd("$PBLSF_AUTORUN_AID", 0);
+	callfunc "F_PB_LifecycleSpawnFailureSelftest_Run";
+	.running = 0;
+	end;
+
+OnInterIfInitOnce:
+	sleep 2500;
+	if (!.enabled || !.autorun || .ran || .running)
+		end;
+	if (!isloggedin(.test_aid, .test_char_id))
+		end;
+	.ran = 1;
+	.running = 1;
+	if ($PBLSF_AUTORUN_AID == .test_aid)
+		setd("$PBLSF_AUTORUN_AID", 0);
+	attachrid(.test_aid);
+	callfunc "F_PB_LifecycleSpawnFailureSelftest_Run";
 	detachrid;
 	.running = 0;
 	end;

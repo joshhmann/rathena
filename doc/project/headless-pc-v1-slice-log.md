@@ -6180,6 +6180,64 @@ Observed:
 - the larger full closeout matrix still depends on separate aggregate/stress
   lanes remaining green
 
+## Slice 76: Promote Lifecycle Spawn-Failure Into Closeout
+
+### Summary
+
+Added a deterministic forced-failure helper for the headless spawn path and
+promoted the spawn-failure lifecycle front into the closeout surface.
+
+### Files
+
+- `src/map/chrif.hpp`
+- `src/map/chrif.cpp`
+- `src/map/clif.cpp`
+- `src/map/script.cpp`
+- `npc/custom/playerbot/playerbot_lifecycle_lab.txt`
+- `tools/ci/playerbot-lifecycle-spawnfail-smoke.sh`
+- `tools/ci/playerbot-foundation-smoke.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/playerbot-foundation-closeout-checklist.md`
+- `tools/ci/playerbot-foundation-closeout.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added one-shot forced headless spawn-failure arm/take functions in `chrif`.
+- `clif_headless_pc_load` now supports a deterministic forced-failure path that
+  reuses the same rollback/abort cleanup semantics as the real failure case.
+- Added `headlesspc_testfailspawn` script buildin for the selftest lane.
+- Added hidden `PlayerbotLifecycleSpawnFailureSelftest` plus
+  `tools/ci/playerbot-lifecycle-spawnfail-smoke.sh`.
+- Foundation smoke now clears the spawn-failure autorun flag to keep helper runs
+  isolated from aggregate gates.
+- `lifecycle-spawn-failure-cleanup` now has a real repo-local launcher and is
+  part of the closeout scenario-definition set.
+- Added a dedicated `lifecycle-spawnfail` checkpoint to
+  `playerbot-foundation-closeout.sh`.
+
+### Validation
+
+- `cmake --build build --target map-server -j4`
+- `bash tools/ci/playerbot-lifecycle-spawnfail-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run lifecycle-spawn-failure-cleanup`
+- `bash tools/ci/playerbot-foundation-closeout.sh --run-count 0 --rich-count 0 --no-stress --no-overlap --no-market --no-trace-quality --lifecycle-spawnfail-runs 1 --lifecycle-grace-runs 1`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Observed:
+
+- `playerbot_lifecycle_spawnfail_selftest ... result=1`
+- lifecycle spawn-failure closeout checkpoint passed (`lifecycle-spawnfail:1:0`)
+- aggregate quick gate remained green after the change
+
+### Deferrals
+
+- forced failure helper currently proves the explicit rollback path, not an
+  organic `map_addblock` failure in the wild
+- scheduler grace trace action remains an observability follow-up, not a helper
+  pass requirement
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

@@ -86,6 +86,7 @@ static std::unordered_map<uint32, uint32> headlesspc_walk_event_seq;
 static std::unordered_map<uint32, uint8> headlesspc_walk_result_code;
 static std::unordered_map<uint32, s_headlesspc_route_state> headlesspc_route_states;
 static std::unordered_map<uint32, std::string> headlesspc_owner_labels;
+static std::unordered_set<uint32> headlesspc_forced_spawn_fail_once;
 static uint32 headlesspc_next_walk_seq = 1;
 static constexpr uint8 HEADLESSPC_RUNTIME_ACTIVE = 1;
 static const char* headlesspc_runtime_table = "headless_pc_runtime";
@@ -1145,6 +1146,25 @@ bool chrif_headlesspc_request_spawn(uint32 char_id, int16 m, uint16 x, uint16 y)
 	headlesspc_send_spawn_request(char_id);
 
 	return true;
+}
+
+void chrif_headlesspc_arm_spawn_failure(uint32 char_id, bool enabled) {
+	if (char_id == 0)
+		return;
+	if (enabled)
+		headlesspc_forced_spawn_fail_once.insert(char_id);
+	else
+		headlesspc_forced_spawn_fail_once.erase(char_id);
+}
+
+bool chrif_headlesspc_take_forced_spawn_failure(uint32 char_id) {
+	if (char_id == 0)
+		return false;
+	if (auto it = headlesspc_forced_spawn_fail_once.find(char_id); it != headlesspc_forced_spawn_fail_once.end()) {
+		headlesspc_forced_spawn_fail_once.erase(it);
+		return true;
+	}
+	return false;
 }
 
 bool chrif_headlesspc_remove(uint32 char_id) {

@@ -11498,6 +11498,19 @@ bool clif_headless_pc_load(map_session_data *sd)
 	sd->state.debug_remove_map = 0;
 	sd->state.callshop = 0;
 
+	if (chrif_headlesspc_take_forced_spawn_failure(sd->status.char_id)) {
+		ShowWarning("headless_pc: forced spawn failure for %s (%u:%u)\n",
+			sd->status.name, sd->status.account_id, sd->status.char_id);
+		if (mapdata->users > 0 && --mapdata->users == 0 && battle_config.dynamic_mobs)
+			map_removemobs(sd->m);
+		if (!pc_isinvisible(sd) && mapdata->users_pvp > 0)
+			--mapdata->users_pvp;
+		pc_delinvincibletimer(sd);
+		chrif_headlesspc_abort_spawn(sd->status.char_id);
+		map_quit(sd);
+		return false;
+	}
+
 	if (map_addblock(sd)) {
 		ShowWarning("headless_pc: map_addblock failed for %s (%u:%u)\n",
 			sd->status.name, sd->status.account_id, sd->status.char_id);

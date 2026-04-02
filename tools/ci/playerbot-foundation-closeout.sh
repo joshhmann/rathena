@@ -12,11 +12,13 @@ STRESS_RUNS=3
 OVERLAP_CYCLES=1
 MARKET_CYCLES=1
 TRACE_QUALITY_MINUTES=180
+LIFECYCLE_SPAWNFAIL_RUNS=1
 LIFECYCLE_GRACE_RUNS=1
 STRESS_CHECK_RUNS=1
 OVERLAP_CHECK_RUNS=1
 MARKET_CHECK_RUNS=1
 TRACE_QUALITY_RUNS=1
+LIFECYCLE_SPAWNFAIL_CHECK_RUNS=1
 LIFECYCLE_GRACE_CHECK_RUNS=1
 STOP_ON_FAIL=1
 CHECK_SCENARIOS=1
@@ -32,12 +34,14 @@ Options:
   --overlap-cycles N    Number of loadout-overlap stress cycles (default: 1)
   --market-cycles N     Number of market-session stress cycles (default: 1)
   --trace-quality-min N Trace quality lookback window in minutes (default: 180)
+  --lifecycle-spawnfail-runs N Number of lifecycle spawn-failure helper runs (default: 1)
   --lifecycle-grace-runs N Number of lifecycle-grace helper runs (default: 1)
   --no-rich             Skip rich runs
   --no-stress           Skip repeated-transition stress check
   --no-overlap          Skip loadout-overlap stress check
   --no-market           Skip market-session stress check
   --no-trace-quality    Skip trace quality checkpoint
+  --no-lifecycle-spawnfail Skip lifecycle spawn-failure checkpoint
   --no-lifecycle-grace  Skip lifecycle grace checkpoint
   --no-scenario-check   Skip scenario catalog presence checks
   --continue-on-fail    Continue after failures (default: stop on first failure)
@@ -95,12 +99,21 @@ while [[ $# -gt 0 ]]; do
 			TRACE_QUALITY_MINUTES="${2:?missing value for --trace-quality-min}"
 			shift 2
 			;;
+		--lifecycle-spawnfail-runs)
+			LIFECYCLE_SPAWNFAIL_RUNS="${2:?missing value for --lifecycle-spawnfail-runs}"
+			shift 2
+			;;
 		--lifecycle-grace-runs)
 			LIFECYCLE_GRACE_RUNS="${2:?missing value for --lifecycle-grace-runs}"
 			shift 2
 			;;
 		--no-trace-quality)
 			TRACE_QUALITY_RUNS=0
+			shift
+			;;
+		--no-lifecycle-spawnfail)
+			LIFECYCLE_SPAWNFAIL_RUNS=0
+			LIFECYCLE_SPAWNFAIL_CHECK_RUNS=0
 			shift
 			;;
 		--no-lifecycle-grace)
@@ -158,6 +171,11 @@ if ! [[ "$TRACE_QUALITY_MINUTES" =~ ^[0-9]+$ ]]; then
 	exit 1
 fi
 
+if ! [[ "$LIFECYCLE_SPAWNFAIL_RUNS" =~ ^[0-9]+$ ]]; then
+	echo "--lifecycle-spawnfail-runs must be a non-negative integer" >&2
+	exit 1
+fi
+
 if ! [[ "$LIFECYCLE_GRACE_RUNS" =~ ^[0-9]+$ ]]; then
 	echo "--lifecycle-grace-runs must be a non-negative integer" >&2
 	exit 1
@@ -175,7 +193,7 @@ init_log() {
 	exec > >(tee -a "$LOG_FILE") 2>&1
 	echo "[foundation-closeout] log=${LOG_FILE}"
 	echo "[foundation-closeout] started=${RUN_TS}"
-	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} stress_check_runs=${STRESS_CHECK_RUNS} overlap_cycles=${OVERLAP_CYCLES} overlap_check_runs=${OVERLAP_CHECK_RUNS} market_cycles=${MARKET_CYCLES} market_check_runs=${MARKET_CHECK_RUNS} trace_quality_runs=${TRACE_QUALITY_RUNS} trace_quality_min=${TRACE_QUALITY_MINUTES} lifecycle_grace_runs=${LIFECYCLE_GRACE_RUNS} lifecycle_grace_check_runs=${LIFECYCLE_GRACE_CHECK_RUNS} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
+	echo "[foundation-closeout] config run_count=${RUN_COUNT} rich_count=${RICH_COUNT} stress_runs=${STRESS_RUNS} stress_check_runs=${STRESS_CHECK_RUNS} overlap_cycles=${OVERLAP_CYCLES} overlap_check_runs=${OVERLAP_CHECK_RUNS} market_cycles=${MARKET_CYCLES} market_check_runs=${MARKET_CHECK_RUNS} trace_quality_runs=${TRACE_QUALITY_RUNS} trace_quality_min=${TRACE_QUALITY_MINUTES} lifecycle_spawnfail_runs=${LIFECYCLE_SPAWNFAIL_RUNS} lifecycle_spawnfail_check_runs=${LIFECYCLE_SPAWNFAIL_CHECK_RUNS} lifecycle_grace_runs=${LIFECYCLE_GRACE_RUNS} lifecycle_grace_check_runs=${LIFECYCLE_GRACE_CHECK_RUNS} stop_on_fail=${STOP_ON_FAIL} scenario_check=${CHECK_SCENARIOS}"
 }
 
 init_log
@@ -209,6 +227,7 @@ SCENARIOS=(
 	market-buyingstore-denial-continuity
 	market-mail-delivery-integrity
 	market-session-restart-continuity
+	lifecycle-spawn-failure-cleanup
 	lifecycle-despawn-grace-window
 	combat-repeated-transition-stress
 	foundation-rich-gate
@@ -304,6 +323,12 @@ run_loop "market-session-stress" "bash tools/ci/playerbot-market-session-stress.
 echo "$RUN_LOOP_SUMMARY"
 
 run_loop "trace-quality" "bash tools/ci/playerbot-trace-quality.sh --since ${TRACE_QUALITY_MINUTES}" "${TRACE_QUALITY_RUNS}" || {
+	echo "$RUN_LOOP_SUMMARY"
+	exit 1
+}
+echo "$RUN_LOOP_SUMMARY"
+
+run_loop "lifecycle-spawnfail" "bash tools/ci/playerbot-lifecycle-spawnfail-smoke.sh run" "${LIFECYCLE_SPAWNFAIL_CHECK_RUNS}" || {
 	echo "$RUN_LOOP_SUMMARY"
 	exit 1
 }

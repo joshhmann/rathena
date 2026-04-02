@@ -16020,6 +16020,19 @@ BUILDIN_FUNC(headlesspc_spawn)
 }
 
 /*==========================================
+ * Arm one-shot forced failure for the next
+ * headless spawn load by char_id.
+ *------------------------------------------*/
+BUILDIN_FUNC(headlesspc_testfailspawn)
+{
+	uint32 char_id = script_getnum(st, 2);
+	bool enabled = script_hasdata(st, 3) ? (script_getnum(st, 3) != 0) : true;
+	chrif_headlesspc_arm_spawn_failure(char_id, enabled);
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+/*==========================================
  * Remove a headless BL_PC by char_id.
  *------------------------------------------*/
 BUILDIN_FUNC(headlesspc_remove)
@@ -33508,6 +33521,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_participationrecover,"s"),
 	BUILDIN_DEF(partyleadercharid,"i"),
 	BUILDIN_DEF(headlesspc_spawn,"isii"),
+	BUILDIN_DEF(headlesspc_testfailspawn,"i?"),
 	BUILDIN_DEF(headlesspc_remove,"i"),
 	BUILDIN_DEF(headlesspc_setpos,"isii"),
 	BUILDIN_DEF(headlesspc_walkto,"iii"),

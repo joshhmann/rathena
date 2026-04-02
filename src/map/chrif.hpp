@@ -148,6 +148,8 @@ int32 chrif_headlesspc_walk_result(uint32 char_id);
 int32 chrif_headlesspc_reconcile_result(uint32 char_id);
 void chrif_headlesspc_mark_spawn_ready(uint32 char_id);
 void chrif_headlesspc_abort_spawn(uint32 char_id);
+void chrif_headlesspc_arm_spawn_failure(uint32 char_id, bool enabled);
+bool chrif_headlesspc_take_forced_spawn_failure(uint32 char_id);
 
 void do_final_chrif(void);
 void do_init_chrif(void);

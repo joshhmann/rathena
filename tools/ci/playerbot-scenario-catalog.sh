@@ -428,11 +428,11 @@ EOF
   - `src/map/pc.cpp`
   - `doc/project/headless-pc-edge-cases.md`
   - `doc/project/playerbot-rathena-system-coverage.md`
+- run `bash tools/ci/playerbot-lifecycle-spawnfail-smoke.sh run`
 - confirm spawn-ready completion remains the only accepted success boundary
 - confirm the runtime now aborts partial spawn state on the documented failure path:
   - `map_addblock(sd)` failure before `chrif_headlesspc_mark_spawn_ready(...)`
 - confirm spawn-time loadout reconcile does not run after failed headless load
-- treat this scenario as manual/runbook verification until a dedicated failure-injection helper lands
 EOF
 			;;
 		lifecycle-despawn-grace-window)
@@ -591,7 +591,7 @@ EOF
 			cat <<'EOF'
 - the runtime explicitly rolls back partial spawn state on the documented `map_addblock` failure path
 - spawn-time loadout reconcile does not continue after failed headless load
-- current evidence still relies on source/manual audit rather than a dedicated failure-injection launcher
+- `playerbot_lifecycle_spawnfail_selftest ... result=1` is present
 EOF
 			;;
 		lifecycle-despawn-grace-window)
@@ -696,10 +696,11 @@ EOF
 			;;
 		lifecycle-spawn-failure-cleanup)
 			cat <<'EOF'
-This lifecycle scenario is intentionally documentation-only for now.
+This lifecycle scenario is now backed by the dedicated helper:
+`tools/ci/playerbot-lifecycle-spawnfail-smoke.sh`.
 
-It exists so closeout planning can name the remaining runtime front without
-pretending the current automated smoke stack already proves it.
+It proves the explicit forced-failure cleanup path without relying on organic
+`map_addblock` failure reproduction.
 EOF
 			;;
 		lifecycle-despawn-grace-window)
@@ -776,7 +777,7 @@ playerbot_scenario_launcher() {
 			printf '%s\n' 'bash tools/ci/playerbot-lifecycle-grace-smoke.sh run'
 			;;
 		lifecycle-spawn-failure-cleanup)
-			printf '%s\n' 'none'
+			printf '%s\n' 'bash tools/ci/playerbot-lifecycle-spawnfail-smoke.sh run'
 			;;
 		foundation-rich-gate)
 			printf '%s\n' 'bash tools/ci/playerbot-foundation-smoke.sh run-rich'

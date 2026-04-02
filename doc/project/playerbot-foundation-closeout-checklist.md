@@ -123,7 +123,7 @@ separate future foundation extension after this closeout sequence is green.
 
 The remaining lifecycle-specific open fronts are now split:
 
-- spawn-failure cleanup is now covered in runtime, but still lacks a dedicated automated validation helper
+- spawn-failure cleanup is covered in runtime and now helper-backed through `tools/ci/playerbot-lifecycle-spawnfail-smoke.sh`
 - despawn grace is runtime-visible and helper-backed through `tools/ci/playerbot-lifecycle-grace-smoke.sh`
   guarantee
 
@@ -153,6 +153,7 @@ The closeout set includes:
 - `market-buyingstore-denial-continuity`
 - `market-mail-delivery-integrity`
 - `market-session-restart-continuity`
+- `lifecycle-spawn-failure-cleanup`
 - `lifecycle-despawn-grace-window`
 - `foundation-rich-gate`
 
@@ -160,11 +161,8 @@ The closeout set includes:
 
 The scenario runner also documents two remaining lifecycle fronts:
 
-- `lifecycle-spawn-failure-cleanup`
-
-`lifecycle-spawn-failure-cleanup` remains outside the automated closeout
-executor. `lifecycle-despawn-grace-window` is now part of the automated
-scenario-definition set and has a dedicated lifecycle grace checkpoint.
+Both lifecycle fronts are now part of the automated scenario-definition set and
+have dedicated lifecycle checkpoints.
 
 ## Behavior Readiness Rule
 
