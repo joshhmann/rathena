@@ -51,6 +51,7 @@ Current behavior-phase status:
 - current verified kernel lane:
   - `npc/custom/playerbot/playerbot_behavior_lab.txt`
   - `tools/ci/playerbot-behavior-smoke.sh`
+- the kernel now has a config-backed policy surface sourced from `bot_behavior_config`
 - first real town/social presence proof is now landed
   - `npc/custom/playerbot/playerbot_social_behavior_lab.txt`
   - `tools/ci/playerbot-social-behavior-smoke.sh`

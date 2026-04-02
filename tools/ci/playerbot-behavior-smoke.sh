@@ -32,8 +32,8 @@ check() {
 	fi
 	printf '%s\n' "$line"
 	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" \
-		key_ok=1 pick1$=emote mark1_ok=1 cooldown_ok=1 last1_ok=1 \
-		pick2$=hotspot mark2_ok=1 pick3$=idle summary_ok=1 result=1
+		cfg_ok=1 key_ok=1 pick1$=emote mark1_ok=1 cooldown_ok=1 last1_ok=1 \
+		pick2$=hotspot mark2_ok=1 pick3$=idle policy_pick$=hotspot policy_ok=1 summary_ok=1 result=1
 	printf '\n[%s] Current behavior memory rows\n' "$PB_SMOKE_LABEL"
 	pb_smoke_sql_heredoc <<'SQL'
 SELECT `memory_key`, `int_value`, `text_value`, `source_tag`

@@ -54,6 +54,73 @@ function	script	F_PB_BEHAVIOR_Score	{
 	return .@base;
 }
 
+function	script	F_PB_BEHAVIOR_ConfigBonus	{
+	.@bot_key$ = getarg(0, "");
+	.@action$ = getarg(1, "");
+	if (.@bot_key$ == "" || .@action$ == "")
+		return 0;
+	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return 0;
+	query_sql(
+		"SELECT IFNULL(`controller_tag`, ''), IFNULL(`interaction_policy`, ''), IFNULL(`party_policy`, ''), "
+		+ "IFNULL(`presence_policy`, ''), IFNULL(`routine_group`, ''), IFNULL(`pulse_profile`, '') "
+		+ "FROM `bot_behavior_config` WHERE `bot_id` = '" + $@pbbot_bot_id + "' LIMIT 1",
+		.@controller_tag$, .@interaction_policy$, .@party_policy$, .@presence_policy$, .@routine_group$, .@pulse_profile$);
+	if (!getarraysize(.@presence_policy$))
+		return 0;
+	.@bonus = 0;
+	if (.@action$ == "hotspot") {
+		if (.@presence_policy$[0] == "always_on")
+			.@bonus += 6;
+		else if (.@presence_policy$[0] == "hybrid")
+			.@bonus += 3;
+		if (countstr(.@pulse_profile$[0], "anchor") > 0)
+			.@bonus += 4;
+		if (.@party_policy$[0] == "open")
+			.@bonus += 1;
+	} else if (.@action$ == "emote") {
+		if (.@interaction_policy$[0] == "clickable")
+			.@bonus += 3;
+		if (countstr(.@pulse_profile$[0], "square") > 0)
+			.@bonus += 1;
+	} else if (.@action$ == "idle") {
+		if (.@presence_policy$[0] == "schedule_gated")
+			.@bonus += 2;
+		if (.@party_policy$[0] == "never")
+			.@bonus += 1;
+	}
+	return .@bonus;
+}
+
+function	script	F_PB_BEHAVIOR_ScorePolicy	{
+	.@score = callfunc("F_PB_BEHAVIOR_Score", getarg(0, ""), getarg(1, ""), getarg(2, 0), getarg(3, 0), getarg(4, 0));
+	if (.@score <= -9999)
+		return .@score;
+	return .@score + callfunc("F_PB_BEHAVIOR_ConfigBonus", getarg(0, ""), getarg(1, ""));
+}
+
+function	script	F_PB_BEHAVIOR_PickPolicy$	{
+	.@bot_key$ = getarg(0, "");
+	.@repeat_penalty = getarg(1, 0);
+	.@a$ = getarg(2, "");
+	.@as = callfunc("F_PB_BEHAVIOR_ScorePolicy", .@bot_key$, .@a$, getarg(3, 0), .@repeat_penalty, getarg(4, 0));
+	.@b$ = getarg(5, "");
+	.@bs = callfunc("F_PB_BEHAVIOR_ScorePolicy", .@bot_key$, .@b$, getarg(6, 0), .@repeat_penalty, getarg(7, 0));
+	.@c$ = getarg(8, "");
+	.@cs = callfunc("F_PB_BEHAVIOR_ScorePolicy", .@bot_key$, .@c$, getarg(9, 0), .@repeat_penalty, getarg(10, 0));
+	.@best$ = .@a$;
+	.@best = .@as;
+	if (.@bs > .@best) {
+		.@best = .@bs;
+		.@best$ = .@b$;
+	}
+	if (.@cs > .@best) {
+		.@best = .@cs;
+		.@best$ = .@c$;
+	}
+	return .@best$;
+}
+
 function	script	F_PB_BEHAVIOR_MarkDecision	{
 	.@bot_key$ = getarg(0, "");
 	.@action$ = getarg(1, "");
@@ -106,7 +173,20 @@ function	script	F_PB_BEHAVIOR_BuildSummary$	{
 	.@reason_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "last_reason");
 	query_sql("SELECT `int_value`, `text_value` FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@score_key$) + "' LIMIT 1", .@score, .@score_action$);
 	query_sql("SELECT `text_value` FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@reason_key$) + "' LIMIT 1", .@reason$);
-	return "profile=" + $@pbbot_profile$ + ", interaction=" + $@pbbot_interaction$ + ", party=" + $@pbbot_party$ + ", last_action=" + (.@last_action$ == "" ? "<none>" : .@last_action$) + ", last_score=" + (getarraysize(.@score) ? .@score[0] : 0) + ", reason=" + (getarraysize(.@reason$) ? .@reason$[0] : "<none>");
+	query_sql(
+		"SELECT IFNULL(`controller_tag`, ''), IFNULL(`presence_policy`, ''), IFNULL(`routine_group`, ''), IFNULL(`pulse_profile`, '') "
+		+ "FROM `bot_behavior_config` WHERE `bot_id` = '" + $@pbbot_bot_id + "' LIMIT 1",
+		.@controller_tag$, .@presence_policy$, .@routine_group$, .@pulse_profile$);
+	return "profile=" + $@pbbot_profile$
+		+ ", interaction=" + $@pbbot_interaction$
+		+ ", party=" + $@pbbot_party$
+		+ ", presence=" + (getarraysize(.@presence_policy$) ? .@presence_policy$[0] : "<none>")
+		+ ", routine=" + (getarraysize(.@routine_group$) ? .@routine_group$[0] : "<none>")
+		+ ", pulse=" + (getarraysize(.@pulse_profile$) ? .@pulse_profile$[0] : "<none>")
+		+ ", controller=" + (getarraysize(.@controller_tag$) ? .@controller_tag$[0] : "<none>")
+		+ ", last_action=" + (.@last_action$ == "" ? "<none>" : .@last_action$)
+		+ ", last_score=" + (getarraysize(.@score) ? .@score[0] : 0)
+		+ ", reason=" + (getarraysize(.@reason$) ? .@reason$[0] : "<none>");
 }
 
 alberta,175,141,4	script	Playerbot Behavior Lab	4_M_02,{
@@ -185,6 +265,11 @@ S_Run:
 		detachrid;
 		return;
 	}
+	query_sql(
+		"REPLACE INTO `bot_behavior_config` (`bot_id`, `profile_key`, `pool_key`, `controller_tag`, `interaction_policy`, `party_policy`, `presence_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`, `pulse_profile`) "
+		+ "VALUES ('" + $@pbbot_bot_id + "', 'behavior.kernel.test', 'pool.behavior.test', 'behavior.kernel', 'clickable', 'selective', 'always_on', 'kernel.day', 8, 22, 'anchor.square')"
+	);
+	.@cfg_reload_ok = callfunc("F_PB_DB_LoadBotSummary", .bot_key$);
 	.@k1$ = callfunc("F_PB_BEHAVIOR_Key$", .bot_key$, "last_action");
 	.@key_ok = (.@k1$ != "");
 	query_sql("DELETE FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` LIKE 'behavior." + $@pbbot_bot_id + ".%' ");
@@ -199,10 +284,16 @@ S_Run:
 	.@mark2_ok = (.@pick2_ok && callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@pick2$, 20, "cooldown.redirect", 1000));
 	.@pick3$ = callfunc("F_PB_BEHAVIOR_PickSimple$", .bot_key$, 25, "idle", 10, 0, "hotspot", 20, 1000, "emote", 30, 5000);
 	.@pick3_ok = (.@pick3$ == "idle");
+	.@policy_bonus_hotspot = callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "hotspot");
+	.@policy_bonus_emote = callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "emote");
+	.@policy_bonus_idle = callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "idle");
+	.@policy_pick$ = callfunc("F_PB_BEHAVIOR_PickPolicy$", .bot_key$, 0, "idle", 10, 0, "emote", 10, 0, "hotspot", 10, 0);
+	.@policy_ok = (.@cfg_reload_ok && .@policy_bonus_hotspot > .@policy_bonus_emote && .@policy_bonus_emote > .@policy_bonus_idle && .@policy_pick$ == "hotspot");
 	.@summary$ = callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
-	.@summary_ok = (countstr(.@summary$, "profile=") > 0 && countstr(.@summary$, "last_action=hotspot") > 0 && countstr(.@summary$, "reason=cooldown.redirect") > 0);
-	.@result = (.@sum_ok && .@key_ok && .@pick1_ok && .@mark1_ok && .@cooldown_ok && .@last1_ok && .@pick2_ok && .@mark2_ok && .@pick3_ok && .@summary_ok);
-	debugmes "playerbot_behavior_selftest: summary_ok=" + .@sum_ok + " key_ok=" + .@key_ok + " pick1$=" + .@pick1$ + " mark1_ok=" + .@mark1_ok + " cooldown_ok=" + .@cooldown_ok + " last1_ok=" + .@last1_ok + " pick2$=" + .@pick2$ + " mark2_ok=" + .@mark2_ok + " pick3$=" + .@pick3$ + " summary_ok=" + .@summary_ok + " result=" + .@result + ".";
+	.@summary_ok = (countstr(.@summary$, "profile=") > 0 && countstr(.@summary$, "last_action=hotspot") > 0 && countstr(.@summary$, "reason=cooldown.redirect") > 0
+		&& countstr(.@summary$, "presence=always_on") > 0 && countstr(.@summary$, "pulse=anchor.square") > 0 && countstr(.@summary$, "controller=behavior.kernel") > 0);
+	.@result = (.@sum_ok && .@cfg_reload_ok && .@key_ok && .@pick1_ok && .@mark1_ok && .@cooldown_ok && .@last1_ok && .@pick2_ok && .@mark2_ok && .@pick3_ok && .@policy_ok && .@summary_ok);
+	debugmes "playerbot_behavior_selftest: summary_ok=" + .@sum_ok + " cfg_ok=" + .@cfg_reload_ok + " key_ok=" + .@key_ok + " pick1$=" + .@pick1$ + " mark1_ok=" + .@mark1_ok + " cooldown_ok=" + .@cooldown_ok + " last1_ok=" + .@last1_ok + " pick2$=" + .@pick2$ + " mark2_ok=" + .@mark2_ok + " pick3$=" + .@pick3$ + " policy_pick$=" + .@policy_pick$ + " policy_ok=" + .@policy_ok + " summary_ok=" + .@summary_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

@@ -21,6 +21,7 @@ It currently provides:
 - shared-memory-backed last-action memory
 - repeat-penalty scoring
 - simple weighted candidate picking
+- config-aware policy bonus scoring through `bot_behavior_config`
 - one smoke-tested selftest lane
 
 Current runtime surface:
@@ -36,8 +37,11 @@ Key script functions:
 - `F_PB_BEHAVIOR_LastAction$`
 - `F_PB_BEHAVIOR_CooldownReady`
 - `F_PB_BEHAVIOR_Score`
+- `F_PB_BEHAVIOR_ConfigBonus`
+- `F_PB_BEHAVIOR_ScorePolicy`
 - `F_PB_BEHAVIOR_MarkDecision`
 - `F_PB_BEHAVIOR_PickSimple$`
+- `F_PB_BEHAVIOR_PickPolicy$`
 - `F_PB_BEHAVIOR_BuildSummary$`
 
 ## Decision Model
@@ -160,6 +164,7 @@ The current selftest proves:
 - cooldown blocks immediate repetition
 - repeat penalty changes the next winning action
 - summary memory reflects the last chosen action and reason
+- a seeded `bot_behavior_config` row can bias the winning action through the policy-aware picker
 
 The first social-family selftest additionally proves:
 

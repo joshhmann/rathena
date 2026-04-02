@@ -36,6 +36,7 @@ Current proof:
 - cooldown gating works
 - repeat-penalty redirection works
 - decision reason/score memory is inspectable
+- `bot_behavior_config` can now bias candidate choice through a dedicated policy-aware picker
 
 This means the next behavior slice should build on the scaffold rather than
 re-arguing the kernel model.

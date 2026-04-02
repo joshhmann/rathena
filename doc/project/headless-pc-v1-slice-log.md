@@ -10594,3 +10594,42 @@ This slice intentionally does not add:
 - merchant or party behavior blending
 - combat decision logic
 
+## Slice 62: Config-Backed Behavior Policy Surface
+
+### Summary
+
+Extended the behavior kernel so `bot_behavior_config` can bias action choice
+through dedicated policy-aware helpers, without changing the already-green
+social-family runtime.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `tools/ci/playerbot-behavior-smoke.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/playerbot-behavior-kernel-workflow.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added behavior-kernel helpers for config-driven action bonuses and a
+  policy-aware action picker.
+- Extended the behavior selftest to seed a known `bot_behavior_config` row and
+  prove that policy can change the winning action.
+- Kept the social-family proof unchanged except for compatibility revalidation.
+
+### Validation
+
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-social-behavior-smoke.sh run`
+- `bash -n tools/ci/playerbot-behavior-smoke.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- new ambient/controller scheduling
+- party/support behavior
+- merchant/economy behavior
+- combat behavior
