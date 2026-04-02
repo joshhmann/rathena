@@ -23,6 +23,25 @@ Companion documents:
 
 ---
 
+## Current Status
+
+The baseline behavior kernel scaffold now exists and is verified through:
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `tools/ci/playerbot-behavior-smoke.sh`
+
+Current proof:
+
+- weighted candidate choice works
+- cooldown gating works
+- repeat-penalty redirection works
+- decision reason/score memory is inspectable
+
+This means the next behavior slice should build on the scaffold rather than
+re-arguing the kernel model.
+
+---
+
 ## Foundation Features Now Available To Behavior
 
 Behavior work can now safely depend on:

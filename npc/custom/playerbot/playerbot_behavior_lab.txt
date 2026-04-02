@@ -1,0 +1,208 @@
+function	script	F_PB_BEHAVIOR_Key$	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	.@suffix$ = escape_sql(getarg(1, ""));
+	if (.@bot_key$ == "" || .@suffix$ == "")
+		return "";
+	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "";
+	return "behavior." + $@pbbot_bot_id + "." + .@suffix$;
+}
+
+function	script	F_PB_BEHAVIOR_LastAction$	{
+	.@key$ = callfunc("F_PB_BEHAVIOR_Key$", getarg(0, ""), "last_action");
+	if (.@key$ == "")
+		return "";
+	query_sql(
+		"SELECT `text_value` FROM `bot_shared_memory` "
+		+ "WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@key$) + "' LIMIT 1",
+		.@last$);
+	if (!getarraysize(.@last$))
+		return "";
+	return .@last$[0];
+}
+
+function	script	F_PB_BEHAVIOR_CooldownReady	{
+	.@bot_key$ = getarg(0, "");
+	.@action$ = getarg(1, "");
+	.@cooldown_ms = getarg(2, 0);
+	if (.@bot_key$ == "" || .@action$ == "")
+		return 0;
+	if (.@cooldown_ms <= 0)
+		return 1;
+	.@key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "cd." + .@action$);
+	if (.@key$ == "")
+		return 0;
+	callfunc "F_PB_MEM_ReapExpired";
+	query_sql(
+		"SELECT COUNT(*) FROM `bot_shared_memory` "
+		+ "WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@key$) + "' LIMIT 1",
+		.@count);
+	return (.@count[0] == 0);
+}
+
+function	script	F_PB_BEHAVIOR_Score	{
+	.@bot_key$ = getarg(0, "");
+	.@action$ = getarg(1, "");
+	.@base = getarg(2, 0);
+	.@repeat_penalty = getarg(3, 0);
+	.@cooldown_ms = getarg(4, 0);
+	if (!callfunc("F_PB_BEHAVIOR_CooldownReady", .@bot_key$, .@action$, .@cooldown_ms))
+		return -9999;
+	.@last$ = callfunc("F_PB_BEHAVIOR_LastAction$", .@bot_key$);
+	if (.@last$ == .@action$)
+		.@base -= .@repeat_penalty;
+	return .@base;
+}
+
+function	script	F_PB_BEHAVIOR_MarkDecision	{
+	.@bot_key$ = getarg(0, "");
+	.@action$ = getarg(1, "");
+	.@score = getarg(2, 0);
+	.@reason$ = getarg(3, "");
+	.@cooldown_ms = getarg(4, 1000);
+	if (.@bot_key$ == "" || .@action$ == "")
+		return 0;
+	.@cd_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "cd." + .@action$);
+	.@last_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "last_action");
+	.@score_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "last_score");
+	.@reason_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "last_reason");
+	if (.@cd_key$ == "" || .@last_key$ == "")
+		return 0;
+	callfunc "F_PB_MEM_Remember", "controller", .@cd_key$, .@score, .@reason$, .@cooldown_ms, "behavior.cooldown";
+	callfunc "F_PB_MEM_Remember", "controller", .@last_key$, .@score, .@action$, 60000, "behavior.last_action";
+	callfunc "F_PB_MEM_Remember", "controller", .@score_key$, .@score, .@action$, 60000, "behavior.last_score";
+	callfunc "F_PB_MEM_Remember", "controller", .@reason_key$, .@score, .@reason$, 60000, "behavior.last_reason";
+	return 1;
+}
+
+function	script	F_PB_BEHAVIOR_PickSimple$	{
+	.@bot_key$ = getarg(0, "");
+	.@repeat_penalty = getarg(1, 0);
+	.@a$ = getarg(2, "");
+	.@as = callfunc("F_PB_BEHAVIOR_Score", .@bot_key$, .@a$, getarg(3, 0), .@repeat_penalty, getarg(4, 0));
+	.@b$ = getarg(5, "");
+	.@bs = callfunc("F_PB_BEHAVIOR_Score", .@bot_key$, .@b$, getarg(6, 0), .@repeat_penalty, getarg(7, 0));
+	.@c$ = getarg(8, "");
+	.@cs = callfunc("F_PB_BEHAVIOR_Score", .@bot_key$, .@c$, getarg(9, 0), .@repeat_penalty, getarg(10, 0));
+	.@best$ = .@a$;
+	.@best = .@as;
+	if (.@bs > .@best) {
+		.@best = .@bs;
+		.@best$ = .@b$;
+	}
+	if (.@cs > .@best) {
+		.@best = .@cs;
+		.@best$ = .@c$;
+	}
+	return .@best$;
+}
+
+function	script	F_PB_BEHAVIOR_BuildSummary$	{
+	.@bot_key$ = getarg(0, "");
+	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Behavior: bot not found.";
+	.@last_action$ = callfunc("F_PB_BEHAVIOR_LastAction$", .@bot_key$);
+	.@score_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "last_score");
+	.@reason_key$ = callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "last_reason");
+	query_sql("SELECT `int_value`, `text_value` FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@score_key$) + "' LIMIT 1", .@score, .@score_action$);
+	query_sql("SELECT `text_value` FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@reason_key$) + "' LIMIT 1", .@reason$);
+	return "profile=" + $@pbbot_profile$ + ", interaction=" + $@pbbot_interaction$ + ", party=" + $@pbbot_party$ + ", last_action=" + (.@last_action$ == "" ? "<none>" : .@last_action$) + ", last_score=" + (getarraysize(.@score) ? .@score[0] : 0) + ", reason=" + (getarraysize(.@reason$) ? .@reason$[0] : "<none>");
+}
+
+alberta,175,141,4	script	Playerbot Behavior Lab	4_M_02,{
+	mes "[Playerbot Behavior Lab]";
+	mes "Inspect baseline behavior-kernel scaffolding.";
+	next;
+
+	switch(select("Run behavior selftest:Inspect quick behavior bot:Close")) {
+	case 1:
+		setd("$PBBHV_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotBehaviorSelftest::OnManualStart";
+		mes "[Playerbot Behavior Lab]";
+		mes "Behavior selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	case 2:
+		mes "[Playerbot Behavior Lab]";
+		mes callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
+		close;
+	}
+	close;
+
+OnInit:
+	.bot_key$ = "quick_behavior_open";
+	end;
+}
+
+-	script	PlayerbotBehaviorSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBBHV_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBBHV_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBBHV_MANUAL_AID;
+	setd("$PBBHV_MANUAL_AID", 0);
+	if (.aid == 0)
+		.aid = getcharid(3);
+	callsub S_Run;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_behavior_open";
+	.name$ = "QuickBehaviorOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_behavior_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	.@sum_ok = callfunc("F_PB_DB_LoadBotSummary", .bot_key$);
+	if (!.@sum_ok) {
+		debugmes "playerbot_behavior_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	.@k1$ = callfunc("F_PB_BEHAVIOR_Key$", .bot_key$, "last_action");
+	.@key_ok = (.@k1$ != "");
+	query_sql("DELETE FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` LIKE 'behavior." + $@pbbot_bot_id + ".%' ");
+	.@pick1$ = callfunc("F_PB_BEHAVIOR_PickSimple$", .bot_key$, 25, "idle", 10, 0, "emote", 30, 5000, "hotspot", 20, 0);
+	.@pick1_ok = (.@pick1$ == "emote");
+	.@mark1_ok = (.@pick1_ok && callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@pick1$, 30, "top.utility", 5000));
+	.@cooldown_ok = !callfunc("F_PB_BEHAVIOR_CooldownReady", .bot_key$, "emote", 5000);
+	.@last1$ = callfunc("F_PB_BEHAVIOR_LastAction$", .bot_key$);
+	.@last1_ok = (.@last1$ == "emote");
+	.@pick2$ = callfunc("F_PB_BEHAVIOR_PickSimple$", .bot_key$, 25, "idle", 10, 0, "emote", 30, 5000, "hotspot", 20, 0);
+	.@pick2_ok = (.@pick2$ == "hotspot");
+	.@mark2_ok = (.@pick2_ok && callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@pick2$, 20, "cooldown.redirect", 1000));
+	.@pick3$ = callfunc("F_PB_BEHAVIOR_PickSimple$", .bot_key$, 25, "idle", 10, 0, "hotspot", 20, 1000, "emote", 30, 5000);
+	.@pick3_ok = (.@pick3$ == "idle");
+	.@summary$ = callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
+	.@summary_ok = (countstr(.@summary$, "profile=") > 0 && countstr(.@summary$, "last_action=hotspot") > 0 && countstr(.@summary$, "reason=cooldown.redirect") > 0);
+	.@result = (.@sum_ok && .@key_ok && .@pick1_ok && .@mark1_ok && .@cooldown_ok && .@last1_ok && .@pick2_ok && .@mark2_ok && .@pick3_ok && .@summary_ok);
+	debugmes "playerbot_behavior_selftest: summary_ok=" + .@sum_ok + " key_ok=" + .@key_ok + " pick1$=" + .@pick1$ + " mark1_ok=" + .@mark1_ok + " cooldown_ok=" + .@cooldown_ok + " last1_ok=" + .@last1_ok + " pick2$=" + .@pick2$ + " mark2_ok=" + .@mark2_ok + " pick3$=" + .@pick3$ + " summary_ok=" + .@summary_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

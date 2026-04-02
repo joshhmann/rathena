@@ -45,6 +45,14 @@ Current status:
 
 Behavior work is now the primary frontier.
 
+Current behavior-phase status:
+
+- baseline behavior-kernel scaffold is now landed
+- current verified kernel lane:
+  - `npc/custom/playerbot/playerbot_behavior_lab.txt`
+  - `tools/ci/playerbot-behavior-smoke.sh`
+- next recommended slice remains: town/social presence on top of that kernel
+
 ## External Test Harness
 
 An external CLI client harness is now part of the project workflow:
