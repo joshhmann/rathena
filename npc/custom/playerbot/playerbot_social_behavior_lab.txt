@@ -1,0 +1,295 @@
+function	script	F_PB_SOCIAL_BehaviorKey$	{
+	.@bot_key$ = getarg(0, "");
+	.@suffix$ = getarg(1, "");
+	if (.@bot_key$ == "" || .@suffix$ == "")
+		return "";
+	return callfunc("F_PB_BEHAVIOR_Key$", .@bot_key$, "social." + .@suffix$);
+}
+
+function	script	F_PB_SOCIAL_NextHotspotIndex	{
+	.@bot_key$ = getarg(0, "");
+	.@key$ = callfunc("F_PB_SOCIAL_BehaviorKey$", .@bot_key$, "hotspot");
+	if (.@key$ == "")
+		return 0;
+	query_sql(
+		"SELECT `int_value` FROM `bot_shared_memory` "
+		+ "WHERE `memory_scope` = 'controller' AND `memory_key` = '" + escape_sql(.@key$) + "' LIMIT 1",
+		.@value);
+	if (!getarraysize(.@value))
+		return 0;
+	return .@value[0];
+}
+
+function	script	F_PB_SOCIAL_SetHotspot	{
+	.@bot_key$ = getarg(0, "");
+	.@index = getarg(1, 0);
+	.@key$ = callfunc("F_PB_SOCIAL_BehaviorKey$", .@bot_key$, "hotspot");
+	if (.@key$ == "")
+		return 0;
+	callfunc "F_PB_MEM_Remember", "controller", .@key$, .@index, "social.hotspot", 60000, "behavior.social.hotspot";
+	return 1;
+}
+
+alberta,178,138,4	script	Playerbot Social Behavior Lab	4_M_02,{
+	mes "[Playerbot Social Behavior Lab]";
+	mes "Run the first real town/social behavior slice.";
+	next;
+
+	switch(select("Run social behavior selftest:Inspect social behavior state:Close")) {
+	case 1:
+		setd("$PBSOC_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotSocialBehaviorSelftest::OnManualStart";
+		mes "[Playerbot Social Behavior Lab]";
+		mes "Social behavior selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	case 2:
+		mes "[Playerbot Social Behavior Lab]";
+		mes callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
+		mes "hotspot_index=" + callfunc("F_PB_SOCIAL_NextHotspotIndex", .bot_key$);
+		close;
+	}
+	close;
+
+OnInit:
+	.bot_key$ = "quick_soc_open";
+	end;
+}
+
+-	script	PlayerbotSocialBehaviorController	FAKE_NPC,{
+OnInit:
+	.bot_key$ = "quick_soc_open";
+	.owner$ = strnpcinfo(3);
+	.char_id = 0;
+	.running = 0;
+	setarray .hotspot_x[0], 162, 168;
+	setarray .hotspot_y[0], 144, 140;
+	end;
+
+OnManualPrime:
+	callsub S_EnsureBot;
+	if (.@ready_ok)
+		callfunc "F_PB_SOCIAL_SetHotspot", .bot_key$, 1;
+	end;
+
+OnStep:
+	if (.running)
+		end;
+	.running = 1;
+	callsub S_TickOnce;
+	.running = 0;
+	end;
+
+OnStop:
+	if (.char_id > 0 && headlesspc_status(.char_id) == 2)
+		headlesspc_remove(.char_id);
+	end;
+
+S_TickOnce:
+	callsub S_EnsureBot;
+	if (!.@ready_ok)
+		return;
+	.@hx = headlesspc_x(.char_id);
+	.@hy = headlesspc_y(.char_id);
+	.@next_hotspot = callfunc("F_PB_SOCIAL_NextHotspotIndex", .bot_key$);
+	.@target_x = .hotspot_x[.@next_hotspot];
+	.@target_y = .hotspot_y[.@next_hotspot];
+	.@far_score = (distance(.@hx, .@hy, .@target_x, .@target_y) > 2) ? 35 : 18;
+	.@action$ = callfunc("F_PB_BEHAVIOR_PickSimple$", .bot_key$, 18,
+		"idle", 8, 0,
+		"emote", 20, 4000,
+		"hotspot", .@far_score, 1500);
+	.@apply_ok = 0;
+	.@mark_ok = 0;
+	if (.@action$ == "emote") {
+		.@apply_ok = headlesspc_emote(.char_id, ET_THINK);
+		.@mark_ok = callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@action$, 20, "social.emote", 4000);
+	} else if (.@action$ == "hotspot") {
+		.@apply_ok = headlesspc_setpos(.char_id, "alberta", .@target_x, .@target_y);
+		if (.@apply_ok) {
+			for (.@j = 0; .@j < 8; ++.@j) {
+				sleep 150;
+				if (headlesspc_x(.char_id) == .@target_x && headlesspc_y(.char_id) == .@target_y) {
+					setd("$PBSOC_MOVE_COUNT", getd("$PBSOC_MOVE_COUNT") + 1);
+					break;
+				}
+			}
+			callfunc "F_PB_SOCIAL_SetHotspot", .bot_key$, ((.@next_hotspot + 1) % getarraysize(.hotspot_x));
+		}
+		.@mark_ok = callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@action$, .@far_score, "social.hotspot", 1500);
+	} else {
+		.@apply_ok = 1;
+		.@mark_ok = callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, "idle", 8, "social.idle", 1000);
+	}
+	setd("$PBSOC_LAST_ACTION$", .@action$);
+	setd("$PBSOC_LAST_APPLY", .@apply_ok);
+	if (.@mark_ok)
+		setd("$PBSOC_DECISION_COUNT", getd("$PBSOC_DECISION_COUNT") + 1);
+	setd("$PBSOC_TICKS", getd("$PBSOC_TICKS") + 1);
+	return;
+
+S_EnsureBot:
+	if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$))
+		return;
+	.char_id = $@pbbot_char_id;
+	if (.char_id <= 0)
+		return;
+	if (headlesspc_status(.char_id) == 2) {
+		.@ready_ok = 1;
+		return;
+	}
+	if (headlesspc_status(.char_id) == 0) {
+		headlesspc_spawn(.char_id, "alberta", .hotspot_x[0], .hotspot_y[0]);
+		callfunc "F_PB_SOCIAL_SetHotspot", .bot_key$, 1;
+		for (.@i = 0; .@i < 12; ++.@i) {
+			sleep 250;
+			if (headlesspc_status(.char_id) == 2) {
+				.@ready_ok = 1;
+				break;
+			}
+		}
+	}
+	return;
+}
+
+-	script	PlayerbotSocialBehaviorSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBSOC_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBSOC_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBSOC_MANUAL_AID;
+	setd("$PBSOC_MANUAL_AID", 0);
+	if (.aid == 0)
+		.aid = getcharid(3);
+	callsub S_Run;
+	end;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_soc_open";
+	.name$ = "QuickSocOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_social_behavior_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	.@sum_ok = callfunc("F_PB_DB_LoadBotSummary", .bot_key$);
+	if (!.@sum_ok) {
+		debugmes "playerbot_social_behavior_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	query_sql("DELETE FROM `bot_shared_memory` WHERE `memory_scope` = 'controller' AND `memory_key` LIKE 'behavior." + $@pbbot_bot_id + ".%' ");
+	setd("$PBSOC_LAST_ACTION$", "");
+	setd("$PBSOC_LAST_APPLY", 0);
+	setd("$PBSOC_TICKS", 0);
+	callfunc "F_PB_SOCIAL_SetHotspot", .bot_key$, 1;
+	.@ticks = 0;
+	.@decision_count = 0;
+	.@move_apply_count = 0;
+	for (.@i = 0; .@i < 5; ++.@i) {
+		if (!callfunc("F_PB_DB_LoadBotSummary", .bot_key$))
+			break;
+		if (headlesspc_status($@pbbot_char_id) != 2) {
+			.@ack = headlesspc_spawnack($@pbbot_char_id);
+			headlesspc_spawn($@pbbot_char_id, "alberta", 162, 144);
+			callfunc "F_PB_SOCIAL_SetHotspot", .bot_key$, 1;
+			for (.@j = 0; .@j < 12; ++.@j) {
+				sleep 250;
+				if (headlesspc_spawnack($@pbbot_char_id) > .@ack && headlesspc_status($@pbbot_char_id) == 2)
+					break;
+				if (headlesspc_status($@pbbot_char_id) == 2)
+					break;
+			}
+		}
+		if (headlesspc_status($@pbbot_char_id) != 2)
+			break;
+		.@hx = headlesspc_x($@pbbot_char_id);
+		.@hy = headlesspc_y($@pbbot_char_id);
+		.@next_hotspot = callfunc("F_PB_SOCIAL_NextHotspotIndex", .bot_key$);
+		.@target_x = (.@next_hotspot == 0 ? 162 : 168);
+		.@target_y = (.@next_hotspot == 0 ? 144 : 140);
+		.@far_score = (distance(.@hx, .@hy, .@target_x, .@target_y) > 2) ? 35 : 18;
+		.@action$ = callfunc("F_PB_BEHAVIOR_PickSimple$", .bot_key$, 18,
+			"idle", 8, 0,
+			"emote", 20, 4000,
+			"hotspot", .@far_score, 1500);
+		.@apply_ok = 0;
+		.@mark_ok = 0;
+		.@move_ok_step = 0;
+		if (.@action$ == "emote") {
+			.@apply_ok = headlesspc_emote($@pbbot_char_id, ET_THINK);
+			.@mark_ok = callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@action$, 20, "social.emote", 4000);
+		} else if (.@action$ == "hotspot") {
+			.@apply_ok = headlesspc_setpos($@pbbot_char_id, "alberta", .@target_x, .@target_y);
+			if (.@apply_ok) {
+				for (.@j = 0; .@j < 8; ++.@j) {
+					sleep 150;
+					if (headlesspc_x($@pbbot_char_id) == .@target_x && headlesspc_y($@pbbot_char_id) == .@target_y) {
+						.@move_ok_step = 1;
+						break;
+					}
+				}
+				callfunc "F_PB_SOCIAL_SetHotspot", .bot_key$, ((.@next_hotspot + 1) % 2);
+			}
+			.@mark_ok = callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, .@action$, .@far_score, "social.hotspot", 1500);
+		} else {
+			.@apply_ok = 1;
+			.@mark_ok = callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, "idle", 8, "social.idle", 1000);
+		}
+		setd("$PBSOC_LAST_ACTION$", .@action$);
+		setd("$PBSOC_LAST_APPLY", .@apply_ok);
+		.@ticks += 1;
+		if (.@mark_ok)
+			.@decision_count += 1;
+		if (.@move_ok_step)
+			.@move_apply_count += 1;
+		sleep 350;
+	}
+	setd("$PBSOC_TICKS", .@ticks);
+	setd("$PBSOC_DECISION_COUNT", .@decision_count);
+	setd("$PBSOC_MOVE_COUNT", .@move_apply_count);
+	.@summary$ = callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
+	.@action$ = callfunc("F_PB_BEHAVIOR_LastAction$", .bot_key$);
+	.@ticks_ok = (.@ticks >= 3);
+	.@summary_ok = (countstr(.@summary$, "profile=") > 0 && countstr(.@summary$, "last_action=") > 0);
+	.@decision_ok = (.@decision_count >= 3 && .@action$ != "");
+	.@move_ok = (.@move_apply_count >= 1);
+	headlesspc_remove($@pbbot_char_id);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (headlesspc_status($@pbbot_char_id) == 0) {
+			.@park_ok = 1;
+			break;
+		}
+	}
+	.@result = (.@sum_ok && .@ticks_ok && .@summary_ok && .@decision_ok && .@move_ok && .@park_ok);
+	debugmes "playerbot_social_behavior_selftest: summary_ok=" + .@sum_ok + " ticks=" + .@ticks + " ticks_ok=" + .@ticks_ok + " summary_build_ok=" + .@summary_ok + " decision_count=" + .@decision_count + " decision_ok=" + .@decision_ok + " move_apply_count=" + .@move_apply_count + " move_ok=" + .@move_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+
+}

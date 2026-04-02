@@ -40,6 +40,17 @@ Current proof:
 This means the next behavior slice should build on the scaffold rather than
 re-arguing the kernel model.
 
+The first real family now also exists in focused proof form through:
+
+- `npc/custom/playerbot/playerbot_social_behavior_lab.txt`
+- `tools/ci/playerbot-social-behavior-smoke.sh`
+
+Current social-family proof:
+
+- a town/social bot chooses among idle, emote, and hotspot actions
+- decision memory remains inspectable through shared memory
+- hotspot movement is proven at least once in the deterministic selftest path
+
 ---
 
 ## Foundation Features Now Available To Behavior
@@ -112,6 +123,10 @@ Slices:
 
 Definition of done:
 - one recurring town bot can choose among idle/social actions without external forcing
+
+Current status:
+- thin deterministic proof is landed through `playerbot_social_behavior_selftest`
+- broader recurring ambient/controller promotion is still the next expansion inside this family
 
 ### Phase B3: Party / Support Behavior
 

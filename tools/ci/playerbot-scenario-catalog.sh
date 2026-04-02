@@ -10,6 +10,7 @@ playerbot_scenario_ids() {
 		'combat-pvp-woe-death-semantics' \
 		'combat-repeated-transition-stress' \
 		'companion-spawn-continuity' \
+		'behavior-social-presence' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -43,6 +44,7 @@ playerbot_scenario_title() {
 		combat-pvp-woe-death-semantics) printf '%s\n' 'Combat PvP / WoE Death Semantics' ;;
 		combat-repeated-transition-stress) printf '%s\n' 'Combat Repeated Transition Stress' ;;
 		companion-spawn-continuity) printf '%s\n' 'Companion Spawn Continuity' ;;
+		behavior-social-presence) printf '%s\n' 'Behavior Social Presence' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -72,6 +74,7 @@ playerbot_scenario_phase() {
 	case "${1:-}" in
 		combat-baseline|combat-skillunit-mapchange-cleanup|combat-skillunit-death-cleanup|combat-skillunit-quit-cleanup|combat-skillunit-promotion-precheck|combat-pvp-woe-death-semantics|combat-repeated-transition-stress) printf '%s\n' 'combat' ;;
 		companion-spawn-continuity) printf '%s\n' 'lifecycle' ;;
+		behavior-social-presence) printf '%s\n' 'behavior' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
@@ -128,6 +131,11 @@ EOF
 		companion-spawn-continuity)
 			cat <<'EOF'
 Validate that helper-backed mercenary, elemental, and pet state can survive headless despawn/respawn without blocking bring-up and can be cleaned up afterward.
+EOF
+			;;
+		behavior-social-presence)
+			cat <<'EOF'
+Validate the first town/social behavior family on top of the shared behavior kernel: a recurring bot should choose among idle, emote, and hotspot reposition actions and leave inspectable decision memory.
 EOF
 			;;
 		status-continuity)
@@ -427,6 +435,15 @@ EOF
 - verify rollback leaves no stuck participation/session state
 EOF
 			;;
+		behavior-social-presence)
+			cat <<'EOF'
+- arm the dedicated social-behavior helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-social-behavior-smoke.sh check`
+- confirm the selftest line contains `ticks_ok=1`, `decision_ok=1`, `move_ok=1`, and `result=1`
+- confirm the printed behavior memory rows include `last_action`, `last_reason`, and the social hotspot memory row
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 - clear any previous sentinel guild-storage probe rows
@@ -642,6 +659,13 @@ EOF
 - cleanup leaves the companion-bearing bot parked and cleared
 EOF
 			;;
+		behavior-social-presence)
+			cat <<'EOF'
+- `playerbot_social_behavior_selftest ... result=1` is present
+- the selftest reports successful ticks, decision memory, and hotspot movement
+- current behavior memory rows include `last_action`, `last_reason`, and `social.hotspot`
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
@@ -773,6 +797,15 @@ It proves helper-backed spawn continuity for mercenary, elemental, and pet
 state while leaving homunculus explicitly out of scope.
 EOF
 			;;
+		behavior-social-presence)
+			cat <<'EOF'
+This scenario is backed by the dedicated social behavior helper:
+`tools/ci/playerbot-social-behavior-smoke.sh`.
+
+It is the first real behavior-family proof on top of the kernel scaffold and is
+currently limited to deterministic town/social presence choices.
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 This scenario is backed by the SQL-safe guild storage helper:
@@ -889,6 +922,9 @@ playerbot_scenario_launcher() {
 			;;
 		companion-spawn-continuity)
 			printf '%s\n' 'bash tools/ci/playerbot-companion-smoke.sh run'
+			;;
+		behavior-social-presence)
+			printf '%s\n' 'bash tools/ci/playerbot-social-behavior-smoke.sh run'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'

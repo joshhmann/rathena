@@ -51,7 +51,10 @@ Current behavior-phase status:
 - current verified kernel lane:
   - `npc/custom/playerbot/playerbot_behavior_lab.txt`
   - `tools/ci/playerbot-behavior-smoke.sh`
-- next recommended slice remains: town/social presence on top of that kernel
+- first real town/social presence proof is now landed
+  - `npc/custom/playerbot/playerbot_social_behavior_lab.txt`
+  - `tools/ci/playerbot-social-behavior-smoke.sh`
+- next recommended behavior expansion: promote that family from deterministic proof into broader recurring ambient/controller behavior
 
 ## External Test Harness
 

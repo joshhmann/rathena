@@ -27,6 +27,8 @@ Current runtime surface:
 
 - `npc/custom/playerbot/playerbot_behavior_lab.txt`
 - `tools/ci/playerbot-behavior-smoke.sh`
+- `npc/custom/playerbot/playerbot_social_behavior_lab.txt`
+- `tools/ci/playerbot-social-behavior-smoke.sh`
 
 Key script functions:
 
@@ -71,7 +73,7 @@ Use this baseline when you need to:
 
 It is **not yet**:
 
-- a full autonomous town/social system
+- a broad ambient/controller-driven town/social system
 - a combat planner
 - a GOAP system
 - a behavior tree engine
@@ -159,6 +161,12 @@ The current selftest proves:
 - repeat penalty changes the next winning action
 - summary memory reflects the last chosen action and reason
 
+The first social-family selftest additionally proves:
+
+- hotspot movement can win over idle/emote when the utility is higher
+- behavior memory captures a real family-specific reason trail
+- one bounded town/social loop can run without inventing a new decision architecture
+
 ## How To Add The Next Behavior Family
 
 Recommended order:
@@ -180,4 +188,4 @@ Create the skill after:
 - the smoke/selftest lane is trustworthy
 - the docs are no longer likely to churn immediately
 
-The right time is after the first real town/social behavior slice lands.
+The right time is after the first real town/social behavior slice lands and the implementation pattern is stable enough to reuse.

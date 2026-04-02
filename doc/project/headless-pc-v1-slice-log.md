@@ -10548,3 +10548,49 @@ This slice does not add:
 - True "requested demand" visibility (runtime signal dependent)
 - Automatic pool rebalancing or controller recommendations
 - Pool shortage alerts or monitoring
+
+## Slice 61: First Playerbot Social Behavior Family Proof
+
+### Summary
+
+Built the first real behavior-family proof on top of the shared behavior kernel:
+a deterministic town/social slice that chooses among idle, emote, and hotspot
+reposition actions while keeping decision memory inspectable.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_social_behavior_lab.txt` (new)
+- `tools/ci/playerbot-social-behavior-smoke.sh` (new)
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `tools/ci/playerbot-scenario.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/playerbot-behavior-kernel-workflow.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added a dedicated social behavior lab with helper functions for family-local
+  hotspot memory.
+- Added a focused social behavior smoke helper that arms, runs, and validates
+  the new selftest lane.
+- Added a scenario catalog/runbook entry for `behavior-social-presence`.
+- Updated behavior docs to show that the kernel now powers one real family.
+
+### Validation
+
+- `bash tools/ci/playerbot-social-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-social-presence`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- broad ambient/controller-driven social scheduling
+- chat/whisper policy
+- merchant or party behavior blending
+- combat decision logic
+

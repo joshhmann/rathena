@@ -10,6 +10,7 @@ playerbot frontier:
 - death / respawn continuity
 - item and loadout continuity
 - broader mechanic cleanup
+- first behavior-family runbooks
 
 The runner is intentionally tooling-only. It does not change runtime semantics
 and it does not replace the existing OpenKore smoke helpers.
@@ -48,6 +49,7 @@ The current catalog contains:
 - `combat-pvp-woe-death-semantics`
 - `combat-repeated-transition-stress`
 - `companion-spawn-continuity`
+- `behavior-social-presence`
 - `market-rodex-receive-attachments`
 - `status-continuity`
 - `status-death-cleanup`
@@ -73,6 +75,7 @@ The current catalog contains:
 
 Current phase labels used by the catalog:
 
+- `behavior`
 - `combat`
 - `status`
 - `respawn`
@@ -92,6 +95,7 @@ These split into two groups:
   - `combat-pvp-woe-death-semantics`
   - `combat-repeated-transition-stress`
   - `companion-spawn-continuity`
+  - `behavior-social-presence`
   - `market-rodex-receive-attachments`
   - `status-continuity`
   - `status-death-cleanup`
@@ -136,6 +140,7 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-combat-skillunit-precheck-smoke.sh`
 - `tools/ci/playerbot-combat-edge-smoke.sh`
 - `tools/ci/playerbot-companion-smoke.sh`
+- `tools/ci/playerbot-social-behavior-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
 - `tools/ci/playerbot-item-overlap-stress.sh`
 - `tools/ci/playerbot-participation-smoke.sh`
@@ -170,6 +175,7 @@ bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
 bash tools/ci/playerbot-scenario.sh run combat-skillunit-promotion-precheck
 bash tools/ci/playerbot-scenario.sh run combat-pvp-woe-death-semantics
 bash tools/ci/playerbot-scenario.sh run companion-spawn-continuity
+bash tools/ci/playerbot-scenario.sh run behavior-social-presence
 bash tools/ci/playerbot-scenario.sh run market-rodex-receive-attachments
 bash tools/ci/playerbot-scenario.sh run market-mail-delivery-integrity
 bash tools/ci/playerbot-scenario.sh run market-rodex-receive-attachments

@@ -71,6 +71,7 @@ Current catalog:
   combat-skillunit-quit-cleanup
   combat-skillunit-promotion-precheck
   combat-repeated-transition-stress
+  behavior-social-presence
   status-continuity
   status-death-cleanup
   status-map-continuity
