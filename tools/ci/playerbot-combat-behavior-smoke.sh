@@ -8,7 +8,7 @@ usage() {
 Usage: bash tools/ci/playerbot-combat-behavior-smoke.sh [arm|run|check]
 
 Commands:
-  arm    arm the hidden combat-behavior selftest for the next test-account login,
+	arm    arm the hidden combat-behavior selftest for the next test-account login,
          then restart the repo stack
   run    arm, launch the codex OpenKore harness in tmux, wait for selftest output,
          then run check
@@ -25,7 +25,7 @@ arm() {
 
 check() {
 	local line
-	line="$(pb_smoke_capture 360 | grep 'playerbot_combat_behavior_selftest:' | tail -n 1 || true)"
+	line="$(pb_smoke_capture 420 | grep 'playerbot_combat_behavior_selftest:' | tail -n 1 || true)"
 	if [[ -z "$line" ]]; then
 		printf '[%s] missing playerbot_combat_behavior_selftest line\n' "$PB_SMOKE_LABEL" >&2
 		return 1
@@ -36,6 +36,9 @@ check() {
 		policy_pick$=attack_target policy_ok=1 mark_ok=1 attack_ok=1 \
 		engaged_ok=1 state_ok=1 stop_ok=1 target_clear_ok=1 \
 		retreat_cfg_ok=1 retreat_pick$=disengage retreat_ok=1 \
+		tank_pick$=hold_position tank_ok=1 \
+		dps_pick$=attack_target dps_ok=1 \
+		support_pick$=disengage support_ok=1 \
 		summary_build_ok=1 park_ok=1 result=1
 	printf '\n[%s] Current combat behavior memory rows\n' "$PB_SMOKE_LABEL"
 	pb_smoke_sql_heredoc <<'SQL'

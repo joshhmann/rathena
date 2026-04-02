@@ -62,10 +62,10 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 	if (!callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
 		return 0;
 	query_sql(
-		"SELECT IFNULL(`controller_tag`, ''), IFNULL(`interaction_policy`, ''), IFNULL(`party_policy`, ''), "
+		"SELECT IFNULL(`profile_key`, ''), IFNULL(`controller_tag`, ''), IFNULL(`interaction_policy`, ''), IFNULL(`party_policy`, ''), "
 		+ "IFNULL(`presence_policy`, ''), IFNULL(`routine_group`, ''), IFNULL(`pulse_profile`, '') "
 		+ "FROM `bot_behavior_config` WHERE `bot_id` = '" + $@pbbot_bot_id + "' LIMIT 1",
-		.@controller_tag$, .@interaction_policy$, .@party_policy$, .@presence_policy$, .@routine_group$, .@pulse_profile$);
+		.@profile_key$, .@controller_tag$, .@interaction_policy$, .@party_policy$, .@presence_policy$, .@routine_group$, .@pulse_profile$);
 	if (!getarraysize(.@presence_policy$))
 		return 0;
 	.@bonus = 0;
@@ -127,6 +127,8 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 4;
 		if (.@presence_policy$[0] == "always_on")
 			.@bonus += 1;
+		if (countstr(.@controller_tag$[0], "dps") > 0 || countstr(.@profile_key$[0], "dps") > 0)
+			.@bonus += 4;
 	} else if (.@action$ == "quest_handoff" || .@action$ == "advance_relay") {
 		if (.@interaction_policy$[0] == "clickable")
 			.@bonus += 3;
@@ -143,9 +145,13 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 1;
 		if (countstr(.@pulse_profile$[0], "safe") > 0)
 			.@bonus += 4;
+		if (countstr(.@controller_tag$[0], "support") > 0 || countstr(.@profile_key$[0], "support") > 0)
+			.@bonus += 3;
 	} else if (.@action$ == "hold_position") {
 		if (countstr(.@pulse_profile$[0], "guard") > 0)
 			.@bonus += 3;
+		if (countstr(.@controller_tag$[0], "tank") > 0 || countstr(.@profile_key$[0], "tank") > 0)
+			.@bonus += 5;
 	} else if (.@action$ == "idle") {
 		if (.@presence_policy$[0] == "schedule_gated")
 			.@bonus += 2;

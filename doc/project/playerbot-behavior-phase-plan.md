@@ -79,6 +79,10 @@ Current combat-family proof:
 - a combat-capable bot chooses `attack_target` as the winning action under combat-friendly policy
 - the chosen action is persisted through the shared behavior memory surface
 - the existing attack-intent runtime engages a live target and then clears target state again
+- the same family now also proves richer role bias:
+  - tank -> `hold_position`
+  - dps -> `attack_target`
+  - support -> `disengage`
 
 Current progression/quest-family proof:
 

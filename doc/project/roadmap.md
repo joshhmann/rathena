@@ -64,10 +64,14 @@ Current behavior-phase status:
 - first real combat-selection proof is now landed
   - `npc/custom/playerbot/playerbot_combat_behavior_lab.txt`
   - `tools/ci/playerbot-combat-behavior-smoke.sh`
+- combat now also has a first role-bias proof:
+  - tank -> `hold_position`
+  - dps -> `attack_target`
+  - support -> `disengage`
 - first real quest/progression proof is now landed
   - `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
   - `tools/ci/playerbot-progression-behavior-smoke.sh`
-- next recommended behavior expansion: richer combat roles / class-aware combat policy, or progression-state persistence
+- next recommended behavior expansion: class-aware combat policy / skill selection, or progression-state persistence
 
 ## External Test Harness
 
