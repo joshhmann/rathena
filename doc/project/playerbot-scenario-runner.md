@@ -47,6 +47,8 @@ The current catalog contains:
 - `combat-skillunit-promotion-precheck`
 - `combat-pvp-woe-death-semantics`
 - `combat-repeated-transition-stress`
+- `companion-spawn-continuity`
+- `market-rodex-receive-attachments`
 - `status-continuity`
 - `status-death-cleanup`
 - `status-map-continuity`
@@ -89,6 +91,8 @@ These split into two groups:
   - `combat-skillunit-promotion-precheck`
   - `combat-pvp-woe-death-semantics`
   - `combat-repeated-transition-stress`
+  - `companion-spawn-continuity`
+  - `market-rodex-receive-attachments`
   - `status-continuity`
   - `status-death-cleanup`
   - `status-map-continuity`
@@ -131,6 +135,7 @@ The runbook-backed scenarios use:
 - `tools/ci/playerbot-combat-skillunit-smoke.sh`
 - `tools/ci/playerbot-combat-skillunit-precheck-smoke.sh`
 - `tools/ci/playerbot-combat-edge-smoke.sh`
+- `tools/ci/playerbot-companion-smoke.sh`
 - `tools/ci/playerbot-item-smoke.sh`
 - `tools/ci/playerbot-item-overlap-stress.sh`
 - `tools/ci/playerbot-participation-smoke.sh`
@@ -164,6 +169,8 @@ bash tools/ci/playerbot-scenario.sh run market-buyingstore-partial-fill
 bash tools/ci/playerbot-scenario.sh run loadout-denied-recover
 bash tools/ci/playerbot-scenario.sh run combat-skillunit-promotion-precheck
 bash tools/ci/playerbot-scenario.sh run combat-pvp-woe-death-semantics
+bash tools/ci/playerbot-scenario.sh run companion-spawn-continuity
+bash tools/ci/playerbot-scenario.sh run market-rodex-receive-attachments
 bash tools/ci/playerbot-scenario.sh run market-mail-delivery-integrity
 bash tools/ci/playerbot-scenario.sh run market-rodex-receive-attachments
 bash tools/ci/playerbot-scenario.sh run loadout-overlap-continuity

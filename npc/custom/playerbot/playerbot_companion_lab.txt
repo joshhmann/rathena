@@ -1,0 +1,195 @@
+alberta,175,138,4	script	Playerbot Companion Lab	4_M_02,{
+	mes "[Playerbot Companion Lab]";
+	mes "Drive mercenary + elemental spawn continuity proof.";
+	next;
+
+	switch(select("Run companion selftest:Close")) {
+	case 1:
+		setd("$PBCOMP_MANUAL_AID", getcharid(3));
+		donpcevent "PlayerbotCompanionSelftest::OnManualStart";
+		mes "[Playerbot Companion Lab]";
+		mes "Companion selftest started.";
+		mes "Check the map-server log for the final result line.";
+		close;
+	}
+	close;
+}
+
+-	script	PlayerbotCompanionSelftest	FAKE_NPC,{
+OnInit:
+	.enabled = 1;
+	.test_aid = 2000004;
+	.test_char_id = 150001;
+	.ran = 0;
+	end;
+
+OnPCLoginEvent:
+	if (!.enabled || .ran)
+		end;
+	if (getcharid(0) != .test_char_id)
+		end;
+	if ($PBCOMP_AUTORUN_AID != getcharid(3))
+		end;
+	.ran = 1;
+	.aid = getcharid(3);
+	setd("$PBCOMP_AUTORUN_AID", 0);
+	callsub S_Run;
+	end;
+
+OnManualStart:
+	if (!.enabled)
+		end;
+	.ran = 1;
+	.aid = $PBCOMP_MANUAL_AID;
+	setd("$PBCOMP_MANUAL_AID", 0);
+	if (.aid == 0)
+		.aid = getcharid(3);
+	callsub S_Run;
+	end;
+
+S_Spawn:
+	if (headlesspc_status(.char_id) == 2)
+		return 1;
+	.@ack = headlesspc_spawnack(.char_id);
+	headlesspc_spawn(.char_id, "alberta", 163, 144);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 500;
+		if (headlesspc_spawnack(.char_id) > .@ack && headlesspc_status(.char_id) == 2)
+			return 1;
+		if (headlesspc_status(.char_id) == 2)
+			return 1;
+	}
+	return 0;
+
+S_Remove:
+	headlesspc_remove(.char_id);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 300;
+		if (headlesspc_status(.char_id) == 0)
+			return 1;
+	}
+	return 0;
+
+S_Run:
+	if (!attachrid(.aid))
+		return;
+	.bot_key$ = "quick_comp_open";
+	.name$ = "QuickCompOpen";
+	.bot_id = playerbot_profile(.bot_key$);
+	if (!.bot_id)
+		.bot_id = playerbot_provision(.bot_key$, .name$, "party.prontera.open");
+	if (!.bot_id) {
+		debugmes "playerbot_companion_selftest: provision_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.char_id = $@pbbot_char_id;
+	.acc_id = $@pbbot_account_id;
+	.@sum_ok = ($@pbbot_found && .char_id > 0 && .acc_id > 0);
+	if (!.@sum_ok) {
+		debugmes "playerbot_companion_selftest: provision_ok=1 summary_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+
+	if (headlesspc_status(.char_id) == 2)
+		callsub S_Remove;
+	.@spawn_ok = callsub(S_Spawn);
+	if (!.@spawn_ok) {
+		debugmes "playerbot_companion_selftest: provision_ok=1 spawn_ok=0 result=0.";
+		detachrid;
+		return;
+	}
+	sleep 1000;
+
+	query_sql("DELETE FROM `skillcooldown_mercenary` WHERE `mer_id` IN (SELECT `merc_id` FROM `mercenary_owner` WHERE `char_id` = '" + .char_id + "')");
+	query_sql("DELETE FROM `mercenary` WHERE `char_id` = '" + .char_id + "'");
+	query_sql("DELETE FROM `mercenary_owner` WHERE `char_id` = '" + .char_id + "'");
+	query_sql("DELETE FROM `elemental` WHERE `char_id` = '" + .char_id + "'");
+	query_sql("UPDATE `char` SET `elemental_id` = '0' WHERE `char_id` = '" + .char_id + "'");
+	.@ele_clear0_ok = 1;
+	sleep 500;
+
+	.@mer_create_ok = playerbot_mercenarycreate(.bot_key$, 2213, 600000);
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (getmercinfo(0, .char_id) > 0) {
+			.@mer_live_ok = 1;
+			break;
+		}
+	}
+	.@mer_remove_ok = (.@mer_live_ok && callsub(S_Remove));
+	.@mer_respawn_spawn_ok = (.@mer_remove_ok && callsub(S_Spawn));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (.@mer_respawn_spawn_ok && getmercinfo(0, .char_id) > 0) {
+			.@mer_respawn_ok = 1;
+			break;
+		}
+	}
+	.@mer_cleanup_ok = (.@mer_respawn_ok && callsub(S_Remove));
+	if (.@mer_cleanup_ok) {
+		query_sql("DELETE FROM `skillcooldown_mercenary` WHERE `mer_id` IN (SELECT `merc_id` FROM `mercenary_owner` WHERE `char_id` = '" + .char_id + "')");
+		query_sql("DELETE FROM `mercenary` WHERE `char_id` = '" + .char_id + "'");
+		query_sql("DELETE FROM `mercenary_owner` WHERE `char_id` = '" + .char_id + "'");
+	}
+	.@ele_spawn_ok = (.@mer_cleanup_ok && callsub(S_Spawn));
+	.@ele_remove_ok = (.@ele_spawn_ok && callsub(S_Remove));
+	if (.@ele_remove_ok) {
+		query_sql("INSERT INTO `elemental` (`char_id`,`class`,`mode`,`hp`,`sp`,`max_hp`,`max_sp`,`atk1`,`atk2`,`matk`,`aspd`,`def`,`mdef`,`flee`,`hit`,`life_time`) VALUES ('" + .char_id + "','2114','1','200','100','200','100','25','35','20','150','5','5','10','10','600000')");
+		query_sql("SELECT COALESCE(MAX(`ele_id`),0) FROM `elemental` WHERE `char_id` = '" + .char_id + "'", .@ele_id);
+		query_sql("UPDATE `char` SET `elemental_id` = '" + .@ele_id + "' WHERE `char_id` = '" + .char_id + "'");
+		.@ele_create_ok = (.@ele_id > 0);
+	}
+	.@ele_respawn_spawn_ok = (.@ele_create_ok && callsub(S_Spawn));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (.@ele_respawn_spawn_ok && geteleminfo(0, .char_id) > 0) {
+			.@ele_live_ok = 1;
+			.@ele_respawn_ok = 1;
+			break;
+		}
+	}
+	.@ele_cleanup_ok = (.@ele_respawn_ok && callsub(S_Remove));
+	if (.@ele_cleanup_ok) {
+		query_sql("DELETE FROM `elemental` WHERE `char_id` = '" + .char_id + "'");
+		query_sql("UPDATE `char` SET `elemental_id` = '0' WHERE `char_id` = '" + .char_id + "'");
+	}
+	.@ele_clear_ok = (.@ele_cleanup_ok);
+
+	.@pet_seed_ok = (.@ele_clear_ok && callsub(S_Spawn));
+	.@pet_remove_ok = (.@pet_seed_ok && callsub(S_Remove));
+	if (.@pet_remove_ok) {
+		query_sql("DELETE FROM `pet` WHERE `char_id` = '" + .char_id + "'");
+		query_sql("INSERT INTO `pet` (`class`,`name`,`account_id`,`char_id`,`level`,`egg_id`,`equip`,`intimate`,`hungry`,`rename_flag`,`incubate`,`autofeed`) VALUES ('1002','Poring','" + .acc_id + "','" + .char_id + "','1','9001','0','500','100','0','0','0')");
+		query_sql("SELECT COALESCE(MAX(`pet_id`),0) FROM `pet` WHERE `char_id` = '" + .char_id + "'", .@pet_id);
+		query_sql("UPDATE `char` SET `pet_id` = '" + .@pet_id + "' WHERE `char_id` = '" + .char_id + "'");
+		.@pet_insert_ok = (.@pet_id > 0);
+	}
+	.@pet_respawn_spawn_ok = (.@pet_insert_ok && callsub(S_Spawn));
+	for (.@i = 0; .@i < 12; ++.@i) {
+		sleep 250;
+		if (.@pet_respawn_spawn_ok && getpetinfo(0, .char_id) > 0) {
+			.@pet_respawn_ok = 1;
+			break;
+		}
+	}
+	.@pet_cleanup_ok = (.@pet_respawn_ok && callsub(S_Remove));
+	if (.@pet_cleanup_ok) {
+		query_sql("DELETE FROM `pet` WHERE `char_id` = '" + .char_id + "'");
+		query_sql("UPDATE `char` SET `pet_id` = '0' WHERE `char_id` = '" + .char_id + "'");
+	}
+	.@pet_clear_ok = (.@pet_cleanup_ok);
+
+	.@park_ok = callsub(S_Remove);
+	.@result = (.@sum_ok && .@spawn_ok && .@ele_clear0_ok
+		&& .@mer_create_ok && .@mer_live_ok && .@mer_remove_ok && .@mer_respawn_spawn_ok && .@mer_respawn_ok && .@mer_cleanup_ok
+		&& .@ele_spawn_ok && .@ele_create_ok && .@ele_live_ok && .@ele_remove_ok && .@ele_respawn_spawn_ok && .@ele_respawn_ok && .@ele_cleanup_ok && .@ele_clear_ok
+		&& .@pet_seed_ok && .@pet_remove_ok && .@pet_insert_ok && .@pet_respawn_spawn_ok && .@pet_respawn_ok && .@pet_cleanup_ok && .@pet_clear_ok
+		&& .@park_ok);
+	debugmes "playerbot_companion_selftest: summary_ok=" + .@sum_ok + " spawn_ok=" + .@spawn_ok + " mer_create_ok=" + .@mer_create_ok + " mer_live_ok=" + .@mer_live_ok + " mer_remove_ok=" + .@mer_remove_ok + " mer_respawn_spawn_ok=" + .@mer_respawn_spawn_ok + " mer_respawn_ok=" + .@mer_respawn_ok + " mer_cleanup_ok=" + .@mer_cleanup_ok + " ele_spawn_ok=" + .@ele_spawn_ok + " ele_create_ok=" + .@ele_create_ok + " ele_live_ok=" + .@ele_live_ok + " ele_remove_ok=" + .@ele_remove_ok + " ele_respawn_spawn_ok=" + .@ele_respawn_spawn_ok + " ele_respawn_ok=" + .@ele_respawn_ok + " ele_cleanup_ok=" + .@ele_cleanup_ok + " ele_clear_ok=" + .@ele_clear_ok + " pet_seed_ok=" + .@pet_seed_ok + " pet_remove_ok=" + .@pet_remove_ok + " pet_insert_ok=" + .@pet_insert_ok + " pet_respawn_spawn_ok=" + .@pet_respawn_spawn_ok + " pet_respawn_ok=" + .@pet_respawn_ok + " pet_cleanup_ok=" + .@pet_cleanup_ok + " pet_clear_ok=" + .@pet_clear_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	detachrid;
+	return;
+}

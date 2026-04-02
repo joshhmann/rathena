@@ -129,8 +129,10 @@ Execute the remaining closeout fronts in this order:
 4. broader combat-event continuity under repeated transitions
 5. richer scenario coverage and trace/audit clarity for those fronts
 
-The companion system lane (pet/homunculus/mercenary/elemental) remains a
-separate future foundation extension after this closeout sequence is green.
+The companion lane is no longer all-or-nothing:
+
+- mercenary, elemental, and pet now have helper-backed extension proof lanes
+- homunculus remains the only separate future foundation extension blocker
 
 The remaining lifecycle-specific open fronts are now split:
 

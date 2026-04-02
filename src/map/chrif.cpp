@@ -2368,10 +2368,10 @@ static void chrif_headlesspc_spawn_reply(int32 fd) {
 		return;
 	}
 
-	if (status.pet_id > 0 || status.hom_id > 0 || status.mer_id > 0 || status.ele_id > 0) {
+	if (status.hom_id > 0) {
 		headlesspc_clear_pending_spawn(status.char_id);
 		headlesspc_runtime_delete(status.char_id);
-		ShowWarning("headless_pc: character %u has unsupported companion state for Phase 0 headless bring-up.\n",
+		ShowWarning("headless_pc: character %u has unsupported homunculus state for Phase 0 headless bring-up.\n",
 			status.char_id);
 		chrif_char_offline_nsd(status.account_id, status.char_id);
 		return;

@@ -15498,6 +15498,65 @@ BUILDIN_FUNC(playerbot_mailgetattach)
 	return SCRIPT_CMD_SUCCESS;
 }
 
+BUILDIN_FUNC(playerbot_mercenarycreate)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 class_ = script_getnum(st, 3);
+	int32 lifetime = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || class_ <= 0 || lifetime <= 0 || sd->md != nullptr || sd->status.mer_id != 0 || !mercenary_db.exists(class_)) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	mercenary_create(sd, static_cast<uint16>(class_), lifetime);
+	script_pushint(st, 1);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_elementalcreate)
+{
+	const char* bot_key = script_getstr(st, 2);
+	int32 class_ = script_getnum(st, 3);
+	int32 lifetime = script_getnum(st, 4);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr || class_ <= 0 || lifetime <= 0 || sd->ed != nullptr || sd->status.ele_id != 0) {
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	script_pushint(st, elemental_create(sd, class_, lifetime) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+BUILDIN_FUNC(playerbot_elementaldelete)
+{
+	const char* bot_key = script_getstr(st, 2);
+	uint32 bot_id = 0, char_id = 0, account_id = 0;
+	map_session_data* sd = playerbot_online_session_by_key(bot_key, &bot_id, &char_id, &account_id);
+
+	if (sd == nullptr)
+	{
+		script_pushint(st, 0);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->ed == nullptr && sd->status.ele_id == 0) {
+		script_pushint(st, 1);
+		return SCRIPT_CMD_SUCCESS;
+	}
+
+	if (sd->ed != nullptr)
+		elemental_delete(sd->ed);
+
+	script_pushint(st, (sd->ed == nullptr && sd->status.ele_id == 0) ? 1 : 0);
+	return SCRIPT_CMD_SUCCESS;
+}
+
 BUILDIN_FUNC(playerbot_vendingopen)
 {
 	const char* bot_key = script_getstr(st, 2);
@@ -33722,6 +33781,9 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(playerbot_mailitemtotal,"si"),
 	BUILDIN_DEF(playerbot_mailzeny,"si"),
 	BUILDIN_DEF(playerbot_mailgetattach,"sii"),
+	BUILDIN_DEF(playerbot_mercenarycreate,"sii"),
+	BUILDIN_DEF(playerbot_elementalcreate,"sii"),
+	BUILDIN_DEF(playerbot_elementaldelete,"s"),
 	BUILDIN_DEF(playerbot_vendingopen,"ssiii"),
 	BUILDIN_DEF(playerbot_vendingclose,"s"),
 	BUILDIN_DEF(playerbot_vendingactive,"s"),

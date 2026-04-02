@@ -52,7 +52,7 @@ Layer labels:
 | Reconcile / stale-state recovery | ✓ | foundation | Targeted reconcile-and-retry lane |
 | Despawn grace window | ~ | foundation | Controller grace now writes runtime `park_state='grace'` and `despawn_grace_until` for live actors; still no dedicated automated closeout helper proving expiry/park behavior end-to-end |
 | Spawn-failure cleanup | ✓ | foundation | `map_addblock` failure now rolls back partial headless load state and stops pre-ready follow-on reconcile work |
-| Companion state at spawn | ✗ (blocked) | foundation | Pet / homunculus / mercenary / elemental presence rejects spawn — see Companions section |
+| Companion state at spawn | ~ | foundation | Pet / mercenary / elemental are helper-backed; homunculus remains blocked — see Companions section |
 
 ---
 
@@ -100,18 +100,17 @@ savepoint. Full PvP/WoE combat behavior remains out of scope.
 
 | System | Status | Layer | Notes |
 |--------|--------|-------|-------|
-| Pet | ✗ (blocked) | foundation (future ext.) | Spawn rejected if character owns a pet; companion lifecycle not handled |
-| Homunculus | ✗ (blocked) | foundation (future ext.) | Alchemist class companion; blocked at spawn |
-| Mercenary | ✗ (blocked) | foundation (future ext.) | Hired combat companion; blocked at spawn |
-| Elemental | ✗ (blocked) | foundation (future ext.) | Sorcerer class companion; blocked at spawn |
+| Pet | ~ | foundation (future ext.) | Helper-backed SQL seed now proves active pet state can survive headless respawn and cleanup |
+| Homunculus | ✗ (blocked) | foundation (future ext.) | Alchemist class companion; still blocked at spawn |
+| Mercenary | ~ | foundation (future ext.) | Helper-backed continuity proof now exists across headless respawn |
+| Elemental | ~ | foundation (future ext.) | Helper-backed continuity proof now exists across headless respawn |
 
-All four are currently a hard reject at spawn time. This is intentional policy
-for now, not an oversight. If companion-bearing bots are ever wanted, the spawn
-and lifecycle path needs a dedicated foundation extension slice for each
-companion type. Companion state persistence, recall/dismiss, and hunger/intimacy
-semantics are non-trivial.
+Homunculus is now the only companion family still hard-rejected at spawn time.
+Pet, mercenary, and elemental support are helper-backed extension proof lanes
+rather than accepted baseline blockers. Companion state persistence,
+recall/dismiss, and hunger/intimacy semantics are still non-trivial.
 
-Recommended near-term action: document the block explicitly as "future
+Recommended near-term action: document homunculus explicitly as "future
 foundation extension" in the edge cases doc so it is tracked rather than
 forgotten.
 
@@ -276,7 +275,7 @@ behavior phase.
 These remain outside the accepted core baseline even though the current
 foundation is now safe to build behavior work on:
 
-1. Companion unblock (pets, homunculus, mercenary, elemental) — named future extension
+1. Homunculus unblock — named future foundation extension
 
 ### Behavior-layer targets (after foundation closes)
 
@@ -305,8 +304,8 @@ Good first-wave behavior targets once the foundation is closed:
 
 ## Recommended Next Actions
 
-1. Treat the companion lane (pet / homunculus / mercenary / elemental) as the
-   next optional foundation-extension sprint if extension work continues.
+1. Treat homunculus as the next optional foundation-extension sprint if
+   extension work continues.
 
 2. Keep richer skillunit proof split/helper-backed until repeated aggregate
    evidence justifies promotion.
