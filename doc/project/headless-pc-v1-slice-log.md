@@ -10775,6 +10775,53 @@ This slice intentionally does not add:
 - retreat/heal/support role specialization
 - quest/progression behavior
 
+## Slice 66: First Quest / Progression Behavior Family Proof
+
+### Summary
+
+Added the first kernel-backed quest/progression behavior proof by combining
+config-driven `advance_relay` selection with the existing quest relay A→B
+runtime.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
+- `tools/ci/playerbot-progression-behavior-smoke.sh`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-scenario.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Reused the existing config-backed kernel surface to support progression action
+  choice through `advance_relay`.
+- Added a dedicated progression behavior lab and hidden selftest that:
+  - seeds a progression-friendly `bot_behavior_config` row
+  - proves the kernel picks `advance_relay`
+  - reuses the existing quest relay A→B runtime from the participation lab
+- Added a dedicated progression behavior smoke helper and scenario/runbook
+  entry.
+
+### Validation
+
+- `bash tools/ci/playerbot-progression-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-quest-progression`
+- `bash -n tools/ci/playerbot-progression-behavior-smoke.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- `bot_progression_state` persistence
+- daily routine budget logic
+- quest routing beyond the relay proof
+- richer class-aware combat policy
+
 ## Slice 65: First Combat Behavior Family Proof
 
 ### Summary

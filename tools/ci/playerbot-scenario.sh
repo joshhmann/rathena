@@ -75,6 +75,7 @@ Current catalog:
   behavior-party-support
   behavior-merchant-economy
   behavior-combat-selection
+  behavior-quest-progression
   status-continuity
   status-death-cleanup
   status-map-continuity

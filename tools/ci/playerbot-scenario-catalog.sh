@@ -14,6 +14,7 @@ playerbot_scenario_ids() {
 		'behavior-party-support' \
 		'behavior-merchant-economy' \
 		'behavior-combat-selection' \
+		'behavior-quest-progression' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -51,6 +52,7 @@ playerbot_scenario_title() {
 		behavior-party-support) printf '%s\n' 'Behavior Party Support' ;;
 		behavior-merchant-economy) printf '%s\n' 'Behavior Merchant Economy' ;;
 		behavior-combat-selection) printf '%s\n' 'Behavior Combat Selection' ;;
+		behavior-quest-progression) printf '%s\n' 'Behavior Quest Progression' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -84,6 +86,7 @@ playerbot_scenario_phase() {
 		behavior-party-support) printf '%s\n' 'behavior' ;;
 		behavior-merchant-economy) printf '%s\n' 'behavior' ;;
 		behavior-combat-selection) printf '%s\n' 'behavior' ;;
+		behavior-quest-progression) printf '%s\n' 'behavior' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
@@ -160,6 +163,11 @@ EOF
 		behavior-combat-selection)
 			cat <<'EOF'
 Validate the first combat behavior family on top of the shared behavior kernel: a combat-capable bot should choose `attack_target` under combat-friendly policy and then hand that choice into the existing attack-intent runtime.
+EOF
+			;;
+		behavior-quest-progression)
+			cat <<'EOF'
+Validate the first quest/progression behavior family on top of the shared behavior kernel: a progression-capable bot should choose `advance_relay` under progression-friendly policy and then complete the existing quest relay A→B handoff runtime.
 EOF
 			;;
 		status-continuity)
@@ -495,6 +503,15 @@ EOF
 - confirm the printed behavior memory rows include `last_action=attack_target` and `last_reason=combat.attack.policy`
 EOF
 			;;
+		behavior-quest-progression)
+			cat <<'EOF'
+- arm the dedicated progression-behavior helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-progression-behavior-smoke.sh check`
+- confirm the selftest line contains `policy_pick$=advance_relay`, `quest_ok=1`, and `result=1`
+- confirm the printed behavior memory rows include `last_action=advance_relay` and `last_reason=progress.quest.policy`
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 - clear any previous sentinel guild-storage probe rows
@@ -738,6 +755,13 @@ EOF
 - current behavior memory rows include `last_action=attack_target` and `last_reason=combat.attack.policy`
 EOF
 			;;
+		behavior-quest-progression)
+			cat <<'EOF'
+- `playerbot_progression_behavior_selftest ... result=1` is present
+- the selftest reports `policy_pick$=advance_relay`, `policy_ok=1`, and `quest_ok=1`
+- current behavior memory rows include `last_action=advance_relay` and `last_reason=progress.quest.policy`
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
@@ -906,6 +930,15 @@ It proves the first kernel-backed combat behavior slice by combining
 config-driven `attack_target` choice with the existing attack-intent runtime.
 EOF
 			;;
+		behavior-quest-progression)
+			cat <<'EOF'
+This scenario is backed by the dedicated progression behavior helper:
+`tools/ci/playerbot-progression-behavior-smoke.sh`.
+
+It proves the first kernel-backed quest/progression slice by combining
+config-driven `advance_relay` choice with the existing quest relay A→B runtime.
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 This scenario is backed by the SQL-safe guild storage helper:
@@ -1034,6 +1067,9 @@ playerbot_scenario_launcher() {
 			;;
 		behavior-combat-selection)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-behavior-smoke.sh run'
+			;;
+		behavior-quest-progression)
+			printf '%s\n' 'bash tools/ci/playerbot-progression-behavior-smoke.sh run'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'

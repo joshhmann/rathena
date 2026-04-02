@@ -53,6 +53,7 @@ The current catalog contains:
 - `behavior-party-support`
 - `behavior-merchant-economy`
 - `behavior-combat-selection`
+- `behavior-quest-progression`
 - `market-rodex-receive-attachments`
 - `status-continuity`
 - `status-death-cleanup`
@@ -102,6 +103,7 @@ These split into two groups:
   - `behavior-party-support`
   - `behavior-merchant-economy`
   - `behavior-combat-selection`
+  - `behavior-quest-progression`
   - `market-rodex-receive-attachments`
   - `status-continuity`
   - `status-death-cleanup`

@@ -51,6 +51,8 @@ The first real family now also exists in focused proof form through:
 - `tools/ci/playerbot-merchant-behavior-smoke.sh`
 - `npc/custom/playerbot/playerbot_combat_behavior_lab.txt`
 - `tools/ci/playerbot-combat-behavior-smoke.sh`
+- `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
+- `tools/ci/playerbot-progression-behavior-smoke.sh`
 - `npc/custom/playerbot/playerbot_combat_behavior_lab.txt`
 - `tools/ci/playerbot-combat-behavior-smoke.sh`
 
@@ -77,6 +79,12 @@ Current combat-family proof:
 - a combat-capable bot chooses `attack_target` as the winning action under combat-friendly policy
 - the chosen action is persisted through the shared behavior memory surface
 - the existing attack-intent runtime engages a live target and then clears target state again
+
+Current progression/quest-family proof:
+
+- a progression-capable bot chooses `advance_relay` as the winning action under progression-friendly policy
+- the chosen action is persisted through the shared behavior memory surface
+- the existing quest relay A→B runtime completes and leaves stable stage progression evidence
 
 Current combat-family proof:
 

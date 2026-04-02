@@ -127,6 +127,15 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 4;
 		if (.@presence_policy$[0] == "always_on")
 			.@bonus += 1;
+	} else if (.@action$ == "quest_handoff" || .@action$ == "advance_relay") {
+		if (.@interaction_policy$[0] == "clickable")
+			.@bonus += 3;
+		if (.@presence_policy$[0] == "hybrid")
+			.@bonus += 3;
+		else if (.@presence_policy$[0] == "always_on")
+			.@bonus += 1;
+		if (countstr(.@pulse_profile$[0], "quest") > 0 || countstr(.@pulse_profile$[0], "progress") > 0)
+			.@bonus += 5;
 	} else if (.@action$ == "disengage") {
 		if (.@presence_policy$[0] == "schedule_gated")
 			.@bonus += 2;
