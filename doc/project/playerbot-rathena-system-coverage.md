@@ -156,13 +156,13 @@ forgotten.
 | Vendlist browsing | ✓ | foundation | Buyer-side browse covered |
 | Buying store (seller open / close) | ✓ | foundation | Seller-side covered |
 | Buying store (buyer browse and sell) | ✓ | foundation | Basic buyer-side covered |
-| Buying store partial fill | ~ | foundation | Session state exists; partial-fill execution semantics are a closeout gap |
-| Buying store reopen | ~ | foundation | Session close and reopen continuity is a closeout gap |
-| Buying store denial continuity | ✗ | foundation | Denial recovery and continuity is a closeout gap |
+| Buying store partial fill | ✓ | foundation | Partial-fill execution and state continuity are covered |
+| Buying store reopen | ✓ | foundation | Close/reopen continuity is covered |
+| Buying store denial continuity | ✓ | foundation | Browse-inactive, wrong-item, overfill, and zeny-limit denial continuity is covered |
 | NPC shop buy / sell | ~ | foundation | NPC interaction layer covers this path; no dedicated bot-NPC-shop smoke |
 | Trade with players | ✓ | foundation | Trade session participation covered |
-| Mail send / receive (Rodex) | ~ | foundation | Session ownership covered; full send/receive and attachment semantics not proven |
-| Mail delivery integrity | ✗ | foundation | Closeout gap — mail delivery as a complete flow |
+| Mail send / receive (Rodex) | ~ | foundation | Active-session denial + post-close successful send/delivery are covered; receive/attachment semantics are still not proven |
+| Mail delivery integrity | ~ | foundation | Post-close mail delivery integrity is covered; full receive/attachment semantics remain open |
 | Auction house | ✗ | behavior | Not addressed; depends on item and economy foundation |
 | Zeny routing / transfer | ~ | foundation | Covered implicitly through trade and market; no dedicated bot-zeny-routing surface |
 | Economy participation (market response) | ✗ | behavior | Bot deciding prices, restocking, responding to supply/demand is behavior |

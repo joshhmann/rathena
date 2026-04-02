@@ -38,8 +38,10 @@ Current closeout status:
    - added repeated quick-gate flake-hunt helper with automatic fail-hint
      extraction (`tools/ci/playerbot-foundation-flake-hunt.sh`)
 2. Market execution semantics beyond ownership continuity: in progress
-   - merchant market selftest now emits vend-phase mail integrity telemetry
-   - pass criteria for new vend-mail signals intentionally deferred until denial semantics are deterministic
+   - market smoke and market-session stress now prove buyingstore partial fill,
+     reopen, denial continuity, and post-close mail delivery
+   - the remaining market gap is narrower: fuller Rodex receive/attachment
+     semantics and any dedicated NPC-shop proof we decide to require
    - full closeout matrix now executes market-session stress as a dedicated
      checkpoint after overlap/combat stress
 3. Mechanic execution semantics (refine/reform/enchantgrade) beyond baseline: in progress

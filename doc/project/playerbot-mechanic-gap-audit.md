@@ -29,15 +29,16 @@ The current baseline already has:
 The next unresolved mechanic-participation gaps are:
 
 1. **Broader market/session execution semantics**
-   - vending, vendlist, seller-side buyingstore, and one-item buyer-side
-     buyingstore flows are now covered
-   - the remaining market gap is richer commerce behavior beyond the current
-     continuity baseline:
-     - multi-item buyingstore negotiation
-     - fuller purchase/commit flows
-     - deeper market-session state transitions during live commerce
+   - vending, vendlist, seller-side buyingstore, buyer-side multi-item
+     buyingstore negotiation, partial fill, denial continuity, and reopen flows
+     are now covered
+   - the remaining market gap is narrower than the original baseline note:
+     - fuller Rodex receive / attachment semantics
+     - any still-missing dedicated bot-NPC-shop buy/sell proof if we want that
+       path explicitly named rather than inherited from generic NPC interaction
    - mail composition/business logic is still only partially first-class; the
-     current baseline proves session ownership, not full mail semantics
+     current baseline now proves denial during active market sessions and
+     successful delivery after close, but not full receive/attachment semantics
 
 2. **Mechanic execution semantics beyond session ownership**
    - transient mechanic/session ownership is now broadly tracked and cleaned up
