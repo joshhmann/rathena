@@ -12,6 +12,7 @@ playerbot_scenario_ids() {
 		'companion-spawn-continuity' \
 		'behavior-social-presence' \
 		'behavior-party-support' \
+		'behavior-merchant-economy' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -47,6 +48,7 @@ playerbot_scenario_title() {
 		companion-spawn-continuity) printf '%s\n' 'Companion Spawn Continuity' ;;
 		behavior-social-presence) printf '%s\n' 'Behavior Social Presence' ;;
 		behavior-party-support) printf '%s\n' 'Behavior Party Support' ;;
+		behavior-merchant-economy) printf '%s\n' 'Behavior Merchant Economy' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -78,6 +80,7 @@ playerbot_scenario_phase() {
 		companion-spawn-continuity) printf '%s\n' 'lifecycle' ;;
 		behavior-social-presence) printf '%s\n' 'behavior' ;;
 		behavior-party-support) printf '%s\n' 'behavior' ;;
+		behavior-merchant-economy) printf '%s\n' 'behavior' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
@@ -144,6 +147,11 @@ EOF
 		behavior-party-support)
 			cat <<'EOF'
 Validate the first party/support behavior family on top of the shared behavior kernel: a party-capable bot should choose assist as the winning action under party-friendly policy and then complete the existing assist-anchor runtime.
+EOF
+			;;
+		behavior-merchant-economy)
+			cat <<'EOF'
+Validate the first merchant/economy behavior family on top of the shared behavior kernel: a merchant-capable bot should choose `open_shop` under merchant-friendly policy and then hand that choice into the existing merchant state/runtime surface.
 EOF
 			;;
 		status-continuity)
@@ -461,6 +469,15 @@ EOF
 - confirm the printed behavior memory rows include `last_action=assist` and `last_reason=party.assist.policy`
 EOF
 			;;
+		behavior-merchant-economy)
+			cat <<'EOF'
+- arm the dedicated merchant-behavior helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-merchant-behavior-smoke.sh check`
+- confirm the selftest line contains `policy_pick$=open_shop`, `proxy_ok=1`, and `result=1`
+- confirm the printed behavior memory rows include `last_action=open_shop` and `last_reason=merchant.open.policy`
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 - clear any previous sentinel guild-storage probe rows
@@ -690,6 +707,13 @@ EOF
 - current behavior memory rows include `last_action=assist` and `last_reason=party.assist.policy`
 EOF
 			;;
+		behavior-merchant-economy)
+			cat <<'EOF'
+- `playerbot_merchant_behavior_selftest ... result=1` is present
+- the selftest reports `policy_pick$=open_shop`, `policy_ok=1`, and `proxy_ok=1`
+- current behavior memory rows include `last_action=open_shop` and `last_reason=merchant.open.policy`
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
@@ -839,6 +863,16 @@ It proves the first kernel-backed party/support behavior slice by combining
 config-driven assist choice with the existing hidden party assist runtime.
 EOF
 			;;
+		behavior-merchant-economy)
+			cat <<'EOF'
+This scenario is backed by the dedicated merchant behavior helper:
+`tools/ci/playerbot-merchant-behavior-smoke.sh`.
+
+It proves the first kernel-backed merchant/economy behavior slice by combining
+config-driven `open_shop` choice with the existing merchant state/runtime
+surface.
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 This scenario is backed by the SQL-safe guild storage helper:
@@ -961,6 +995,9 @@ playerbot_scenario_launcher() {
 			;;
 		behavior-party-support)
 			printf '%s\n' 'bash tools/ci/playerbot-party-behavior-smoke.sh run'
+			;;
+		behavior-merchant-economy)
+			printf '%s\n' 'bash tools/ci/playerbot-merchant-behavior-smoke.sh run'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'

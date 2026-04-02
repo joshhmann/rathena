@@ -73,6 +73,7 @@ Current catalog:
   combat-repeated-transition-stress
   behavior-social-presence
   behavior-party-support
+  behavior-merchant-economy
   status-continuity
   status-death-cleanup
   status-map-continuity

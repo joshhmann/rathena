@@ -58,7 +58,10 @@ Current behavior-phase status:
 - first real party/support proof is now landed
   - `npc/custom/playerbot/playerbot_party_behavior_lab.txt`
   - `tools/ci/playerbot-party-behavior-smoke.sh`
-- next recommended behavior expansion: merchant/economy behavior on top of the same kernel
+- first real merchant/economy proof is now landed
+  - `npc/custom/playerbot/playerbot_merchant_behavior_lab.txt`
+  - `tools/ci/playerbot-merchant-behavior-smoke.sh`
+- next recommended behavior expansion: combat behavior on top of the same kernel
 
 ## External Test Harness
 

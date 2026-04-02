@@ -47,6 +47,8 @@ The first real family now also exists in focused proof form through:
 - `tools/ci/playerbot-social-behavior-smoke.sh`
 - `npc/custom/playerbot/playerbot_party_behavior_lab.txt`
 - `tools/ci/playerbot-party-behavior-smoke.sh`
+- `npc/custom/playerbot/playerbot_merchant_behavior_lab.txt`
+- `tools/ci/playerbot-merchant-behavior-smoke.sh`
 
 Current social-family proof:
 
@@ -59,6 +61,12 @@ Current party/support-family proof:
 - a party-capable bot chooses `assist` as the winning action under party-friendly policy
 - the chosen action is persisted through the shared behavior memory surface
 - the existing assist-anchor runtime completes against the moved leader target
+
+Current merchant/economy-family proof:
+
+- a merchant-capable bot chooses `open_shop` as the winning action under merchant-friendly policy
+- the chosen action is persisted through the shared behavior memory surface
+- the existing merchant state/runtime surface enters open + merchanting state and records browse/sale runtime activity
 
 ---
 

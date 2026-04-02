@@ -10679,3 +10679,52 @@ This slice intentionally does not add:
 - combat-aware support/heal logic
 - merchant/economy behavior
 - broader ambient/controller social promotion
+
+## Slice 64: First Merchant / Economy Behavior Family Proof
+
+### Summary
+
+Added the first kernel-backed merchant/economy behavior proof by combining
+config-driven `open_shop` selection with the existing merchant state/runtime
+surface.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `npc/custom/playerbot/playerbot_merchant_behavior_lab.txt`
+- `tools/ci/playerbot-merchant-behavior-smoke.sh`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-scenario.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended the config-backed kernel bonus surface to understand merchant actions
+  like `open_shop`.
+- Added a dedicated merchant behavior lab and hidden selftest that:
+  - seeds a merchant-friendly `bot_behavior_config` row
+  - proves the kernel picks `open_shop`
+  - reuses the existing merchant state/runtime surfaces for open + runtime
+    activity proof
+- Added a dedicated merchant behavior smoke helper and scenario entry.
+
+### Validation
+
+- `bash tools/ci/playerbot-merchant-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-market-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-merchant-economy`
+- `bash -n tools/ci/playerbot-merchant-behavior-smoke.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- full merchant restock policy
+- price adaptation or economy simulation
+- broader ambient/controller social promotion
+- combat behavior

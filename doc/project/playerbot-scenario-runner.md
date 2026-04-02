@@ -51,6 +51,7 @@ The current catalog contains:
 - `companion-spawn-continuity`
 - `behavior-social-presence`
 - `behavior-party-support`
+- `behavior-merchant-economy`
 - `market-rodex-receive-attachments`
 - `status-continuity`
 - `status-death-cleanup`
@@ -98,6 +99,7 @@ These split into two groups:
   - `companion-spawn-continuity`
   - `behavior-social-presence`
   - `behavior-party-support`
+  - `behavior-merchant-economy`
   - `market-rodex-receive-attachments`
   - `status-continuity`
   - `status-death-cleanup`
