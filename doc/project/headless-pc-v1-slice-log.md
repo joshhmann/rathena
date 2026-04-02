@@ -10728,3 +10728,96 @@ This slice intentionally does not add:
 - price adaptation or economy simulation
 - broader ambient/controller social promotion
 - combat behavior
+
+## Slice 65: First Combat Behavior Family Proof
+
+### Summary
+
+Added the first kernel-backed combat behavior proof by combining
+config-driven `attack_target` selection with the existing attack-intent runtime.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `npc/custom/playerbot/playerbot_combat_behavior_lab.txt`
+- `tools/ci/playerbot-combat-behavior-smoke.sh`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-scenario.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Reused the existing config-backed kernel surface to support `attack_target`
+  combat choice.
+- Added a dedicated combat behavior lab and hidden selftest that:
+  - seeds a combat-friendly `bot_behavior_config` row
+  - proves the kernel picks `attack_target`
+  - reuses the existing combat/attack-intent runtime to engage and then clear a
+    live target
+- Added a dedicated combat behavior smoke helper and scenario/runbook entry.
+
+### Validation
+
+- `bash tools/ci/playerbot-combat-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-combat-selection`
+- `bash -n tools/ci/playerbot-combat-behavior-smoke.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- class-aware combat policy
+- skill-selection or richer skillunit behavior
+- retreat/heal/support role specialization
+- quest/progression behavior
+
+## Slice 65: First Combat Behavior Family Proof
+
+### Summary
+
+Added the first kernel-backed combat behavior proof by combining
+config-driven `attack_target` selection with the existing attack-intent
+runtime.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_behavior_lab.txt`
+- `npc/custom/playerbot/playerbot_combat_behavior_lab.txt`
+- `tools/ci/playerbot-combat-behavior-smoke.sh`
+- `npc/scripts_custom.conf`
+- `tools/ci/playerbot-scenario.sh`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/playerbot-scenario-runner.md`
+- `doc/project/roadmap.md`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Extended the config-backed kernel bonus surface to understand combat actions
+  like `attack_target`.
+- Added a dedicated combat behavior lab and hidden selftest that:
+  - seeds a combat-friendly `bot_behavior_config` row
+  - proves the kernel picks `attack_target`
+  - reuses the existing attack-intent runtime against one legal dummy target
+- Added a dedicated combat behavior smoke helper and scenario entry.
+
+### Validation
+
+- `bash tools/ci/playerbot-combat-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-combat-selection`
+- `bash -n tools/ci/playerbot-combat-behavior-smoke.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- richer class-aware combat policy
+- skill-cast or skillunit combat behavior
+- threat/disengage heuristics beyond the initial selector surface
+- broader economy or social-controller promotion

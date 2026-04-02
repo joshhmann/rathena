@@ -13,6 +13,7 @@ playerbot_scenario_ids() {
 		'behavior-social-presence' \
 		'behavior-party-support' \
 		'behavior-merchant-economy' \
+		'behavior-combat-selection' \
 		'status-continuity' \
 		'status-death-cleanup' \
 		'status-map-continuity' \
@@ -49,6 +50,7 @@ playerbot_scenario_title() {
 		behavior-social-presence) printf '%s\n' 'Behavior Social Presence' ;;
 		behavior-party-support) printf '%s\n' 'Behavior Party Support' ;;
 		behavior-merchant-economy) printf '%s\n' 'Behavior Merchant Economy' ;;
+		behavior-combat-selection) printf '%s\n' 'Behavior Combat Selection' ;;
 		status-continuity) printf '%s\n' 'Status Continuity' ;;
 		status-death-cleanup) printf '%s\n' 'Status Death Cleanup' ;;
 		status-map-continuity) printf '%s\n' 'Status Map Continuity' ;;
@@ -81,6 +83,7 @@ playerbot_scenario_phase() {
 		behavior-social-presence) printf '%s\n' 'behavior' ;;
 		behavior-party-support) printf '%s\n' 'behavior' ;;
 		behavior-merchant-economy) printf '%s\n' 'behavior' ;;
+		behavior-combat-selection) printf '%s\n' 'behavior' ;;
 		status-continuity|status-death-cleanup|status-map-continuity|status-respawn-reconcile|status-recovery-integrity) printf '%s\n' 'status' ;;
 		death-respawn) printf '%s\n' 'respawn' ;;
 		item-loadout-continuity|loadout-denied-recover|loadout-overlap-continuity) printf '%s\n' 'equipment' ;;
@@ -152,6 +155,11 @@ EOF
 		behavior-merchant-economy)
 			cat <<'EOF'
 Validate the first merchant/economy behavior family on top of the shared behavior kernel: a merchant-capable bot should choose `open_shop` under merchant-friendly policy and then hand that choice into the existing merchant state/runtime surface.
+EOF
+			;;
+		behavior-combat-selection)
+			cat <<'EOF'
+Validate the first combat behavior family on top of the shared behavior kernel: a combat-capable bot should choose `attack_target` under combat-friendly policy and then hand that choice into the existing attack-intent runtime.
 EOF
 			;;
 		status-continuity)
@@ -478,6 +486,15 @@ EOF
 - confirm the printed behavior memory rows include `last_action=open_shop` and `last_reason=merchant.open.policy`
 EOF
 			;;
+		behavior-combat-selection)
+			cat <<'EOF'
+- arm the dedicated combat-behavior helper
+- log in once with the `codex` OpenKore profile
+- run `bash tools/ci/playerbot-combat-behavior-smoke.sh check`
+- confirm the selftest line contains `policy_pick$=attack_target`, `engaged_ok=1`, and `result=1`
+- confirm the printed behavior memory rows include `last_action=attack_target` and `last_reason=combat.attack.policy`
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 - clear any previous sentinel guild-storage probe rows
@@ -714,6 +731,13 @@ EOF
 - current behavior memory rows include `last_action=open_shop` and `last_reason=merchant.open.policy`
 EOF
 			;;
+		behavior-combat-selection)
+			cat <<'EOF'
+- `playerbot_combat_behavior_selftest ... result=1` is present
+- the selftest reports `policy_pick$=attack_target`, `policy_ok=1`, and `engaged_ok=1`
+- current behavior memory rows include `last_action=attack_target` and `last_reason=combat.attack.policy`
+EOF
+			;;
 		market-buyingstore-partial-fill)
 			cat <<'EOF'
 - `playerbot_merchant_selftest ... buying_partial_ok=1 ... result=1` is present
@@ -873,6 +897,15 @@ config-driven `open_shop` choice with the existing merchant state/runtime
 surface.
 EOF
 			;;
+		behavior-combat-selection)
+			cat <<'EOF'
+This scenario is backed by the dedicated combat behavior helper:
+`tools/ci/playerbot-combat-behavior-smoke.sh`.
+
+It proves the first kernel-backed combat behavior slice by combining
+config-driven `attack_target` choice with the existing attack-intent runtime.
+EOF
+			;;
 		guild-storage-signal-integrity)
 			cat <<'EOF'
 This scenario is backed by the SQL-safe guild storage helper:
@@ -998,6 +1031,9 @@ playerbot_scenario_launcher() {
 			;;
 		behavior-merchant-economy)
 			printf '%s\n' 'bash tools/ci/playerbot-merchant-behavior-smoke.sh run'
+			;;
+		behavior-combat-selection)
+			printf '%s\n' 'bash tools/ci/playerbot-combat-behavior-smoke.sh run'
 			;;
 		status-recovery-integrity)
 			printf '%s\n' 'bash tools/ci/playerbot-combat-smoke.sh run'

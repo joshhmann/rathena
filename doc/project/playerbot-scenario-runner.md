@@ -52,6 +52,7 @@ The current catalog contains:
 - `behavior-social-presence`
 - `behavior-party-support`
 - `behavior-merchant-economy`
+- `behavior-combat-selection`
 - `market-rodex-receive-attachments`
 - `status-continuity`
 - `status-death-cleanup`
@@ -100,6 +101,7 @@ These split into two groups:
   - `behavior-social-presence`
   - `behavior-party-support`
   - `behavior-merchant-economy`
+  - `behavior-combat-selection`
   - `market-rodex-receive-attachments`
   - `status-continuity`
   - `status-death-cleanup`

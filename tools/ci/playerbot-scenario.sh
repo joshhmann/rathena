@@ -74,6 +74,7 @@ Current catalog:
   behavior-social-presence
   behavior-party-support
   behavior-merchant-economy
+  behavior-combat-selection
   status-continuity
   status-death-cleanup
   status-map-continuity

@@ -120,6 +120,21 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 3;
 		if (countstr(.@pulse_profile$[0], "stock") > 0)
 			.@bonus += 3;
+	} else if (.@action$ == "attack_target") {
+		if (countstr(.@pulse_profile$[0], "combat") > 0)
+			.@bonus += 4;
+		if (countstr(.@pulse_profile$[0], "attack") > 0)
+			.@bonus += 4;
+		if (.@presence_policy$[0] == "always_on")
+			.@bonus += 1;
+	} else if (.@action$ == "disengage") {
+		if (.@presence_policy$[0] == "schedule_gated")
+			.@bonus += 2;
+		else if (.@presence_policy$[0] == "hybrid")
+			.@bonus += 1;
+	} else if (.@action$ == "hold_position") {
+		if (countstr(.@pulse_profile$[0], "guard") > 0)
+			.@bonus += 3;
 	} else if (.@action$ == "idle") {
 		if (.@presence_policy$[0] == "schedule_gated")
 			.@bonus += 2;

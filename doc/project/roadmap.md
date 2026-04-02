@@ -61,7 +61,10 @@ Current behavior-phase status:
 - first real merchant/economy proof is now landed
   - `npc/custom/playerbot/playerbot_merchant_behavior_lab.txt`
   - `tools/ci/playerbot-merchant-behavior-smoke.sh`
-- next recommended behavior expansion: combat behavior on top of the same kernel
+- first real combat-selection proof is now landed
+  - `npc/custom/playerbot/playerbot_combat_behavior_lab.txt`
+  - `tools/ci/playerbot-combat-behavior-smoke.sh`
+- next recommended behavior expansion: richer combat roles / class-aware combat policy
 
 ## External Test Harness
 
