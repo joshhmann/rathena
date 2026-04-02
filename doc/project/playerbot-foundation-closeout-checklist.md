@@ -58,11 +58,11 @@ Current closeout status:
      and richer consume continuity beyond the current instant-use baseline
 5. Broader combat-event continuity under repeated transitions: in progress
    - repeated-transition stress now checks combat continuity + market commit +
-     item loadout continuity + full mechanic re-exec (refine/reform/enchant)
-   - closeout full matrix now executes repeated-transition stress after
-     aggregate/rich loops with strict drift enforcement
-   - repeated-transition stress now requires per-run interrupt-clear signals
-     (`npc/storage/trade`) and per-run interrupt audit evidence
+     item loadout continuity + full mechanic re-exec and is green
+   - richer skillunit creation/cleanup and precheck proof are helper-backed in
+     the dedicated combat lanes
+   - the remaining combat-edge work is narrower: PvP / WoE death semantics
+     verification and any future decision to aggregate the split skillunit proof
 6. Scenario coverage for all remaining open fronts: in progress
 7. Trace/audit reason/result quality and debuggability: in progress
    - closeout matrix now executes a trace-quality checkpoint that fails on

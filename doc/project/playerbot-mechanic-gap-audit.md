@@ -61,11 +61,11 @@ The next unresolved mechanic-participation gaps are:
    - the stable aggregate combat gate is green
    - richer positional-skill / persistent-skillunit participation is proven
      through the separate probe and scenario layer
-   - the remaining combat gap is promotion and expansion beyond that boundary:
-     - more combat-adjacent event transitions
-     - repeated sequential combat/status handoffs
-     - eventual promotion of richer skill-unit proof into the broader accepted
-       combat frontier when stable
+   - repeated combat/status/session transition stress is also green
+   - the remaining combat gap is now narrower:
+     - PvP / WoE death semantics verification
+     - whether richer skill-unit proof should ever be merged into the aggregate
+       accepted frontier instead of staying split/helper-backed
 
 5. **Scenario coverage beyond the current accepted gates**
    - `mechanic-cleanup` is now runbook-backed

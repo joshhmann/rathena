@@ -78,8 +78,8 @@ Layer labels:
 | Death and cleanup | ✓ | foundation | Stale reservations cleared, combat state cleaned |
 | Respawn and reconcile | ✓ | foundation | State reconciled before resume |
 | Status effects (buffs / ailments) | ✓ | foundation | Apply, clear, continuity across death/respawn/map |
-| Ground skill units (skillunit) | ~ | foundation | Creation and cleanup proven via dedicated probe lane; not yet in aggregate gate |
-| Skillunit promotion precheck | ✗ | foundation | Pre-condition validation surface (SP, range, cell flags) not yet implemented |
+| Ground skill units (skillunit) | ~ | foundation | Creation and cleanup are proven via dedicated probe lane; accepted as a split helper-backed proof rather than aggregate baseline |
+| Skillunit promotion precheck | ✓ | foundation | Pre-condition validation surface is helper-backed and covered through the dedicated precheck lane |
 | Skill casting (non-positional) | ✗ | behavior | Foundation buildins exist for status; general skill-cast behavior layer not built |
 | Target selection / priority | ✗ | behavior | No combat AI decision layer; `playerbot_target` is operator-driven today |
 | Loot routing | ✗ | behavior | No item pickup or loot behavior |
