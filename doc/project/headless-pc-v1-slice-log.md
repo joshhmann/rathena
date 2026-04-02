@@ -6088,6 +6088,54 @@ Observed:
 - lifecycle grace helper is not yet promoted into the aggregate automated
   closeout matrix
 
+## Slice 74: Re-anchor Aggregate Participation/Combat Inviter Setup
+
+### Summary
+
+Fixed the aggregate participation/combat flake caused by the attached inviter
+player not being colocated with the bot during trade-driven participation and
+combat subflows.
+
+### Files
+
+- `npc/custom/playerbot/playerbot_participation_lab.txt`
+- `npc/custom/playerbot/playerbot_combat_lab.txt`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Participation selftest:
+  - records inviter origin map/coords
+  - warps the inviter to Alberta near the participation bot before the trade
+    subflows
+  - restores the inviter to the original location before exit
+- Combat selftest:
+  - records inviter origin map/coords when online
+  - warps the inviter near the combat bot before trade/party/guild continuity
+    subflows
+  - restores inviter position before exit
+- This removes dependence on whatever map the operator account happened to log
+  into, which was causing `trade.request_failed` / `target.invalid` in
+  aggregate runs.
+
+### Validation
+
+- `bash tools/ci/playerbot-participation-smoke.sh run`
+- `bash tools/ci/playerbot-combat-smoke.sh run`
+- `bash tools/ci/playerbot-foundation-gate.sh quick`
+
+Observed:
+
+- participation selftest passed with `trade_force_clear_ok=1` and `result=1`
+- combat selftest passed with `result=1`
+- aggregate quick gate returned `quick: pass`
+
+### Deferrals
+
+This slice does not change underlying trade protocol semantics; it fixes the
+aggregate selftest setup so inviter-dependent flows are actually exercised from
+a valid local position.
+
 ## Slice 89: Stabilize Participation Trade Continuity In Aggregate Foundation Runs
 
 ### Summary

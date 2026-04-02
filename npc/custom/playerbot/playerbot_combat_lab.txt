@@ -153,6 +153,14 @@ S_Run:
 		.inviter_char_id = getcharid(0);
 		.inviter_aid = getcharid(3);
 		.inviter_name$ = strcharinfo(0);
+		getmapxy(.@inviter_map$, .@inviter_x, .@inviter_y, BL_PC, .inviter_name$);
+		.@inviter_return_map$ = .@inviter_map$;
+		.@inviter_return_x = .@inviter_x;
+		.@inviter_return_y = .@inviter_y;
+		if (.@inviter_map$ != "alberta" || distance(.@inviter_x, .@inviter_y, 161, 136) > 20) {
+			warp "alberta", 161, 136;
+			sleep 600;
+		}
 	} else {
 		.@inviter_online = 0;
 		.inviter_char_id = .test_char_id;
@@ -1132,6 +1140,8 @@ S_Run:
 	debugmes "playerbot_combat_selftest: summary_ok=" + .@summary_ok + " spawn_ok=" + .@spawn_ok + " attack_ok=" + .@attack_ok + " skill_status_ok=" + .@skill_status_ok + " sunit_active_ok=" + .@skillunit_active_ok + " status_map_cont_ok=" + .@status_map_cont_ok + " party_join_ok=" + .@party_join_ok + " party_respawn_cont_ok=" + .@party_respawn_cont_ok + " guild_join_ok=" + .@guild_join_ok + " guild_respawn_cont_ok=" + .@guild_respawn_cont_ok + " continuity_loop_ok=" + .@continuity_loop_ok + " continuity_loop_count=" + .@continuity_loop_count + " npc_interrupt_clear_ok=" + .@npc_interrupt_clear_ok + " storage_interrupt_clear_ok=" + .@storage_interrupt_clear_ok + " trade_interrupt_clear_ok=" + .@trade_interrupt_clear_ok + " trace_ok=" + .@trace_ok + " audit_ok=" + .@audit_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	debugmes "playerbot_combat_state: state$=" + .@combat_state$ + " status$=" + playerbot_statussummary(.bot_key$) + " session$=" + playerbot_sessionsummary(.bot_key$) + " search$=" + playerbot_searchsummary(.bot_key$) + ".";
 	debugmes "playerbot_combat_social: party_anchor_ok=" + .@party_anchor_ok + " party_join_ok=" + .@party_join_ok + " party_map_cont_ok=" + .@party_map_cont_ok + " party_respawn_cont_ok=" + .@party_respawn_cont_ok + " guild_anchor_ok=" + .@guild_anchor_ok + " guild_join_ok=" + .@guild_join_ok + " guild_map_cont_ok=" + .@guild_map_cont_ok + " guild_respawn_cont_ok=" + .@guild_respawn_cont_ok + ".";
+	if (.@inviter_online && .@inviter_return_map$ != "")
+		warp .@inviter_return_map$, .@inviter_return_x, .@inviter_return_y;
 	detachrid;
 	return;
 }

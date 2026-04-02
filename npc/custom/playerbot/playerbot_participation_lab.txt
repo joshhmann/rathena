@@ -246,6 +246,14 @@ S_Run:
 	.inviter_char_id = getcharid(0);
 	.inviter_aid = getcharid(3);
 	.inviter_name$ = strcharinfo(0);
+	getmapxy(.@inviter_map$, .@inviter_x, .@inviter_y, BL_PC, .inviter_name$);
+	.@inviter_return_map$ = .@inviter_map$;
+	.@inviter_return_x = .@inviter_x;
+	.@inviter_return_y = .@inviter_y;
+	if (.@inviter_map$ != "alberta" || distance(.@inviter_x, .@inviter_y, 161, 136) > 10) {
+		warp "alberta", 161, 136;
+		sleep 600;
+	}
 	.bot_key$ = "quick_part_open";
 	.display_name$ = "QuickPartOpen";
 	.bot_id = playerbot_profile(.bot_key$);
@@ -680,6 +688,8 @@ S_Run:
 
 	.@result = (.@dialog_ok && .@dialog_deep_ok && .@dialog_quest_ok && .@npc_recover_ok && .@dialog_drift_ok && .@storage_basic_ok && .@storage_manual_ok && .@storage_recover_ok && .@storage_mutation_ok && .@trade_ok && .@trade_recover_ok && .@trade_force_clear_ok && .@participation_recover_ok && .@quit_npc_ok && .@quit_storage_ok && .@quit_request_ok && .@quit_reserve_id > 0 && .@quit_trade_clear_ok && .@quit_res_clear_ok && .@quit_audit_ok && .@quit_trace_ok && .@park_ok && .@trace_ok && .@recovery_audit_ok);
 	debugmes "playerbot_participation_selftest: spawn_ok=" + .@spawn_ok + " dialog_ok=" + .@dialog_ok + " dialog_deep_ok=" + .@dialog_deep_ok + " dialog_quest_ok=" + .@dialog_quest_ok + " npc_recover_ok=" + .@npc_recover_ok + " dialog_drift_ok=" + .@dialog_drift_ok + " dialog_drift_start_ok=" + .@dialog_drift_start_ok + " dialog_drift_close_ok=" + .@dialog_drift_close_ok + " dialog_drift_reap=" + .@dialog_drift_reap + " dialog_drift_clear_ok=" + .@dialog_drift_clear_ok + " storage_basic_ok=" + .@storage_basic_ok + " storage_manual_ok=" + .@storage_manual_ok + " storage_recover_ok=" + .@storage_recover_ok + " storage_mutation_ok=" + .@storage_mutation_ok + " trade_ok=" + .@trade_ok + " trade_recover_ok=" + .@trade_recover_ok + " trade_force_clear_ok=" + .@trade_force_clear_ok + " participation_recover_ok=" + .@participation_recover_ok + " pr_open_ok=" + .@pr_open_ok + " pr_reserved_ok=" + .@pr_reserved_ok + " pr_storage_ok=" + .@pr_storage_ok + " pr_request_ok=" + .@pr_request_ok + " pr_ack_ok=" + .@pr_ack_ok + " pr_recover_ok=" + .@pr_recover_ok + " pr_res_clear_ok=" + .@pr_res_clear_ok + " pr_all_clear_ok=" + .@pr_all_clear_ok + " quit_npc_ok=" + .@quit_npc_ok + " quit_storage_ok=" + .@quit_storage_ok + " quit_request_ok=" + .@quit_request_ok + " quit_ack_ok=" + .@quit_ack_ok + " quit_reserved_ok=" + (.@quit_reserve_id > 0) + " quit_trade_clear_ok=" + .@quit_trade_clear_ok + " quit_res_clear_ok=" + .@quit_res_clear_ok + " quit_audit_ok=" + .@quit_audit_ok + " quit_trace_ok=" + .@quit_trace_ok + " park_ok=" + .@park_ok + " trace_ok=" + .@trace_ok + " recovery_audit_ok=" + .@recovery_audit_ok + " result=" + .@result + ".";
+	if (.@inviter_return_map$ != "")
+		warp .@inviter_return_map$, .@inviter_return_x, .@inviter_return_y;
 	detachrid;
 	return;
 }
