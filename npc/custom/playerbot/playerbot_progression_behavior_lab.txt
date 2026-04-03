@@ -3,7 +3,7 @@ alberta,171,138,4	script	Playerbot Progression Behavior Lab	4_F_02,{
 	mes "Run the first kernel-backed progression/quest behavior slice.";
 	next;
 
-	switch(select("Run progression behavior selftest:Close")) {
+	switch(select("Run progression behavior selftest:Inspect progression state:Close")) {
 	case 1:
 		setd("$PBPROGBHV_MANUAL_AID", getcharid(3));
 		donpcevent "PlayerbotProgressionBehaviorSelftest::OnManualStart";
@@ -11,8 +11,16 @@ alberta,171,138,4	script	Playerbot Progression Behavior Lab	4_F_02,{
 		mes "Progression behavior selftest started.";
 		mes "Check the map-server log for the final result line.";
 		close;
+	case 2:
+		mes "[Playerbot Progression Behavior Lab]";
+		mes callfunc("F_PB_DB_BuildProgressionSummary$", .bot_key$);
+		close;
 	}
 	close;
+
+OnInit:
+	.bot_key$ = "quick_prog_open";
+	end;
 }
 
 -	script	PlayerbotProgressionBehaviorSelftest	FAKE_NPC,{
@@ -137,6 +145,11 @@ S_Run:
 	.@quest_stage2_ok = (getd("$PBPART_QUEST_DONE_" + $@pbbot_char_id) == 1 && getd("$PBPART_QUEST_FINAL_" + $@pbbot_char_id) == 1 && strcmp(.@quest_phrase$, "handoff-ready") == 0);
 	.@quest_idle_ok = (playerbot_npcactive(.bot_key$) == 0);
 	.@quest_ok = (.@quest_start_a_ok && .@quest_next_a_ok && .@quest_menu_a_ok && .@quest_close_a_ok && .@quest_stage1_ok && .@quest_start_b_ok && .@quest_next_b1_ok && .@quest_input_b_ok && .@quest_next_b2_ok && .@quest_menu_b_ok && .@quest_close_b_ok && .@quest_stage2_ok && .@quest_idle_ok);
+	.@progress_rows = callfunc("F_PB_DB_SetProgressionState", .bot_key$, "relay.v1", "quest.relay", 2, 1, "starter.quest", 3, gettimetick(2));
+	callfunc "F_PB_DB_LoadBotSummary", .bot_key$;
+	.@progress_state_ok = ($@pbbot_build_tag$ == "relay.v1" && $@pbbot_progression_profile$ == "quest.relay" && $@pbbot_base_level == 2 && $@pbbot_job_level == 1 && $@pbbot_equipment_profile$ == "starter.quest" && $@pbbot_daily_activity_budget == 3 && $@pbbot_last_progression_tick > 0);
+	.@progress_summary$ = callfunc("F_PB_DB_BuildProgressionSummary$", .bot_key$);
+	.@progress_summary_ok = (countstr(.@progress_summary$, "relay.v1") > 0 && countstr(.@progress_summary$, "quest.relay") > 0 && countstr(.@progress_summary$, "Base / Job: 2 / 1") > 0 && countstr(.@progress_summary$, "Daily Budget: 3") > 0);
 	.@summary$ = callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
 	.@summary_ok = (countstr(.@summary$, "presence=hybrid") > 0 && countstr(.@summary$, "pulse=quest.progress") > 0 && countstr(.@summary$, "controller=behavior.progression") > 0 && countstr(.@summary$, "last_action=advance_relay") > 0);
 	headlesspc_remove($@pbbot_char_id);
@@ -147,8 +160,8 @@ S_Run:
 			break;
 		}
 	}
-	.@result = (.@sum_ok && .@cfg_reload_ok && .@spawn_ok && .@policy_ok && .@mark_ok && .@quest_ok && .@summary_ok && .@park_ok);
-	debugmes "playerbot_progression_behavior_selftest: summary_ok=" + .@sum_ok + " cfg_ok=" + .@cfg_reload_ok + " spawn_ok=" + .@spawn_ok + " policy_pick$=" + .@policy_pick$ + " policy_ok=" + .@policy_ok + " mark_ok=" + .@mark_ok + " quest_ok=" + .@quest_ok + " stage1_ok=" + .@quest_stage1_ok + " stage2_ok=" + .@quest_stage2_ok + " summary_build_ok=" + .@summary_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
+	.@result = (.@sum_ok && .@cfg_reload_ok && .@spawn_ok && .@policy_ok && .@mark_ok && .@quest_ok && .@progress_state_ok && .@progress_summary_ok && .@summary_ok && .@park_ok);
+	debugmes "playerbot_progression_behavior_selftest: summary_ok=" + .@sum_ok + " cfg_ok=" + .@cfg_reload_ok + " spawn_ok=" + .@spawn_ok + " policy_pick$=" + .@policy_pick$ + " policy_ok=" + .@policy_ok + " mark_ok=" + .@mark_ok + " quest_ok=" + .@quest_ok + " stage1_ok=" + .@quest_stage1_ok + " stage2_ok=" + .@quest_stage2_ok + " progression_rows=" + .@progress_rows + " progression_state_ok=" + .@progress_state_ok + " progression_summary_ok=" + .@progress_summary_ok + " summary_build_ok=" + .@summary_ok + " park_ok=" + .@park_ok + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

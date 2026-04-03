@@ -510,6 +510,7 @@ EOF
 - run `bash tools/ci/playerbot-progression-behavior-smoke.sh check`
 - confirm the selftest line contains `policy_pick$=advance_relay`, `quest_ok=1`, and `result=1`
 - confirm the printed behavior memory rows include `last_action=advance_relay` and `last_reason=progress.quest.policy`
+- confirm the printed progression state row includes `relay.v1` / `quest.relay`
 EOF
 			;;
 		guild-storage-signal-integrity)
@@ -758,7 +759,7 @@ EOF
 		behavior-quest-progression)
 			cat <<'EOF'
 - `playerbot_progression_behavior_selftest ... result=1` is present
-- the selftest reports `policy_pick$=advance_relay`, `policy_ok=1`, and `quest_ok=1`
+- the selftest reports `policy_pick$=advance_relay`, `policy_ok=1`, `quest_ok=1`, and `progression_state_ok=1`
 - current behavior memory rows include `last_action=advance_relay` and `last_reason=progress.quest.policy`
 EOF
 			;;
@@ -936,7 +937,8 @@ This scenario is backed by the dedicated progression behavior helper:
 `tools/ci/playerbot-progression-behavior-smoke.sh`.
 
 It proves the first kernel-backed quest/progression slice by combining
-config-driven `advance_relay` choice with the existing quest relay A→B runtime.
+config-driven `advance_relay` choice with the existing quest relay A→B runtime
+and a persisted `bot_progression_state` row.
 EOF
 			;;
 		guild-storage-signal-integrity)

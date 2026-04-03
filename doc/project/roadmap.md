@@ -75,7 +75,9 @@ Current behavior-phase status:
 - first real quest/progression proof is now landed
   - `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
   - `tools/ci/playerbot-progression-behavior-smoke.sh`
-- next recommended behavior expansion: broader class-aware combat rotations, ally-heal/cleanse support behavior, or progression-state persistence
+- progression now also has a first persistence proof:
+  - `bot_progression_state`
+- next recommended behavior expansion: broader class-aware combat rotations, ally-heal/cleanse support behavior, or longer-horizon progression budgets/routines
 
 ## External Test Harness
 

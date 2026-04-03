@@ -2929,6 +2929,13 @@ function	script	F_PB_DB_LoadBotSummary	{
 	$@pbbot_stall_style$ = "";
 	$@pbbot_open_state$ = "";
 	$@pbbot_merchant_enabled = 0;
+	$@pbbot_build_tag$ = "";
+	$@pbbot_progression_profile$ = "";
+	$@pbbot_base_level = 0;
+	$@pbbot_job_level = 0;
+	$@pbbot_equipment_profile$ = "";
+	$@pbbot_daily_activity_budget = 0;
+	$@pbbot_last_progression_tick = 0;
 	.@rows = query_sql(
 		"SELECT p.`bot_id`, p.`name`, IFNULL(l.`char_id`, 0), IFNULL(l.`account_id`, 0), "
 		+ "p.`status`, p.`role`, IFNULL(b.`pool_key`, ''), IFNULL(b.`profile_key`, ''), "
@@ -2940,17 +2947,22 @@ function	script	F_PB_DB_LoadBotSummary	{
 		+ "IFNULL(m.`market_x`, 0), IFNULL(m.`market_y`, 0), "
 		+ "IFNULL(m.`opening_start_hour`, 0), IFNULL(m.`opening_end_hour`, 0), "
 		+ "IFNULL(m.`stock_profile`, ''), IFNULL(m.`price_profile`, ''), "
-		+ "IFNULL(m.`stall_style`, ''), IFNULL(m.`open_state`, ''), IFNULL(m.`enabled`, 0) "
+		+ "IFNULL(m.`stall_style`, ''), IFNULL(m.`open_state`, ''), IFNULL(m.`enabled`, 0), "
+		+ "IFNULL(pg.`build_tag`, ''), IFNULL(pg.`progression_profile`, ''), "
+		+ "IFNULL(pg.`base_level`, 0), IFNULL(pg.`job_level`, 0), "
+		+ "IFNULL(pg.`equipment_profile`, ''), IFNULL(pg.`daily_activity_budget`, 0), IFNULL(pg.`last_progression_tick`, 0) "
 		+ "FROM `bot_profile` p "
 		+ "LEFT JOIN `bot_identity_link` l ON l.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_behavior_config` b ON b.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_guild_state` g ON g.`bot_id` = p.`bot_id` "
 		+ "LEFT JOIN `bot_merchant_state` m ON m.`bot_id` = p.`bot_id` "
+		+ "LEFT JOIN `bot_progression_state` pg ON pg.`bot_id` = p.`bot_id` "
 		+ "WHERE p.`bot_key` = '" + .@bot_key$ + "' LIMIT 1",
 		.@bot_id, .@name$, .@char_id, .@account_id, .@status$, .@role$, .@pool$, .@profile$, .@interaction$, .@party$,
 		.@guild_policy$, .@guild_name$, .@guild_position$, .@guild_invite$, .@guild_state$, .@guild_enabled,
 		.@merchant_policy$, .@shop_name$, .@market_map$, .@market_x, .@market_y, .@merchant_start, .@merchant_end,
-		.@stock_profile$, .@price_profile$, .@stall_style$, .@open_state$, .@merchant_enabled);
+		.@stock_profile$, .@price_profile$, .@stall_style$, .@open_state$, .@merchant_enabled,
+		.@build_tag$, .@progression_profile$, .@base_level, .@job_level, .@equipment_profile$, .@daily_budget, .@progression_tick);
 	if (.@rows > 0) {
 		$@pbbot_found = 1;
 		$@pbbot_bot_id = .@bot_id[0];
@@ -2981,8 +2993,56 @@ function	script	F_PB_DB_LoadBotSummary	{
 		$@pbbot_stall_style$ = .@stall_style$[0];
 		$@pbbot_open_state$ = .@open_state$[0];
 		$@pbbot_merchant_enabled = .@merchant_enabled[0];
+		$@pbbot_build_tag$ = .@build_tag$[0];
+		$@pbbot_progression_profile$ = .@progression_profile$[0];
+		$@pbbot_base_level = .@base_level[0];
+		$@pbbot_job_level = .@job_level[0];
+		$@pbbot_equipment_profile$ = .@equipment_profile$[0];
+		$@pbbot_daily_activity_budget = .@daily_budget[0];
+		$@pbbot_last_progression_tick = .@progression_tick[0];
 	}
 	return .@rows;
+}
+
+function	script	F_PB_DB_SetProgressionState	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	.@build_tag$ = escape_sql(getarg(1, ""));
+	.@progression_profile$ = escape_sql(getarg(2, ""));
+	.@base_level = getarg(3, 1);
+	.@job_level = getarg(4, 1);
+	.@equipment_profile$ = escape_sql(getarg(5, ""));
+	.@daily_budget = getarg(6, 0);
+	.@tick = getarg(7, gettimetick(2));
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return 0;
+	return query_sql(
+		"INSERT INTO `bot_progression_state` (`bot_id`, `build_tag`, `progression_profile`, `base_level`, `job_level`, `equipment_profile`, `daily_activity_budget`, `last_progression_tick`) "
+		+ "VALUES ('" + $@pbbot_bot_id + "', '" + .@build_tag$ + "', '" + .@progression_profile$ + "', '" + .@base_level + "', '" + .@job_level + "', '" + .@equipment_profile$ + "', '" + .@daily_budget + "', '" + .@tick + "') "
+		+ "ON DUPLICATE KEY UPDATE "
+		+ "`build_tag` = VALUES(`build_tag`), "
+		+ "`progression_profile` = VALUES(`progression_profile`), "
+		+ "`base_level` = VALUES(`base_level`), "
+		+ "`job_level` = VALUES(`job_level`), "
+		+ "`equipment_profile` = VALUES(`equipment_profile`), "
+		+ "`daily_activity_budget` = VALUES(`daily_activity_budget`), "
+		+ "`last_progression_tick` = VALUES(`last_progression_tick`)");
+}
+
+function	script	F_PB_DB_BuildProgressionSummary$	{
+	.@bot_key$ = escape_sql(getarg(0, ""));
+	if (.@bot_key$ == "" || !callfunc("F_PB_DB_LoadBotSummary", .@bot_key$))
+		return "Progression: unknown bot key.";
+	.@now = gettimetick(2);
+	.@age_s = 0;
+	if ($@pbbot_last_progression_tick > 0)
+		.@age_s = .@now - $@pbbot_last_progression_tick;
+	.@summary$ = "Progression: " + .@bot_key$;
+	.@summary$ += "\nBuild / Profile: " + ($@pbbot_build_tag$ == "" ? "<none>" : $@pbbot_build_tag$) + " / " + ($@pbbot_progression_profile$ == "" ? "<none>" : $@pbbot_progression_profile$);
+	.@summary$ += "\nBase / Job: " + $@pbbot_base_level + " / " + $@pbbot_job_level;
+	.@summary$ += "\nEquipment Profile: " + ($@pbbot_equipment_profile$ == "" ? "<none>" : $@pbbot_equipment_profile$);
+	.@summary$ += "\nDaily Budget: " + $@pbbot_daily_activity_budget;
+	.@summary$ += "\nLast Tick: " + ($@pbbot_last_progression_tick > 0 ? .@age_s + "s ago" : "<never>");
+	return .@summary$;
 }
 
 function	script	F_PB_DB_BuildGuildRuntimeSummary$	{

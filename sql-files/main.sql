@@ -1584,6 +1584,25 @@ CREATE TABLE IF NOT EXISTS `bot_merchant_activity_log` (
 ) ENGINE=InnoDB;
 
 --
+-- Table structure for table `bot_progression_state`
+--
+
+CREATE TABLE IF NOT EXISTS `bot_progression_state` (
+  `bot_id` int(10) unsigned NOT NULL,
+  `build_tag` varchar(64) NOT NULL default '',
+  `progression_profile` varchar(64) NOT NULL default '',
+  `base_level` smallint(5) unsigned NOT NULL default '1',
+  `job_level` smallint(5) unsigned NOT NULL default '1',
+  `equipment_profile` varchar(64) NOT NULL default '',
+  `daily_activity_budget` smallint(5) unsigned NOT NULL default '0',
+  `last_progression_tick` int(10) unsigned NOT NULL default '0',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`bot_id`),
+  KEY `progression_profile` (`progression_profile`),
+  KEY `last_progression_tick` (`last_progression_tick`)
+) ENGINE=InnoDB;
+
+--
 -- Table structure for table `bot_reservation`
 --
 

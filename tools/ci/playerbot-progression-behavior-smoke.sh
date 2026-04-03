@@ -33,7 +33,7 @@ check() {
 	printf '%s\n' "$line"
 	pb_smoke_check_signals "$PB_SMOKE_LABEL" "$line" \
 		summary_ok=1 cfg_ok=1 spawn_ok=1 policy_pick$=advance_relay policy_ok=1 \
-		mark_ok=1 quest_ok=1 stage1_ok=1 stage2_ok=1 summary_build_ok=1 park_ok=1 result=1
+		mark_ok=1 quest_ok=1 stage1_ok=1 stage2_ok=1 progression_state_ok=1 progression_summary_ok=1 summary_build_ok=1 park_ok=1 result=1
 	printf '\n[%s] Current progression behavior memory rows\n' "$PB_SMOKE_LABEL"
 	pb_smoke_sql_heredoc <<'SQL'
 SELECT `memory_key`, `int_value`, `text_value`, `source_tag`
@@ -42,6 +42,13 @@ WHERE `memory_scope` = 'controller'
   AND `memory_key` LIKE 'behavior.%'
 ORDER BY `updated_at` DESC
 LIMIT 16;
+SQL
+	printf '\n[%s] Current persisted progression state\n' "$PB_SMOKE_LABEL"
+	pb_smoke_sql_heredoc <<'SQL'
+SELECT p.`bot_key`, pg.`build_tag`, pg.`progression_profile`, pg.`base_level`, pg.`job_level`, pg.`equipment_profile`, pg.`daily_activity_budget`, pg.`last_progression_tick`
+FROM `bot_profile` p
+JOIN `bot_progression_state` pg ON pg.`bot_id` = p.`bot_id`
+WHERE p.`bot_key` = 'quick_prog_open';
 SQL
 }
 

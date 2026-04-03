@@ -573,7 +573,7 @@ Status:
 
 ### 15. `bot_progression_state`
 
-Deferred but explicitly expected for the fuller playerbot lane.
+Committed for the progression-capable playerbot lane.
 
 Fields:
 
@@ -594,7 +594,9 @@ Purpose:
 
 Status:
 
-- deferred
+- committed in `sql-files/main.sql`
+- migration artifact:
+  `sql-files/upgrades/upgrade_20260402_playerbot_progression_state.sql`
 
 ### 16. `bot_item_audit`
 

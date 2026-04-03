@@ -85,6 +85,8 @@ Current combat-family proof:
   - support -> `disengage`
 - the same family now also proves a first skill-selection branch:
   - caster -> `cast_skill`
+- the same family now also proves a first support-action branch:
+  - support buffer -> `cast_support_buff`
 - the same family now also proves a first support-buff branch:
   - support -> `cast_support_buff`
 
@@ -93,6 +95,7 @@ Current progression/quest-family proof:
 - a progression-capable bot chooses `advance_relay` as the winning action under progression-friendly policy
 - the chosen action is persisted through the shared behavior memory surface
 - the existing quest relay A→B runtime completes and leaves stable stage progression evidence
+- the family now also writes and verifies a persisted `bot_progression_state` row
 
 Current combat-family proof:
 

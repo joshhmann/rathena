@@ -10831,6 +10831,58 @@ This slice intentionally does not add:
 - quest routing beyond the relay proof
 - richer class-aware combat policy
 
+## Slice 67: Progression State Persistence
+
+### Summary
+
+Promoted the first quest/progression behavior family from transient proof only
+into a persisted progression surface by landing `bot_progression_state` and
+wiring the quest relay family to write and verify it.
+
+### Files
+
+- `sql-files/main.sql`
+- `sql-files/upgrades/upgrade_20260402_playerbot_progression_state.sql`
+- `npc/custom/living_world/_common.txt`
+- `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
+- `tools/ci/playerbot-progression-behavior-smoke.sh`
+- `doc/project/bot-state-schema.md`
+- `doc/project/playerbot-behavior-phase-plan.md`
+- `doc/project/roadmap.md`
+- `tools/ci/playerbot-scenario-catalog.sh`
+- `doc/project/headless-pc-v1-slice-log.md`
+
+### What Changed
+
+- Added persistent table:
+  - `bot_progression_state`
+- Added progression helpers in the shared playerbot DB facade:
+  - `F_PB_DB_SetProgressionState`
+  - `F_PB_DB_BuildProgressionSummary$`
+- Extended `F_PB_DB_LoadBotSummary` to expose loaded progression fields.
+- Extended the progression behavior selftest so the quest relay proof now:
+  - writes progression state
+  - reloads it through the summary facade
+  - verifies the persisted summary text
+- Extended the progression smoke helper to print the persisted progression row.
+
+### Validation
+
+- `mysql -u rathena -prathena_secure_2024 rathena < sql-files/upgrades/upgrade_20260402_playerbot_progression_state.sql`
+- `bash tools/ci/playerbot-progression-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-behavior-smoke.sh run`
+- `bash tools/ci/playerbot-scenario.sh --no-color run behavior-quest-progression`
+- `bash -n tools/ci/playerbot-progression-behavior-smoke.sh tools/ci/playerbot-scenario.sh tools/ci/playerbot-scenario-catalog.sh`
+
+### Deferrals
+
+This slice intentionally does not add:
+
+- daily routine budget execution
+- long-horizon progression planners
+- progression-driven equipment policy
+- broader class-aware combat policy
+
 ## Slice 65: First Combat Behavior Family Proof
 
 ### Summary
