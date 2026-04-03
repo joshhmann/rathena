@@ -20,6 +20,7 @@ Companion documents:
 - `doc/project/playerbot-future-design-notes.md`
 - `doc/project/playerbot-execution-plan.md`
 - `doc/project/playerbot-mechanic-gap-audit.md`
+- `doc/project/playerbot-behavior-authoring-guide.md`
 
 ---
 
