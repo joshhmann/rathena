@@ -242,8 +242,24 @@ S_Run:
 		.@caster_cancel_ok = (.@caster_active_ok && playerbot_skillcastcancel(.bot_key$));
 		sleep 200;
 		.@caster_clear_ok = (.@caster_cancel_ok && !playerbot_skillcastactive(.bot_key$));
+		query_sql(
+			"REPLACE INTO `bot_behavior_config` (`bot_id`, `profile_key`, `pool_key`, `controller_tag`, `interaction_policy`, `party_policy`, `presence_policy`, `routine_group`, `routine_start_hour`, `routine_end_hour`, `pulse_profile`) "
+			+ "VALUES ('" + $@pbbot_bot_id + "', 'combat.support.buff', 'pool.combat.test', 'behavior.combat.support.buff', 'ambient_only', 'never', 'hybrid', 'combat.support', 8, 22, 'support.buff')"
+		);
+		.@support_buff_cfg_ok = callfunc("F_PB_DB_LoadBotSummary", .bot_key$);
+		.@support_buff_pick$ = callfunc("F_PB_BEHAVIOR_PickPolicy$", .bot_key$, 0,
+			"attack_target", 10, 0,
+			"disengage", 10, 0,
+			"cast_support_buff", 10, 0);
+		.@support_buff_pick_ok = (.@support_buff_cfg_ok && .@support_buff_pick$ == "cast_support_buff" && callfunc("F_PB_BEHAVIOR_MarkDecision", .bot_key$, "cast_support_buff", 10 + callfunc("F_PB_BEHAVIOR_ConfigBonus", .bot_key$, "cast_support_buff"), "combat.support.buff.policy", 1000));
+		.@support_buff_apply_ok = (.@support_buff_pick_ok && playerbot_statusstart(.bot_key$, SC_BLESSING, 10, 15000));
+		sleep 200;
+		.@support_buff_active_ok = (.@support_buff_apply_ok && playerbot_statusactive(.bot_key$, SC_BLESSING));
+		.@support_buff_clear_req_ok = (.@support_buff_active_ok && playerbot_statusclear(.bot_key$, SC_BLESSING));
+		sleep 200;
+		.@support_buff_clear_ok = (.@support_buff_clear_req_ok && !playerbot_statusactive(.bot_key$, SC_BLESSING));
 		.@role_summary$ = callfunc("F_PB_BEHAVIOR_BuildSummary$", .bot_key$);
-		.@role_summary_ok = (countstr(.@role_summary$, "controller=behavior.combat.caster") > 0 && countstr(.@role_summary$, "last_action=cast_skill") > 0);
+		.@role_summary_ok = (countstr(.@role_summary$, "controller=behavior.combat.support.buff") > 0 && countstr(.@role_summary$, "last_action=cast_support_buff") > 0);
 		killmonster "alberta", .mob_label$;
 		headlesspc_remove($@pbbot_char_id);
 		for (.@i = 0; .@i < 12; ++.@i) {
@@ -254,11 +270,12 @@ S_Run:
 			}
 		}
 	}
-	.@result = (.@sum_ok && .@cfg_reload_ok && .@spawn_ok && .@equip_ok && .@target_ok && .@policy_ok && .@mark_ok && .@attack_ok && .@engaged_ok && .@state_ok && .@stop_ok && .@target_clear_ok && .@retreat_cfg_ok && .@retreat_ok && .@summary_ok && .@park_ok
+		.@result = (.@sum_ok && .@cfg_reload_ok && .@spawn_ok && .@equip_ok && .@target_ok && .@policy_ok && .@mark_ok && .@attack_ok && .@engaged_ok && .@state_ok && .@stop_ok && .@target_clear_ok && .@retreat_cfg_ok && .@retreat_ok && .@summary_ok && .@park_ok
 		&& .@role_sum_ok && .@role_spawn_ok && .@role_target_ok && .@tank_ok && .@dps_ok && .@support_ok
 		&& .@caster_pick_ok && .@caster_grant_ok && .@caster_target_ok && .@caster_cast_ok && .@caster_active_ok && .@caster_cancel_ok && .@caster_clear_ok
+		&& .@support_buff_pick_ok && .@support_buff_apply_ok && .@support_buff_active_ok && .@support_buff_clear_req_ok && .@support_buff_clear_ok
 		&& .@role_summary_ok && .@role_park_ok);
-	debugmes "playerbot_combat_behavior_selftest: summary_ok=" + .@sum_ok + " cfg_ok=" + .@cfg_reload_ok + " spawn_ok=" + .@spawn_ok + " equip_ok=" + .@equip_ok + " target_ok=" + .@target_ok + " policy_pick$=" + .@policy_pick$ + " policy_ok=" + .@policy_ok + " mark_ok=" + .@mark_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " state_ok=" + .@state_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " retreat_cfg_ok=" + .@retreat_cfg_ok + " retreat_pick$=" + .@retreat_pick$ + " retreat_ok=" + .@retreat_ok + " tank_pick$=" + .@tank_pick$ + " tank_ok=" + .@tank_ok + " dps_pick$=" + .@dps_pick$ + " dps_ok=" + .@dps_ok + " support_pick$=" + .@support_pick$ + " support_ok=" + .@support_ok + " caster_pick$=" + .@caster_pick$ + " caster_pick_ok=" + .@caster_pick_ok + " caster_cast_ok=" + .@caster_cast_ok + " caster_clear_ok=" + .@caster_clear_ok + " summary_build_ok=" + (.@summary_ok && .@role_summary_ok) + " park_ok=" + (.@park_ok && .@role_park_ok) + " result=" + .@result + ".";
+	debugmes "playerbot_combat_behavior_selftest: summary_ok=" + .@sum_ok + " cfg_ok=" + .@cfg_reload_ok + " spawn_ok=" + .@spawn_ok + " equip_ok=" + .@equip_ok + " target_ok=" + .@target_ok + " policy_pick$=" + .@policy_pick$ + " policy_ok=" + .@policy_ok + " mark_ok=" + .@mark_ok + " attack_ok=" + .@attack_ok + " engaged_ok=" + .@engaged_ok + " state_ok=" + .@state_ok + " stop_ok=" + .@stop_ok + " target_clear_ok=" + .@target_clear_ok + " retreat_cfg_ok=" + .@retreat_cfg_ok + " retreat_pick$=" + .@retreat_pick$ + " retreat_ok=" + .@retreat_ok + " tank_pick$=" + .@tank_pick$ + " tank_ok=" + .@tank_ok + " dps_pick$=" + .@dps_pick$ + " dps_ok=" + .@dps_ok + " support_pick$=" + .@support_pick$ + " support_ok=" + .@support_ok + " caster_pick$=" + .@caster_pick$ + " caster_pick_ok=" + .@caster_pick_ok + " caster_cast_ok=" + .@caster_cast_ok + " caster_clear_ok=" + .@caster_clear_ok + " support_buff_pick$=" + .@support_buff_pick$ + " support_buff_pick_ok=" + .@support_buff_pick_ok + " support_buff_apply_ok=" + .@support_buff_apply_ok + " support_buff_clear_ok=" + .@support_buff_clear_ok + " summary_build_ok=" + (.@summary_ok && .@role_summary_ok) + " park_ok=" + (.@park_ok && .@role_park_ok) + " result=" + .@result + ".";
 	detachrid;
 	return;
 }

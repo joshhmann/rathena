@@ -40,6 +40,7 @@ check() {
 		dps_pick$=attack_target dps_ok=1 \
 		support_pick$=disengage support_ok=1 \
 		caster_pick$=cast_skill caster_pick_ok=1 caster_cast_ok=1 caster_clear_ok=1 \
+		support_buff_pick$=cast_support_buff support_buff_pick_ok=1 support_buff_apply_ok=1 support_buff_clear_ok=1 \
 		summary_build_ok=1 park_ok=1 result=1
 	printf '\n[%s] Current combat behavior memory rows\n' "$PB_SMOKE_LABEL"
 	pb_smoke_sql_heredoc <<'SQL'

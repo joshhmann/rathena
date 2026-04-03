@@ -85,6 +85,8 @@ Current combat-family proof:
   - support -> `disengage`
 - the same family now also proves a first skill-selection branch:
   - caster -> `cast_skill`
+- the same family now also proves a first support-buff branch:
+  - support -> `cast_support_buff`
 
 Current progression/quest-family proof:
 

@@ -10762,6 +10762,8 @@ config-driven `attack_target` selection with the existing attack-intent runtime.
     - support -> `disengage`
   - proves a first caster skill-selection branch:
     - caster -> `cast_skill`
+  - proves a first support-buff branch:
+    - support -> `cast_support_buff`
   - reuses the existing combat/attack-intent runtime to engage and then clear a
     live target
 - Added a dedicated combat behavior smoke helper and scenario/runbook entry.

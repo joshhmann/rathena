@@ -70,10 +70,12 @@ Current behavior-phase status:
   - support -> `disengage`
 - combat now also has a first skill-selection proof:
   - caster -> `cast_skill`
+- combat now also has a first support-buff proof:
+  - support -> `cast_support_buff`
 - first real quest/progression proof is now landed
   - `npc/custom/playerbot/playerbot_progression_behavior_lab.txt`
   - `tools/ci/playerbot-progression-behavior-smoke.sh`
-- next recommended behavior expansion: richer support/heal behavior, broader class-aware combat policy, or progression-state persistence
+- next recommended behavior expansion: broader class-aware combat rotations, ally-heal/cleanse support behavior, or progression-state persistence
 
 ## External Test Harness
 

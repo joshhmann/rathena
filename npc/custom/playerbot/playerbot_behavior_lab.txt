@@ -138,6 +138,13 @@ function	script	F_PB_BEHAVIOR_ConfigBonus	{
 			.@bonus += 5;
 		if (countstr(.@controller_tag$[0], "support") > 0 || countstr(.@profile_key$[0], "support") > 0)
 			.@bonus += 2;
+	} else if (.@action$ == "cast_support_buff") {
+		if (countstr(.@pulse_profile$[0], "support") > 0 || countstr(.@pulse_profile$[0], "buff") > 0)
+			.@bonus += 5;
+		if (countstr(.@controller_tag$[0], "support") > 0 || countstr(.@profile_key$[0], "support") > 0)
+			.@bonus += 5;
+		if (.@presence_policy$[0] == "hybrid")
+			.@bonus += 2;
 	} else if (.@action$ == "quest_handoff" || .@action$ == "advance_relay") {
 		if (.@interaction_policy$[0] == "clickable")
 			.@bonus += 3;
